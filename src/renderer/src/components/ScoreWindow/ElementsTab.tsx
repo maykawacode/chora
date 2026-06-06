@@ -109,13 +109,14 @@ export function ElementsTab(): React.JSX.Element {
         <div className={styles.fieldRow}>
           <label className={styles.label}>Weight</label>
           <input
+            key={selected?.id ?? 'none'}
             className={styles.weightInput}
             type="number"
             min={1}
             max={100}
-            value={selected?.weight ?? 1}
+            defaultValue={selected?.weight ?? 1}
             disabled={!selected}
-            onChange={e => selected && updateElement(selected.id, { weight: Math.max(1, Math.min(100, +e.target.value)) })}
+            onBlur={e => selected && updateElement(selected.id, { weight: Math.max(1, Math.min(100, +e.target.value || 1)) })}
           />
         </div>
         <textarea
