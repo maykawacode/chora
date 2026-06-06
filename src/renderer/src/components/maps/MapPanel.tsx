@@ -65,7 +65,14 @@ function cartesianHitEdge(x: number, y: number, W: number, H: number): Edge | nu
   return null
 }
 
-interface DragTarget { elementId: string; xDimId: string; yDimId: string }
+interface DragTarget {
+  elementId: string
+  xDimId: string
+  yDimId: string
+  startX: number          // pointer position when drag began — used to pick lock axis
+  startY: number
+  lockedAxis: 'x' | 'y' | null
+}
 
 // Returns the element under the pointer on a cartesian map, or null.
 // Dots must be visible; uses the same radius formula as drawCartesian.
@@ -205,7 +212,7 @@ export function MapPanel({ mapId, onClose }: Props): React.JSX.Element | null {
     if (config.type === 'cartesian') {
       const hit = cartesianHitDot(x, y, rect.width, rect.height, config as CartesianMapConfig, elements, scores)
       if (hit) {
-        draggingRef.current  = hit
+        draggingRef.current  = { ...hit, startX: x, startY: y, lockedAxis: null }
         dragMovedRef.current = false
         setCursor('grabbing')
         e.preventDefault()
@@ -232,20 +239,38 @@ export function MapPanel({ mapId, onClose }: Props): React.JSX.Element | null {
 
     // Cartesian live drag
     if (draggingRef.current && config.type === 'cartesian') {
-      const { elementId, xDimId, yDimId } = draggingRef.current
+      const drag     = draggingRef.current
       const cartCfg  = config as CartesianMapConfig
       const plotLeft = MARGIN, plotRight  = W - MARGIN
       const plotTop  = MARGIN, plotBottom = H - MARGIN
       const plotW    = plotRight  - plotLeft
       const plotH    = plotBottom - plotTop
+
+      // Shift-constrain: lock to whichever axis had the larger initial movement
+      if (e.shiftKey) {
+        if (!drag.lockedAxis) {
+          const dx = Math.abs(x - drag.startX)
+          const dy = Math.abs(y - drag.startY)
+          if (dx > 4 || dy > 4) drag.lockedAxis = dx >= dy ? 'x' : 'y'
+        }
+      } else {
+        drag.lockedAxis = null
+      }
+
       const cx = Math.max(plotLeft, Math.min(plotRight,  x))
       const cy = Math.max(plotTop,  Math.min(plotBottom, y))
-      let xScore = (cx - plotLeft) / plotW
-      let yScore = 1 - (cy - plotTop) / plotH
-      if (cartCfg.xFlipped) xScore = 1 - xScore
-      if (cartCfg.yFlipped) yScore = 1 - yScore
-      setScore(elementId, xDimId, xScore)
-      setScore(elementId, yDimId, yScore)
+
+      if (drag.lockedAxis !== 'y') {
+        let xScore = (cx - plotLeft) / plotW
+        if (cartCfg.xFlipped) xScore = 1 - xScore
+        setScore(drag.elementId, drag.xDimId, xScore)
+      }
+      if (drag.lockedAxis !== 'x') {
+        let yScore = 1 - (cy - plotTop) / plotH
+        if (cartCfg.yFlipped) yScore = 1 - yScore
+        setScore(drag.elementId, drag.yDimId, yScore)
+      }
+
       dragMovedRef.current = true
       setCursor('grabbing')
       return
