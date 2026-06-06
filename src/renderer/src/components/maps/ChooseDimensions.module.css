@@ -1,0 +1,122 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.dialog {
+  background: #f0ede8;
+  border: 1px solid #888;
+  border-radius: 8px;
+  padding: 20px 24px;
+  width: 320px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+  font-size: 13px;
+}
+
+.title {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.subtitle {
+  margin: 0 0 12px;
+  color: #666;
+  font-size: 12px;
+}
+
+.warning {
+  color: #b04000;
+  font-size: 12px;
+  margin: 0 0 8px;
+}
+
+.list {
+  list-style: none;
+  margin: 0 0 16px;
+  padding: 0;
+  border: 1px solid #b0a898;
+  border-radius: 4px;
+  background: #fff;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  cursor: pointer;
+  min-height: 26px;
+}
+
+.item:hover {
+  background: #f0ede8;
+}
+
+.selected {
+  background: #c8a050 !important;
+  color: #fff;
+}
+
+.axisLabel {
+  font-size: 11px;
+  font-weight: 700;
+  width: 14px;
+  text-align: center;
+  background: rgba(255,255,255,0.3);
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.dimLabel {
+  flex: 1;
+}
+
+.buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.btnCancel,
+.btnDraw {
+  padding: 5px 16px;
+  border-radius: 5px;
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.btnCancel {
+  border: 1px solid #b0a898;
+  background: #e0ddd8;
+  color: #333;
+}
+
+.btnCancel:hover {
+  background: #d0cdc8;
+}
+
+.btnDraw {
+  border: 1px solid #608040;
+  background: #708040;
+  color: #fff;
+  font-weight: 500;
+}
+
+.btnDraw:hover {
+  background: #607030;
+}
+
+.btnDraw:disabled {
+  opacity: 0.4;
+  cursor: default;
+}

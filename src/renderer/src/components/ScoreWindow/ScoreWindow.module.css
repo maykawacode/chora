@@ -1,0 +1,43 @@
+.window {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #f0ede8;
+  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+  font-size: 13px;
+}
+
+.tabBar {
+  display: flex;
+  border-bottom: 1px solid #b0a898;
+  background: #e0ddd8;
+  padding: 6px 8px 0;
+  gap: 2px;
+}
+
+.tab {
+  padding: 5px 16px;
+  border: 1px solid #b0a898;
+  border-bottom: none;
+  background: #d0cdc8;
+  color: #444;
+  cursor: pointer;
+  border-radius: 4px 4px 0 0;
+  font-size: 13px;
+  font-family: inherit;
+}
+
+.tab:hover {
+  background: #c8c5c0;
+}
+
+.tabActive {
+  background: #f0ede8;
+  color: #000;
+  font-weight: 500;
+}
+
+.tabContent {
+  flex: 1;
+  overflow: hidden;
+}

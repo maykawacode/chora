@@ -1,0 +1,166 @@
+.tab {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* ── Slider area ─────────────────────────────────────────────────────────── */
+
+.sliderArea {
+  background: #fff;
+  border-bottom: 1px solid #b0a898;
+  padding: 12px 16px;
+  min-height: 110px;
+  display: flex;
+  align-items: center;
+}
+
+.hint {
+  color: #888;
+  font-size: 12px;
+  font-style: italic;
+  margin: 0;
+}
+
+.slider {
+  width: 100%;
+}
+
+.sliderElementName {
+  font-size: 14px;
+  font-weight: 700;
+  color: #2a6a2a;
+  margin-bottom: 6px;
+  text-align: center;
+}
+
+.sliderPoles {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.poleLabel {
+  font-size: 12px;
+  color: #c00;
+  font-weight: 500;
+}
+
+.sliderTrack {
+  position: relative;
+  height: 28px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.sliderLine {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: #666;
+}
+
+.tick {
+  position: absolute;
+  width: 1px;
+  height: 8px;
+  background: #888;
+  transform: translateX(-50%);
+}
+
+.sliderDot {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #e8c020;
+  border: 2px solid #a88010;
+  transform: translateX(-50%);
+  cursor: grab;
+  z-index: 1;
+}
+
+.sliderDot:active {
+  cursor: grabbing;
+}
+
+.sliderHint {
+  font-size: 11px;
+  color: #888;
+  text-align: center;
+  margin: 4px 0 0;
+  font-style: italic;
+}
+
+/* ── Bottom lists ─────────────────────────────────────────────────────────── */
+
+.listsRow {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.listPanel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 6px;
+}
+
+.listHeader {
+  font-size: 11px;
+  font-weight: 600;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 4px;
+  border-bottom: 2px solid;
+  margin-bottom: 4px;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex: 1;
+  overflow-y: auto;
+  outline: none;
+  border: 1px solid;
+  border-radius: 4px;
+  background: #fff;
+}
+
+.listItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  cursor: pointer;
+  min-height: 22px;
+  font-size: 12px;
+}
+
+.listItem:hover {
+  background: #f0ede8;
+}
+
+.selected {
+  background: #c8a050 !important;
+  color: #fff;
+}
+
+.indicator {
+  font-size: 11px;
+  width: 12px;
+  text-align: center;
+  flex-shrink: 0;
+  color: #666;
+}
+
+.selected .indicator {
+  color: #fff;
+}

@@ -1,0 +1,62 @@
+* {
+  box-sizing: border-box;
+}
+
+.root {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  background: #d8d5d0;
+  gap: 1px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+  font-size: 13px;
+}
+
+.scorePane {
+  width: 320px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #f0ede8;
+  border-right: 1px solid #b0a898;
+}
+
+.mapPane {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #e8e5e0;
+  min-width: 0;
+}
+
+.mapEmpty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  color: #888;
+  gap: 12px;
+}
+
+.mapEmpty p {
+  margin: 0;
+  font-size: 13px;
+}
+
+.createMapBtn {
+  padding: 6px 18px;
+  border: 1px solid #808040;
+  border-radius: 5px;
+  background: #909050;
+  color: #fff;
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.createMapBtn:hover {
+  background: #787038;
+}
