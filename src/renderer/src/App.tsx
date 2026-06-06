@@ -5,6 +5,7 @@ import { MapPanelList } from './components/maps/MapPanel'
 import { ChooseDimensions, CreateSemanticMap } from './components/maps/ChooseDimensions'
 import { AdvancedTransform } from './components/maps/AdvancedTransform'
 import type { TransformMode } from './components/maps/AdvancedTransform'
+import { StarterListPicker } from './components/ScoreWindow/StarterListPicker'
 import { serializeSession, deserializeSession } from './lib/parser'
 import styles from './App.module.css'
 
@@ -17,6 +18,7 @@ export function App(): React.JSX.Element {
 
   const [showChooseDimensions, setShowChooseDimensions] = useState(false)
   const [showCreateSemantic,   setShowCreateSemantic]   = useState(false)
+  const [showStarterPicker,    setShowStarterPicker]    = useState(false)
   const [activeTransform,      setActiveTransform]      = useState<TransformMode | null>(null)
 
   // Title bar reflects file state
@@ -89,7 +91,7 @@ export function App(): React.JSX.Element {
   return (
     <div className={styles.root}>
       <div className={styles.scorePane}>
-        <ScoreWindow />
+        <ScoreWindow onOpenStarterPicker={() => setShowStarterPicker(true)} />
       </div>
       <div className={styles.mapPane}>
         <MapPanelList />
@@ -106,6 +108,9 @@ export function App(): React.JSX.Element {
         )}
       </div>
 
+      {showStarterPicker && (
+        <StarterListPicker onClose={() => setShowStarterPicker(false)} />
+      )}
       {showChooseDimensions && (
         <ChooseDimensions onClose={() => setShowChooseDimensions(false)} />
       )}

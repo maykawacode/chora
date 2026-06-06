@@ -4,7 +4,9 @@ import { DimensionsTab } from './DimensionsTab'
 import { ScoresTab } from './ScoresTab'
 import styles from './ScoreWindow.module.css'
 
-export function ScoreWindow(): React.JSX.Element {
+interface Props { onOpenStarterPicker: () => void }
+
+export function ScoreWindow({ onOpenStarterPicker }: Props): React.JSX.Element {
   const activeTab = useAppStore(s => s.activeTab)
   const setActiveTab = useAppStore(s => s.setActiveTab)
 
@@ -23,7 +25,7 @@ export function ScoreWindow(): React.JSX.Element {
       </div>
       <div className={styles.tabContent}>
         {activeTab === 'elements'   && <ElementsTab />}
-        {activeTab === 'dimensions' && <DimensionsTab />}
+        {activeTab === 'dimensions' && <DimensionsTab onOpenStarterPicker={onOpenStarterPicker} />}
         {activeTab === 'scores'     && <ScoresTab />}
       </div>
     </div>

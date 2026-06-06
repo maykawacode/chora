@@ -1,10 +1,10 @@
 import { useRef, useState, KeyboardEvent } from 'react'
-import { createPortal } from 'react-dom'
 import { useAppStore } from '../../store/appStore'
-import { StarterListPicker } from './StarterListPicker'
 import styles from './DataTab.module.css'
 
-export function DimensionsTab(): React.JSX.Element {
+interface Props { onOpenStarterPicker: () => void }
+
+export function DimensionsTab({ onOpenStarterPicker }: Props): React.JSX.Element {
   const dimensions        = useAppStore(s => s.dimensions)
   const selectedId        = useAppStore(s => s.selectedDimensionId)
   const addDimension      = useAppStore(s => s.addDimension)
@@ -13,8 +13,7 @@ export function DimensionsTab(): React.JSX.Element {
   const selectDimension   = useAppStore(s => s.selectDimension)
 
   const selected = dimensions.find(d => d.id === selectedId) ?? null
-  const [newLabel, setNewLabel]       = useState('')
-  const [showStarter, setShowStarter] = useState(false)
+  const [newLabel, setNewLabel] = useState('')
   const addInputRef = useRef<HTMLInputElement>(null)
 
   function handleAdd(): void {
@@ -90,7 +89,7 @@ export function DimensionsTab(): React.JSX.Element {
             onChange={e => setNewLabel(e.target.value)}
             onKeyDown={handleKeyDown}
           />
-          <button className={styles.starterBtn} onClick={() => setShowStarter(true)} title="Browse starter lists">⋯</button>
+          <button className={styles.starterBtn} onClick={onOpenStarterPicker} title="Browse starter lists">⋯</button>
         </div>
       </div>
 
@@ -117,10 +116,6 @@ export function DimensionsTab(): React.JSX.Element {
           onChange={e => selected && updateDimension(selected.id, { description: e.target.value })}
         />
       </div>
-      {showStarter && createPortal(
-        <StarterListPicker onClose={() => setShowStarter(false)} />,
-        document.body
-      )}
     </div>
   )
 }

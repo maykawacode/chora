@@ -91,6 +91,7 @@
 
 .addInput {
   flex: 1;
+  min-width: 0;
   padding: 4px 6px;
   border: 1px solid #b0a898;
   border-radius: 4px;
@@ -127,6 +128,7 @@
 .starterBtn {
   width: 26px;
   height: 26px;
+  flex-shrink: 0;
   border: 1px solid #b0a898;
   border-radius: 4px;
   background: #e0ddd8;
