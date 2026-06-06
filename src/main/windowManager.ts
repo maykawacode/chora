@@ -1,6 +1,7 @@
 import { BrowserWindow } from 'electron'
 import { join } from 'path'
 import { is } from '@electron-toolkit/utils'
+import { getCachedPreferences } from './prefs'
 
 const mapWindows     = new Map<string, BrowserWindow>()
 const silentCloseIds = new Set<string>()
@@ -18,9 +19,23 @@ export function openMapWindow(mapId: string, stateJson: string): void {
     return
   }
 
+  // Read stored window geometry if rememberWindowPositions is on
+  let x: number | undefined, y: number | undefined
+  let width = 600, height = 500
+  if (getCachedPreferences().rememberWindowPositions) {
+    try {
+      const state = JSON.parse(stateJson) as { maps?: Array<{ id: string; windowX?: number; windowY?: number; windowWidth?: number; windowHeight?: number }> }
+      const cfg = state.maps?.find(m => m.id === mapId)
+      if (cfg) {
+        if (cfg.windowX != null && cfg.windowY != null) { x = cfg.windowX; y = cfg.windowY }
+        if (cfg.windowWidth)  width  = cfg.windowWidth
+        if (cfg.windowHeight) height = cfg.windowHeight
+      }
+    } catch { /* use defaults */ }
+  }
+
   const win = new BrowserWindow({
-    width: 600,
-    height: 500,
+    x, y, width, height,
     minWidth: 300,
     minHeight: 200,
     show: false,
@@ -71,6 +86,18 @@ export function closeAllMapWindowsSilent(): void {
     if (!win.isDestroyed()) win.close()
   }
   mapWindows.clear()
+}
+
+export function getMapWindowPositions(): Record<string, { x: number; y: number; width: number; height: number }> {
+  const result: Record<string, { x: number; y: number; width: number; height: number }> = {}
+  for (const [mapId, win] of mapWindows.entries()) {
+    if (!win.isDestroyed()) {
+      const [x, y] = win.getPosition()
+      const [w, h] = win.getSize()
+      result[mapId] = { x, y, width: w, height: h }
+    }
+  }
+  return result
 }
 
 export function broadcastToMaps(channel: string, ...args: unknown[]): void {

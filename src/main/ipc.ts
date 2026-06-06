@@ -5,9 +5,11 @@ import {
   openMapWindow,
   closeAllMapWindowsSilent,
   handleMapReady,
+  getMapWindowPositions,
   broadcastToMaps,
   broadcastToAllExcept
 } from './windowManager'
+import { loadPreferences, savePreferences } from './prefs'
 
 export function registerIpcHandlers(): void {
 
@@ -82,6 +84,18 @@ export function registerIpcHandlers(): void {
     const win = getMainWindow()
     if (win && !win.isDestroyed()) { win.focus(); win.moveTop() }
   })
+
+  // ── Preferences ───────────────────────────────────────────────────────────────
+
+  ipcMain.handle('prefs:load', () => loadPreferences())
+
+  ipcMain.on('prefs:save', (_event, prefs: unknown) => {
+    savePreferences(prefs as Parameters<typeof savePreferences>[0])
+  })
+
+  // ── Window positions ──────────────────────────────────────────────────────────
+
+  ipcMain.handle('maps:getPositions', () => getMapWindowPositions())
 
   // ── State relay ───────────────────────────────────────────────────────────────
 

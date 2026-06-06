@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { v4 as uuid } from 'uuid'
 import { useAppStore } from '../../store/appStore'
+import { usePrefsStore } from '../../store/prefsStore'
 import type { CartesianMapConfig, SemanticMapConfig } from '../../lib/types'
 import styles from './ChooseDimensions.module.css'
 
@@ -12,6 +13,7 @@ export function ChooseDimensions({ onClose }: Props): React.JSX.Element {
   const dimensions = useAppStore(s => s.dimensions)
   const maps       = useAppStore(s => s.maps)
   const addMap     = useAppStore(s => s.addMap)
+  const prefs      = usePrefsStore(s => s.prefs)
 
   const [selected, setSelected] = useState<string[]>([])
 
@@ -34,8 +36,8 @@ export function ChooseDimensions({ onClose }: Props): React.JSX.Element {
       yDimensionId: selected[1],
       xFlipped: false,
       yFlipped: false,
-      showLabels: true,
-      showDots: true,
+      showLabels: prefs.defaultShowLabels,
+      showDots: prefs.defaultShowDots,
       windowX: 100,
       windowY: 100,
       windowWidth: 600,
@@ -95,6 +97,7 @@ export function CreateSemanticMap({ onClose }: Props): React.JSX.Element {
   const elements   = useAppStore(s => s.elements)
   const maps       = useAppStore(s => s.maps)
   const addMap     = useAppStore(s => s.addMap)
+  const prefs      = usePrefsStore(s => s.prefs)
 
   const [selectedIds, setSelectedIds] = useState<string[]>(() => dimensions.map(d => d.id))
 
@@ -113,8 +116,8 @@ export function CreateSemanticMap({ onClose }: Props): React.JSX.Element {
       elementIds: elements.map(e => e.id),
       dimensionIds: selectedIds,
       flippedDimensionIds: [],
-      showLabels: true,
-      showDots: true,
+      showLabels: prefs.defaultShowLabels,
+      showDots: prefs.defaultShowDots,
       windowX: 100,
       windowY: 100,
       windowWidth: 600,

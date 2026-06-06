@@ -19,6 +19,11 @@ interface Window {
     signalReady:  () => void
     setModalOpen: (open: boolean) => void
 
+    // Preferences
+    loadPreferences:      () => Promise<Record<string, unknown>>
+    savePreferences:      (prefs: Record<string, unknown>) => void
+    getMapWindowPositions: () => Promise<Record<string, { x: number; y: number; width: number; height: number }>>
+
     // State broadcast (Score Window → maps)
     broadcastState:     (stateJson: string) => void
     broadcastScore:     (elementId: string, dimensionId: string, value: number) => void

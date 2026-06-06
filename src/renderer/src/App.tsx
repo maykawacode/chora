@@ -1,16 +1,20 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAppStore } from './store/appStore'
+import { usePrefsStore } from './store/prefsStore'
 import { ScoreWindow } from './components/ScoreWindow/ScoreWindow'
 import { ChooseDimensions, CreateSemanticMap } from './components/maps/ChooseDimensions'
 import { AdvancedTransform } from './components/maps/AdvancedTransform'
 import type { TransformMode } from './components/maps/AdvancedTransform'
 import { StarterListPicker } from './components/ScoreWindow/StarterListPicker'
 import { ImportPreview } from './components/ImportPreview'
+import { PreferencesDialog } from './components/PreferencesDialog'
 import { serializeSession, deserializeSession } from './lib/parser'
 import { parseSpreadsheet } from './lib/importer'
 import type { ImportResult } from './lib/importer'
 import { exportSpreadsheet } from './lib/exporter'
 import type { CartesianMapConfig, SemanticMapConfig } from './lib/types'
+import type { Preferences } from './lib/preferences'
+import { DEFAULT_PREFERENCES } from './lib/preferences'
 import styles from './App.module.css'
 
 export function App(): React.JSX.Element {
@@ -20,15 +24,36 @@ export function App(): React.JSX.Element {
   const markClean     = useAppStore(s => s.markClean)
   const resetToEmpty  = useAppStore(s => s.resetToEmpty)
 
+  const setPrefs = usePrefsStore(s => s.setPrefs)
+
   const [showChooseDimensions, setShowChooseDimensions] = useState(false)
   const [showCreateSemantic,   setShowCreateSemantic]   = useState(false)
   const [showStarterPicker,    setShowStarterPicker]    = useState(false)
+  const [showPreferences,      setShowPreferences]      = useState(false)
   const [activeTransform,      setActiveTransform]      = useState<TransformMode | null>(null)
   const [importPreview,        setImportPreview]        = useState<{ fileName: string; result: ImportResult } | null>(null)
 
   // Suppresses state:push broadcast while applying IPC-received score updates
   // to prevent a feedback loop (map drag → Score Window → broadcast back to map).
   const suppressBroadcast = useRef(false)
+
+  // ── Load preferences + reopen last file ──────────────────────────────────────
+
+  useEffect(() => {
+    window.api?.loadPreferences().then(raw => {
+      const loaded: Preferences = { ...DEFAULT_PREFERENCES, ...(raw as Partial<Preferences>) }
+      setPrefs(loaded)
+      if (loaded.reopenLastFile && loaded.lastFilePath) {
+        window.api.readFile(loaded.lastFilePath)
+          .then(json => {
+            const state = deserializeSession(json)
+            loadSession({ ...state, filePath: loaded.lastFilePath! })
+            markClean(loaded.lastFilePath!)
+          })
+          .catch(() => { /* file no longer exists — ignore */ })
+      }
+    })
+  }, [])  // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── State broadcast to map windows ───────────────────────────────────────────
 
@@ -80,7 +105,7 @@ export function App(): React.JSX.Element {
   // ── Modal z-order: float Score Window above map windows while any modal is open
 
   const isModalOpen = showChooseDimensions || showCreateSemantic || showStarterPicker ||
-                      activeTransform !== null || importPreview !== null
+                      showPreferences || activeTransform !== null || importPreview !== null
 
   useEffect(() => {
     window.api?.setModalOpen?.(isModalOpen)
@@ -106,6 +131,7 @@ export function App(): React.JSX.Element {
         case 'export-spreadsheet':  await handleExport();         break
         case 'create-cartesian': setShowChooseDimensions(true); break
         case 'create-semantic':  setShowCreateSemantic(true);   break
+        case 'preferences':      setShowPreferences(true);      break
         case 'dim-to-weight':    setActiveTransform('dim-to-weight'); break
         case 'weight-to-dim':    setActiveTransform('weight-to-dim'); break
         case 'dim-to-gray':      setActiveTransform('dim-to-gray');        break
@@ -141,15 +167,33 @@ export function App(): React.JSX.Element {
   }
 
   async function handleSave(forceDialog: boolean): Promise<void> {
-    const state = useAppStore.getState()
-    let path = state.filePath
+    let path = useAppStore.getState().filePath
     if (!path || forceDialog) {
       path = await window.api.showSaveDialog()
       if (!path) return
     }
-    const json = serializeSession(state)
+
+    // Snapshot current map window positions into the store before serializing
+    const currentPrefs = usePrefsStore.getState().prefs
+    if (currentPrefs.rememberWindowPositions) {
+      const positions = await window.api.getMapWindowPositions()
+      suppressBroadcast.current = true
+      for (const [mapId, pos] of Object.entries(positions)) {
+        useAppStore.getState().updateMapConfig(mapId, {
+          windowX: pos.x, windowY: pos.y, windowWidth: pos.width, windowHeight: pos.height
+        })
+      }
+      suppressBroadcast.current = false
+    }
+
+    const json = serializeSession(useAppStore.getState())
     await window.api.writeFile(path, json)
     markClean(path)
+
+    // Persist lastFilePath in preferences
+    const newPrefs: Preferences = { ...currentPrefs, lastFilePath: path }
+    usePrefsStore.getState().setPrefs(newPrefs)
+    window.api.savePreferences(newPrefs as unknown as Record<string, unknown>)
   }
 
   async function handleImport(): Promise<void> {
@@ -214,6 +258,9 @@ export function App(): React.JSX.Element {
       )}
       {activeTransform && (
         <AdvancedTransform mode={activeTransform} onClose={() => setActiveTransform(null)} />
+      )}
+      {showPreferences && (
+        <PreferencesDialog onClose={() => setShowPreferences(false)} />
       )}
     </div>
   )

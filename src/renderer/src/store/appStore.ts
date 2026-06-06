@@ -5,7 +5,7 @@ import { defaultCategories, parsePoles } from '../lib/types'
 
 interface AppStore extends AppState {
   // Elements
-  addElement: (name: string) => void
+  addElement: (name: string, color?: string) => void
   updateElement: (id: string, changes: Partial<Element>) => void
   removeElement: (id: string) => void
 
@@ -55,8 +55,8 @@ const emptyState: AppState = {
 export const useAppStore = create<AppStore>((set) => ({
   ...emptyState,
 
-  addElement: (name) => set((s) => {
-    const el: Element = { id: uuid(), name, weight: 1, color: '#808000', description: '' }
+  addElement: (name, color = '#808000') => set((s) => {
+    const el: Element = { id: uuid(), name, weight: 1, color, description: '' }
     return {
       elements: [...s.elements, el],
       selectedElementId: el.id,

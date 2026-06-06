@@ -16,7 +16,7 @@ contextBridge.exposeInMainWorld('api', {
                      'menu:import-spreadsheet', 'menu:export-spreadsheet',
                      'menu:create-cartesian', 'menu:create-semantic',
                      'menu:dim-to-weight', 'menu:weight-to-dim', 'menu:dim-to-gray', 'menu:randomize-scores',
-                     'menu:toggle-labels', 'menu:update-maps']
+                     'menu:toggle-labels', 'menu:update-maps', 'menu:preferences']
     const handlers = actions.map(channel => {
       const handler = (): void => cb(channel.replace('menu:', ''))
       ipcRenderer.on(channel, handler)
@@ -30,6 +30,14 @@ contextBridge.exposeInMainWorld('api', {
   closeAllMaps: (): void => ipcRenderer.send('map:closeAll'),
   signalReady:  (): void => ipcRenderer.send('map:ready'),
   setModalOpen: (open: boolean): void => ipcRenderer.send('modal:open', open),
+
+  // ── Preferences ──────────────────────────────────────────────────────────────
+  loadPreferences: (): Promise<Record<string, unknown>> => ipcRenderer.invoke('prefs:load'),
+  savePreferences: (prefs: Record<string, unknown>): void => ipcRenderer.send('prefs:save', prefs),
+
+  // ── Window positions ─────────────────────────────────────────────────────────
+  getMapWindowPositions: (): Promise<Record<string, { x: number; y: number; width: number; height: number }>> =>
+    ipcRenderer.invoke('maps:getPositions'),
 
   // ── State broadcast (Score Window → maps) ───────────────────────────────────
   broadcastState:     (stateJson: string): void  => ipcRenderer.send('state:push', stateJson),

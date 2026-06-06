@@ -23,6 +23,12 @@ export function buildMenu(): void {
       submenu: [
         { role: 'about' as const },
         { type: 'separator' as const },
+        {
+          label: 'Preferences…',
+          accelerator: 'CmdOrCtrl+,',
+          click: () => sendToRenderer('menu:preferences')
+        },
+        { type: 'separator' as const },
         { role: 'services' as const },
         { type: 'separator' as const },
         { role: 'hide' as const },

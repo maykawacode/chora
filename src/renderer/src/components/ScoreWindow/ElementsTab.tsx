@@ -1,5 +1,6 @@
 import { useRef, useState, KeyboardEvent } from 'react'
 import { useAppStore } from '../../store/appStore'
+import { usePrefsStore } from '../../store/prefsStore'
 import styles from './DataTab.module.css'
 
 export function ElementsTab(): React.JSX.Element {
@@ -9,21 +10,31 @@ export function ElementsTab(): React.JSX.Element {
   const updateElement     = useAppStore(s => s.updateElement)
   const removeElement     = useAppStore(s => s.removeElement)
   const selectElement     = useAppStore(s => s.selectElement)
+  const prefs             = usePrefsStore(s => s.prefs)
 
   const selected = elements.find(e => e.id === selectedId) ?? null
-  const [newName, setNewName] = useState('')
+  const [newName,   setNewName]   = useState('')
+  const [confirmId, setConfirmId] = useState<string | null>(null)
   const addInputRef = useRef<HTMLInputElement>(null)
 
   function handleAdd(): void {
     const name = newName.trim()
     if (!name) return
-    addElement(name)
+    addElement(name, prefs.defaultElementColor)
     setNewName('')
     addInputRef.current?.focus()
   }
 
   function handleKeyDown(e: KeyboardEvent<HTMLInputElement>): void {
     if (e.key === 'Enter') handleAdd()
+  }
+
+  function requestDelete(id: string): void {
+    if (prefs.confirmDeleteElement) {
+      setConfirmId(id)
+    } else {
+      removeElement(id)
+    }
   }
 
   function handleListKeyDown(e: KeyboardEvent<HTMLUListElement>): void {
@@ -36,9 +47,11 @@ export function ElementsTab(): React.JSX.Element {
       selectElement(elements[idx - 1].id)
       e.preventDefault()
     } else if (e.key === 'Backspace' || e.key === 'Delete') {
-      removeElement(selectedId)
+      requestDelete(selectedId)
     }
   }
+
+  const confirmElement = elements.find(e => e.id === confirmId) ?? null
 
   return (
     <div className={styles.tab}>
@@ -128,6 +141,18 @@ export function ElementsTab(): React.JSX.Element {
           onChange={e => selected && updateElement(selected.id, { description: e.target.value })}
         />
       </div>
+
+      {confirmElement && (
+        <div className={styles.confirmOverlay}>
+          <div className={styles.confirmBox}>
+            <p>Delete <strong>{confirmElement.name}</strong>? This will remove all its scores.</p>
+            <div className={styles.confirmButtons}>
+              <button className={styles.confirmCancel} onClick={() => setConfirmId(null)}>Cancel</button>
+              <button className={styles.confirmDelete} onClick={() => { removeElement(confirmElement.id); setConfirmId(null) }}>Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
