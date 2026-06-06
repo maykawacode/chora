@@ -63,20 +63,7 @@ export function ElementsTab(): React.JSX.Element {
                     className={styles.colorDot}
                     style={{ background: el.color }}
                   />
-                  <span
-                    className={styles.name}
-                    contentEditable
-                    suppressContentEditableWarning
-                    onBlur={e => {
-                      const name = e.currentTarget.textContent?.trim() ?? ''
-                      if (name && name !== el.name) updateElement(el.id, { name })
-                    }}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); e.currentTarget.blur() }
-                    }}
-                  >
-                    {el.name}
-                  </span>
+                  <span className={styles.name}>{el.name}</span>
                 </li>
               ))}
             </ul>
@@ -95,6 +82,20 @@ export function ElementsTab(): React.JSX.Element {
       </div>
 
       <div className={styles.detailPane}>
+        <div className={styles.fieldRow}>
+          <label className={styles.label}>Name</label>
+          <input
+            key={`name-${selected?.id ?? 'none'}`}
+            className={styles.poleInput}
+            defaultValue={selected?.name ?? ''}
+            disabled={!selected}
+            onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Tab') e.currentTarget.blur() }}
+            onBlur={e => {
+              const v = e.target.value.trim()
+              if (selected && v && v !== selected.name) updateElement(selected.id, { name: v })
+            }}
+          />
+        </div>
         <div className={styles.fieldRow}>
           <label className={styles.label}>Color</label>
           <input

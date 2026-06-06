@@ -1,4 +1,4 @@
-import { useRef, useState, KeyboardEvent } from 'react'
+import { useRef, useState, useEffect, KeyboardEvent } from 'react'
 import { useAppStore } from '../../store/appStore'
 import styles from './DataTab.module.css'
 
@@ -12,9 +12,18 @@ export function DimensionsTab({ onOpenStarterPicker }: Props): React.JSX.Element
   const removeDimension   = useAppStore(s => s.removeDimension)
   const selectDimension   = useAppStore(s => s.selectDimension)
 
+  const scores = useAppStore(s => s.scores)
   const selected = dimensions.find(d => d.id === selectedId) ?? null
   const [newLabel, setNewLabel] = useState('')
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const addInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (!confirmDeleteId) return
+    const onKey = (e: globalThis.KeyboardEvent) => { if (e.key === 'Escape') setConfirmDeleteId(null) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [confirmDeleteId])
 
   function handleAdd(): void {
     const label = newLabel.trim()
@@ -28,6 +37,13 @@ export function DimensionsTab({ onOpenStarterPicker }: Props): React.JSX.Element
     if (e.key === 'Enter') handleAdd()
   }
 
+  function handlePoleEdit(field: 'poleA' | 'poleB', value: string): void {
+    if (!selected) return
+    const poleA = field === 'poleA' ? value : selected.poleA
+    const poleB = field === 'poleB' ? value : selected.poleB
+    updateDimension(selected.id, { poleA, poleB, label: `${poleA}–${poleB}` })
+  }
+
   function handleListKeyDown(e: KeyboardEvent<HTMLUListElement>): void {
     if (!selectedId || dimensions.length === 0) return
     const idx = dimensions.findIndex(d => d.id === selectedId)
@@ -38,9 +54,12 @@ export function DimensionsTab({ onOpenStarterPicker }: Props): React.JSX.Element
       selectDimension(dimensions[idx - 1].id)
       e.preventDefault()
     } else if (e.key === 'Backspace' || e.key === 'Delete') {
-      removeDimension(selectedId)
+      const hasScores = Object.values(scores).some(el => el[selectedId] !== undefined)
+      if (hasScores) { setConfirmDeleteId(selectedId) } else { removeDimension(selectedId) }
     }
   }
+
+  const confirmDim = confirmDeleteId ? dimensions.find(d => d.id === confirmDeleteId) : null
 
   return (
     <div className={styles.tab}>
@@ -61,20 +80,7 @@ export function DimensionsTab({ onOpenStarterPicker }: Props): React.JSX.Element
                   className={`${styles.listItem} ${dim.id === selectedId ? styles.selected : ''}`}
                   onClick={() => selectDimension(dim.id)}
                 >
-                  <span
-                    className={styles.name}
-                    contentEditable
-                    suppressContentEditableWarning
-                    onBlur={e => {
-                      const label = e.currentTarget.textContent?.trim() ?? ''
-                      if (label && label !== dim.label) updateDimension(dim.id, { label })
-                    }}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); e.currentTarget.blur() }
-                    }}
-                  >
-                    {dim.label}
-                  </span>
+                  <span className={styles.name}>{dim.label}</span>
                 </li>
               ))}
             </ul>
@@ -95,9 +101,37 @@ export function DimensionsTab({ onOpenStarterPicker }: Props): React.JSX.Element
 
       <div className={styles.detailPane}>
         <div className={styles.fieldRow}>
+          <label className={styles.label}>Pole A</label>
+          <input
+            key={`poleA-${selected?.id ?? 'none'}`}
+            className={styles.poleInput}
+            defaultValue={selected?.poleA ?? ''}
+            disabled={!selected}
+            onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Tab') e.currentTarget.blur() }}
+            onBlur={e => {
+              const v = e.target.value.trim()
+              if (selected && v !== selected.poleA) handlePoleEdit('poleA', v)
+            }}
+          />
+        </div>
+        <div className={styles.fieldRow}>
+          <label className={styles.label}>Pole B</label>
+          <input
+            key={`poleB-${selected?.id ?? 'none'}`}
+            className={styles.poleInput}
+            defaultValue={selected?.poleB ?? ''}
+            disabled={!selected}
+            onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Tab') e.currentTarget.blur() }}
+            onBlur={e => {
+              const v = e.target.value.trim()
+              if (selected && v !== selected.poleB) handlePoleEdit('poleB', v)
+            }}
+          />
+        </div>
+        <div className={styles.fieldRow}>
           <label className={styles.label}>Weight</label>
           <input
-            key={selected?.id ?? 'none'}
+            key={`weight-${selected?.id ?? 'none'}`}
             className={styles.weightInput}
             type="number"
             min={1}
@@ -116,6 +150,18 @@ export function DimensionsTab({ onOpenStarterPicker }: Props): React.JSX.Element
           onChange={e => selected && updateDimension(selected.id, { description: e.target.value })}
         />
       </div>
+
+      {confirmDim && (
+        <div className={styles.confirmOverlay}>
+          <div className={styles.confirmBox}>
+            <p>Delete <strong>{confirmDim.label}</strong>?<br />All scores for this dimension will be lost.</p>
+            <div className={styles.confirmButtons}>
+              <button className={styles.confirmCancel} onClick={() => setConfirmDeleteId(null)}>Cancel</button>
+              <button className={styles.confirmDelete} onClick={() => { removeDimension(confirmDeleteId!); setConfirmDeleteId(null) }}>Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
