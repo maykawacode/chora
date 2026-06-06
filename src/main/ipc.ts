@@ -23,6 +23,26 @@ export function registerIpcHandlers(): void {
     return result.canceled ? null : result.filePath
   })
 
+  ipcMain.handle('dialog:openCsv', async () => {
+    const win = getMainWindow()
+    if (!win) return null
+    const result = await dialog.showOpenDialog(win, {
+      filters: [{ name: 'Spreadsheet', extensions: ['tsv', 'csv', 'txt'] }],
+      properties: ['openFile']
+    })
+    return result.canceled ? null : result.filePaths[0]
+  })
+
+  ipcMain.handle('dialog:saveCsv', async () => {
+    const win = getMainWindow()
+    if (!win) return null
+    const result = await dialog.showSaveDialog(win, {
+      filters: [{ name: 'Tab-separated values', extensions: ['tsv'] }],
+      defaultPath: 'maptool-export.tsv'
+    })
+    return result.canceled ? null : result.filePath
+  })
+
   ipcMain.handle('file:read', async (_event, filePath: string) => {
     return readFile(filePath, 'utf-8')
   })

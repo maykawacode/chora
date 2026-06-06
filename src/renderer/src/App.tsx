@@ -6,7 +6,11 @@ import { ChooseDimensions, CreateSemanticMap } from './components/maps/ChooseDim
 import { AdvancedTransform } from './components/maps/AdvancedTransform'
 import type { TransformMode } from './components/maps/AdvancedTransform'
 import { StarterListPicker } from './components/ScoreWindow/StarterListPicker'
+import { ImportPreview } from './components/ImportPreview'
 import { serializeSession, deserializeSession } from './lib/parser'
+import { parseSpreadsheet } from './lib/importer'
+import type { ImportResult } from './lib/importer'
+import { exportSpreadsheet } from './lib/exporter'
 import styles from './App.module.css'
 
 export function App(): React.JSX.Element {
@@ -20,6 +24,7 @@ export function App(): React.JSX.Element {
   const [showCreateSemantic,   setShowCreateSemantic]   = useState(false)
   const [showStarterPicker,    setShowStarterPicker]    = useState(false)
   const [activeTransform,      setActiveTransform]      = useState<TransformMode | null>(null)
+  const [importPreview,        setImportPreview]        = useState<{ fileName: string; result: ImportResult } | null>(null)
 
   // Title bar reflects file state
   useEffect(() => {
@@ -31,10 +36,12 @@ export function App(): React.JSX.Element {
   useEffect(() => {
     return window.api.onMenuAction(async (action) => {
       switch (action) {
-        case 'new':      await handleNew();            break
-        case 'open':     await handleOpen();           break
-        case 'save':     await handleSave(false);      break
-        case 'save-as':  await handleSave(true);       break
+        case 'new':                 await handleNew();            break
+        case 'open':                await handleOpen();           break
+        case 'save':                await handleSave(false);      break
+        case 'save-as':             await handleSave(true);       break
+        case 'import-spreadsheet':  await handleImport();         break
+        case 'export-spreadsheet':  await handleExport();         break
         case 'create-cartesian': setShowChooseDimensions(true); break
         case 'create-semantic':  setShowCreateSemantic(true);   break
         case 'dim-to-weight':    setActiveTransform('dim-to-weight'); break
@@ -78,6 +85,30 @@ export function App(): React.JSX.Element {
     markClean(path)
   }
 
+  async function handleImport(): Promise<void> {
+    const path = await window.api.openCsvFile()
+    if (!path) return
+    try {
+      const text = await window.api.readFile(path)
+      const result = parseSpreadsheet(text)
+      const fileName = path.split('/').pop() ?? path
+      setImportPreview({ fileName, result })
+    } catch (e) {
+      alert(`Could not parse file:\n${(e as Error).message}`)
+    }
+  }
+
+  async function handleExport(): Promise<void> {
+    const path = await window.api.showCsvSaveDialog()
+    if (!path) return
+    try {
+      const tsv = exportSpreadsheet(useAppStore.getState())
+      await window.api.writeFile(path, tsv)
+    } catch (e) {
+      alert(`Could not export file:\n${(e as Error).message}`)
+    }
+  }
+
   function handleToggleLabels(): void {
     const { maps, updateMapConfig } = useAppStore.getState()
     // Toggle all visible maps
@@ -108,6 +139,18 @@ export function App(): React.JSX.Element {
         )}
       </div>
 
+      {importPreview && (
+        <ImportPreview
+          fileName={importPreview.fileName}
+          result={importPreview.result}
+          onCancel={() => setImportPreview(null)}
+          onConfirm={() => {
+            const { elements, dimensions, scores } = importPreview.result
+            loadSession({ filePath: null, isDirty: true, elements, dimensions, scores, maps: [], selectedElementId: elements[0]?.id ?? null, selectedDimensionId: dimensions[0]?.id ?? null, activeTab: 'elements' })
+            setImportPreview(null)
+          }}
+        />
+      )}
       {showStarterPicker && (
         <StarterListPicker onClose={() => setShowStarterPicker(false)} />
       )}

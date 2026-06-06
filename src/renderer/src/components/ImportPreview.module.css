@@ -1,0 +1,117 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.dialog {
+  background: #f0ede8;
+  border: 1px solid #888;
+  border-radius: 8px;
+  padding: 20px 24px;
+  width: 340px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+  font-size: 13px;
+}
+
+.title {
+  margin: 0 0 2px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #222;
+}
+
+.fileName {
+  margin: 0 0 16px;
+  font-size: 12px;
+  color: #666;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.summary {
+  background: #fff;
+  border: 1px solid #c8c0b8;
+  border-radius: 5px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.summaryRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.summaryLabel {
+  color: #555;
+  font-size: 12px;
+}
+
+.summaryValue {
+  font-weight: 500;
+  color: #222;
+  font-size: 12px;
+}
+
+.warnings {
+  margin: 0 0 12px;
+  padding: 8px 12px 8px 24px;
+  background: #fff8e8;
+  border: 1px solid #e0c060;
+  border-radius: 4px;
+  font-size: 11px;
+  color: #7a5000;
+  list-style: disc;
+}
+
+.warnings li + li {
+  margin-top: 3px;
+}
+
+.caution {
+  margin: 0 0 16px;
+  font-size: 12px;
+  color: #888;
+}
+
+.buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.btnCancel,
+.btnImport {
+  padding: 5px 16px;
+  border-radius: 5px;
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.btnCancel {
+  border: 1px solid #b0a898;
+  background: #e0ddd8;
+  color: #333;
+}
+
+.btnCancel:hover { background: #d0cdc8; }
+
+.btnImport {
+  border: 1px solid #608040;
+  background: #708040;
+  color: #fff;
+  font-weight: 500;
+}
+
+.btnImport:hover { background: #607030; }

@@ -1,13 +1,16 @@
 import { contextBridge, ipcRenderer } from 'electron'
 
 contextBridge.exposeInMainWorld('api', {
-  openFile:       (): Promise<string | null>          => ipcRenderer.invoke('dialog:open'),
-  showSaveDialog: (): Promise<string | null>          => ipcRenderer.invoke('dialog:save'),
-  readFile:       (path: string): Promise<string>     => ipcRenderer.invoke('file:read', path),
-  writeFile:      (path: string, data: string): Promise<void> => ipcRenderer.invoke('file:write', path, data),
+  openFile:          (): Promise<string | null>          => ipcRenderer.invoke('dialog:open'),
+  showSaveDialog:    (): Promise<string | null>          => ipcRenderer.invoke('dialog:save'),
+  openCsvFile:       (): Promise<string | null>          => ipcRenderer.invoke('dialog:openCsv'),
+  showCsvSaveDialog: (): Promise<string | null>          => ipcRenderer.invoke('dialog:saveCsv'),
+  readFile:          (path: string): Promise<string>     => ipcRenderer.invoke('file:read', path),
+  writeFile:         (path: string, data: string): Promise<void> => ipcRenderer.invoke('file:write', path, data),
 
   onMenuAction: (cb: (action: string) => void): (() => void) => {
     const actions = ['menu:new', 'menu:open', 'menu:save', 'menu:save-as',
+                     'menu:import-spreadsheet', 'menu:export-spreadsheet',
                      'menu:create-cartesian', 'menu:create-semantic',
                      'menu:dim-to-weight', 'menu:weight-to-dim', 'menu:dim-to-gray', 'menu:randomize-scores',
                      'menu:toggle-labels', 'menu:update-maps']

@@ -43,6 +43,17 @@ export function buildMenu(): void {
           click: () => sendToRenderer('menu:save-as')
         },
         { type: 'separator' },
+        {
+          label: 'Import Spreadsheet…',
+          accelerator: 'CmdOrCtrl+Shift+I',
+          click: () => sendToRenderer('menu:import-spreadsheet')
+        },
+        {
+          label: 'Export Spreadsheet…',
+          accelerator: 'CmdOrCtrl+Shift+E',
+          click: () => sendToRenderer('menu:export-spreadsheet')
+        },
+        { type: 'separator' },
         isMac ? { role: 'close' as const } : { role: 'quit' as const }
       ]
     },
