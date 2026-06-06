@@ -146,6 +146,21 @@
   white-space: nowrap;
 }
 
+.colorInput {
+  width: 36px;
+  height: 22px;
+  border: 1px solid #b0a898;
+  border-radius: 4px;
+  padding: 1px 2px;
+  cursor: pointer;
+  background: #fff;
+}
+
+.colorInput:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
 .weightInput {
   width: 56px;
   padding: 3px 5px;

@@ -72,7 +72,7 @@ export function ElementsTab(): React.JSX.Element {
                       if (name && name !== el.name) updateElement(el.id, { name })
                     }}
                     onKeyDown={e => {
-                      if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur() }
+                      if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); e.currentTarget.blur() }
                     }}
                   >
                     {el.name}
@@ -96,6 +96,16 @@ export function ElementsTab(): React.JSX.Element {
       </div>
 
       <div className={styles.detailPane}>
+        <div className={styles.fieldRow}>
+          <label className={styles.label}>Color</label>
+          <input
+            type="color"
+            className={styles.colorInput}
+            value={selected?.color ?? '#808000'}
+            disabled={!selected}
+            onChange={e => selected && updateElement(selected.id, { color: e.target.value })}
+          />
+        </div>
         <div className={styles.fieldRow}>
           <label className={styles.label}>Weight</label>
           <input

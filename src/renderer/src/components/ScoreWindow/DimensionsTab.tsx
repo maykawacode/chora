@@ -68,7 +68,7 @@ export function DimensionsTab(): React.JSX.Element {
                       if (label && label !== dim.label) updateDimension(dim.id, { label })
                     }}
                     onKeyDown={e => {
-                      if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur() }
+                      if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); e.currentTarget.blur() }
                     }}
                   >
                     {dim.label}
