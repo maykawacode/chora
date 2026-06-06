@@ -1,4 +1,5 @@
 import { useRef, useState, KeyboardEvent } from 'react'
+import { createPortal } from 'react-dom'
 import { useAppStore } from '../../store/appStore'
 import { StarterListPicker } from './StarterListPicker'
 import styles from './DataTab.module.css'
@@ -43,7 +44,6 @@ export function DimensionsTab(): React.JSX.Element {
   }
 
   return (
-    <>
     <div className={styles.tab}>
       <div className={styles.listPane}>
         <div className={styles.listHeader}>Dimensions ({dimensions.length})</div>
@@ -90,7 +90,6 @@ export function DimensionsTab(): React.JSX.Element {
             onChange={e => setNewLabel(e.target.value)}
             onKeyDown={handleKeyDown}
           />
-          <button className={styles.addBtn} onClick={handleAdd}>+</button>
           <button className={styles.starterBtn} onClick={() => setShowStarter(true)} title="Browse starter lists">⋯</button>
         </div>
       </div>
@@ -118,8 +117,10 @@ export function DimensionsTab(): React.JSX.Element {
           onChange={e => selected && updateDimension(selected.id, { description: e.target.value })}
         />
       </div>
+      {showStarter && createPortal(
+        <StarterListPicker onClose={() => setShowStarter(false)} />,
+        document.body
+      )}
     </div>
-    {showStarter && <StarterListPicker onClose={() => setShowStarter(false)} />}
-    </>
   )
 }

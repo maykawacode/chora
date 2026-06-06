@@ -91,7 +91,6 @@ export function ElementsTab(): React.JSX.Element {
             onChange={e => setNewName(e.target.value)}
             onKeyDown={handleKeyDown}
           />
-          <button className={styles.addBtn} onClick={handleAdd}>+</button>
         </div>
       </div>
 
