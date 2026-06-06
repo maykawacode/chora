@@ -1,7 +1,8 @@
 .window {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   background: #f0ede8;
   font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
   font-size: 13px;
@@ -9,10 +10,12 @@
 
 .tabBar {
   display: flex;
+  flex-shrink: 0;
   border-bottom: 1px solid #b0a898;
   background: #e0ddd8;
-  padding: 6px 8px 0;
+  padding: 28px 8px 0 80px;
   gap: 2px;
+  -webkit-app-region: drag;
 }
 
 .tab {
@@ -25,6 +28,7 @@
   border-radius: 4px 4px 0 0;
   font-size: 13px;
   font-family: inherit;
+  -webkit-app-region: no-drag;
 }
 
 .tab:hover {
@@ -39,5 +43,8 @@
 
 .tabContent {
   flex: 1;
+  min-height: 0;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
