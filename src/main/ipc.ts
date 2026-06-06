@@ -1,8 +1,18 @@
 import { ipcMain, dialog } from 'electron'
 import { readFile, writeFile } from 'fs/promises'
 import { getMainWindow } from './index'
+import {
+  openMapWindow,
+  closeAllMapWindowsSilent,
+  handleMapReady,
+  broadcastToMaps,
+  broadcastToAllExcept
+} from './windowManager'
 
 export function registerIpcHandlers(): void {
+
+  // ── File dialogs ─────────────────────────────────────────────────────────────
+
   ipcMain.handle('dialog:open', async () => {
     const win = getMainWindow()
     if (!win) return null
@@ -49,5 +59,41 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('file:write', async (_event, filePath: string, data: string) => {
     await writeFile(filePath, data, 'utf-8')
+  })
+
+  // ── Map window lifecycle ──────────────────────────────────────────────────────
+
+  ipcMain.on('map:open', (_event, mapId: string, stateJson: string) => {
+    openMapWindow(mapId, stateJson)
+  })
+
+  ipcMain.on('map:closeAll', () => {
+    closeAllMapWindowsSilent()
+  })
+
+  // Renderer signals it has mounted IPC listeners — now safe to send map:init
+  ipcMain.on('map:ready', (event) => {
+    handleMapReady(event.sender.id)
+  })
+
+  // ── State relay ───────────────────────────────────────────────────────────────
+
+  // Fine-grained score update — forward to all other windows
+  ipcMain.on('score:update', (event, elementId: string, dimensionId: string, value: number) => {
+    broadcastToAllExcept(event.sender.id, 'score:update', elementId, dimensionId, value)
+  })
+
+  // Full state push from Score Window — forward to all map windows
+  ipcMain.on('state:push', (_event, stateJson: string) => {
+    broadcastToMaps('state:push', stateJson)
+  })
+
+  // Map config change from a map window — forward to Score Window only
+  // Score Window applies it and broadcasts full state:push to all maps
+  ipcMain.on('mapConfig:update', (event, mapId: string, changes: unknown) => {
+    const scoreWin = getMainWindow()
+    if (scoreWin && !scoreWin.isDestroyed() && scoreWin.webContents.id !== event.sender.id) {
+      scoreWin.webContents.send('mapConfig:update', mapId, changes)
+    }
   })
 }

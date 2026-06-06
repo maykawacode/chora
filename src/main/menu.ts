@@ -1,5 +1,19 @@
 import { Menu, MenuItemConstructorOptions, BrowserWindow, app } from 'electron'
 
+let _mainWindow: BrowserWindow | null = null
+
+export function setMainWindowForMenu(win: BrowserWindow): void {
+  _mainWindow = win
+}
+
+// All menu actions route to the Score Window so dialogs and handlers
+// always work regardless of which window has focus.
+function sendToRenderer(channel: string): void {
+  if (_mainWindow && !_mainWindow.isDestroyed()) {
+    _mainWindow.webContents.send(channel)
+  }
+}
+
 export function buildMenu(): void {
   const isMac = process.platform === 'darwin'
 
@@ -134,9 +148,4 @@ export function buildMenu(): void {
   ]
 
   Menu.setApplicationMenu(Menu.buildFromTemplate(template))
-}
-
-function sendToRenderer(channel: string): void {
-  const win = BrowserWindow.getFocusedWindow()
-  win?.webContents.send(channel)
 }

@@ -159,6 +159,12 @@ export function MapPanel({ mapId, onClose }: Props): React.JSX.Element | null {
   const updateMapConfig = useAppStore(s => s.updateMapConfig)
   const setScore        = useAppStore(s => s.setScore)
 
+  // Wraps updateMapConfig + IPC broadcast so map windows stay in sync
+  function updateConfig(changes: Partial<CartesianMapConfig> | Partial<SemanticMapConfig>): void {
+    updateMapConfig(mapId, changes)
+    window.api?.broadcastMapConfig(mapId, changes as Record<string, unknown>)
+  }
+
   const canvasRef  = useRef<HTMLCanvasElement>(null)
   const wrapperRef = useRef<HTMLDivElement>(null)
 
@@ -264,11 +270,13 @@ export function MapPanel({ mapId, onClose }: Props): React.JSX.Element | null {
         let xScore = (cx - plotLeft) / plotW
         if (cartCfg.xFlipped) xScore = 1 - xScore
         setScore(drag.elementId, drag.xDimId, xScore)
+        window.api?.broadcastScore(drag.elementId, drag.xDimId, xScore)
       }
       if (drag.lockedAxis !== 'x') {
         let yScore = 1 - (cy - plotTop) / plotH
         if (cartCfg.yFlipped) yScore = 1 - yScore
         setScore(drag.elementId, drag.yDimId, yScore)
+        window.api?.broadcastScore(drag.elementId, drag.yDimId, yScore)
       }
 
       dragMovedRef.current = true
@@ -287,6 +295,7 @@ export function MapPanel({ mapId, onClose }: Props): React.JSX.Element | null {
       let score = (cx - axisLeft) / axisWidth
       if (semCfg.flippedDimensionIds.includes(dimId)) score = 1 - score
       setScore(elementId, dimId, score)
+      window.api?.broadcastScore(elementId, dimId, score)
       semDragMovedRef.current = true
       setCursor('grabbing')
       return
@@ -365,14 +374,14 @@ export function MapPanel({ mapId, onClose }: Props): React.JSX.Element | null {
         <div className={styles.titleBarActions}>
           <button
             className={styles.labelToggle}
-            onClick={() => updateMapConfig(mapId, { showDots: !config.showDots })}
+            onClick={() => updateConfig({ showDots: !config.showDots })}
             title="Show/Hide Dots"
           >
             {config.showDots ? 'Dots ✓' : 'Dots'}
           </button>
           <button
             className={styles.labelToggle}
-            onClick={() => updateMapConfig(mapId, { showLabels: !config.showLabels })}
+            onClick={() => updateConfig({ showLabels: !config.showLabels })}
             title="Show/Hide Labels"
           >
             {config.showLabels ? 'Labels ✓' : 'Labels'}
@@ -410,17 +419,17 @@ export function MapPanel({ mapId, onClose }: Props): React.JSX.Element | null {
             dimensions={dimensions}
             onPick={(id) => {
               if (axisPicker.edge === 'left' || axisPicker.edge === 'right') {
-                updateMapConfig(mapId, { xDimensionId: id })
+                updateConfig({ xDimensionId: id })
               } else {
-                updateMapConfig(mapId, { yDimensionId: id })
+                updateConfig({ yDimensionId: id })
               }
               setAxisPicker(null)
             }}
             onFlip={() => {
               if (axisPicker.edge === 'left' || axisPicker.edge === 'right') {
-                updateMapConfig(mapId, { xFlipped: !cartConfig.xFlipped })
+                updateConfig({ xFlipped: !cartConfig.xFlipped })
               } else {
-                updateMapConfig(mapId, { yFlipped: !cartConfig.yFlipped })
+                updateConfig({ yFlipped: !cartConfig.yFlipped })
               }
               setAxisPicker(null)
             }}
@@ -440,7 +449,7 @@ export function MapPanel({ mapId, onClose }: Props): React.JSX.Element | null {
               const newIds = [...semConfig.dimensionIds]
               newIds[semanticPicker.dimIndex] = newId
               const newFlipped = semConfig.flippedDimensionIds.filter(id => id !== semanticPicker.dimId)
-              updateMapConfig(mapId, { dimensionIds: newIds, flippedDimensionIds: newFlipped })
+              updateConfig({ dimensionIds: newIds, flippedDimensionIds: newFlipped })
               setSemanticPicker(null)
             }}
             onFlip={() => {
@@ -449,7 +458,7 @@ export function MapPanel({ mapId, onClose }: Props): React.JSX.Element | null {
               const newFlipped = current.includes(id)
                 ? current.filter(x => x !== id)
                 : [...current, id]
-              updateMapConfig(mapId, { flippedDimensionIds: newFlipped })
+              updateConfig({ flippedDimensionIds: newFlipped })
               setSemanticPicker(null)
             }}
             onClose={() => setSemanticPicker(null)}

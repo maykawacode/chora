@@ -125,7 +125,6 @@ export const useAppStore = create<AppStore>((set) => ({
       [elementId]: { ...s.scores[elementId], [dimensionId]: value }
     },
     isDirty: true
-    // Phase 4: window.api.broadcastScore(elementId, dimensionId, value)
   })),
 
   clearScore: (elementId, dimensionId) => set((s) => {

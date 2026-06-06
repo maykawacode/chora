@@ -1,7 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useAppStore } from './store/appStore'
 import { ScoreWindow } from './components/ScoreWindow/ScoreWindow'
-import { MapPanelList } from './components/maps/MapPanel'
 import { ChooseDimensions, CreateSemanticMap } from './components/maps/ChooseDimensions'
 import { AdvancedTransform } from './components/maps/AdvancedTransform'
 import type { TransformMode } from './components/maps/AdvancedTransform'
@@ -11,14 +10,15 @@ import { serializeSession, deserializeSession } from './lib/parser'
 import { parseSpreadsheet } from './lib/importer'
 import type { ImportResult } from './lib/importer'
 import { exportSpreadsheet } from './lib/exporter'
+import type { CartesianMapConfig, SemanticMapConfig } from './lib/types'
 import styles from './App.module.css'
 
 export function App(): React.JSX.Element {
-  const filePath   = useAppStore(s => s.filePath)
-  const isDirty    = useAppStore(s => s.isDirty)
-  const loadSession = useAppStore(s => s.loadSession)
-  const markClean  = useAppStore(s => s.markClean)
-  const resetToEmpty = useAppStore(s => s.resetToEmpty)
+  const filePath      = useAppStore(s => s.filePath)
+  const isDirty       = useAppStore(s => s.isDirty)
+  const loadSession   = useAppStore(s => s.loadSession)
+  const markClean     = useAppStore(s => s.markClean)
+  const resetToEmpty  = useAppStore(s => s.resetToEmpty)
 
   const [showChooseDimensions, setShowChooseDimensions] = useState(false)
   const [showCreateSemantic,   setShowCreateSemantic]   = useState(false)
@@ -26,13 +26,66 @@ export function App(): React.JSX.Element {
   const [activeTransform,      setActiveTransform]      = useState<TransformMode | null>(null)
   const [importPreview,        setImportPreview]        = useState<{ fileName: string; result: ImportResult } | null>(null)
 
-  // Title bar reflects file state
+  // Suppresses state:push broadcast while applying IPC-received score updates
+  // to prevent a feedback loop (map drag → Score Window → broadcast back to map).
+  const suppressBroadcast = useRef(false)
+
+  // ── State broadcast to map windows ───────────────────────────────────────────
+
+  useEffect(() => {
+    return useAppStore.subscribe((state, prevState) => {
+      // Open a new BrowserWindow for any map added to the session
+      const prevIds = new Set(prevState.maps.map(m => m.id))
+      for (const map of state.maps) {
+        if (!prevIds.has(map.id)) {
+          window.api.openMap(map.id, serializeSession(state))
+        }
+      }
+
+      // Broadcast full state to all open map windows
+      if (!suppressBroadcast.current) {
+        window.api.broadcastState(serializeSession(state))
+      }
+    })
+  }, [])
+
+  // ── IPC listeners from map windows ───────────────────────────────────────────
+
+  useEffect(() => {
+    // Fine-grained score from a map window drag — apply silently (no re-broadcast)
+    const removeScore = window.api.onScore((elementId, dimensionId, value) => {
+      suppressBroadcast.current = true
+      useAppStore.getState().setScore(elementId, dimensionId, value)
+      suppressBroadcast.current = false
+    })
+
+    // Map config change from a map window — apply and let subscriber broadcast
+    const removeConfig = window.api.onMapConfig((mapId, changes) => {
+      useAppStore.getState().updateMapConfig(
+        mapId,
+        changes as Partial<CartesianMapConfig> | Partial<SemanticMapConfig>
+      )
+    })
+
+    // Map window closed by user — remove from session
+    const removeMapClosed = window.api.onMapClosed((mapId) => {
+      suppressBroadcast.current = true
+      useAppStore.getState().removeMap(mapId)
+      suppressBroadcast.current = false
+    })
+
+    return () => { removeScore(); removeConfig(); removeMapClosed() }
+  }, [])
+
+  // ── Title bar ─────────────────────────────────────────────────────────────────
+
   useEffect(() => {
     const name = filePath ? filePath.split('/').pop() ?? filePath : 'Untitled'
     document.title = isDirty ? `${name} •` : name
   }, [filePath, isDirty])
 
-  // Native menu actions arrive via IPC
+  // ── Menu actions ──────────────────────────────────────────────────────────────
+
   useEffect(() => {
     return window.api.onMenuAction(async (action) => {
       switch (action) {
@@ -49,13 +102,16 @@ export function App(): React.JSX.Element {
         case 'dim-to-gray':      setActiveTransform('dim-to-gray');        break
         case 'randomize-scores': setActiveTransform('randomize-scores');   break
         case 'toggle-labels':    handleToggleLabels(); break
-        case 'update-maps':      /* maps redraw reactively — no-op */ break
+        case 'update-maps':      /* maps redraw reactively */ break
       }
     })
   }, [filePath, isDirty])   // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ── Handlers ──────────────────────────────────────────────────────────────────
+
   async function handleNew(): Promise<void> {
     if (isDirty && !await confirmDiscard()) return
+    window.api.closeAllMaps()
     resetToEmpty()
   }
 
@@ -66,8 +122,10 @@ export function App(): React.JSX.Element {
     try {
       const json = await window.api.readFile(path)
       const state = deserializeSession(json)
+      window.api.closeAllMaps()
       loadSession({ ...state, filePath: path })
       markClean(path)
+      // The Zustand subscriber detects new maps and opens windows for each
     } catch (e) {
       alert(`Could not open file:\n${(e as Error).message}`)
     }
@@ -111,7 +169,6 @@ export function App(): React.JSX.Element {
 
   function handleToggleLabels(): void {
     const { maps, updateMapConfig } = useAppStore.getState()
-    // Toggle all visible maps
     for (const m of maps) updateMapConfig(m.id, { showLabels: !m.showLabels })
   }
 
@@ -121,23 +178,7 @@ export function App(): React.JSX.Element {
 
   return (
     <div className={styles.root}>
-      <div className={styles.scorePane}>
-        <ScoreWindow onOpenStarterPicker={() => setShowStarterPicker(true)} />
-      </div>
-      <div className={styles.mapPane}>
-        <MapPanelList />
-        {useAppStore.getState().maps.length === 0 && (
-          <div className={styles.mapEmpty}>
-            <p>No maps open.</p>
-            <button className={styles.createMapBtn} onClick={() => setShowChooseDimensions(true)}>
-              Create Cartesian Map…
-            </button>
-            <button className={styles.createMapBtn} onClick={() => setShowCreateSemantic(true)}>
-              Create Semantic Map…
-            </button>
-          </div>
-        )}
-      </div>
+      <ScoreWindow onOpenStarterPicker={() => setShowStarterPicker(true)} />
 
       {importPreview && (
         <ImportPreview
@@ -146,7 +187,9 @@ export function App(): React.JSX.Element {
           onCancel={() => setImportPreview(null)}
           onConfirm={() => {
             const { elements, dimensions, scores } = importPreview.result
-            loadSession({ filePath: null, isDirty: true, elements, dimensions, scores, maps: [], selectedElementId: elements[0]?.id ?? null, selectedDimensionId: dimensions[0]?.id ?? null, activeTab: 'elements' })
+            loadSession({ filePath: null, isDirty: true, elements, dimensions, scores, maps: [],
+                          selectedElementId: elements[0]?.id ?? null,
+                          selectedDimensionId: dimensions[0]?.id ?? null, activeTab: 'elements' })
             setImportPreview(null)
           }}
         />

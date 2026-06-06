@@ -2,7 +2,8 @@ import { app, shell, BrowserWindow } from 'electron'
 import { join } from 'path'
 import { is } from '@electron-toolkit/utils'
 import { registerIpcHandlers } from './ipc'
-import { buildMenu } from './menu'
+import { buildMenu, setMainWindowForMenu } from './menu'
+import { setScoreWindow } from './windowManager'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -19,6 +20,9 @@ function createWindow(): void {
       sandbox: false
     }
   })
+
+  setScoreWindow(mainWindow)
+  setMainWindowForMenu(mainWindow)
 
   mainWindow.on('ready-to-show', () => {
     mainWindow!.show()
