@@ -1,8 +1,8 @@
 import type { CartesianMapConfig, Element, Dimension, ScoreMap } from '../../../lib/types'
 
 export const MARGIN = 48   // space for axis pole labels
-const DOT_MIN_RADIUS = 4
-const DOT_MAX_RADIUS = 24
+export const DOT_MIN_RADIUS = 4
+export const DOT_MAX_RADIUS = 24
 const LABEL_OFFSET = 8
 
 export function drawCartesian(

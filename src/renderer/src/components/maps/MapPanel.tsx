@@ -1,7 +1,7 @@
 import { useRef, useEffect, useCallback, useState } from 'react'
 import { useAppStore } from '../../store/appStore'
-import type { CartesianMapConfig, SemanticMapConfig, Dimension } from '../../lib/types'
-import { drawCartesian, MARGIN } from './cartesian/drawCartesian'
+import type { CartesianMapConfig, SemanticMapConfig, Dimension, ScoreMap } from '../../lib/types'
+import { drawCartesian, MARGIN, DOT_MIN_RADIUS, DOT_MAX_RADIUS } from './cartesian/drawCartesian'
 import { drawSemantic, SEM_MARGIN_H, SEM_MARGIN_V } from './semantic/drawSemantic'
 import styles from './MapPanel.module.css'
 
@@ -65,6 +65,38 @@ function cartesianHitEdge(x: number, y: number, W: number, H: number): Edge | nu
   return null
 }
 
+interface DragTarget { elementId: string; xDimId: string; yDimId: string }
+
+// Returns the element under the pointer on a cartesian map, or null.
+// Dots must be visible; uses the same radius formula as drawCartesian.
+function cartesianHitDot(
+  x: number, y: number, W: number, H: number,
+  config: CartesianMapConfig,
+  elements: { id: string; weight: number }[],
+  scores: ScoreMap
+): DragTarget | null {
+  if (!config.showDots) return null
+  const plotLeft = MARGIN, plotRight = W - MARGIN
+  const plotTop  = MARGIN, plotBottom = H - MARGIN
+  const plotW = plotRight - plotLeft
+  const plotH = plotBottom - plotTop
+
+  for (const el of elements) {
+    const xScore = scores[el.id]?.[config.xDimensionId]
+    const yScore = scores[el.id]?.[config.yDimensionId]
+    if (xScore === undefined || yScore === undefined) continue
+    const ex = config.xFlipped ? 1 - xScore : xScore
+    const ey = config.yFlipped ? 1 - yScore : yScore
+    const cx = plotLeft + ex * plotW
+    const cy = plotTop  + (1 - ey) * plotH
+    const r  = DOT_MIN_RADIUS + (el.weight - 1) / 99 * (DOT_MAX_RADIUS - DOT_MIN_RADIUS)
+    if ((x - cx) ** 2 + (y - cy) ** 2 <= Math.max(r, 8) ** 2) {
+      return { elementId: el.id, xDimId: config.xDimensionId, yDimId: config.yDimensionId }
+    }
+  }
+  return null
+}
+
 // ── MapPanel ──────────────────────────────────────────────────────────────────
 
 interface Props {
@@ -78,9 +110,14 @@ export function MapPanel({ mapId, onClose }: Props): React.JSX.Element | null {
   const dimensions      = useAppStore(s => s.dimensions)
   const scores          = useAppStore(s => s.scores)
   const updateMapConfig = useAppStore(s => s.updateMapConfig)
+  const setScore        = useAppStore(s => s.setScore)
 
   const canvasRef  = useRef<HTMLCanvasElement>(null)
   const wrapperRef = useRef<HTMLDivElement>(null)
+
+  // Drag state kept in refs so handlers are synchronous without stale closures
+  const draggingRef  = useRef<DragTarget | null>(null)
+  const dragMovedRef = useRef(false)
 
   const [axisPicker,     setAxisPicker]     = useState<AxisPickerState | null>(null)
   const [semanticPicker, setSemanticPicker] = useState<SemanticPickerState | null>(null)
@@ -116,23 +153,80 @@ export function MapPanel({ mapId, onClose }: Props): React.JSX.Element | null {
     return () => observer.disconnect()
   }, [redraw])
 
+  function handleMouseDown(e: React.MouseEvent<HTMLDivElement>): void {
+    if (!config || config.type !== 'cartesian') return
+    const wrapper = wrapperRef.current
+    if (!wrapper) return
+    const rect = wrapper.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const y = e.clientY - rect.top
+    const hit = cartesianHitDot(x, y, rect.width, rect.height, config as CartesianMapConfig, elements, scores)
+    if (hit) {
+      draggingRef.current  = hit
+      dragMovedRef.current = false
+      setCursor('grabbing')
+      e.preventDefault()
+    }
+  }
+
   function handleMouseMove(e: React.MouseEvent<HTMLDivElement>): void {
     const wrapper = wrapperRef.current
     if (!wrapper || !config) return
     const rect = wrapper.getBoundingClientRect()
     const x = e.clientX - rect.left
     const y = e.clientY - rect.top
+    const W = rect.width
+    const H = rect.height
+
+    // Live drag — update scores, constrain to plot bounds
+    if (draggingRef.current && config.type === 'cartesian') {
+      const { elementId, xDimId, yDimId } = draggingRef.current
+      const cartCfg  = config as CartesianMapConfig
+      const plotLeft = MARGIN, plotRight  = W - MARGIN
+      const plotTop  = MARGIN, plotBottom = H - MARGIN
+      const plotW    = plotRight  - plotLeft
+      const plotH    = plotBottom - plotTop
+      const cx = Math.max(plotLeft, Math.min(plotRight,  x))
+      const cy = Math.max(plotTop,  Math.min(plotBottom, y))
+      let xScore = (cx - plotLeft) / plotW
+      let yScore = 1 - (cy - plotTop) / plotH
+      if (cartCfg.xFlipped) xScore = 1 - xScore
+      if (cartCfg.yFlipped) yScore = 1 - yScore
+      setScore(elementId, xDimId, xScore)
+      setScore(elementId, yDimId, yScore)
+      dragMovedRef.current = true
+      setCursor('grabbing')
+      return
+    }
 
     if (config.type === 'cartesian') {
-      setCursor(cartesianHitEdge(x, y, rect.width, rect.height) ? 'pointer' : 'default')
+      const hit = cartesianHitDot(x, y, W, H, config as CartesianMapConfig, elements, scores)
+      if (hit)                                             { setCursor('grab');    return }
+      if (cartesianHitEdge(x, y, W, H))                   { setCursor('pointer'); return }
+      setCursor('default')
     } else if (config.type === 'semantic') {
       const semCfg = config as SemanticMapConfig
       const dimCount = semCfg.dimensionIds.length
-      setCursor(semanticHitRow(y, rect.height, dimCount) >= 0 ? 'pointer' : 'default')
+      setCursor(semanticHitRow(y, H, dimCount) >= 0 ? 'pointer' : 'default')
     }
   }
 
+  function handleMouseUp(): void {
+    draggingRef.current = null
+    setCursor('default')
+  }
+
+  function handleMouseLeave(): void {
+    draggingRef.current = null
+    setCursor('default')
+  }
+
   function handleClick(e: React.MouseEvent<HTMLDivElement>): void {
+    // Suppress picker if the mouse actually moved during the drag
+    if (dragMovedRef.current) {
+      dragMovedRef.current = false
+      return
+    }
     const wrapper = wrapperRef.current
     if (!wrapper || !config) return
     const rect = wrapper.getBoundingClientRect()
@@ -142,6 +236,8 @@ export function MapPanel({ mapId, onClose }: Props): React.JSX.Element | null {
     const H = rect.height
 
     if (config.type === 'cartesian') {
+      // Dot click (no drag) — don't open picker
+      if (cartesianHitDot(x, y, W, H, config as CartesianMapConfig, elements, scores)) return
       setSemanticPicker(null)
       const edge = cartesianHitEdge(x, y, W, H)
       if (edge) setAxisPicker({ edge, clickX: x, clickY: y })
@@ -192,7 +288,10 @@ export function MapPanel({ mapId, onClose }: Props): React.JSX.Element | null {
         ref={wrapperRef}
         className={styles.canvasWrapper}
         style={{ cursor }}
+        onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseLeave}
         onClick={handleClick}
       >
         <canvas ref={canvasRef} className={styles.canvas} />
