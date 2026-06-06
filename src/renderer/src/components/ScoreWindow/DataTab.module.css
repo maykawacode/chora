@@ -124,6 +124,26 @@
   background: #d0cdc8;
 }
 
+.starterBtn {
+  width: 26px;
+  height: 26px;
+  border: 1px solid #b0a898;
+  border-radius: 4px;
+  background: #e0ddd8;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+  color: #555;
+}
+
+.starterBtn:hover {
+  background: #d0cdc8;
+}
+
 /* Detail pane (right side) */
 .detailPane {
   width: 160px;

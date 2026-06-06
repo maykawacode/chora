@@ -1,5 +1,6 @@
 import { useRef, useState, KeyboardEvent } from 'react'
 import { useAppStore } from '../../store/appStore'
+import { StarterListPicker } from './StarterListPicker'
 import styles from './DataTab.module.css'
 
 export function DimensionsTab(): React.JSX.Element {
@@ -11,7 +12,8 @@ export function DimensionsTab(): React.JSX.Element {
   const selectDimension   = useAppStore(s => s.selectDimension)
 
   const selected = dimensions.find(d => d.id === selectedId) ?? null
-  const [newLabel, setNewLabel] = useState('')
+  const [newLabel, setNewLabel]       = useState('')
+  const [showStarter, setShowStarter] = useState(false)
   const addInputRef = useRef<HTMLInputElement>(null)
 
   function handleAdd(): void {
@@ -88,7 +90,9 @@ export function DimensionsTab(): React.JSX.Element {
             onKeyDown={handleKeyDown}
           />
           <button className={styles.addBtn} onClick={handleAdd}>+</button>
+          <button className={styles.starterBtn} onClick={() => setShowStarter(true)} title="Browse starter lists">⋯</button>
         </div>
+        {showStarter && <StarterListPicker onClose={() => setShowStarter(false)} />}
       </div>
 
       <div className={styles.detailPane}>

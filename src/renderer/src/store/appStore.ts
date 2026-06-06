@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { v4 as uuid } from 'uuid'
-import type { AppState, Element, Dimension, MapConfig, CartesianMapConfig, SemanticMapConfig } from '../lib/types'
+import type { AppState, Element, Dimension, DimensionCategories, MapConfig, CartesianMapConfig, SemanticMapConfig } from '../lib/types'
 import { defaultCategories, parsePoles } from '../lib/types'
 
 interface AppStore extends AppState {
@@ -10,7 +10,7 @@ interface AppStore extends AppState {
   removeElement: (id: string) => void
 
   // Dimensions
-  addDimension: (label: string) => void
+  addDimension: (label: string, categories?: DimensionCategories) => void
   updateDimension: (id: string, changes: Partial<Dimension>) => void
   removeDimension: (id: string) => void
 
@@ -81,7 +81,7 @@ export const useAppStore = create<AppStore>((set) => ({
     }
   }),
 
-  addDimension: (label) => set((s) => {
+  addDimension: (label, categories) => set((s) => {
     const { poleA, poleB } = parsePoles(label)
     const dim: Dimension = {
       id: uuid(),
@@ -90,7 +90,7 @@ export const useAppStore = create<AppStore>((set) => ({
       poleB,
       weight: 1,
       description: '',
-      categories: defaultCategories()
+      categories: categories ?? defaultCategories()
     }
     return {
       dimensions: [...s.dimensions, dim],
