@@ -5,7 +5,8 @@ export const SEM_MARGIN_V = 20
 const MARGIN_H  = SEM_MARGIN_H
 const MARGIN_V  = SEM_MARGIN_V
 const LABEL_GAP = 6
-const DOT_R     = 4
+export const SEM_DOT_R = 4
+const DOT_R     = SEM_DOT_R
 
 export function drawSemantic(
   ctx: CanvasRenderingContext2D,

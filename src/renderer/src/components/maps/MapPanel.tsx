@@ -2,7 +2,7 @@ import { useRef, useEffect, useCallback, useState } from 'react'
 import { useAppStore } from '../../store/appStore'
 import type { CartesianMapConfig, SemanticMapConfig, Dimension, ScoreMap } from '../../lib/types'
 import { drawCartesian, MARGIN, DOT_MIN_RADIUS, DOT_MAX_RADIUS } from './cartesian/drawCartesian'
-import { drawSemantic, SEM_MARGIN_H, SEM_MARGIN_V } from './semantic/drawSemantic'
+import { drawSemantic, SEM_MARGIN_H, SEM_MARGIN_V, SEM_DOT_R } from './semantic/drawSemantic'
 import styles from './MapPanel.module.css'
 
 type Edge = 'left' | 'right' | 'top' | 'bottom'
@@ -97,6 +97,46 @@ function cartesianHitDot(
   return null
 }
 
+interface SemanticDragTarget { elementId: string; dimId: string }
+
+// Returns the semantic dot under the pointer (element × dimension), or null.
+function semanticHitDot(
+  x: number, y: number, W: number, H: number,
+  config: SemanticMapConfig,
+  elements: { id: string }[],
+  dimensions: Dimension[],
+  scores: ScoreMap
+): SemanticDragTarget | null {
+  if (!config.showDots) return null
+  const axisLeft  = SEM_MARGIN_H
+  const axisRight = W - SEM_MARGIN_H
+  const axisWidth = axisRight - axisLeft
+  const dims = config.dimensionIds
+    .map(id => dimensions.find(d => d.id === id))
+    .filter((d): d is Dimension => d !== undefined)
+  const els = config.elementIds.length > 0
+    ? config.elementIds.map(id => elements.find(e => e.id === id)).filter((e): e is { id: string } => e !== undefined)
+    : elements
+  const ys  = semAxisYs(H, dims.length)
+  const HIT = Math.max(SEM_DOT_R, 8)
+
+  for (let i = 0; i < dims.length; i++) {
+    const dim = dims[i]
+    const ay  = ys[i]
+    if (Math.abs(y - ay) > HIT) continue
+    for (const el of els) {
+      const raw = scores[el.id]?.[dim.id]
+      if (raw === undefined) continue
+      const score = config.flippedDimensionIds.includes(dim.id) ? 1 - raw : raw
+      const dx = axisLeft + score * axisWidth
+      if ((x - dx) ** 2 + (y - ay) ** 2 <= HIT ** 2) {
+        return { elementId: el.id, dimId: dim.id }
+      }
+    }
+  }
+  return null
+}
+
 // ── MapPanel ──────────────────────────────────────────────────────────────────
 
 interface Props {
@@ -116,8 +156,10 @@ export function MapPanel({ mapId, onClose }: Props): React.JSX.Element | null {
   const wrapperRef = useRef<HTMLDivElement>(null)
 
   // Drag state kept in refs so handlers are synchronous without stale closures
-  const draggingRef  = useRef<DragTarget | null>(null)
-  const dragMovedRef = useRef(false)
+  const draggingRef     = useRef<DragTarget | null>(null)
+  const dragMovedRef    = useRef(false)
+  const semDraggingRef  = useRef<SemanticDragTarget | null>(null)
+  const semDragMovedRef = useRef(false)
 
   const [axisPicker,     setAxisPicker]     = useState<AxisPickerState | null>(null)
   const [semanticPicker, setSemanticPicker] = useState<SemanticPickerState | null>(null)
@@ -154,18 +196,28 @@ export function MapPanel({ mapId, onClose }: Props): React.JSX.Element | null {
   }, [redraw])
 
   function handleMouseDown(e: React.MouseEvent<HTMLDivElement>): void {
-    if (!config || config.type !== 'cartesian') return
     const wrapper = wrapperRef.current
-    if (!wrapper) return
+    if (!wrapper || !config) return
     const rect = wrapper.getBoundingClientRect()
     const x = e.clientX - rect.left
     const y = e.clientY - rect.top
-    const hit = cartesianHitDot(x, y, rect.width, rect.height, config as CartesianMapConfig, elements, scores)
-    if (hit) {
-      draggingRef.current  = hit
-      dragMovedRef.current = false
-      setCursor('grabbing')
-      e.preventDefault()
+
+    if (config.type === 'cartesian') {
+      const hit = cartesianHitDot(x, y, rect.width, rect.height, config as CartesianMapConfig, elements, scores)
+      if (hit) {
+        draggingRef.current  = hit
+        dragMovedRef.current = false
+        setCursor('grabbing')
+        e.preventDefault()
+      }
+    } else if (config.type === 'semantic') {
+      const hit = semanticHitDot(x, y, rect.width, rect.height, config as SemanticMapConfig, elements, dimensions, scores)
+      if (hit) {
+        semDraggingRef.current  = hit
+        semDragMovedRef.current = false
+        setCursor('grabbing')
+        e.preventDefault()
+      }
     }
   }
 
@@ -178,7 +230,7 @@ export function MapPanel({ mapId, onClose }: Props): React.JSX.Element | null {
     const W = rect.width
     const H = rect.height
 
-    // Live drag — update scores, constrain to plot bounds
+    // Cartesian live drag
     if (draggingRef.current && config.type === 'cartesian') {
       const { elementId, xDimId, yDimId } = draggingRef.current
       const cartCfg  = config as CartesianMapConfig
@@ -199,6 +251,22 @@ export function MapPanel({ mapId, onClose }: Props): React.JSX.Element | null {
       return
     }
 
+    // Semantic live drag — horizontal only, constrained to axis line
+    if (semDraggingRef.current && config.type === 'semantic') {
+      const { elementId, dimId } = semDraggingRef.current
+      const semCfg   = config as SemanticMapConfig
+      const axisLeft = SEM_MARGIN_H
+      const axisRight = W - SEM_MARGIN_H
+      const axisWidth = axisRight - axisLeft
+      const cx = Math.max(axisLeft, Math.min(axisRight, x))
+      let score = (cx - axisLeft) / axisWidth
+      if (semCfg.flippedDimensionIds.includes(dimId)) score = 1 - score
+      setScore(elementId, dimId, score)
+      semDragMovedRef.current = true
+      setCursor('grabbing')
+      return
+    }
+
     if (config.type === 'cartesian') {
       const hit = cartesianHitDot(x, y, W, H, config as CartesianMapConfig, elements, scores)
       if (hit)                                             { setCursor('grab');    return }
@@ -206,27 +274,28 @@ export function MapPanel({ mapId, onClose }: Props): React.JSX.Element | null {
       setCursor('default')
     } else if (config.type === 'semantic') {
       const semCfg = config as SemanticMapConfig
-      const dimCount = semCfg.dimensionIds.length
-      setCursor(semanticHitRow(y, H, dimCount) >= 0 ? 'pointer' : 'default')
+      const hit = semanticHitDot(x, y, W, H, semCfg, elements, dimensions, scores)
+      if (hit) { setCursor('grab'); return }
+      setCursor(semanticHitRow(y, H, semCfg.dimensionIds.length) >= 0 ? 'pointer' : 'default')
     }
   }
 
   function handleMouseUp(): void {
-    draggingRef.current = null
+    draggingRef.current    = null
+    semDraggingRef.current = null
     setCursor('default')
   }
 
   function handleMouseLeave(): void {
-    draggingRef.current = null
+    draggingRef.current    = null
+    semDraggingRef.current = null
     setCursor('default')
   }
 
   function handleClick(e: React.MouseEvent<HTMLDivElement>): void {
-    // Suppress picker if the mouse actually moved during the drag
-    if (dragMovedRef.current) {
-      dragMovedRef.current = false
-      return
-    }
+    // Suppress picker if the mouse actually moved during either drag
+    if (dragMovedRef.current)    { dragMovedRef.current    = false; return }
+    if (semDragMovedRef.current) { semDragMovedRef.current = false; return }
     const wrapper = wrapperRef.current
     if (!wrapper || !config) return
     const rect = wrapper.getBoundingClientRect()
@@ -245,6 +314,8 @@ export function MapPanel({ mapId, onClose }: Props): React.JSX.Element | null {
     } else if (config.type === 'semantic') {
       setAxisPicker(null)
       const semCfg = config as SemanticMapConfig
+      // Dot click (no drag) — don't open picker
+      if (semanticHitDot(x, y, W, H, semCfg, elements, dimensions, scores)) return
       const dims = semCfg.dimensionIds
         .map(id => dimensions.find(d => d.id === id))
         .filter((d): d is Dimension => d !== undefined)
