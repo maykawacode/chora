@@ -43,6 +43,7 @@ export function DimensionsTab(): React.JSX.Element {
   }
 
   return (
+    <>
     <div className={styles.tab}>
       <div className={styles.listPane}>
         <div className={styles.listHeader}>Dimensions ({dimensions.length})</div>
@@ -92,7 +93,6 @@ export function DimensionsTab(): React.JSX.Element {
           <button className={styles.addBtn} onClick={handleAdd}>+</button>
           <button className={styles.starterBtn} onClick={() => setShowStarter(true)} title="Browse starter lists">⋯</button>
         </div>
-        {showStarter && <StarterListPicker onClose={() => setShowStarter(false)} />}
       </div>
 
       <div className={styles.detailPane}>
@@ -119,5 +119,7 @@ export function DimensionsTab(): React.JSX.Element {
         />
       </div>
     </div>
+    {showStarter && <StarterListPicker onClose={() => setShowStarter(false)} />}
+    </>
   )
 }
