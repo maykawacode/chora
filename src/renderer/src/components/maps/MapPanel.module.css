@@ -19,6 +19,14 @@
   flex: 1;
 }
 
+.panelWindowed {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #fff;
+  flex: 1;
+}
+
 .titleBar {
   display: flex;
   align-items: center;
@@ -26,6 +34,17 @@
   background: #e0ddd8;
   border-bottom: 1px solid #b0a898;
   padding: 4px 8px;
+  user-select: none;
+  -webkit-app-region: drag;
+}
+
+.titleBarWindowed {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #e0ddd8;
+  border-bottom: 1px solid #b0a898;
+  padding: 4px 8px 4px 78px;
   user-select: none;
   -webkit-app-region: drag;
 }

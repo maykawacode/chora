@@ -29,6 +29,7 @@ contextBridge.exposeInMainWorld('api', {
   openMap:      (mapId: string, stateJson: string): void => ipcRenderer.send('map:open', mapId, stateJson),
   closeAllMaps: (): void => ipcRenderer.send('map:closeAll'),
   signalReady:  (): void => ipcRenderer.send('map:ready'),
+  setModalOpen: (open: boolean): void => ipcRenderer.send('modal:open', open),
 
   // ── State broadcast (Score Window → maps) ───────────────────────────────────
   broadcastState:     (stateJson: string): void  => ipcRenderer.send('state:push', stateJson),

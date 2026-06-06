@@ -17,6 +17,7 @@ interface Window {
     openMap:      (mapId: string, stateJson: string) => void
     closeAllMaps: () => void
     signalReady:  () => void
+    setModalOpen: (open: boolean) => void
 
     // State broadcast (Score Window → maps)
     broadcastState:     (stateJson: string) => void

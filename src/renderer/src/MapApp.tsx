@@ -48,8 +48,8 @@ export function MapApp(): React.JSX.Element {
   }
 
   return (
-    <div style={{ width: '100vw', height: '100vh', overflow: 'hidden' }}>
-      <MapPanel mapId={mapId} onClose={() => window.close()} />
+    <div style={{ width: '100vw', height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      <MapPanel mapId={mapId} onClose={() => window.close()} windowed />
     </div>
   )
 }

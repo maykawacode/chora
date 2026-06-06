@@ -77,6 +77,15 @@ export function App(): React.JSX.Element {
     return () => { removeScore(); removeConfig(); removeMapClosed() }
   }, [])
 
+  // ── Modal z-order: float Score Window above map windows while any modal is open
+
+  const isModalOpen = showChooseDimensions || showCreateSemantic || showStarterPicker ||
+                      activeTransform !== null || importPreview !== null
+
+  useEffect(() => {
+    window.api?.setModalOpen?.(isModalOpen)
+  }, [isModalOpen])
+
   // ── Title bar ─────────────────────────────────────────────────────────────────
 
   useEffect(() => {

@@ -76,6 +76,13 @@ export function registerIpcHandlers(): void {
     handleMapReady(event.sender.id)
   })
 
+  // Bring Score Window to front when a modal opens (avoids map windows covering it)
+  ipcMain.on('modal:open', (_event, open: boolean) => {
+    if (!open) return
+    const win = getMainWindow()
+    if (win && !win.isDestroyed()) { win.focus(); win.moveTop() }
+  })
+
   // ── State relay ───────────────────────────────────────────────────────────────
 
   // Fine-grained score update — forward to all other windows

@@ -149,9 +149,10 @@ function semanticHitDot(
 interface Props {
   mapId: string
   onClose: () => void
+  windowed?: boolean
 }
 
-export function MapPanel({ mapId, onClose }: Props): React.JSX.Element | null {
+export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element | null {
   const config          = useAppStore(s => s.maps.find(m => m.id === mapId))
   const elements        = useAppStore(s => s.elements)
   const dimensions      = useAppStore(s => s.dimensions)
@@ -368,8 +369,8 @@ export function MapPanel({ mapId, onClose }: Props): React.JSX.Element | null {
   const semConfig  = config as SemanticMapConfig
 
   return (
-    <div className={styles.panel}>
-      <div className={styles.titleBar}>
+    <div className={windowed ? styles.panelWindowed : styles.panel}>
+      <div className={windowed ? styles.titleBarWindowed : styles.titleBar}>
         <span className={styles.title}>{config.title}</span>
         <div className={styles.titleBarActions}>
           <button
@@ -386,7 +387,9 @@ export function MapPanel({ mapId, onClose }: Props): React.JSX.Element | null {
           >
             {config.showLabels ? 'Labels ✓' : 'Labels'}
           </button>
-          <button className={styles.closeBtn} onClick={onClose} title="Close map">✕</button>
+          {!windowed && (
+            <button className={styles.closeBtn} onClick={onClose} title="Close map">✕</button>
+          )}
         </div>
       </div>
       <div
