@@ -92,13 +92,15 @@ export function drawCartesian(
     const r  = DOT_MIN_RADIUS + (el.weight - 1) / 99 * (DOT_MAX_RADIUS - DOT_MIN_RADIUS)
 
     // Dot
-    ctx.beginPath()
-    ctx.arc(cx, cy, r, 0, Math.PI * 2)
-    ctx.fillStyle = el.color
-    ctx.fill()
-    ctx.strokeStyle = 'rgba(0,0,0,0.25)'
-    ctx.lineWidth = 1
-    ctx.stroke()
+    if (config.showDots) {
+      ctx.beginPath()
+      ctx.arc(cx, cy, r, 0, Math.PI * 2)
+      ctx.fillStyle = el.color
+      ctx.fill()
+      ctx.strokeStyle = 'rgba(0,0,0,0.25)'
+      ctx.lineWidth = 1
+      ctx.stroke()
+    }
 
     // Label
     if (config.showLabels) {

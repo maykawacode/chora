@@ -30,6 +30,41 @@ function semAxisYs(H: number, count: number): number[] {
   )
 }
 
+// Returns the semantic dimension row index hit, or -1.
+// Triggers anywhere along the full horizontal extent of the row (axis line + pole labels).
+function semanticHitRow(y: number, H: number, dimCount: number): number {
+  if (dimCount === 0) return -1
+  const ys = semAxisYs(H, dimCount)
+  const TOL = 6
+  for (let i = 0; i < ys.length; i++) {
+    if (Math.abs(y - ys[i]) <= TOL) return i
+  }
+  return -1
+}
+
+// Returns which Cartesian axis edge was hit, or null.
+// Triggers near the crosshair center lines (inside the plot) or the pole labels (in the margin).
+function cartesianHitEdge(x: number, y: number, W: number, H: number): Edge | null {
+  const midX = W / 2
+  const midY = H / 2
+  const pL = MARGIN, pR = W - MARGIN, pT = MARGIN, pB = H - MARGIN
+  const TOL = 6  // px tolerance
+
+  // Horizontal center line (X axis) — use nearest end for picker placement
+  if (Math.abs(y - midY) <= TOL && x >= pL && x <= pR) return x < midX ? 'left' : 'right'
+
+  // Vertical center line (Y axis) — use nearest end for picker placement
+  if (Math.abs(x - midX) <= TOL && y >= pT && y <= pB) return y < midY ? 'top' : 'bottom'
+
+  // Pole labels (in margin zone, near the midpoint where labels are drawn)
+  if (x < pL && Math.abs(y - midY) <= 18) return 'left'
+  if (x > pR && Math.abs(y - midY) <= 18) return 'right'
+  if (y < pT && Math.abs(x - midX) <= 50) return 'top'
+  if (y > pB && Math.abs(x - midX) <= 50) return 'bottom'
+
+  return null
+}
+
 // ── MapPanel ──────────────────────────────────────────────────────────────────
 
 interface Props {
@@ -89,17 +124,11 @@ export function MapPanel({ mapId, onClose }: Props): React.JSX.Element | null {
     const y = e.clientY - rect.top
 
     if (config.type === 'cartesian') {
-      const inMargin = x < MARGIN || x > rect.width - MARGIN || y < MARGIN || y > rect.height - MARGIN
-      setCursor(inMargin ? 'pointer' : 'default')
+      setCursor(cartesianHitEdge(x, y, rect.width, rect.height) ? 'pointer' : 'default')
     } else if (config.type === 'semantic') {
       const semCfg = config as SemanticMapConfig
-      const dims = semCfg.dimensionIds
-        .map(id => dimensions.find(d => d.id === id))
-        .filter(Boolean)
-      const inMargin = x < SEM_MARGIN_H || x > rect.width - SEM_MARGIN_H
-      if (!inMargin || dims.length === 0) { setCursor('default'); return }
-      const ys = semAxisYs(rect.height, dims.length)
-      setCursor(ys.some(ay => Math.abs(y - ay) < 16) ? 'pointer' : 'default')
+      const dimCount = semCfg.dimensionIds.length
+      setCursor(semanticHitRow(y, rect.height, dimCount) >= 0 ? 'pointer' : 'default')
     }
   }
 
@@ -114,28 +143,18 @@ export function MapPanel({ mapId, onClose }: Props): React.JSX.Element | null {
 
     if (config.type === 'cartesian') {
       setSemanticPicker(null)
-      if      (x < MARGIN)       setAxisPicker({ edge: 'left',   clickX: x, clickY: y })
-      else if (x > W - MARGIN)   setAxisPicker({ edge: 'right',  clickX: x, clickY: y })
-      else if (y < MARGIN)       setAxisPicker({ edge: 'top',    clickX: x, clickY: y })
-      else if (y > H - MARGIN)   setAxisPicker({ edge: 'bottom', clickX: x, clickY: y })
-      else                       setAxisPicker(null)
+      const edge = cartesianHitEdge(x, y, W, H)
+      if (edge) setAxisPicker({ edge, clickX: x, clickY: y })
+      else      setAxisPicker(null)
     } else if (config.type === 'semantic') {
       setAxisPicker(null)
       const semCfg = config as SemanticMapConfig
       const dims = semCfg.dimensionIds
         .map(id => dimensions.find(d => d.id === id))
         .filter((d): d is Dimension => d !== undefined)
-      if (dims.length === 0) return
-      const inMargin = x < SEM_MARGIN_H || x > W - SEM_MARGIN_H
-      if (!inMargin) { setSemanticPicker(null); return }
-      const ys = semAxisYs(H, dims.length)
-      let best = -1, bestDist = Infinity
-      for (let i = 0; i < ys.length; i++) {
-        const d = Math.abs(y - ys[i])
-        if (d < bestDist) { bestDist = d; best = i }
-      }
-      if (best >= 0 && bestDist <= 16) {
-        setSemanticPicker({ dimIndex: best, dimId: dims[best].id, clickX: x, clickY: y })
+      const rowIdx = semanticHitRow(y, H, dims.length)
+      if (rowIdx >= 0) {
+        setSemanticPicker({ dimIndex: rowIdx, dimId: dims[rowIdx].id, clickX: x, clickY: y })
       } else {
         setSemanticPicker(null)
       }
@@ -152,6 +171,13 @@ export function MapPanel({ mapId, onClose }: Props): React.JSX.Element | null {
       <div className={styles.titleBar}>
         <span className={styles.title}>{config.title}</span>
         <div className={styles.titleBarActions}>
+          <button
+            className={styles.labelToggle}
+            onClick={() => updateMapConfig(mapId, { showDots: !config.showDots })}
+            title="Show/Hide Dots"
+          >
+            {config.showDots ? 'Dots ✓' : 'Dots'}
+          </button>
           <button
             className={styles.labelToggle}
             onClick={() => updateMapConfig(mapId, { showLabels: !config.showLabels })}

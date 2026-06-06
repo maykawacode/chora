@@ -104,14 +104,16 @@ export function drawSemantic(
     ctx.stroke()
 
     // Dots
-    for (const pt of points) {
-      ctx.beginPath()
-      ctx.arc(pt.x, pt.y, DOT_R, 0, Math.PI * 2)
-      ctx.fillStyle = el.color
-      ctx.fill()
-      ctx.strokeStyle = 'rgba(0,0,0,0.3)'
-      ctx.lineWidth = 1
-      ctx.stroke()
+    if (config.showDots) {
+      for (const pt of points) {
+        ctx.beginPath()
+        ctx.arc(pt.x, pt.y, DOT_R, 0, Math.PI * 2)
+        ctx.fillStyle = el.color
+        ctx.fill()
+        ctx.strokeStyle = 'rgba(0,0,0,0.3)'
+        ctx.lineWidth = 1
+        ctx.stroke()
+      }
     }
 
     // Name label at rightmost point
