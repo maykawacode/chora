@@ -87,6 +87,11 @@ export function buildMenu(): void {
         {
           label: 'Dimension → Gray…',
           click: () => sendToRenderer('menu:dim-to-gray')
+        },
+        { type: 'separator' },
+        {
+          label: 'Randomize Scores…',
+          click: () => sendToRenderer('menu:randomize-scores')
         }
       ]
     },

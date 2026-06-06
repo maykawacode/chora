@@ -27,6 +27,7 @@ interface AppStore extends AppState {
   dimensionToWeight: (dimensionId: string) => void
   weightToDimension: (dimensionId: string) => void
   dimensionToGray:   (dimensionId: string) => void
+  randomizeScores:   (dimensionId: string) => void
 
   // Score window navigation
   selectElement: (id: string | null) => void
@@ -173,6 +174,14 @@ export const useAppStore = create<AppStore>((set) => ({
     }),
     isDirty: true
   })),
+
+  randomizeScores: (dimensionId) => set((s) => {
+    const newScores = { ...s.scores }
+    for (const el of s.elements) {
+      newScores[el.id] = { ...newScores[el.id], [dimensionId]: Math.random() }
+    }
+    return { scores: newScores, isDirty: true }
+  }),
 
   selectElement: (id) => set({ selectedElementId: id }),
   selectDimension: (id) => set({ selectedDimensionId: id }),

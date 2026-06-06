@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useAppStore } from '../../store/appStore'
 import styles from './ChooseDimensions.module.css'
 
-export type TransformMode = 'dim-to-weight' | 'weight-to-dim' | 'dim-to-gray'
+export type TransformMode = 'dim-to-weight' | 'weight-to-dim' | 'dim-to-gray' | 'randomize-scores'
 
 const INFO: Record<TransformMode, { title: string; subtitle: string }> = {
   'dim-to-weight': {
@@ -16,6 +16,10 @@ const INFO: Record<TransformMode, { title: string; subtitle: string }> = {
   'dim-to-gray': {
     title: 'Dimension → Gray',
     subtitle: "Sets each element's color to a gray shade based on its score on the chosen dimension. Unscored elements are unchanged."
+  },
+  'randomize-scores': {
+    title: 'Randomize Scores',
+    subtitle: "Assigns a random score to every element on the chosen dimension. Useful for seeding an empty dataset."
   }
 }
 
@@ -29,15 +33,17 @@ export function AdvancedTransform({ mode, onClose }: Props): React.JSX.Element {
   const dimensionToWeight = useAppStore(s => s.dimensionToWeight)
   const weightToDimension = useAppStore(s => s.weightToDimension)
   const dimensionToGray   = useAppStore(s => s.dimensionToGray)
+  const randomizeScores   = useAppStore(s => s.randomizeScores)
 
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
   function handleApply(): void {
     if (!selectedId) return
     switch (mode) {
-      case 'dim-to-weight': dimensionToWeight(selectedId); break
-      case 'weight-to-dim': weightToDimension(selectedId); break
-      case 'dim-to-gray':   dimensionToGray(selectedId);   break
+      case 'dim-to-weight':    dimensionToWeight(selectedId); break
+      case 'weight-to-dim':    weightToDimension(selectedId); break
+      case 'dim-to-gray':      dimensionToGray(selectedId);   break
+      case 'randomize-scores': randomizeScores(selectedId);   break
     }
     onClose()
   }

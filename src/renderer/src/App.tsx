@@ -37,7 +37,8 @@ export function App(): React.JSX.Element {
         case 'create-semantic':  setShowCreateSemantic(true);   break
         case 'dim-to-weight':    setActiveTransform('dim-to-weight'); break
         case 'weight-to-dim':    setActiveTransform('weight-to-dim'); break
-        case 'dim-to-gray':      setActiveTransform('dim-to-gray');   break
+        case 'dim-to-gray':      setActiveTransform('dim-to-gray');        break
+        case 'randomize-scores': setActiveTransform('randomize-scores');   break
         case 'toggle-labels':    handleToggleLabels(); break
         case 'update-maps':      /* maps redraw reactively — no-op */ break
       }

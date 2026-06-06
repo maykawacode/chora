@@ -9,7 +9,7 @@ contextBridge.exposeInMainWorld('api', {
   onMenuAction: (cb: (action: string) => void): (() => void) => {
     const actions = ['menu:new', 'menu:open', 'menu:save', 'menu:save-as',
                      'menu:create-cartesian', 'menu:create-semantic',
-                     'menu:dim-to-weight', 'menu:weight-to-dim', 'menu:dim-to-gray',
+                     'menu:dim-to-weight', 'menu:weight-to-dim', 'menu:dim-to-gray', 'menu:randomize-scores',
                      'menu:toggle-labels', 'menu:update-maps']
     const handlers = actions.map(channel => {
       const handler = (): void => cb(channel.replace('menu:', ''))
