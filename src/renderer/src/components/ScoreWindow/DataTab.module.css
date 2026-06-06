@@ -152,6 +152,7 @@
   flex-direction: column;
   padding: 8px;
   gap: 8px;
+  overflow: hidden;
 }
 
 .fieldRow {
@@ -202,7 +203,8 @@
 }
 
 .description {
-  flex: 1;
+  flex: none;
+  height: 80px;
   resize: none;
   border: 1px solid #b0a898;
   border-radius: 4px;
