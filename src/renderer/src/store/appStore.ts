@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { v4 as uuid } from 'uuid'
-import type { AppState, Element, Dimension, MapConfig } from '../lib/types'
+import type { AppState, Element, Dimension, MapConfig, CartesianMapConfig, SemanticMapConfig } from '../lib/types'
 import { defaultCategories, parsePoles } from '../lib/types'
 
 interface AppStore extends AppState {
@@ -20,7 +20,7 @@ interface AppStore extends AppState {
 
   // Maps
   addMap: (config: MapConfig) => void
-  updateMapConfig: (id: string, changes: Partial<MapConfig>) => void
+  updateMapConfig: (id: string, changes: Partial<CartesianMapConfig> | Partial<SemanticMapConfig>) => void
   removeMap: (id: string) => void
 
   // Score window navigation

@@ -77,6 +77,53 @@
   color: #333;
 }
 
+.axisPicker {
+  background: #fff;
+  border: 1px solid #b0a898;
+  border-radius: 5px;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.2);
+  min-width: 140px;
+  max-width: 220px;
+  overflow: hidden;
+}
+
+.axisPickerTitle {
+  font-size: 11px;
+  font-weight: 600;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 5px 8px;
+  background: #f0ede8;
+  border-bottom: 1px solid #b0a898;
+}
+
+.axisPickerList {
+  list-style: none;
+  margin: 0;
+  padding: 3px 0;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.axisPickerItem {
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.axisPickerItem:hover {
+  background: #e8e5e0;
+}
+
+.axisPickerSelected {
+  color: #808040;
+  font-weight: 600;
+}
+
 .canvasWrapper {
   flex: 1;
   position: relative;
