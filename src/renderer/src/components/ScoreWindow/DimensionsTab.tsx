@@ -102,6 +102,7 @@ export function DimensionsTab(): React.JSX.Element {
             max={100}
             defaultValue={selected?.weight ?? 1}
             disabled={!selected}
+            onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur() }}
             onBlur={e => selected && updateDimension(selected.id, { weight: Math.max(1, Math.min(100, +e.target.value || 1)) })}
           />
         </div>
