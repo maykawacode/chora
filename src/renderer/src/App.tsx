@@ -3,6 +3,8 @@ import { useAppStore } from './store/appStore'
 import { ScoreWindow } from './components/ScoreWindow/ScoreWindow'
 import { MapPanelList } from './components/maps/MapPanel'
 import { ChooseDimensions, CreateSemanticMap } from './components/maps/ChooseDimensions'
+import { AdvancedTransform } from './components/maps/AdvancedTransform'
+import type { TransformMode } from './components/maps/AdvancedTransform'
 import { serializeSession, deserializeSession } from './lib/parser'
 import styles from './App.module.css'
 
@@ -15,6 +17,7 @@ export function App(): React.JSX.Element {
 
   const [showChooseDimensions, setShowChooseDimensions] = useState(false)
   const [showCreateSemantic,   setShowCreateSemantic]   = useState(false)
+  const [activeTransform,      setActiveTransform]      = useState<TransformMode | null>(null)
 
   // Title bar reflects file state
   useEffect(() => {
@@ -32,6 +35,9 @@ export function App(): React.JSX.Element {
         case 'save-as':  await handleSave(true);       break
         case 'create-cartesian': setShowChooseDimensions(true); break
         case 'create-semantic':  setShowCreateSemantic(true);   break
+        case 'dim-to-weight':    setActiveTransform('dim-to-weight'); break
+        case 'weight-to-dim':    setActiveTransform('weight-to-dim'); break
+        case 'dim-to-gray':      setActiveTransform('dim-to-gray');   break
         case 'toggle-labels':    handleToggleLabels(); break
         case 'update-maps':      /* maps redraw reactively — no-op */ break
       }
@@ -104,6 +110,9 @@ export function App(): React.JSX.Element {
       )}
       {showCreateSemantic && (
         <CreateSemanticMap onClose={() => setShowCreateSemantic(false)} />
+      )}
+      {activeTransform && (
+        <AdvancedTransform mode={activeTransform} onClose={() => setActiveTransform(null)} />
       )}
     </div>
   )

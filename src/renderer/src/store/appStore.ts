@@ -23,6 +23,11 @@ interface AppStore extends AppState {
   updateMapConfig: (id: string, changes: Partial<CartesianMapConfig> | Partial<SemanticMapConfig>) => void
   removeMap: (id: string) => void
 
+  // Advanced transforms
+  dimensionToWeight: (dimensionId: string) => void
+  weightToDimension: (dimensionId: string) => void
+  dimensionToGray:   (dimensionId: string) => void
+
   // Score window navigation
   selectElement: (id: string | null) => void
   selectDimension: (id: string | null) => void
@@ -139,6 +144,33 @@ export const useAppStore = create<AppStore>((set) => ({
 
   removeMap: (id) => set((s) => ({
     maps: s.maps.filter(m => m.id !== id),
+    isDirty: true
+  })),
+
+  dimensionToWeight: (dimensionId) => set((s) => ({
+    elements: s.elements.map(el => {
+      const score = s.scores[el.id]?.[dimensionId]
+      if (score === undefined) return el
+      return { ...el, weight: Math.round(score * 99 + 1) }
+    }),
+    isDirty: true
+  })),
+
+  weightToDimension: (dimensionId) => set((s) => {
+    const newScores = { ...s.scores }
+    for (const el of s.elements) {
+      newScores[el.id] = { ...newScores[el.id], [dimensionId]: (el.weight - 1) / 99 }
+    }
+    return { scores: newScores, isDirty: true }
+  }),
+
+  dimensionToGray: (dimensionId) => set((s) => ({
+    elements: s.elements.map(el => {
+      const score = s.scores[el.id]?.[dimensionId]
+      if (score === undefined) return el
+      const v   = Math.round(20 + score * 210).toString(16).padStart(2, '0')
+      return { ...el, color: `#${v}${v}${v}` }
+    }),
     isDirty: true
   })),
 

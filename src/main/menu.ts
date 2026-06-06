@@ -74,6 +74,23 @@ export function buildMenu(): void {
       ]
     },
     {
+      label: 'Advanced',
+      submenu: [
+        {
+          label: 'Dimension → Weight…',
+          click: () => sendToRenderer('menu:dim-to-weight')
+        },
+        {
+          label: 'Weight → Dimension…',
+          click: () => sendToRenderer('menu:weight-to-dim')
+        },
+        {
+          label: 'Dimension → Gray…',
+          click: () => sendToRenderer('menu:dim-to-gray')
+        }
+      ]
+    },
+    {
       label: 'Map',
       submenu: [
         {
