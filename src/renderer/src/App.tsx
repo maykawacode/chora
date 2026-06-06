@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useAppStore } from './store/appStore'
 import { ScoreWindow } from './components/ScoreWindow/ScoreWindow'
 import { MapPanelList } from './components/maps/MapPanel'
-import { ChooseDimensions } from './components/maps/ChooseDimensions'
+import { ChooseDimensions, CreateSemanticMap } from './components/maps/ChooseDimensions'
 import { serializeSession, deserializeSession } from './lib/parser'
 import styles from './App.module.css'
 
@@ -14,6 +14,7 @@ export function App(): React.JSX.Element {
   const resetToEmpty = useAppStore(s => s.resetToEmpty)
 
   const [showChooseDimensions, setShowChooseDimensions] = useState(false)
+  const [showCreateSemantic,   setShowCreateSemantic]   = useState(false)
 
   // Title bar reflects file state
   useEffect(() => {
@@ -30,6 +31,7 @@ export function App(): React.JSX.Element {
         case 'save':     await handleSave(false);      break
         case 'save-as':  await handleSave(true);       break
         case 'create-cartesian': setShowChooseDimensions(true); break
+        case 'create-semantic':  setShowCreateSemantic(true);   break
         case 'toggle-labels':    handleToggleLabels(); break
         case 'update-maps':      /* maps redraw reactively — no-op */ break
       }
@@ -87,11 +89,11 @@ export function App(): React.JSX.Element {
         {useAppStore.getState().maps.length === 0 && (
           <div className={styles.mapEmpty}>
             <p>No maps open.</p>
-            <button
-              className={styles.createMapBtn}
-              onClick={() => setShowChooseDimensions(true)}
-            >
+            <button className={styles.createMapBtn} onClick={() => setShowChooseDimensions(true)}>
               Create Cartesian Map…
+            </button>
+            <button className={styles.createMapBtn} onClick={() => setShowCreateSemantic(true)}>
+              Create Semantic Map…
             </button>
           </div>
         )}
@@ -99,6 +101,9 @@ export function App(): React.JSX.Element {
 
       {showChooseDimensions && (
         <ChooseDimensions onClose={() => setShowChooseDimensions(false)} />
+      )}
+      {showCreateSemantic && (
+        <CreateSemanticMap onClose={() => setShowCreateSemantic(false)} />
       )}
     </div>
   )

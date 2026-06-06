@@ -1,7 +1,8 @@
 import { useRef, useEffect, useCallback, useState } from 'react'
 import { useAppStore } from '../../store/appStore'
-import type { CartesianMapConfig, Dimension } from '../../lib/types'
+import type { CartesianMapConfig, SemanticMapConfig, Dimension } from '../../lib/types'
 import { drawCartesian, MARGIN } from './cartesian/drawCartesian'
+import { drawSemantic } from './semantic/drawSemantic'
 import styles from './MapPanel.module.css'
 
 type Edge = 'left' | 'right' | 'top' | 'bottom'
@@ -47,8 +48,9 @@ export function MapPanel({ mapId, onClose }: Props): React.JSX.Element | null {
 
     if (config.type === 'cartesian') {
       drawCartesian(ctx, cssW, cssH, config as CartesianMapConfig, elements, dimensions, scores)
+    } else if (config.type === 'semantic') {
+      drawSemantic(ctx, cssW, cssH, config as SemanticMapConfig, elements, dimensions, scores)
     }
-    // Phase 3: if (config.type === 'semantic') drawSemantic(...)
   }, [config, elements, dimensions, scores])
 
   useEffect(() => { redraw() }, [redraw])

@@ -65,6 +65,11 @@ export function buildMenu(): void {
           label: 'Cartesian Map…',
           accelerator: 'CmdOrCtrl+D',
           click: () => sendToRenderer('menu:create-cartesian')
+        },
+        {
+          label: 'Semantic Map…',
+          accelerator: 'CmdOrCtrl+Shift+D',
+          click: () => sendToRenderer('menu:create-semantic')
         }
       ]
     },
