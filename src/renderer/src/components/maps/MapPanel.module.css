@@ -124,6 +124,33 @@
   font-weight: 600;
 }
 
+.axisPickerFlipBtn {
+  display: block;
+  width: 100%;
+  padding: 5px 10px;
+  font-size: 12px;
+  text-align: left;
+  background: none;
+  border: none;
+  border-bottom: 1px solid #e0ddd8;
+  cursor: pointer;
+  font-family: inherit;
+  color: #444;
+}
+
+.axisPickerFlipBtn:hover {
+  background: #e8e5e0;
+}
+
+.axisPickerSubtitle {
+  font-size: 10px;
+  font-weight: 600;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 4px 8px 2px;
+}
+
 .canvasWrapper {
   flex: 1;
   position: relative;

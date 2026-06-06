@@ -51,13 +51,15 @@ export interface CartesianMapConfig extends BaseMapConfig {
   type: 'cartesian'
   xDimensionId: string
   yDimensionId: string
+  xFlipped: boolean
+  yFlipped: boolean
 }
 
-// Phase 3 — interface defined now so MapConfig union is already correct
 export interface SemanticMapConfig extends BaseMapConfig {
   type: 'semantic'
-  elementIds: string[]    // subset of elements to plot
-  dimensionIds: string[]  // ordered list of dimension rows
+  elementIds: string[]
+  dimensionIds: string[]
+  flippedDimensionIds: string[]
 }
 
 export type MapConfig = CartesianMapConfig | SemanticMapConfig

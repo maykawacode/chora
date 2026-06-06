@@ -63,18 +63,18 @@ export function drawCartesian(
   ctx.textBaseline = 'middle'
 
   if (xDim) {
-    ctx.textAlign = 'left'
-    ctx.fillText(xDim.poleA, 4, midY)
-    ctx.textAlign = 'right'
-    ctx.fillText(xDim.poleB, W - 4, midY)
+    const xLeft  = config.xFlipped ? xDim.poleB : xDim.poleA
+    const xRight = config.xFlipped ? xDim.poleA : xDim.poleB
+    ctx.textAlign = 'left';  ctx.fillText(xLeft,  4,     midY)
+    ctx.textAlign = 'right'; ctx.fillText(xRight, W - 4, midY)
   }
 
   if (yDim) {
+    const yTop    = config.yFlipped ? yDim.poleA : yDim.poleB
+    const yBottom = config.yFlipped ? yDim.poleB : yDim.poleA
     ctx.textAlign = 'center'
-    ctx.textBaseline = 'top'
-    ctx.fillText(yDim.poleB, midX, 4)
-    ctx.textBaseline = 'bottom'
-    ctx.fillText(yDim.poleA, midX, H - 4)
+    ctx.textBaseline = 'top';    ctx.fillText(yTop,    midX, 4)
+    ctx.textBaseline = 'bottom'; ctx.fillText(yBottom, midX, H - 4)
   }
 
   // Elements
@@ -85,8 +85,10 @@ export function drawCartesian(
     const yScore = scores[el.id]?.[yDim.id]
     if (xScore === undefined || yScore === undefined) continue
 
-    const cx = plotLeft + xScore * plotW
-    const cy = plotTop  + (1 - yScore) * plotH   // invert: high score = top
+    const ex = config.xFlipped ? 1 - xScore : xScore
+    const ey = config.yFlipped ? 1 - yScore : yScore
+    const cx = plotLeft + ex * plotW
+    const cy = plotTop  + (1 - ey) * plotH
     const r  = DOT_MIN_RADIUS + (el.weight - 1) / 99 * (DOT_MAX_RADIUS - DOT_MIN_RADIUS)
 
     // Dot

@@ -43,18 +43,38 @@ export function deserializeSession(json: string): AppState {
 
   const maps: MapConfig[] = (raw.maps ?? []).map((m: Partial<MapConfig>) => {
     if (m.type === 'cartesian') {
+      const cm = m as Record<string, unknown>
       return {
         id: requireString(m.id, 'map.id'),
         type: 'cartesian' as const,
         title: m.title ?? 'Map',
         showLabels: m.showLabels !== false,
         showDots: m.showDots !== false,
-        windowX: (m as { windowX?: number }).windowX ?? 100,
-        windowY: (m as { windowY?: number }).windowY ?? 100,
-        windowWidth: (m as { windowWidth?: number }).windowWidth ?? 600,
-        windowHeight: (m as { windowHeight?: number }).windowHeight ?? 500,
-        xDimensionId: (m as { xDimensionId?: string }).xDimensionId ?? '',
-        yDimensionId: (m as { yDimensionId?: string }).yDimensionId ?? ''
+        windowX: typeof cm.windowX === 'number' ? cm.windowX : 100,
+        windowY: typeof cm.windowY === 'number' ? cm.windowY : 100,
+        windowWidth:  typeof cm.windowWidth  === 'number' ? cm.windowWidth  : 600,
+        windowHeight: typeof cm.windowHeight === 'number' ? cm.windowHeight : 500,
+        xDimensionId: typeof cm.xDimensionId === 'string' ? cm.xDimensionId : '',
+        yDimensionId: typeof cm.yDimensionId === 'string' ? cm.yDimensionId : '',
+        xFlipped: cm.xFlipped === true,
+        yFlipped: cm.yFlipped === true,
+      }
+    }
+    if (m.type === 'semantic') {
+      const sm = m as Record<string, unknown>
+      return {
+        id: requireString(m.id, 'map.id'),
+        type: 'semantic' as const,
+        title: m.title ?? 'Semantic Map',
+        showLabels: m.showLabels !== false,
+        showDots: m.showDots !== false,
+        windowX: typeof sm.windowX === 'number' ? sm.windowX : 100,
+        windowY: typeof sm.windowY === 'number' ? sm.windowY : 100,
+        windowWidth:  typeof sm.windowWidth  === 'number' ? sm.windowWidth  : 600,
+        windowHeight: typeof sm.windowHeight === 'number' ? sm.windowHeight : 500,
+        elementIds:  Array.isArray(sm.elementIds)  ? sm.elementIds  as string[] : [],
+        dimensionIds: Array.isArray(sm.dimensionIds) ? sm.dimensionIds as string[] : [],
+        flippedDimensionIds: Array.isArray(sm.flippedDimensionIds) ? sm.flippedDimensionIds as string[] : [],
       }
     }
     throw new Error(`Unknown map type: ${m.type}`)

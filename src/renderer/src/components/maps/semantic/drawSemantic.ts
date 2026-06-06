@@ -1,7 +1,9 @@
 import type { SemanticMapConfig, Element, Dimension, ScoreMap } from '../../../lib/types'
 
-const MARGIN_H  = 96   // left + right, for pole labels
-const MARGIN_V  = 20   // top + bottom
+export const SEM_MARGIN_H = 96
+export const SEM_MARGIN_V = 20
+const MARGIN_H  = SEM_MARGIN_H
+const MARGIN_V  = SEM_MARGIN_V
 const LABEL_GAP = 6
 const DOT_R     = 4
 
@@ -66,15 +68,16 @@ export function drawSemantic(
     ctx.moveTo(axisRight, y - 4); ctx.lineTo(axisRight, y + 4)
     ctx.stroke()
 
-    // poleA label
+    const isFlipped = config.flippedDimensionIds.includes(dim.id)
+    const leftLabel  = isFlipped ? dim.poleB : dim.poleA
+    const rightLabel = isFlipped ? dim.poleA : dim.poleB
+
     ctx.fillStyle = '#333'
     ctx.textAlign = 'right'
     ctx.textBaseline = 'middle'
-    ctx.fillText(dim.poleA, axisLeft - LABEL_GAP, y)
-
-    // poleB label
+    ctx.fillText(leftLabel,  axisLeft  - LABEL_GAP, y)
     ctx.textAlign = 'left'
-    ctx.fillText(dim.poleB, axisRight + LABEL_GAP, y)
+    ctx.fillText(rightLabel, axisRight + LABEL_GAP, y)
   }
 
   // ── Element lines ────────────────────────────────────────────────────────────
@@ -82,8 +85,9 @@ export function drawSemantic(
     const points: Array<{ x: number; y: number }> = []
 
     for (let i = 0; i < dims.length; i++) {
-      const score = scores[el.id]?.[dims[i].id]
-      if (score === undefined) continue
+      const raw = scores[el.id]?.[dims[i].id]
+      if (raw === undefined) continue
+      const score = config.flippedDimensionIds.includes(dims[i].id) ? 1 - raw : raw
       points.push({ x: axisLeft + score * axisWidth, y: axisYs[i] })
     }
 
