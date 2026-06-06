@@ -9,6 +9,7 @@ export function MapApp(): React.JSX.Element {
   const loadSession         = useAppStore(s => s.loadSession)
   const setScore            = useAppStore(s => s.setScore)
   const updateMapConfig     = useAppStore(s => s.updateMapConfig)
+  const mapTitle            = useAppStore(s => mapId ? (s.maps.find(m => m.id === mapId)?.title ?? '') : '')
 
   useEffect(() => {
     const removeInit = window.api.onMapInit((id, stateJson) => {
@@ -32,11 +33,14 @@ export function MapApp(): React.JSX.Element {
       updateMapConfig(mId, changes as Partial<CartesianMapConfig> | Partial<SemanticMapConfig>)
     })
 
-    // All listeners registered — tell main process it's safe to send map:init
     window.api.signalReady()
 
     return () => { removeInit(); removeState(); removeScore(); removeConfig() }
   }, [loadSession, setScore, updateMapConfig])
+
+  useEffect(() => {
+    if (mapTitle) document.title = mapTitle
+  }, [mapTitle])
 
   if (!mapId) {
     return (

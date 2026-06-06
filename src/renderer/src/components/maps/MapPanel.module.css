@@ -53,6 +53,23 @@
   font-size: 12px;
   font-weight: 600;
   color: #333;
+  cursor: text;
+  -webkit-app-region: no-drag;
+}
+
+.titleInput {
+  font-size: 12px;
+  font-weight: 600;
+  color: #333;
+  background: #fff;
+  border: 1px solid #808040;
+  border-radius: 3px;
+  padding: 1px 5px;
+  font-family: inherit;
+  outline: none;
+  min-width: 80px;
+  max-width: 240px;
+  -webkit-app-region: no-drag;
 }
 
 .titleBarActions {

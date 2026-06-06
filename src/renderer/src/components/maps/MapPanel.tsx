@@ -166,6 +166,23 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
     window.api?.broadcastMapConfig(mapId, changes as Record<string, unknown>)
   }
 
+  function startEditingTitle(): void {
+    setTitleDraft(config?.title ?? '')
+    setEditingTitle(true)
+    // Focus after render
+    setTimeout(() => { titleInputRef.current?.select() }, 0)
+  }
+
+  function commitTitle(): void {
+    const trimmed = titleDraft.trim()
+    if (trimmed && trimmed !== config?.title) updateConfig({ title: trimmed })
+    setEditingTitle(false)
+  }
+
+  function cancelTitle(): void {
+    setEditingTitle(false)
+  }
+
   const canvasRef  = useRef<HTMLCanvasElement>(null)
   const wrapperRef = useRef<HTMLDivElement>(null)
 
@@ -178,6 +195,9 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
   const [axisPicker,     setAxisPicker]     = useState<AxisPickerState | null>(null)
   const [semanticPicker, setSemanticPicker] = useState<SemanticPickerState | null>(null)
   const [cursor,         setCursor]         = useState('default')
+  const [editingTitle,   setEditingTitle]   = useState(false)
+  const [titleDraft,     setTitleDraft]     = useState('')
+  const titleInputRef = useRef<HTMLInputElement>(null)
 
   const redraw = useCallback(() => {
     const canvas  = canvasRef.current
@@ -371,7 +391,25 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
   return (
     <div className={windowed ? styles.panelWindowed : styles.panel}>
       <div className={windowed ? styles.titleBarWindowed : styles.titleBar}>
-        <span className={styles.title}>{config.title}</span>
+        {editingTitle ? (
+          <input
+            ref={titleInputRef}
+            className={styles.titleInput}
+            value={titleDraft}
+            onChange={e => setTitleDraft(e.target.value)}
+            onBlur={commitTitle}
+            onKeyDown={e => {
+              if (e.key === 'Enter') { e.preventDefault(); commitTitle() }
+              if (e.key === 'Escape') { e.preventDefault(); cancelTitle() }
+            }}
+          />
+        ) : (
+          <span
+            className={styles.title}
+            onDoubleClick={startEditingTitle}
+            title="Double-click to rename"
+          >{config.title}</span>
+        )}
         <div className={styles.titleBarActions}>
           <button
             className={styles.labelToggle}
