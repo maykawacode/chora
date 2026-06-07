@@ -10,6 +10,7 @@ import { is } from '@electron-toolkit/utils'
 import { registerIpcHandlers } from './ipc'
 import { buildMenu, setMainWindowForMenu } from './menu'
 import { setScoreWindow } from './windowManager'
+import { loadPreferences } from './prefs'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -52,7 +53,11 @@ function createWindow(): void {
   }
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  // Warm the prefs cache before the window opens so the renderer can read
+  // preferences synchronously via the prefs:get-sync IPC channel
+  await loadPreferences()
+
   registerIpcHandlers()
   buildMenu()
   createWindow()

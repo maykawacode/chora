@@ -27,6 +27,7 @@ interface Window {
     setModalOpen: (open: boolean) => void
 
     // Preferences
+    getPrefsSync:         () => Record<string, unknown>
     loadPreferences:      () => Promise<Record<string, unknown>>
     savePreferences:      (prefs: Record<string, unknown>) => void
     getMapWindowPositions: () => Promise<Record<string, { x: number; y: number; width: number; height: number }>>

@@ -18,6 +18,7 @@ import type {
   MapConfig, CartesianMapConfig, SemanticMapConfig
 } from '../lib/types'
 import { defaultCategories, parsePoles } from '../lib/types'
+import { usePrefsStore } from './prefsStore'
 
 // ── Store interface ───────────────────────────────────────────────────────────
 
@@ -79,8 +80,9 @@ export const useAppStore = create<AppStore>((set) => ({
 
   // ── Elements ────────────────────────────────────────────────────────────────
 
-  addElement: (name, color = '#808000') => set((s) => {
-    const el: Element = { id: uuid(), name, weight: 1, color, description: '' }
+  addElement: (name, color) => set((s) => {
+    const resolvedColor = color ?? usePrefsStore.getState().prefs.defaultElementColor
+    const el: Element = { id: uuid(), name, weight: 1, color: resolvedColor, description: '' }
     return {
       elements: [...s.elements, el],
       selectedElementId: el.id,  // auto-select the new element

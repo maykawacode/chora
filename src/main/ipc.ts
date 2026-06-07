@@ -20,7 +20,7 @@ import {
   broadcastToMaps,
   broadcastToAllExcept
 } from './windowManager'
-import { loadPreferences, savePreferences } from './prefs'
+import { loadPreferences, savePreferences, getCachedPreferences } from './prefs'
 
 export function registerIpcHandlers(): void {
 
@@ -105,6 +105,12 @@ export function registerIpcHandlers(): void {
   // ── Preferences ───────────────────────────────────────────────────────────────
 
   ipcMain.handle('prefs:load', () => loadPreferences())
+
+  // Synchronous read of the cached preferences — used by the preload to give
+  // the renderer instant access to prefs before any async IPC roundtrip
+  ipcMain.on('prefs:get-sync', (event) => {
+    event.returnValue = getCachedPreferences()
+  })
 
   ipcMain.on('prefs:save', (_event, prefs: unknown) => {
     savePreferences(prefs as Parameters<typeof savePreferences>[0])
