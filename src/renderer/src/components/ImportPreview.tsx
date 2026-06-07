@@ -1,3 +1,13 @@
+// ── ImportPreview ─────────────────────────────────────────────────────────────
+//
+// Modal dialog shown after a spreadsheet is parsed but before it is applied.
+// Displays a summary (element count, dimension count, scale detection) and any
+// non-fatal parse warnings. The user can confirm or cancel.
+//
+// Confirming replaces the entire current session (elements, dimensions, scores)
+// with the imported data. The caller (App.tsx) handles the actual store update
+// via the onConfirm callback.
+
 import type { ImportResult } from '../lib/importer'
 import styles from './ImportPreview.module.css'
 

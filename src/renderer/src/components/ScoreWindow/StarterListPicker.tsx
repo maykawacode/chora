@@ -1,3 +1,12 @@
+// ── StarterListPicker ─────────────────────────────────────────────────────────
+//
+// Modal dialog for browsing and adding pre-defined dimension pairs.
+// Dimensions are organized into semantic categories (Evaluative, Potency, etc.)
+// and sourced from starterDimensions.ts.
+//
+// Items already in the session are shown with a checkmark and cannot be
+// re-added. New items can be toggled on/off, then added in one batch.
+
 import { useState } from 'react'
 import { useAppStore } from '../../store/appStore'
 import { STARTER_DIMENSIONS, CATEGORIES } from '../../lib/starterDimensions'
@@ -14,8 +23,10 @@ export function StarterListPicker({ onClose }: Props): React.JSX.Element {
   const [activeCategory, setActiveCategory] = useState<CategoryKey>('all')
   const [checked, setChecked]               = useState<Set<string>>(new Set())
 
+  // Quick lookup set to detect which labels are already in the session
   const existingLabels = new Set(dimensions.map(d => d.label))
 
+  // Filter the full list to the active category
   const filtered = activeCategory === 'all'
     ? STARTER_DIMENSIONS
     : STARTER_DIMENSIONS.filter(d => d.categories[activeCategory as keyof DimensionCategories])
@@ -29,6 +40,7 @@ export function StarterListPicker({ onClose }: Props): React.JSX.Element {
     })
   }
 
+  // Only add dimensions that are checked AND not already in the session
   function handleAdd(): void {
     for (const sd of STARTER_DIMENSIONS) {
       if (checked.has(sd.label) && !existingLabels.has(sd.label)) {
@@ -38,6 +50,7 @@ export function StarterListPicker({ onClose }: Props): React.JSX.Element {
     onClose()
   }
 
+  // Count of dimensions that will actually be added (checked and not already present)
   const toAdd = [...checked].filter(l => !existingLabels.has(l)).length
 
   return (
@@ -46,6 +59,7 @@ export function StarterListPicker({ onClose }: Props): React.JSX.Element {
         <h2 className={styles.title}>Dimension Starter Lists</h2>
 
         <div className={styles.body}>
+          {/* ── Category filter sidebar ── */}
           <div className={styles.catPane}>
             {CATEGORIES.map(cat => (
               <button
@@ -58,6 +72,7 @@ export function StarterListPicker({ onClose }: Props): React.JSX.Element {
             ))}
           </div>
 
+          {/* ── Dimension list ── */}
           <ul className={styles.dimList}>
             {filtered.map(sd => {
               const inSession = existingLabels.has(sd.label)
@@ -68,6 +83,7 @@ export function StarterListPicker({ onClose }: Props): React.JSX.Element {
                   className={`${styles.dimItem} ${inSession ? styles.inSession : ''} ${isChecked ? styles.dimChecked : ''}`}
                   onClick={() => { if (!inSession) toggle(sd.label) }}
                 >
+                  {/* ✓ = already in session, ● = selected to add, ○ = not selected */}
                   <span className={styles.check}>
                     {inSession ? '✓' : isChecked ? '●' : '○'}
                   </span>

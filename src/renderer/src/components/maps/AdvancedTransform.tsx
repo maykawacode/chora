@@ -1,9 +1,21 @@
+// ── AdvancedTransform ─────────────────────────────────────────────────────────
+//
+// Modal dialog for four data-manipulation operations that each take a dimension
+// as their target. The user picks a dimension from a list, then clicks Apply.
+//
+// The four modes share enough UI that a single component handles all of them;
+// the INFO map provides the title and description for each.
+//
+// All actual data changes happen in the Zustand store (appStore.ts). This
+// component just picks the target dimension and dispatches the right action.
+
 import { useState } from 'react'
 import { useAppStore } from '../../store/appStore'
 import styles from './ChooseDimensions.module.css'
 
 export type TransformMode = 'dim-to-weight' | 'weight-to-dim' | 'dim-to-gray' | 'randomize-scores'
 
+// Human-readable labels and descriptions for each transform mode
 const INFO: Record<TransformMode, { title: string; subtitle: string }> = {
   'dim-to-weight': {
     title: 'Dimension → Weight',
@@ -29,7 +41,7 @@ interface Props {
 }
 
 export function AdvancedTransform({ mode, onClose }: Props): React.JSX.Element {
-  const dimensions      = useAppStore(s => s.dimensions)
+  const dimensions        = useAppStore(s => s.dimensions)
   const dimensionToWeight = useAppStore(s => s.dimensionToWeight)
   const weightToDimension = useAppStore(s => s.weightToDimension)
   const dimensionToGray   = useAppStore(s => s.dimensionToGray)

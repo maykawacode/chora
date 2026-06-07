@@ -1,3 +1,11 @@
+// ── PreferencesDialog ─────────────────────────────────────────────────────────
+//
+// Modal dialog for editing user preferences. Opened via Cmd+, or the app menu.
+//
+// Uses a local `draft` copy of the preferences so the user can cancel without
+// committing any changes. On Save, the draft is written to both the Zustand
+// store (so all components see it immediately) and to disk via IPC.
+
 import { useState } from 'react'
 import { usePrefsStore } from '../store/prefsStore'
 import type { Preferences } from '../lib/preferences'
@@ -7,6 +15,7 @@ interface Props { onClose: () => void }
 
 export function PreferencesDialog({ onClose }: Props): React.JSX.Element {
   const { prefs, setPrefs } = usePrefsStore()
+  // Work on a draft so Cancel discards all changes
   const [draft, setDraft] = useState<Preferences>({ ...prefs })
 
   function toggle(key: keyof Preferences): void {
@@ -24,6 +33,7 @@ export function PreferencesDialog({ onClose }: Props): React.JSX.Element {
       <div className={styles.dialog}>
         <h2 className={styles.title}>Preferences</h2>
 
+        {/* ── Window ── */}
         <section className={styles.section}>
           <div className={styles.sectionTitle}>Window</div>
           <label className={styles.row}>
@@ -33,6 +43,7 @@ export function PreferencesDialog({ onClose }: Props): React.JSX.Element {
           </label>
         </section>
 
+        {/* ── New Maps ── */}
         <section className={styles.section}>
           <div className={styles.sectionTitle}>New Maps</div>
           <label className={styles.row}>
@@ -47,6 +58,7 @@ export function PreferencesDialog({ onClose }: Props): React.JSX.Element {
           </label>
         </section>
 
+        {/* ── Elements ── */}
         <section className={styles.section}>
           <div className={styles.sectionTitle}>Elements</div>
           <div className={styles.row}>
@@ -65,6 +77,7 @@ export function PreferencesDialog({ onClose }: Props): React.JSX.Element {
           </label>
         </section>
 
+        {/* ── Session ── */}
         <section className={styles.section}>
           <div className={styles.sectionTitle}>Session</div>
           <label className={styles.row}>
