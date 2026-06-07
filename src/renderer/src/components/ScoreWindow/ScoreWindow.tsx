@@ -1,13 +1,21 @@
+// ── ScoreWindow ───────────────────────────────────────────────────────────────
+//
+// Top-level shell of the main application window. Renders the tab bar and
+// delegates to one of three tab components based on the active tab in the store.
+// The onOpenStarterPicker prop bubbles up to App.tsx which owns the modal state.
+
 import { useAppStore } from '../../store/appStore'
 import { ElementsTab } from './ElementsTab'
 import { DimensionsTab } from './DimensionsTab'
 import { ScoresTab } from './ScoresTab'
 import styles from './ScoreWindow.module.css'
 
-interface Props { onOpenStarterPicker: () => void }
+interface Props {
+  onOpenStarterPicker: () => void
+}
 
 export function ScoreWindow({ onOpenStarterPicker }: Props): React.JSX.Element {
-  const activeTab = useAppStore(s => s.activeTab)
+  const activeTab    = useAppStore(s => s.activeTab)
   const setActiveTab = useAppStore(s => s.setActiveTab)
 
   return (
@@ -23,6 +31,7 @@ export function ScoreWindow({ onOpenStarterPicker }: Props): React.JSX.Element {
           </button>
         ))}
       </div>
+
       <div className={styles.tabContent}>
         {activeTab === 'elements'   && <ElementsTab />}
         {activeTab === 'dimensions' && <DimensionsTab onOpenStarterPicker={onOpenStarterPicker} />}

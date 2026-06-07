@@ -1,21 +1,37 @@
+// ── ElementsTab ───────────────────────────────────────────────────────────────
+//
+// Left pane: scrollable list of elements with a color dot, add-input at the
+// bottom, and keyboard navigation (↑ ↓ for selection, Delete/Backspace to
+// trigger delete).
+//
+// Right pane: detail editor for the selected element (name, color, weight,
+// description).
+//
+// Delete behavior:
+//   - If confirmDeleteElement pref is ON → shows an inline confirmation overlay
+//   - Otherwise → deletes immediately
+//   - There is no delete button in the UI; the keyboard is the only trigger.
+
 import { useRef, useState, KeyboardEvent } from 'react'
 import { useAppStore } from '../../store/appStore'
 import { usePrefsStore } from '../../store/prefsStore'
 import styles from './DataTab.module.css'
 
 export function ElementsTab(): React.JSX.Element {
-  const elements          = useAppStore(s => s.elements)
-  const selectedId        = useAppStore(s => s.selectedElementId)
-  const addElement        = useAppStore(s => s.addElement)
-  const updateElement     = useAppStore(s => s.updateElement)
-  const removeElement     = useAppStore(s => s.removeElement)
-  const selectElement     = useAppStore(s => s.selectElement)
-  const prefs             = usePrefsStore(s => s.prefs)
+  const elements      = useAppStore(s => s.elements)
+  const selectedId    = useAppStore(s => s.selectedElementId)
+  const addElement    = useAppStore(s => s.addElement)
+  const updateElement = useAppStore(s => s.updateElement)
+  const removeElement = useAppStore(s => s.removeElement)
+  const selectElement = useAppStore(s => s.selectElement)
+  const prefs         = usePrefsStore(s => s.prefs)
 
-  const selected = elements.find(e => e.id === selectedId) ?? null
+  const selected    = elements.find(e => e.id === selectedId) ?? null
   const [newName,   setNewName]   = useState('')
   const [confirmId, setConfirmId] = useState<string | null>(null)
   const addInputRef = useRef<HTMLInputElement>(null)
+
+  // ── Handlers ─────────────────────────────────────────────────────────────────
 
   function handleAdd(): void {
     const name = newName.trim()
@@ -25,13 +41,14 @@ export function ElementsTab(): React.JSX.Element {
     addInputRef.current?.focus()
   }
 
-  function handleKeyDown(e: KeyboardEvent<HTMLInputElement>): void {
+  function handleAddKeyDown(e: KeyboardEvent<HTMLInputElement>): void {
     if (e.key === 'Enter') handleAdd()
   }
 
+  // Route a delete request through the confirmation preference
   function requestDelete(id: string): void {
     if (prefs.confirmDeleteElement) {
-      setConfirmId(id)
+      setConfirmId(id)  // show the confirmation overlay
     } else {
       removeElement(id)
     }
@@ -40,6 +57,7 @@ export function ElementsTab(): React.JSX.Element {
   function handleListKeyDown(e: KeyboardEvent<HTMLUListElement>): void {
     if (!selectedId || elements.length === 0) return
     const idx = elements.findIndex(el => el.id === selectedId)
+
     if (e.key === 'ArrowDown' && idx < elements.length - 1) {
       selectElement(elements[idx + 1].id)
       e.preventDefault()
@@ -53,10 +71,14 @@ export function ElementsTab(): React.JSX.Element {
 
   const confirmElement = elements.find(e => e.id === confirmId) ?? null
 
+  // ── Render ────────────────────────────────────────────────────────────────────
+
   return (
     <div className={styles.tab}>
+      {/* ── List pane ── */}
       <div className={styles.listPane}>
         <div className={styles.listHeader}>Elements ({elements.length})</div>
+
         {elements.length === 0
           ? <p className={styles.emptyHint}>Begin by entering a list of elements.</p>
           : (
@@ -72,16 +94,14 @@ export function ElementsTab(): React.JSX.Element {
                   className={`${styles.listItem} ${el.id === selectedId ? styles.selected : ''}`}
                   onClick={() => selectElement(el.id)}
                 >
-                  <span
-                    className={styles.colorDot}
-                    style={{ background: el.color }}
-                  />
+                  <span className={styles.colorDot} style={{ background: el.color }} />
                   <span className={styles.name}>{el.name}</span>
                 </li>
               ))}
             </ul>
           )
         }
+
         <div className={styles.addRow}>
           <input
             ref={addInputRef}
@@ -89,14 +109,16 @@ export function ElementsTab(): React.JSX.Element {
             placeholder="New element…"
             value={newName}
             onChange={e => setNewName(e.target.value)}
-            onKeyDown={handleKeyDown}
+            onKeyDown={handleAddKeyDown}
           />
         </div>
       </div>
 
+      {/* ── Detail pane ── */}
       <div className={styles.detailPane}>
         <div className={styles.fieldRow}>
           <label className={styles.label}>Name</label>
+          {/* key forces input reset when selection changes, avoiding stale defaultValue */}
           <input
             key={`name-${selected?.id ?? 'none'}`}
             className={styles.poleInput}
@@ -130,7 +152,9 @@ export function ElementsTab(): React.JSX.Element {
             defaultValue={selected?.weight ?? 1}
             disabled={!selected}
             onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur() }}
-            onBlur={e => selected && updateElement(selected.id, { weight: Math.max(1, Math.min(100, +e.target.value || 1)) })}
+            onBlur={e => selected && updateElement(selected.id, {
+              weight: Math.max(1, Math.min(100, +e.target.value || 1))
+            })}
           />
         </div>
         <textarea
@@ -142,13 +166,19 @@ export function ElementsTab(): React.JSX.Element {
         />
       </div>
 
+      {/* ── Delete confirmation overlay ── */}
       {confirmElement && (
         <div className={styles.confirmOverlay}>
           <div className={styles.confirmBox}>
             <p>Delete <strong>{confirmElement.name}</strong>? This will remove all its scores.</p>
             <div className={styles.confirmButtons}>
               <button className={styles.confirmCancel} onClick={() => setConfirmId(null)}>Cancel</button>
-              <button className={styles.confirmDelete} onClick={() => { removeElement(confirmElement.id); setConfirmId(null) }}>Delete</button>
+              <button
+                className={styles.confirmDelete}
+                onClick={() => { removeElement(confirmElement.id); setConfirmId(null) }}
+              >
+                Delete
+              </button>
             </div>
           </div>
         </div>

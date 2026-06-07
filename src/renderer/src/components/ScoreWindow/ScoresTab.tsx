@@ -1,3 +1,14 @@
+// ── ScoresTab ─────────────────────────────────────────────────────────────────
+//
+// Top area: a custom score slider for the currently selected element × dimension.
+// Bottom area: two side-by-side lists (elements and dimensions) for navigation.
+//
+// Selecting an element in the left list and a dimension in the right list
+// loads that pair into the slider. Keyboard arrows navigate within each list.
+//
+// The score slider is a custom component (not <input type="range">) because we
+// need precise control over the hit area, the dot position, and visual style.
+
 import { useRef, useCallback, KeyboardEvent } from 'react'
 import { useAppStore } from '../../store/appStore'
 import { scoreStatus } from '../../lib/types'
@@ -13,14 +24,17 @@ export function ScoresTab(): React.JSX.Element {
   const selectDimension = useAppStore(s => s.selectDimension)
   const setScore        = useAppStore(s => s.setScore)
 
-  const selectedEl  = elements.find(e => e.id === selectedElId) ?? null
+  const selectedEl  = elements.find(e => e.id === selectedElId)  ?? null
   const selectedDim = dimensions.find(d => d.id === selectedDimId) ?? null
 
+  // null means not yet scored (dot is not shown)
   const currentScore = (selectedElId && selectedDimId)
     ? (scores[selectedElId]?.[selectedDimId] ?? null)
     : null
 
   const hasData = elements.length > 0 && dimensions.length > 0
+
+  // ── Keyboard navigation ───────────────────────────────────────────────────────
 
   function handleElementListKey(e: KeyboardEvent<HTMLUListElement>): void {
     if (!selectedElId) return
@@ -42,8 +56,11 @@ export function ScoresTab(): React.JSX.Element {
     }
   }
 
+  // ── Render ────────────────────────────────────────────────────────────────────
+
   return (
     <div className={styles.tab}>
+      {/* ── Slider area ── */}
       <div className={styles.sliderArea}>
         {hasData
           ? <ScoreSlider
@@ -51,12 +68,15 @@ export function ScoresTab(): React.JSX.Element {
               poleA={selectedDim?.poleA ?? ''}
               poleB={selectedDim?.poleB ?? ''}
               score={currentScore}
-              onScore={(v) => { if (selectedElId && selectedDimId) setScore(selectedElId, selectedDimId, v) }}
+              onScore={(v) => {
+                if (selectedElId && selectedDimId) setScore(selectedElId, selectedDimId, v)
+              }}
             />
           : <p className={styles.hint}>Add elements and dimensions, then select both to score.</p>
         }
       </div>
 
+      {/* ── Navigation lists ── */}
       <div className={styles.listsRow}>
         <div className={styles.listPanel}>
           <div className={styles.listHeader} style={{ borderColor: '#4a7a4a' }}>
@@ -110,19 +130,24 @@ export function ScoresTab(): React.JSX.Element {
   )
 }
 
-// ── Score Slider ──────────────────────────────────────────────────────────────
+// ── ScoreSlider ───────────────────────────────────────────────────────────────
+//
+// Custom draggable slider for a single element × dimension score.
+// Clicking anywhere on the track sets the score; dragging the dot adjusts it.
+// When score is null, the dot is not shown and a hint is displayed instead.
 
 interface SliderProps {
   elementName: string
   poleA: string
   poleB: string
-  score: number | null
+  score: number | null  // null = not yet scored
   onScore: (value: number) => void
 }
 
 function ScoreSlider({ elementName, poleA, poleB, score, onScore }: SliderProps): React.JSX.Element {
   const trackRef = useRef<HTMLDivElement>(null)
 
+  // Convert a horizontal pointer position to a clamped 0–1 score value
   const getValueFromEvent = useCallback((clientX: number): number => {
     const rect = trackRef.current?.getBoundingClientRect()
     if (!rect) return 0.5
@@ -135,15 +160,14 @@ function ScoreSlider({ elementName, poleA, poleB, score, onScore }: SliderProps)
 
   function handleDotMouseDown(e: React.MouseEvent): void {
     e.preventDefault()
-    e.stopPropagation()
+    e.stopPropagation()  // prevent track click from also firing
 
-    function onMove(ev: MouseEvent): void {
-      onScore(getValueFromEvent(ev.clientX))
-    }
-    function onUp(): void {
+    function onMove(ev: MouseEvent): void { onScore(getValueFromEvent(ev.clientX)) }
+    function onUp():   void {
       window.removeEventListener('mousemove', onMove)
       window.removeEventListener('mouseup', onUp)
     }
+    // Use window listeners so the drag continues even if the pointer leaves the track
     window.addEventListener('mousemove', onMove)
     window.addEventListener('mouseup', onUp)
   }
@@ -157,18 +181,11 @@ function ScoreSlider({ elementName, poleA, poleB, score, onScore }: SliderProps)
         <span className={styles.poleLabel}>{poleA}</span>
         <span className={styles.poleLabel}>{poleB}</span>
       </div>
-      <div
-        ref={trackRef}
-        className={styles.sliderTrack}
-        onClick={handleTrackClick}
-      >
+      <div ref={trackRef} className={styles.sliderTrack} onClick={handleTrackClick}>
         <div className={styles.sliderLine} />
+        {/* 11 tick marks at 0%, 10%, 20% ... 100% */}
         {Array.from({ length: 11 }, (_, i) => (
-          <div
-            key={i}
-            className={styles.tick}
-            style={{ left: `${i * 10}%` }}
-          />
+          <div key={i} className={styles.tick} style={{ left: `${i * 10}%` }} />
         ))}
         {pct !== null && (
           <div
