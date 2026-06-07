@@ -19,7 +19,7 @@ export const SEM_MARGIN_H = 96
 export const SEM_MARGIN_V = 20
 
 // Radius of the score dot drawn at each element × dimension intersection
-export const SEM_DOT_R = 4
+export const SEM_DOT_R = 6
 
 // Gap between axis end and pole label text
 const LABEL_GAP = 6
@@ -138,8 +138,8 @@ export function drawSemantic(
         ctx.arc(pt.x, pt.y, SEM_DOT_R, 0, Math.PI * 2)
         ctx.fillStyle = el.color
         ctx.fill()
-        ctx.strokeStyle = 'rgba(0,0,0,0.3)'
-        ctx.lineWidth = 1
+        ctx.strokeStyle = '#ffffff'
+        ctx.lineWidth = 1.5
         ctx.stroke()
       }
     }
