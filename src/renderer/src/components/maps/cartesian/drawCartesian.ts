@@ -1,8 +1,25 @@
+// ── Cartesian map renderer ────────────────────────────────────────────────────
+//
+// Pure canvas drawing function — no React, no side effects.
+// Called on every render pass from MapPanel's ResizeObserver and Zustand
+// subscription. The canvas is sized to the wrapper div via devicePixelRatio
+// scaling so it looks sharp on retina displays.
+//
+// Coordinate system:
+//   - Score 0.0 maps to the left/bottom edge of the plot area
+//   - Score 1.0 maps to the right/top edge
+//   - Y axis is inverted (canvas y grows downward, scores grow upward)
+
 import type { CartesianMapConfig, Element, Dimension, ScoreMap } from '../../../lib/types'
 
-export const MARGIN = 48   // space for axis pole labels
+// Space reserved on each side of the canvas for pole labels
+export const MARGIN = 48
+
+// Dot radius range — weight 1 → DOT_MIN_RADIUS, weight 100 → DOT_MAX_RADIUS
 export const DOT_MIN_RADIUS = 4
 export const DOT_MAX_RADIUS = 24
+
+// Gap between dot edge and element name label
 const LABEL_OFFSET = 8
 
 export function drawCartesian(
@@ -14,7 +31,6 @@ export function drawCartesian(
   dimensions: Dimension[],
   scores: ScoreMap
 ): void {
-
   const plotLeft   = MARGIN
   const plotTop    = MARGIN
   const plotRight  = W - MARGIN
@@ -25,59 +41,65 @@ export function drawCartesian(
   const xDim = dimensions.find(d => d.id === config.xDimensionId)
   const yDim = dimensions.find(d => d.id === config.yDimensionId)
 
-  // Clear
-  ctx.clearRect(0, 0, W, H)
+  // ── Background ───────────────────────────────────────────────────────────────
 
-  // Background
+  ctx.clearRect(0, 0, W, H)
   ctx.fillStyle = '#ffffff'
   ctx.fillRect(plotLeft, plotTop, plotW, plotH)
 
-  // Border
+  // ── Plot border ───────────────────────────────────────────────────────────────
+
   ctx.strokeStyle = '#444'
   ctx.lineWidth = 1
   ctx.strokeRect(plotLeft, plotTop, plotW, plotH)
 
-  // Quadrant crosshair lines
-  ctx.strokeStyle = '#ccc'
-  ctx.lineWidth = 1
-  ctx.setLineDash([4, 4])
+  // ── Quadrant crosshair ────────────────────────────────────────────────────────
 
   const midX = plotLeft + plotW / 2
   const midY = plotTop  + plotH / 2
 
-  ctx.beginPath()
-  ctx.moveTo(midX, plotTop)
-  ctx.lineTo(midX, plotBottom)
-  ctx.stroke()
+  ctx.strokeStyle = '#ccc'
+  ctx.lineWidth = 1
+  ctx.setLineDash([4, 4])
 
   ctx.beginPath()
-  ctx.moveTo(plotLeft,  midY)
-  ctx.lineTo(plotRight, midY)
+  ctx.moveTo(midX, plotTop);   ctx.lineTo(midX, plotBottom)
+  ctx.stroke()
+  ctx.beginPath()
+  ctx.moveTo(plotLeft, midY);  ctx.lineTo(plotRight, midY)
   ctx.stroke()
 
   ctx.setLineDash([])
 
-  // Pole labels
+  // ── Pole labels ───────────────────────────────────────────────────────────────
+  //
+  // Labels are drawn in the MARGIN region outside the plot border.
+  // Flip flags swap which pole label appears on which end.
+
   ctx.font = '11px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif'
   ctx.fillStyle = '#333'
   ctx.textBaseline = 'middle'
 
   if (xDim) {
-    const xLeft  = config.xFlipped ? xDim.poleB : xDim.poleA
-    const xRight = config.xFlipped ? xDim.poleA : xDim.poleB
-    ctx.textAlign = 'left';  ctx.fillText(xLeft,  4,     midY)
-    ctx.textAlign = 'right'; ctx.fillText(xRight, W - 4, midY)
+    const leftLabel  = config.xFlipped ? xDim.poleB : xDim.poleA
+    const rightLabel = config.xFlipped ? xDim.poleA : xDim.poleB
+    ctx.textAlign = 'left';  ctx.fillText(leftLabel,  4,     midY)
+    ctx.textAlign = 'right'; ctx.fillText(rightLabel, W - 4, midY)
   }
 
   if (yDim) {
-    const yTop    = config.yFlipped ? yDim.poleA : yDim.poleB
-    const yBottom = config.yFlipped ? yDim.poleB : yDim.poleA
+    const topLabel    = config.yFlipped ? yDim.poleA : yDim.poleB
+    const bottomLabel = config.yFlipped ? yDim.poleB : yDim.poleA
     ctx.textAlign = 'center'
-    ctx.textBaseline = 'top';    ctx.fillText(yTop,    midX, 4)
-    ctx.textBaseline = 'bottom'; ctx.fillText(yBottom, midX, H - 4)
+    ctx.textBaseline = 'top';    ctx.fillText(topLabel,    midX, 4)
+    ctx.textBaseline = 'bottom'; ctx.fillText(bottomLabel, midX, H - 4)
   }
 
-  // Elements
+  // ── Elements ──────────────────────────────────────────────────────────────────
+  //
+  // Only elements with scores on BOTH axes are drawn.
+  // Dot radius scales linearly with weight: r = MIN + (weight-1)/99 * (MAX-MIN)
+
   if (!xDim || !yDim) return
 
   for (const el of elements) {
@@ -85,13 +107,14 @@ export function drawCartesian(
     const yScore = scores[el.id]?.[yDim.id]
     if (xScore === undefined || yScore === undefined) continue
 
+    // Apply flip: flipped score = 1 - raw score
     const ex = config.xFlipped ? 1 - xScore : xScore
     const ey = config.yFlipped ? 1 - yScore : yScore
+
     const cx = plotLeft + ex * plotW
-    const cy = plotTop  + (1 - ey) * plotH
+    const cy = plotTop  + (1 - ey) * plotH   // invert Y — higher score = higher on canvas
     const r  = DOT_MIN_RADIUS + (el.weight - 1) / 99 * (DOT_MAX_RADIUS - DOT_MIN_RADIUS)
 
-    // Dot
     if (config.showDots) {
       ctx.beginPath()
       ctx.arc(cx, cy, r, 0, Math.PI * 2)
@@ -102,7 +125,6 @@ export function drawCartesian(
       ctx.stroke()
     }
 
-    // Label
     if (config.showLabels) {
       ctx.font = '11px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif'
       ctx.fillStyle = '#222'
