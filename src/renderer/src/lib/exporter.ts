@@ -1,25 +1,26 @@
+// ── Spreadsheet exporter ──────────────────────────────────────────────────────
+//
+// Writes the current session as a tab-separated (TSV) file.
+// The layout mirrors the import format so files round-trip cleanly:
+//
+//   [blank]       Dim1Label   Dim2Label   ...
+//   ElementName   0.750       0.333       ...
+//
+// Unscored cells are left empty. Scores are written to 3 decimal places
+// (e.g. 0.750) to avoid floating-point noise while preserving enough
+// precision that a re-import will produce visually identical results.
+
 import type { AppState } from './types'
 
-/**
- * Serialize the current session as a tab-separated spreadsheet.
- *
- * Layout mirrors the import format so files round-trip cleanly:
- *   Row 0:  [blank]       Dim1Label  Dim2Label  ...
- *   Row 1+: ElementName   0.000      0.000      ...
- *
- * Unscored cells are left empty. Scores are written as 3-decimal
- * values (e.g. 0.750) to avoid floating-point noise while preserving
- * enough precision to round-trip without visible error.
- */
 export function exportSpreadsheet(state: AppState): string {
   const { elements, dimensions, scores } = state
 
   const rows: string[][] = []
 
-  // Header row
+  // Header row: blank first cell, then one column per dimension
   rows.push(['', ...dimensions.map(d => d.label)])
 
-  // One row per element
+  // Data rows: element name, then one score cell per dimension
   for (const el of elements) {
     const row = [el.name]
     for (const dim of dimensions) {

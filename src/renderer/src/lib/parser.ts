@@ -1,8 +1,20 @@
+// ── Session serialization ─────────────────────────────────────────────────────
+//
+// Converts AppState to/from JSON for file save/open and IPC broadcasts.
+// FORMAT_VERSION must be bumped any time the saved schema changes in a
+// backward-incompatible way. The deserializer always merges missing fields
+// with safe defaults so that older files don't crash on load.
+
 import type { AppState, Element, Dimension, MapConfig } from './types'
 import { defaultCategories, parsePoles } from './types'
 
 const FORMAT_VERSION = '3.0'
 
+/**
+ * Serializes only the persistent parts of AppState to a JSON string.
+ * Runtime fields (filePath, isDirty, selection, activeTab) are intentionally
+ * excluded — they are always reset when a file is opened.
+ */
 export function serializeSession(state: AppState): string {
   return JSON.stringify({
     version: FORMAT_VERSION,
@@ -13,6 +25,12 @@ export function serializeSession(state: AppState): string {
   }, null, 2)
 }
 
+/**
+ * Parses a JSON string back into a fresh AppState.
+ * Throws if the JSON is malformed or the version string does not match.
+ * All optional fields are filled with safe defaults to handle old files
+ * that predate a particular field being added.
+ */
 export function deserializeSession(json: string): AppState {
   const raw = JSON.parse(json)
 
@@ -33,10 +51,12 @@ export function deserializeSession(json: string): AppState {
     return {
       id: requireString(d.id, 'dimension.id'),
       label,
+      // poleA/poleB may be missing in very old files — re-derive from label
       poleA: d.poleA ?? poles.poleA,
       poleB: d.poleB ?? poles.poleB,
       weight: typeof d.weight === 'number' ? d.weight : 1,
       description: d.description ?? '',
+      // categories may be missing in old files — merge with empty defaults
       categories: { ...defaultCategories(), ...(d.categories ?? {}) }
     }
   })
@@ -50,8 +70,8 @@ export function deserializeSession(json: string): AppState {
         title: m.title ?? 'Map',
         showLabels: m.showLabels !== false,
         showDots: m.showDots !== false,
-        windowX: typeof cm.windowX === 'number' ? cm.windowX : 100,
-        windowY: typeof cm.windowY === 'number' ? cm.windowY : 100,
+        windowX:      typeof cm.windowX      === 'number' ? cm.windowX      : 100,
+        windowY:      typeof cm.windowY      === 'number' ? cm.windowY      : 100,
         windowWidth:  typeof cm.windowWidth  === 'number' ? cm.windowWidth  : 600,
         windowHeight: typeof cm.windowHeight === 'number' ? cm.windowHeight : 500,
         xDimensionId: typeof cm.xDimensionId === 'string' ? cm.xDimensionId : '',
@@ -68,12 +88,12 @@ export function deserializeSession(json: string): AppState {
         title: m.title ?? 'Semantic Map',
         showLabels: m.showLabels !== false,
         showDots: m.showDots !== false,
-        windowX: typeof sm.windowX === 'number' ? sm.windowX : 100,
-        windowY: typeof sm.windowY === 'number' ? sm.windowY : 100,
+        windowX:      typeof sm.windowX      === 'number' ? sm.windowX      : 100,
+        windowY:      typeof sm.windowY      === 'number' ? sm.windowY      : 100,
         windowWidth:  typeof sm.windowWidth  === 'number' ? sm.windowWidth  : 600,
         windowHeight: typeof sm.windowHeight === 'number' ? sm.windowHeight : 500,
-        elementIds:  Array.isArray(sm.elementIds)  ? sm.elementIds  as string[] : [],
-        dimensionIds: Array.isArray(sm.dimensionIds) ? sm.dimensionIds as string[] : [],
+        elementIds:          Array.isArray(sm.elementIds)          ? sm.elementIds          as string[] : [],
+        dimensionIds:        Array.isArray(sm.dimensionIds)        ? sm.dimensionIds        as string[] : [],
         flippedDimensionIds: Array.isArray(sm.flippedDimensionIds) ? sm.flippedDimensionIds as string[] : [],
       }
     }
@@ -81,18 +101,22 @@ export function deserializeSession(json: string): AppState {
   })
 
   return {
-    filePath: null,
+    filePath: null,           // always reset on open — caller sets it from the actual path
     isDirty: false,
     elements,
     dimensions,
     scores: raw.scores ?? {},
     maps,
+    // Reset selection to first item so the UI always has something focused
     selectedElementId: elements[0]?.id ?? null,
     selectedDimensionId: dimensions[0]?.id ?? null,
     activeTab: 'elements'
   }
 }
 
+// ── Private helpers ───────────────────────────────────────────────────────────
+
+/** Throws a descriptive error if a required string field is missing or empty. */
 function requireString(val: unknown, field: string): string {
   if (typeof val !== 'string' || !val) throw new Error(`Missing required field: ${field}`)
   return val
