@@ -102,7 +102,10 @@ export function drawCartesian(
 
   if (!xDim || !yDim) return
 
-  for (const el of elements) {
+  // Draw heaviest elements first so lighter (smaller) dots always sit on top
+  const sorted = [...elements].sort((a, b) => b.weight - a.weight)
+
+  for (const el of sorted) {
     const xScore = scores[el.id]?.[xDim.id]
     const yScore = scores[el.id]?.[yDim.id]
 
@@ -133,8 +136,8 @@ export function drawCartesian(
       } else {
         ctx.fillStyle = el.color
         ctx.fill()
-        ctx.strokeStyle = 'rgba(0,0,0,0.25)'
-        ctx.lineWidth = 1
+        ctx.strokeStyle = '#ffffff'
+        ctx.lineWidth = 1.5
         ctx.stroke()
       }
     }
