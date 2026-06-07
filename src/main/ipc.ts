@@ -1,3 +1,14 @@
+// ── IPC handler registration ──────────────────────────────────────────────────
+//
+// All communication between the renderer processes and the main process goes
+// through this file. Called once from index.ts before the window is created.
+//
+// Channel naming convention:
+//   'noun:verb'  — e.g. 'dialog:open', 'file:read', 'map:open'
+//
+// ipcMain.handle() — renderer uses invoke() and awaits a return value
+// ipcMain.on()     — renderer uses send(), fire-and-forget
+
 import { ipcMain, dialog } from 'electron'
 import { readFile, writeFile } from 'fs/promises'
 import { getMainWindow } from './index'
@@ -13,7 +24,7 @@ import { loadPreferences, savePreferences } from './prefs'
 
 export function registerIpcHandlers(): void {
 
-  // ── File dialogs ─────────────────────────────────────────────────────────────
+  // ── File dialogs ──────────────────────────────────────────────────────────────
 
   ipcMain.handle('dialog:open', async () => {
     const win = getMainWindow()
@@ -55,6 +66,8 @@ export function registerIpcHandlers(): void {
     return result.canceled ? null : result.filePath
   })
 
+  // ── File I/O ──────────────────────────────────────────────────────────────────
+
   ipcMain.handle('file:read', async (_event, filePath: string) => {
     return readFile(filePath, 'utf-8')
   })
@@ -73,12 +86,16 @@ export function registerIpcHandlers(): void {
     closeAllMapWindowsSilent()
   })
 
-  // Renderer signals it has mounted IPC listeners — now safe to send map:init
+  // A map renderer sends this once it has finished mounting all IPC listeners.
+  // Only after this signal do we send 'map:init' — this prevents a race where
+  // the init message arrives before the React useEffect has run.
   ipcMain.on('map:ready', (event) => {
     handleMapReady(event.sender.id)
   })
 
-  // Bring Score Window to front when a modal opens (avoids map windows covering it)
+  // Score Window tells us a modal is opening — bring it to the front so map
+  // BrowserWindows don't cover the modal. We use focus()+moveTop() rather than
+  // setAlwaysOnTop() to avoid permanently changing the window's z-level.
   ipcMain.on('modal:open', (_event, open: boolean) => {
     if (!open) return
     const win = getMainWindow()
@@ -93,24 +110,31 @@ export function registerIpcHandlers(): void {
     savePreferences(prefs as Parameters<typeof savePreferences>[0])
   })
 
-  // ── Window positions ──────────────────────────────────────────────────────────
+  // ── Window geometry ───────────────────────────────────────────────────────────
 
+  // Score Window calls this just before serializing the session to disk so
+  // it can embed each map window's current position into the saved file
   ipcMain.handle('maps:getPositions', () => getMapWindowPositions())
 
   // ── State relay ───────────────────────────────────────────────────────────────
+  //
+  // The Score Window owns the authoritative app state (Zustand store).
+  // Map windows receive state via broadcasts and send back only fine-grained
+  // score updates or map config changes to avoid expensive full-state diffs.
 
-  // Fine-grained score update — forward to all other windows
+  // Fine-grained score from a drag gesture — relay to all other windows
   ipcMain.on('score:update', (event, elementId: string, dimensionId: string, value: number) => {
     broadcastToAllExcept(event.sender.id, 'score:update', elementId, dimensionId, value)
   })
 
-  // Full state push from Score Window — forward to all map windows
+  // Full state snapshot from Score Window after a bulk change — send to all maps
   ipcMain.on('state:push', (_event, stateJson: string) => {
     broadcastToMaps('state:push', stateJson)
   })
 
-  // Map config change from a map window — forward to Score Window only
-  // Score Window applies it and broadcasts full state:push to all maps
+  // Map config change (e.g. axis swap, flip) from a map window — relay to
+  // Score Window only. Score Window applies the change and re-broadcasts the
+  // full state so all other map windows stay in sync.
   ipcMain.on('mapConfig:update', (event, mapId: string, changes: unknown) => {
     const scoreWin = getMainWindow()
     if (scoreWin && !scoreWin.isDestroyed() && scoreWin.webContents.id !== event.sender.id) {
