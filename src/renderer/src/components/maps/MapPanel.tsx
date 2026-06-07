@@ -1,9 +1,25 @@
+// ── MapPanel ──────────────────────────────────────────────────────────────────
+//
+// Renders a single map (cartesian or semantic) inside a resizable container.
+// Used in two contexts:
+//   1. Embedded in the Score Window's map list (windowed=false)
+//   2. Fullscreen in a dedicated BrowserWindow (windowed=true)
+//
+// When windowed=true, the title bar adds left padding to clear macOS traffic
+// lights and enables the -webkit-app-region:drag so the user can move the
+// window by dragging the title bar area.
+//
+// Hit testing and drag logic live entirely in this component; the draw
+// functions (drawCartesian / drawSemantic) are pure canvas painters.
+
 import { useRef, useEffect, useCallback, useState } from 'react'
 import { useAppStore } from '../../store/appStore'
 import type { CartesianMapConfig, SemanticMapConfig, Dimension, ScoreMap } from '../../lib/types'
 import { drawCartesian, MARGIN, DOT_MIN_RADIUS, DOT_MAX_RADIUS } from './cartesian/drawCartesian'
 import { drawSemantic, SEM_MARGIN_H, SEM_MARGIN_V, SEM_DOT_R } from './semantic/drawSemantic'
 import styles from './MapPanel.module.css'
+
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 type Edge = 'left' | 'right' | 'top' | 'bottom'
 
@@ -20,8 +36,29 @@ interface SemanticPickerState {
   clickY: number
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// Active cartesian drag. startX/Y and lockedAxis are mutated in place during
+// the drag — they are NOT set by cartesianHitDot() (which only knows the hit
+// element) but are filled in by handleMouseDown() before storing in the ref.
+interface DragTarget {
+  elementId: string
+  xDimId: string
+  yDimId: string
+  startX: number          // pointer position when drag started — used to pick lock axis
+  startY: number
+  lockedAxis: 'x' | 'y' | null  // set on first significant move while Shift is held
+}
 
+interface SemanticDragTarget {
+  elementId: string
+  dimId: string
+}
+
+// ── Hit-test helpers ──────────────────────────────────────────────────────────
+
+/**
+ * Distributes semantic axes evenly across the canvas height.
+ * Returns a single centered Y for one dimension, or evenly spaced Ys for many.
+ */
 function semAxisYs(H: number, count: number): number[] {
   if (count === 0) return []
   if (count === 1) return [H / 2]
@@ -30,11 +67,13 @@ function semAxisYs(H: number, count: number): number[] {
   )
 }
 
-// Returns the semantic dimension row index hit, or -1.
-// Triggers anywhere along the full horizontal extent of the row (axis line + pole labels).
+/**
+ * Returns the semantic dimension row index hit by a pointer at (_, y), or -1.
+ * Tolerates ±6px from the axis line so small dots are easy to grab.
+ */
 function semanticHitRow(y: number, H: number, dimCount: number): number {
   if (dimCount === 0) return -1
-  const ys = semAxisYs(H, dimCount)
+  const ys  = semAxisYs(H, dimCount)
   const TOL = 6
   for (let i = 0; i < ys.length; i++) {
     if (Math.abs(y - ys[i]) <= TOL) return i
@@ -42,21 +81,21 @@ function semanticHitRow(y: number, H: number, dimCount: number): number {
   return -1
 }
 
-// Returns which Cartesian axis edge was hit, or null.
-// Triggers near the crosshair center lines (inside the plot) or the pole labels (in the margin).
+/**
+ * Returns which cartesian axis edge was clicked, or null.
+ * Matches both the center crosshair lines (inside the plot) and the pole
+ * label region (in the margin) so users can click either target.
+ */
 function cartesianHitEdge(x: number, y: number, W: number, H: number): Edge | null {
   const midX = W / 2
   const midY = H / 2
   const pL = MARGIN, pR = W - MARGIN, pT = MARGIN, pB = H - MARGIN
-  const TOL = 6  // px tolerance
+  const TOL = 6
 
-  // Horizontal center line (X axis) — use nearest end for picker placement
   if (Math.abs(y - midY) <= TOL && x >= pL && x <= pR) return x < midX ? 'left' : 'right'
-
-  // Vertical center line (Y axis) — use nearest end for picker placement
   if (Math.abs(x - midX) <= TOL && y >= pT && y <= pB) return y < midY ? 'top' : 'bottom'
 
-  // Pole labels (in margin zone, near the midpoint where labels are drawn)
+  // Pole label areas
   if (x < pL && Math.abs(y - midY) <= 18) return 'left'
   if (x > pR && Math.abs(y - midY) <= 18) return 'right'
   if (y < pT && Math.abs(x - midX) <= 50) return 'top'
@@ -65,26 +104,22 @@ function cartesianHitEdge(x: number, y: number, W: number, H: number): Edge | nu
   return null
 }
 
-interface DragTarget {
-  elementId: string
-  xDimId: string
-  yDimId: string
-  startX: number          // pointer position when drag began — used to pick lock axis
-  startY: number
-  lockedAxis: 'x' | 'y' | null
-}
-
-// Returns the element under the pointer on a cartesian map, or null.
-// Dots must be visible; uses the same radius formula as drawCartesian.
+/**
+ * Returns a partial DragTarget (no startX/Y/lockedAxis) for the cartesian dot
+ * under the pointer, or null. The caller fills in the missing fields before
+ * storing the result. Uses the same radius formula as drawCartesian so the
+ * hit area always matches the visible dot size.
+ */
 function cartesianHitDot(
   x: number, y: number, W: number, H: number,
   config: CartesianMapConfig,
   elements: { id: string; weight: number }[],
   scores: ScoreMap
-): DragTarget | null {
+): Pick<DragTarget, 'elementId' | 'xDimId' | 'yDimId'> | null {
   if (!config.showDots) return null
-  const plotLeft = MARGIN, plotRight = W - MARGIN
-  const plotTop  = MARGIN, plotBottom = H - MARGIN
+
+  const plotLeft  = MARGIN, plotRight  = W - MARGIN
+  const plotTop   = MARGIN, plotBottom = H - MARGIN
   const plotW = plotRight - plotLeft
   const plotH = plotBottom - plotTop
 
@@ -92,11 +127,14 @@ function cartesianHitDot(
     const xScore = scores[el.id]?.[config.xDimensionId]
     const yScore = scores[el.id]?.[config.yDimensionId]
     if (xScore === undefined || yScore === undefined) continue
+
     const ex = config.xFlipped ? 1 - xScore : xScore
     const ey = config.yFlipped ? 1 - yScore : yScore
     const cx = plotLeft + ex * plotW
     const cy = plotTop  + (1 - ey) * plotH
     const r  = DOT_MIN_RADIUS + (el.weight - 1) / 99 * (DOT_MAX_RADIUS - DOT_MIN_RADIUS)
+
+    // Use max(r, 8) so tiny dots still have a reasonable tap target
     if ((x - cx) ** 2 + (y - cy) ** 2 <= Math.max(r, 8) ** 2) {
       return { elementId: el.id, xDimId: config.xDimensionId, yDimId: config.yDimensionId }
     }
@@ -104,9 +142,9 @@ function cartesianHitDot(
   return null
 }
 
-interface SemanticDragTarget { elementId: string; dimId: string }
-
-// Returns the semantic dot under the pointer (element × dimension), or null.
+/**
+ * Returns the semantic element × dimension under the pointer, or null.
+ */
 function semanticHitDot(
   x: number, y: number, W: number, H: number,
   config: SemanticMapConfig,
@@ -115,17 +153,21 @@ function semanticHitDot(
   scores: ScoreMap
 ): SemanticDragTarget | null {
   if (!config.showDots) return null
+
   const axisLeft  = SEM_MARGIN_H
   const axisRight = W - SEM_MARGIN_H
   const axisWidth = axisRight - axisLeft
+
   const dims = config.dimensionIds
     .map(id => dimensions.find(d => d.id === id))
     .filter((d): d is Dimension => d !== undefined)
+
   const els = config.elementIds.length > 0
     ? config.elementIds.map(id => elements.find(e => e.id === id)).filter((e): e is { id: string } => e !== undefined)
     : elements
+
   const ys  = semAxisYs(H, dims.length)
-  const HIT = Math.max(SEM_DOT_R, 8)
+  const HIT = Math.max(SEM_DOT_R, 8)   // minimum tap target radius
 
   for (let i = 0; i < dims.length; i++) {
     const dim = dims[i]
@@ -144,12 +186,12 @@ function semanticHitDot(
   return null
 }
 
-// ── MapPanel ──────────────────────────────────────────────────────────────────
+// ── MapPanel component ────────────────────────────────────────────────────────
 
 interface Props {
   mapId: string
   onClose: () => void
-  windowed?: boolean
+  windowed?: boolean  // true when rendered inside a dedicated BrowserWindow
 }
 
 export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element | null {
@@ -160,16 +202,41 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
   const updateMapConfig = useAppStore(s => s.updateMapConfig)
   const setScore        = useAppStore(s => s.setScore)
 
-  // Wraps updateMapConfig + IPC broadcast so map windows stay in sync
+  // Wraps updateMapConfig + IPC so changes made in either window stay in sync.
+  // Map windows send broadcastMapConfig → main → Score Window's onMapConfig
+  // listener → Score Window re-broadcasts full state to all maps.
   function updateConfig(changes: Partial<CartesianMapConfig> | Partial<SemanticMapConfig>): void {
     updateMapConfig(mapId, changes)
     window.api?.broadcastMapConfig(mapId, changes as Record<string, unknown>)
   }
 
+  // ── Canvas refs ───────────────────────────────────────────────────────────────
+
+  const canvasRef  = useRef<HTMLCanvasElement>(null)
+  const wrapperRef = useRef<HTMLDivElement>(null)
+
+  // Drag state is kept in refs (not state) so mouse-move handlers are always
+  // synchronous and never see stale values from a React re-render mid-drag.
+  const draggingRef     = useRef<DragTarget | null>(null)
+  const dragMovedRef    = useRef(false)
+  const semDraggingRef  = useRef<SemanticDragTarget | null>(null)
+  const semDragMovedRef = useRef(false)
+
+  // ── React state ───────────────────────────────────────────────────────────────
+
+  const [axisPicker,     setAxisPicker]     = useState<AxisPickerState | null>(null)
+  const [semanticPicker, setSemanticPicker] = useState<SemanticPickerState | null>(null)
+  const [cursor,         setCursor]         = useState('default')
+  const [editingTitle,   setEditingTitle]   = useState(false)
+  const [titleDraft,     setTitleDraft]     = useState('')
+  const titleInputRef = useRef<HTMLInputElement>(null)
+
+  // ── Title editing ─────────────────────────────────────────────────────────────
+
   function startEditingTitle(): void {
     setTitleDraft(config?.title ?? '')
     setEditingTitle(true)
-    // Focus after render
+    // Focus the input after React renders it — setTimeout yields to the paint cycle
     setTimeout(() => { titleInputRef.current?.select() }, 0)
   }
 
@@ -183,21 +250,7 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
     setEditingTitle(false)
   }
 
-  const canvasRef  = useRef<HTMLCanvasElement>(null)
-  const wrapperRef = useRef<HTMLDivElement>(null)
-
-  // Drag state kept in refs so handlers are synchronous without stale closures
-  const draggingRef     = useRef<DragTarget | null>(null)
-  const dragMovedRef    = useRef(false)
-  const semDraggingRef  = useRef<SemanticDragTarget | null>(null)
-  const semDragMovedRef = useRef(false)
-
-  const [axisPicker,     setAxisPicker]     = useState<AxisPickerState | null>(null)
-  const [semanticPicker, setSemanticPicker] = useState<SemanticPickerState | null>(null)
-  const [cursor,         setCursor]         = useState('default')
-  const [editingTitle,   setEditingTitle]   = useState(false)
-  const [titleDraft,     setTitleDraft]     = useState('')
-  const titleInputRef = useRef<HTMLInputElement>(null)
+  // ── Canvas drawing ────────────────────────────────────────────────────────────
 
   const redraw = useCallback(() => {
     const canvas  = canvasRef.current
@@ -208,6 +261,8 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
     const rect = wrapper.getBoundingClientRect()
     const cssW = rect.width
     const cssH = rect.height
+
+    // Match canvas bitmap to CSS size × devicePixelRatio for sharp rendering
     canvas.width  = cssW * window.devicePixelRatio
     canvas.height = cssH * window.devicePixelRatio
     ctx.scale(window.devicePixelRatio, window.devicePixelRatio)
@@ -219,8 +274,10 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
     }
   }, [config, elements, dimensions, scores])
 
+  // Redraw whenever any input data changes
   useEffect(() => { redraw() }, [redraw])
 
+  // Redraw when the wrapper div is resized (window resize or layout change)
   useEffect(() => {
     const wrapper = wrapperRef.current
     if (!wrapper) return
@@ -228,6 +285,8 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
     observer.observe(wrapper)
     return () => observer.disconnect()
   }, [redraw])
+
+  // ── Mouse event handlers ──────────────────────────────────────────────────────
 
   function handleMouseDown(e: React.MouseEvent<HTMLDivElement>): void {
     const wrapper = wrapperRef.current
@@ -239,6 +298,7 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
     if (config.type === 'cartesian') {
       const hit = cartesianHitDot(x, y, rect.width, rect.height, config as CartesianMapConfig, elements, scores)
       if (hit) {
+        // Fill in the runtime drag fields that cartesianHitDot doesn't know about
         draggingRef.current  = { ...hit, startX: x, startY: y, lockedAxis: null }
         dragMovedRef.current = false
         setCursor('grabbing')
@@ -264,16 +324,18 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
     const W = rect.width
     const H = rect.height
 
-    // Cartesian live drag
+    // ── Active cartesian drag ─────────────────────────────────────────────────
+
     if (draggingRef.current && config.type === 'cartesian') {
-      const drag     = draggingRef.current
-      const cartCfg  = config as CartesianMapConfig
+      const drag    = draggingRef.current
+      const cartCfg = config as CartesianMapConfig
       const plotLeft = MARGIN, plotRight  = W - MARGIN
       const plotTop  = MARGIN, plotBottom = H - MARGIN
-      const plotW    = plotRight  - plotLeft
+      const plotW    = plotRight - plotLeft
       const plotH    = plotBottom - plotTop
 
-      // Shift-constrain: lock to whichever axis had the larger initial movement
+      // Shift-constrain: once the drag has moved far enough in one direction,
+      // lock to that axis for the remainder of the gesture
       if (e.shiftKey) {
         if (!drag.lockedAxis) {
           const dx = Math.abs(x - drag.startX)
@@ -305,15 +367,16 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
       return
     }
 
-    // Semantic live drag — horizontal only, constrained to axis line
+    // ── Active semantic drag (horizontal only) ────────────────────────────────
+
     if (semDraggingRef.current && config.type === 'semantic') {
       const { elementId, dimId } = semDraggingRef.current
-      const semCfg   = config as SemanticMapConfig
-      const axisLeft = SEM_MARGIN_H
+      const semCfg    = config as SemanticMapConfig
+      const axisLeft  = SEM_MARGIN_H
       const axisRight = W - SEM_MARGIN_H
       const axisWidth = axisRight - axisLeft
-      const cx = Math.max(axisLeft, Math.min(axisRight, x))
-      let score = (cx - axisLeft) / axisWidth
+      const cx        = Math.max(axisLeft, Math.min(axisRight, x))
+      let score       = (cx - axisLeft) / axisWidth
       if (semCfg.flippedDimensionIds.includes(dimId)) score = 1 - score
       setScore(elementId, dimId, score)
       window.api?.broadcastScore(elementId, dimId, score)
@@ -322,16 +385,17 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
       return
     }
 
+    // ── Hover cursor ──────────────────────────────────────────────────────────
+
     if (config.type === 'cartesian') {
       const hit = cartesianHitDot(x, y, W, H, config as CartesianMapConfig, elements, scores)
-      if (hit)                                             { setCursor('grab');    return }
-      if (cartesianHitEdge(x, y, W, H))                   { setCursor('pointer'); return }
+      if (hit)                           { setCursor('grab');    return }
+      if (cartesianHitEdge(x, y, W, H)) { setCursor('pointer'); return }
       setCursor('default')
     } else if (config.type === 'semantic') {
-      const semCfg = config as SemanticMapConfig
-      const hit = semanticHitDot(x, y, W, H, semCfg, elements, dimensions, scores)
+      const hit = semanticHitDot(x, y, W, H, config as SemanticMapConfig, elements, dimensions, scores)
       if (hit) { setCursor('grab'); return }
-      setCursor(semanticHitRow(y, H, semCfg.dimensionIds.length) >= 0 ? 'pointer' : 'default')
+      setCursor(semanticHitRow(y, H, (config as SemanticMapConfig).dimensionIds.length) >= 0 ? 'pointer' : 'default')
     }
   }
 
@@ -342,15 +406,17 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
   }
 
   function handleMouseLeave(): void {
+    // Cancel drag if the pointer leaves the canvas area (e.g. fast movement)
     draggingRef.current    = null
     semDraggingRef.current = null
     setCursor('default')
   }
 
   function handleClick(e: React.MouseEvent<HTMLDivElement>): void {
-    // Suppress picker if the mouse actually moved during either drag
+    // If the mouse moved during this gesture it was a drag — suppress the picker
     if (dragMovedRef.current)    { dragMovedRef.current    = false; return }
     if (semDragMovedRef.current) { semDragMovedRef.current = false; return }
+
     const wrapper = wrapperRef.current
     if (!wrapper || !config) return
     const rect = wrapper.getBoundingClientRect()
@@ -360,7 +426,7 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
     const H = rect.height
 
     if (config.type === 'cartesian') {
-      // Dot click (no drag) — don't open picker
+      // Dot clicks don't open the axis picker
       if (cartesianHitDot(x, y, W, H, config as CartesianMapConfig, elements, scores)) return
       setSemanticPicker(null)
       const edge = cartesianHitEdge(x, y, W, H)
@@ -369,7 +435,6 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
     } else if (config.type === 'semantic') {
       setAxisPicker(null)
       const semCfg = config as SemanticMapConfig
-      // Dot click (no drag) — don't open picker
       if (semanticHitDot(x, y, W, H, semCfg, elements, dimensions, scores)) return
       const dims = semCfg.dimensionIds
         .map(id => dimensions.find(d => d.id === id))
@@ -382,6 +447,8 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
       }
     }
   }
+
+  // ── Render ────────────────────────────────────────────────────────────────────
 
   if (!config) return null
 
@@ -399,7 +466,7 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
             onChange={e => setTitleDraft(e.target.value)}
             onBlur={commitTitle}
             onKeyDown={e => {
-              if (e.key === 'Enter') { e.preventDefault(); commitTitle() }
+              if (e.key === 'Enter')  { e.preventDefault(); commitTitle() }
               if (e.key === 'Escape') { e.preventDefault(); cancelTitle() }
             }}
           />
@@ -408,8 +475,11 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
             className={styles.title}
             onDoubleClick={startEditingTitle}
             title="Double-click to rename"
-          >{config.title}</span>
+          >
+            {config.title}
+          </span>
         )}
+
         <div className={styles.titleBarActions}>
           <button
             className={styles.labelToggle}
@@ -425,11 +495,14 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
           >
             {config.showLabels ? 'Labels ✓' : 'Labels'}
           </button>
+          {/* Close button only shown in embedded (non-windowed) mode */}
           {!windowed && (
             <button className={styles.closeBtn} onClick={onClose} title="Close map">✕</button>
           )}
         </div>
       </div>
+
+      {/* Canvas wrapper — fills remaining space; ResizeObserver triggers redraws */}
       <div
         ref={wrapperRef}
         className={styles.canvasWrapper}
@@ -442,6 +515,7 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
       >
         <canvas ref={canvasRef} className={styles.canvas} />
 
+        {/* Axis picker — shown when the user clicks a cartesian axis */}
         {axisPicker && config.type === 'cartesian' && (
           <AxisPicker
             edge={axisPicker.edge}
@@ -478,6 +552,7 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
           />
         )}
 
+        {/* Dimension picker — shown when the user clicks a semantic axis */}
         {semanticPicker && config.type === 'semantic' && (
           <SemanticAxisPicker
             dimIndex={semanticPicker.dimIndex}
@@ -489,6 +564,7 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
             onPick={(newId) => {
               const newIds = [...semConfig.dimensionIds]
               newIds[semanticPicker.dimIndex] = newId
+              // Remove the old dimension from the flipped list if it was there
               const newFlipped = semConfig.flippedDimensionIds.filter(id => id !== semanticPicker.dimId)
               updateConfig({ dimensionIds: newIds, flippedDimensionIds: newFlipped })
               setSemanticPicker(null)
@@ -511,6 +587,9 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
 }
 
 // ── AxisPicker (Cartesian) ────────────────────────────────────────────────────
+//
+// Floating panel positioned near the clicked axis edge. Lets the user swap
+// which dimension is assigned to that axis, or flip its poles.
 
 interface AxisPickerProps {
   edge: Edge
@@ -527,6 +606,7 @@ interface AxisPickerProps {
 function AxisPicker({ edge, clickX, clickY, currentId, isFlipped, dimensions, onPick, onFlip, onClose }: AxisPickerProps): React.JSX.Element {
   const axis = edge === 'left' || edge === 'right' ? 'X Axis' : 'Y Axis'
 
+  // Position the picker near the click, anchored to the axis side it came from
   const pickerStyle: React.CSSProperties = (() => {
     const base: React.CSSProperties = { position: 'absolute', zIndex: 10 }
     switch (edge) {
@@ -539,6 +619,7 @@ function AxisPicker({ edge, clickX, clickY, currentId, isFlipped, dimensions, on
 
   return (
     <>
+      {/* Transparent full-canvas backdrop — click to dismiss */}
       <div style={{ position: 'absolute', inset: 0, zIndex: 9 }} onClick={onClose} />
       <div className={styles.axisPicker} style={pickerStyle}>
         <div className={styles.axisPickerTitle}>{axis}</div>
@@ -566,6 +647,9 @@ function AxisPicker({ edge, clickX, clickY, currentId, isFlipped, dimensions, on
 }
 
 // ── SemanticAxisPicker ────────────────────────────────────────────────────────
+//
+// Floating panel for semantic axis interaction — swap which dimension is on
+// a given row, or flip its poles.
 
 interface SemanticAxisPickerProps {
   dimIndex: number
@@ -584,7 +668,7 @@ function SemanticAxisPicker({ currentDimId, isFlipped, dimensions, clickX, click
     position: 'absolute',
     zIndex: 10,
     left: Math.max(4, clickX - 70),
-    top: Math.max(4, clickY - 20)
+    top:  Math.max(4, clickY - 20)
   }
 
   return (
@@ -616,6 +700,9 @@ function SemanticAxisPicker({ currentDimId, isFlipped, dimensions, clickX, click
 }
 
 // ── MapPanelList ──────────────────────────────────────────────────────────────
+//
+// Renders all maps in the session as stacked embedded panels (non-windowed).
+// Used by the Score Window when it wants to show maps inline.
 
 export function MapPanelList(): React.JSX.Element {
   const maps      = useAppStore(s => s.maps)

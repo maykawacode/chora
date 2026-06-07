@@ -1,3 +1,11 @@
+// ── Map creation dialogs ──────────────────────────────────────────────────────
+//
+// Two modal dialogs live in this file because they share the same CSS module
+// and follow the same interaction pattern (pick from a list → create map).
+//
+// ChooseDimensions   — creates a Cartesian map; user picks exactly 2 dimensions
+// CreateSemanticMap  — creates a Semantic map; user picks any subset of dimensions
+
 import { useState } from 'react'
 import { v4 as uuid } from 'uuid'
 import { useAppStore } from '../../store/appStore'
@@ -7,7 +15,7 @@ import styles from './ChooseDimensions.module.css'
 
 interface Props { onClose: () => void }
 
-// ── Cartesian ─────────────────────────────────────────────────────────────────
+// ── Cartesian map dialog ──────────────────────────────────────────────────────
 
 export function ChooseDimensions({ onClose }: Props): React.JSX.Element {
   const dimensions = useAppStore(s => s.dimensions)
@@ -17,21 +25,21 @@ export function ChooseDimensions({ onClose }: Props): React.JSX.Element {
 
   const [selected, setSelected] = useState<string[]>([])
 
+  // Maintain a sliding window of 2: drop the oldest selection when a third is added
   function toggle(id: string): void {
     setSelected(prev => {
       if (prev.includes(id)) return prev.filter(x => x !== id)
       if (prev.length < 2)   return [...prev, id]
-      return [prev[1], id]   // slide window: drop oldest, add new
+      return [prev[1], id]
     })
   }
 
   function handleDraw(): void {
     if (selected.length !== 2) return
-    const mapCount = maps.length + 1
     const config: CartesianMapConfig = {
       id: uuid(),
       type: 'cartesian',
-      title: `Map ${mapCount}`,
+      title: `Map ${maps.length + 1}`,
       xDimensionId: selected[0],
       yDimensionId: selected[1],
       xFlipped: false,
@@ -66,6 +74,7 @@ export function ChooseDimensions({ onClose }: Props): React.JSX.Element {
                 className={`${styles.item} ${selIdx !== -1 ? styles.selected : ''}`}
                 onClick={() => toggle(dim.id)}
               >
+                {/* Show X/Y axis assignment for the two selected dimensions */}
                 {selIdx !== -1 && (
                   <span className={styles.axisLabel}>{selIdx === 0 ? 'X' : 'Y'}</span>
                 )}
@@ -90,7 +99,7 @@ export function ChooseDimensions({ onClose }: Props): React.JSX.Element {
   )
 }
 
-// ── Semantic ──────────────────────────────────────────────────────────────────
+// ── Semantic map dialog ───────────────────────────────────────────────────────
 
 export function CreateSemanticMap({ onClose }: Props): React.JSX.Element {
   const dimensions = useAppStore(s => s.dimensions)
@@ -99,6 +108,7 @@ export function CreateSemanticMap({ onClose }: Props): React.JSX.Element {
   const addMap     = useAppStore(s => s.addMap)
   const prefs      = usePrefsStore(s => s.prefs)
 
+  // Start with all dimensions selected — user can deselect ones they don't want
   const [selectedIds, setSelectedIds] = useState<string[]>(() => dimensions.map(d => d.id))
 
   function toggle(id: string): void {
@@ -109,10 +119,11 @@ export function CreateSemanticMap({ onClose }: Props): React.JSX.Element {
 
   function handleDraw(): void {
     if (selectedIds.length < 2) return
+    const semanticCount = maps.filter(m => m.type === 'semantic').length
     const config: SemanticMapConfig = {
       id: uuid(),
       type: 'semantic',
-      title: `Semantic Map ${maps.filter(m => m.type === 'semantic').length + 1}`,
+      title: `Semantic Map ${semanticCount + 1}`,
       elementIds: elements.map(e => e.id),
       dimensionIds: selectedIds,
       flippedDimensionIds: [],
