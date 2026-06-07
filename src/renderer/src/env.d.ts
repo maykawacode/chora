@@ -1,5 +1,12 @@
 /// <reference types="vite/client" />
 
+// ── window.api type declarations ─────────────────────────────────────────────
+//
+// These types must stay in sync with the actual object exposed by
+// src/preload/index.ts. TypeScript cannot verify them automatically because
+// the preload and renderer are separate bundles — update both if you add
+// or remove API surface.
+
 interface Window {
   api: {
     // File I/O
@@ -10,13 +17,13 @@ interface Window {
     readFile:          (path: string) => Promise<string>
     writeFile:         (path: string, data: string) => Promise<void>
 
-    // Menu (Score Window)
+    // Menu actions (Score Window only) — callback receives action string without 'menu:' prefix
     onMenuAction: (cb: (action: string) => void) => () => void
 
     // Map window management
     openMap:      (mapId: string, stateJson: string) => void
     closeAllMaps: () => void
-    signalReady:  () => void
+    signalReady:  () => void    // map renderer calls this after mounting IPC listeners
     setModalOpen: (open: boolean) => void
 
     // Preferences
@@ -24,17 +31,17 @@ interface Window {
     savePreferences:      (prefs: Record<string, unknown>) => void
     getMapWindowPositions: () => Promise<Record<string, { x: number; y: number; width: number; height: number }>>
 
-    // State broadcast (Score Window → maps)
+    // Outbound state broadcasts (Score Window → maps)
     broadcastState:     (stateJson: string) => void
     broadcastScore:     (elementId: string, dimensionId: string, value: number) => void
     broadcastMapConfig: (mapId: string, changes: Record<string, unknown>) => void
 
-    // Listeners (map windows)
+    // Inbound listeners (map windows) — each returns a cleanup function
     onMapInit: (cb: (mapId: string, stateJson: string) => void) => () => void
     onState:   (cb: (stateJson: string) => void) => () => void
     onScore:   (cb: (elementId: string, dimensionId: string, value: number) => void) => () => void
 
-    // Listeners (Score Window)
+    // Inbound listeners (Score Window) — each returns a cleanup function
     onMapConfig:  (cb: (mapId: string, changes: Record<string, unknown>) => void) => () => void
     onMapClosed:  (cb: (mapId: string) => void) => () => void
   }

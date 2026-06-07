@@ -1,8 +1,23 @@
+// ── Preload script ────────────────────────────────────────────────────────────
+//
+// Runs in a privileged context that has access to both Node.js APIs and the
+// browser DOM. contextBridge.exposeInMainWorld() copies exactly the functions
+// listed here onto window.api — nothing else crosses the boundary.
+//
+// Each function is a thin wrapper that delegates to ipcRenderer. All the
+// actual business logic lives in the renderer (App.tsx / MapApp.tsx) or in
+// the main process (ipc.ts). This file is intentionally free of logic.
+//
+// Listener functions follow the pattern:
+//   onXxx(callback) → returns a cleanup function
+// The cleanup removes the listener when the React component unmounts.
+
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron'
 
 contextBridge.exposeInMainWorld('api', {
 
-  // ── File I/O ────────────────────────────────────────────────────────────────
+  // ── File I/O ──────────────────────────────────────────────────────────────────
+
   openFile:          (): Promise<string | null>          => ipcRenderer.invoke('dialog:open'),
   showSaveDialog:    (): Promise<string | null>          => ipcRenderer.invoke('dialog:save'),
   openCsvFile:       (): Promise<string | null>          => ipcRenderer.invoke('dialog:openCsv'),
@@ -10,13 +25,21 @@ contextBridge.exposeInMainWorld('api', {
   readFile:          (path: string): Promise<string>     => ipcRenderer.invoke('file:read', path),
   writeFile:         (path: string, data: string): Promise<void> => ipcRenderer.invoke('file:write', path, data),
 
-  // ── Menu actions (Score Window only) ────────────────────────────────────────
+  // ── Menu actions (Score Window only) ─────────────────────────────────────────
+  //
+  // Registers listeners for all known menu channels at once. Returns a single
+  // cleanup function that removes them all. Each channel is stripped of its
+  // 'menu:' prefix before being passed to the callback, so the caller receives
+  // plain action strings like 'save', 'open', etc.
+
   onMenuAction: (cb: (action: string) => void): (() => void) => {
-    const actions = ['menu:new', 'menu:open', 'menu:save', 'menu:save-as',
-                     'menu:import-spreadsheet', 'menu:export-spreadsheet',
-                     'menu:create-cartesian', 'menu:create-semantic',
-                     'menu:dim-to-weight', 'menu:weight-to-dim', 'menu:dim-to-gray', 'menu:randomize-scores',
-                     'menu:toggle-labels', 'menu:update-maps', 'menu:preferences']
+    const actions = [
+      'menu:new', 'menu:open', 'menu:save', 'menu:save-as',
+      'menu:import-spreadsheet', 'menu:export-spreadsheet',
+      'menu:create-cartesian', 'menu:create-semantic',
+      'menu:dim-to-weight', 'menu:weight-to-dim', 'menu:dim-to-gray', 'menu:randomize-scores',
+      'menu:toggle-labels', 'menu:update-maps', 'menu:preferences'
+    ]
     const handlers = actions.map(channel => {
       const handler = (): void => cb(channel.replace('menu:', ''))
       ipcRenderer.on(channel, handler)
@@ -25,40 +48,54 @@ contextBridge.exposeInMainWorld('api', {
     return () => handlers.forEach(({ channel, handler }) => ipcRenderer.removeListener(channel, handler))
   },
 
-  // ── Map window management ────────────────────────────────────────────────────
-  openMap:      (mapId: string, stateJson: string): void => ipcRenderer.send('map:open', mapId, stateJson),
-  closeAllMaps: (): void => ipcRenderer.send('map:closeAll'),
-  signalReady:  (): void => ipcRenderer.send('map:ready'),
-  setModalOpen: (open: boolean): void => ipcRenderer.send('modal:open', open),
+  // ── Map window management ─────────────────────────────────────────────────────
 
-  // ── Preferences ──────────────────────────────────────────────────────────────
+  openMap:      (mapId: string, stateJson: string): void => ipcRenderer.send('map:open', mapId, stateJson),
+  closeAllMaps: (): void                                  => ipcRenderer.send('map:closeAll'),
+  // Signal to main that this renderer has mounted its IPC listeners and is
+  // ready to receive 'map:init'. See windowManager.ts for why this is needed.
+  signalReady:  (): void                                  => ipcRenderer.send('map:ready'),
+  // Notify main that a modal is open so it can bring the Score Window to front
+  setModalOpen: (open: boolean): void                     => ipcRenderer.send('modal:open', open),
+
+  // ── Preferences ───────────────────────────────────────────────────────────────
+
   loadPreferences: (): Promise<Record<string, unknown>> => ipcRenderer.invoke('prefs:load'),
   savePreferences: (prefs: Record<string, unknown>): void => ipcRenderer.send('prefs:save', prefs),
 
-  // ── Window positions ─────────────────────────────────────────────────────────
+  // ── Window geometry ───────────────────────────────────────────────────────────
+
   getMapWindowPositions: (): Promise<Record<string, { x: number; y: number; width: number; height: number }>> =>
     ipcRenderer.invoke('maps:getPositions'),
 
-  // ── State broadcast (Score Window → maps) ───────────────────────────────────
-  broadcastState:     (stateJson: string): void  => ipcRenderer.send('state:push', stateJson),
+  // ── Outbound state broadcasts (Score Window → main → maps) ───────────────────
+
+  // Full session state after any bulk change (new element, load file, etc.)
+  broadcastState:     (stateJson: string): void => ipcRenderer.send('state:push', stateJson),
+  // Single score update from a drag — cheaper than a full state broadcast
   broadcastScore:     (elementId: string, dimensionId: string, value: number): void =>
                         ipcRenderer.send('score:update', elementId, dimensionId, value),
+  // Map config change (axis swap, flip, etc.) initiated in a map window
   broadcastMapConfig: (mapId: string, changes: Record<string, unknown>): void =>
                         ipcRenderer.send('mapConfig:update', mapId, changes),
 
-  // ── Listeners (map windows) ──────────────────────────────────────────────────
+  // ── Inbound listeners (used by map windows) ───────────────────────────────────
+
+  // Initial payload sent once after the renderer signals readiness
   onMapInit: (cb: (mapId: string, stateJson: string) => void): (() => void) => {
     const handler = (_: IpcRendererEvent, mapId: string, stateJson: string): void => cb(mapId, stateJson)
     ipcRenderer.on('map:init', handler)
     return () => ipcRenderer.removeListener('map:init', handler)
   },
 
+  // Full state replacement broadcast from the Score Window
   onState: (cb: (stateJson: string) => void): (() => void) => {
     const handler = (_: IpcRendererEvent, stateJson: string): void => cb(stateJson)
     ipcRenderer.on('state:push', handler)
     return () => ipcRenderer.removeListener('state:push', handler)
   },
 
+  // Fine-grained score update — applies to a single element/dimension pair
   onScore: (cb: (elementId: string, dimensionId: string, value: number) => void): (() => void) => {
     const handler = (_: IpcRendererEvent, elementId: string, dimensionId: string, value: number): void =>
       cb(elementId, dimensionId, value)
@@ -66,7 +103,9 @@ contextBridge.exposeInMainWorld('api', {
     return () => ipcRenderer.removeListener('score:update', handler)
   },
 
-  // ── Listeners (Score Window) ─────────────────────────────────────────────────
+  // ── Inbound listeners (used by Score Window) ──────────────────────────────────
+
+  // Map config change relayed back from a map window
   onMapConfig: (cb: (mapId: string, changes: Record<string, unknown>) => void): (() => void) => {
     const handler = (_: IpcRendererEvent, mapId: string, changes: Record<string, unknown>): void =>
       cb(mapId, changes)
@@ -74,6 +113,7 @@ contextBridge.exposeInMainWorld('api', {
     return () => ipcRenderer.removeListener('mapConfig:update', handler)
   },
 
+  // Fired when a map window is closed by the user (not programmatically)
   onMapClosed: (cb: (mapId: string) => void): (() => void) => {
     const handler = (_: IpcRendererEvent, mapId: string): void => cb(mapId)
     ipcRenderer.on('map:closed', handler)
