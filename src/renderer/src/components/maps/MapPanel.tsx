@@ -126,10 +126,13 @@ function cartesianHitDot(
   for (const el of elements) {
     const xScore = scores[el.id]?.[config.xDimensionId]
     const yScore = scores[el.id]?.[config.yDimensionId]
-    if (xScore === undefined || yScore === undefined) continue
 
-    const ex = config.xFlipped ? 1 - xScore : xScore
-    const ey = config.yFlipped ? 1 - yScore : yScore
+    // Mirror drawCartesian: use 0.5 placeholder for any missing axis
+    const rawX = xScore ?? 0.5
+    const rawY = yScore ?? 0.5
+
+    const ex = config.xFlipped ? 1 - rawX : rawX
+    const ey = config.yFlipped ? 1 - rawY : rawY
     const cx = plotLeft + ex * plotW
     const cy = plotTop  + (1 - ey) * plotH
     const r  = DOT_MIN_RADIUS + (el.weight - 1) / 99 * (DOT_MAX_RADIUS - DOT_MIN_RADIUS)

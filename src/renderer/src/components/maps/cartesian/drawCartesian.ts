@@ -105,11 +105,15 @@ export function drawCartesian(
   for (const el of elements) {
     const xScore = scores[el.id]?.[xDim.id]
     const yScore = scores[el.id]?.[yDim.id]
-    if (xScore === undefined || yScore === undefined) continue
+
+    // Unscored or partially scored: use 0.5 as placeholder for any missing axis
+    const isPartial = xScore === undefined || yScore === undefined
+    const rawX = xScore ?? 0.5
+    const rawY = yScore ?? 0.5
 
     // Apply flip: flipped score = 1 - raw score
-    const ex = config.xFlipped ? 1 - xScore : xScore
-    const ey = config.yFlipped ? 1 - yScore : yScore
+    const ex = config.xFlipped ? 1 - rawX : rawX
+    const ey = config.yFlipped ? 1 - rawY : rawY
 
     const cx = plotLeft + ex * plotW
     const cy = plotTop  + (1 - ey) * plotH   // invert Y — higher score = higher on canvas
@@ -118,16 +122,26 @@ export function drawCartesian(
     if (config.showDots) {
       ctx.beginPath()
       ctx.arc(cx, cy, r, 0, Math.PI * 2)
-      ctx.fillStyle = el.color
-      ctx.fill()
-      ctx.strokeStyle = 'rgba(0,0,0,0.25)'
-      ctx.lineWidth = 1
-      ctx.stroke()
+      if (isPartial) {
+        ctx.fillStyle = '#ffffff'
+        ctx.fill()
+        ctx.setLineDash([3, 3])
+        ctx.strokeStyle = '#cc0000'
+        ctx.lineWidth = 1.5
+        ctx.stroke()
+        ctx.setLineDash([])
+      } else {
+        ctx.fillStyle = el.color
+        ctx.fill()
+        ctx.strokeStyle = 'rgba(0,0,0,0.25)'
+        ctx.lineWidth = 1
+        ctx.stroke()
+      }
     }
 
     if (config.showLabels) {
       ctx.font = '11px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif'
-      ctx.fillStyle = '#222'
+      ctx.fillStyle = isPartial ? '#cc0000' : '#222'
       ctx.textAlign = 'left'
       ctx.textBaseline = 'middle'
       ctx.fillText(el.name, cx + r + LABEL_OFFSET, cy)
