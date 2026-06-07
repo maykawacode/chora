@@ -28,7 +28,6 @@ import type { ImportResult } from './lib/importer'
 import { exportSpreadsheet } from './lib/exporter'
 import type { CartesianMapConfig, SemanticMapConfig } from './lib/types'
 import type { Preferences } from './lib/preferences'
-import { DEFAULT_PREFERENCES } from './lib/preferences'
 import styles from './App.module.css'
 
 export function App(): React.JSX.Element {
@@ -37,7 +36,6 @@ export function App(): React.JSX.Element {
   const loadSession  = useAppStore(s => s.loadSession)
   const markClean    = useAppStore(s => s.markClean)
   const resetToEmpty = useAppStore(s => s.resetToEmpty)
-  const setPrefs     = usePrefsStore(s => s.setPrefs)
 
   // ── Modal visibility state ────────────────────────────────────────────────────
 
@@ -63,24 +61,22 @@ export function App(): React.JSX.Element {
 
   const suppressBroadcast = useRef(false)
 
-  // ── Load preferences + optional auto-reopen ───────────────────────────────────
+  // ── Auto-reopen last file ─────────────────────────────────────────────────────
+  //
+  // Preferences are already loaded into the store before React mounts (see
+  // main.tsx). This effect just handles the file-reopen side effect.
 
   useEffect(() => {
-    window.api?.loadPreferences().then(raw => {
-      // Merge with defaults so any new fields added since last save have values
-      const loaded: Preferences = { ...DEFAULT_PREFERENCES, ...(raw as Partial<Preferences>) }
-      setPrefs(loaded)
-
-      if (loaded.reopenLastFile && loaded.lastFilePath) {
-        window.api.readFile(loaded.lastFilePath)
-          .then(json => {
-            const state = deserializeSession(json)
-            loadSession({ ...state, filePath: loaded.lastFilePath! })
-            markClean(loaded.lastFilePath!)
-          })
-          .catch(() => { /* file has moved or been deleted — silently ignore */ })
-      }
-    })
+    const { prefs } = usePrefsStore.getState()
+    if (prefs.reopenLastFile && prefs.lastFilePath) {
+      window.api.readFile(prefs.lastFilePath)
+        .then(json => {
+          const state = deserializeSession(json)
+          loadSession({ ...state, filePath: prefs.lastFilePath! })
+          markClean(prefs.lastFilePath!)
+        })
+        .catch(() => { /* file has moved or been deleted — silently ignore */ })
+    }
   }, [])  // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── State broadcast to map windows ───────────────────────────────────────────
