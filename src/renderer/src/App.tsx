@@ -1,3 +1,17 @@
+// ── App.tsx — Score Window root ───────────────────────────────────────────────
+//
+// This is the top-level component of the Score Window (main window). It owns:
+//
+//   • The Zustand app state and all file I/O
+//   • All modal dialog visibility state
+//   • IPC listeners for map window events (score updates, map closes, config changes)
+//   • The suppressBroadcast ref that prevents IPC feedback loops
+//   • Preferences loading on startup
+//
+// Architecture: Score Window is the single source of truth. Map windows are
+// read-only displays — they send back only fine-grained score drags and config
+// changes. Every other mutation flows through this component.
+
 import { useEffect, useRef, useState } from 'react'
 import { useAppStore } from './store/appStore'
 import { usePrefsStore } from './store/prefsStore'
@@ -18,13 +32,14 @@ import { DEFAULT_PREFERENCES } from './lib/preferences'
 import styles from './App.module.css'
 
 export function App(): React.JSX.Element {
-  const filePath      = useAppStore(s => s.filePath)
-  const isDirty       = useAppStore(s => s.isDirty)
-  const loadSession   = useAppStore(s => s.loadSession)
-  const markClean     = useAppStore(s => s.markClean)
-  const resetToEmpty  = useAppStore(s => s.resetToEmpty)
+  const filePath     = useAppStore(s => s.filePath)
+  const isDirty      = useAppStore(s => s.isDirty)
+  const loadSession  = useAppStore(s => s.loadSession)
+  const markClean    = useAppStore(s => s.markClean)
+  const resetToEmpty = useAppStore(s => s.resetToEmpty)
+  const setPrefs     = usePrefsStore(s => s.setPrefs)
 
-  const setPrefs = usePrefsStore(s => s.setPrefs)
+  // ── Modal visibility state ────────────────────────────────────────────────────
 
   const [showChooseDimensions, setShowChooseDimensions] = useState(false)
   const [showCreateSemantic,   setShowCreateSemantic]   = useState(false)
@@ -33,16 +48,29 @@ export function App(): React.JSX.Element {
   const [activeTransform,      setActiveTransform]      = useState<TransformMode | null>(null)
   const [importPreview,        setImportPreview]        = useState<{ fileName: string; result: ImportResult } | null>(null)
 
-  // Suppresses state:push broadcast while applying IPC-received score updates
-  // to prevent a feedback loop (map drag → Score Window → broadcast back to map).
+  // True while any modal is open — used to bring the Score Window to the front
+  // so it is not obscured by map BrowserWindows
+  const isModalOpen = showChooseDimensions || showCreateSemantic || showStarterPicker ||
+                      showPreferences || activeTransform !== null || importPreview !== null
+
+  // ── suppressBroadcast ref ─────────────────────────────────────────────────────
+  //
+  // When a map window sends back a score update via IPC, App.tsx calls
+  // setScore() on the store. The Zustand subscriber in the useEffect below
+  // would then immediately broadcast the full state back to all maps — creating
+  // a feedback loop. Setting this ref to true before the setScore call and back
+  // to false after prevents the broadcast from firing.
+
   const suppressBroadcast = useRef(false)
 
-  // ── Load preferences + reopen last file ──────────────────────────────────────
+  // ── Load preferences + optional auto-reopen ───────────────────────────────────
 
   useEffect(() => {
     window.api?.loadPreferences().then(raw => {
+      // Merge with defaults so any new fields added since last save have values
       const loaded: Preferences = { ...DEFAULT_PREFERENCES, ...(raw as Partial<Preferences>) }
       setPrefs(loaded)
+
       if (loaded.reopenLastFile && loaded.lastFilePath) {
         window.api.readFile(loaded.lastFilePath)
           .then(json => {
@@ -50,16 +78,19 @@ export function App(): React.JSX.Element {
             loadSession({ ...state, filePath: loaded.lastFilePath! })
             markClean(loaded.lastFilePath!)
           })
-          .catch(() => { /* file no longer exists — ignore */ })
+          .catch(() => { /* file has moved or been deleted — silently ignore */ })
       }
     })
   }, [])  // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── State broadcast to map windows ───────────────────────────────────────────
+  //
+  // Subscribes to the Zustand store directly (not via a hook) so the callback
+  // runs outside of React's render cycle — necessary for fine-grained IPC.
 
   useEffect(() => {
     return useAppStore.subscribe((state, prevState) => {
-      // Open a new BrowserWindow for any map added to the session
+      // Open a new BrowserWindow for any map that just appeared in the session
       const prevIds = new Set(prevState.maps.map(m => m.id))
       for (const map of state.maps) {
         if (!prevIds.has(map.id)) {
@@ -67,7 +98,7 @@ export function App(): React.JSX.Element {
         }
       }
 
-      // Broadcast full state to all open map windows
+      // Broadcast full state to all open map windows (unless we're mid-IPC-receive)
       if (!suppressBroadcast.current) {
         window.api.broadcastState(serializeSession(state))
       }
@@ -77,14 +108,14 @@ export function App(): React.JSX.Element {
   // ── IPC listeners from map windows ───────────────────────────────────────────
 
   useEffect(() => {
-    // Fine-grained score from a map window drag — apply silently (no re-broadcast)
+    // Fine-grained score from a map window drag — apply without re-broadcasting
     const removeScore = window.api.onScore((elementId, dimensionId, value) => {
       suppressBroadcast.current = true
       useAppStore.getState().setScore(elementId, dimensionId, value)
       suppressBroadcast.current = false
     })
 
-    // Map config change from a map window — apply and let subscriber broadcast
+    // Map config change (axis swap, flip, title rename) from a map window
     const removeConfig = window.api.onMapConfig((mapId, changes) => {
       useAppStore.getState().updateMapConfig(
         mapId,
@@ -92,7 +123,7 @@ export function App(): React.JSX.Element {
       )
     })
 
-    // Map window closed by user — remove from session
+    // Map window closed by the user — remove its config from the session
     const removeMapClosed = window.api.onMapClosed((mapId) => {
       suppressBroadcast.current = true
       useAppStore.getState().removeMap(mapId)
@@ -102,10 +133,12 @@ export function App(): React.JSX.Element {
     return () => { removeScore(); removeConfig(); removeMapClosed() }
   }, [])
 
-  // ── Modal z-order: float Score Window above map windows while any modal is open
-
-  const isModalOpen = showChooseDimensions || showCreateSemantic || showStarterPicker ||
-                      showPreferences || activeTransform !== null || importPreview !== null
+  // ── Modal z-order ─────────────────────────────────────────────────────────────
+  //
+  // Notifies the main process when any modal opens so it can call
+  // focus()+moveTop() on the Score Window, preventing map BrowserWindows from
+  // covering the modal. Uses optional chaining on both window.api AND the method
+  // because the preload may not have been rebuilt yet in development.
 
   useEffect(() => {
     window.api?.setModalOpen?.(isModalOpen)
@@ -118,31 +151,31 @@ export function App(): React.JSX.Element {
     document.title = isDirty ? `${name} •` : name
   }, [filePath, isDirty])
 
-  // ── Menu actions ──────────────────────────────────────────────────────────────
+  // ── Menu action dispatcher ────────────────────────────────────────────────────
 
   useEffect(() => {
     return window.api.onMenuAction(async (action) => {
       switch (action) {
-        case 'new':                 await handleNew();            break
-        case 'open':                await handleOpen();           break
-        case 'save':                await handleSave(false);      break
-        case 'save-as':             await handleSave(true);       break
-        case 'import-spreadsheet':  await handleImport();         break
-        case 'export-spreadsheet':  await handleExport();         break
-        case 'create-cartesian': setShowChooseDimensions(true); break
-        case 'create-semantic':  setShowCreateSemantic(true);   break
-        case 'preferences':      setShowPreferences(true);      break
-        case 'dim-to-weight':    setActiveTransform('dim-to-weight'); break
-        case 'weight-to-dim':    setActiveTransform('weight-to-dim'); break
-        case 'dim-to-gray':      setActiveTransform('dim-to-gray');        break
-        case 'randomize-scores': setActiveTransform('randomize-scores');   break
-        case 'toggle-labels':    handleToggleLabels(); break
-        case 'update-maps':      /* maps redraw reactively */ break
+        case 'new':                await handleNew();             break
+        case 'open':               await handleOpen();            break
+        case 'save':               await handleSave(false);       break
+        case 'save-as':            await handleSave(true);        break
+        case 'import-spreadsheet': await handleImport();          break
+        case 'export-spreadsheet': await handleExport();          break
+        case 'create-cartesian':   setShowChooseDimensions(true); break
+        case 'create-semantic':    setShowCreateSemantic(true);   break
+        case 'preferences':        setShowPreferences(true);      break
+        case 'dim-to-weight':      setActiveTransform('dim-to-weight');    break
+        case 'weight-to-dim':      setActiveTransform('weight-to-dim');    break
+        case 'dim-to-gray':        setActiveTransform('dim-to-gray');      break
+        case 'randomize-scores':   setActiveTransform('randomize-scores'); break
+        case 'toggle-labels':      handleToggleLabels();          break
+        case 'update-maps':        /* maps redraw reactively — no action needed */ break
       }
     })
   }, [filePath, isDirty])   // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Handlers ──────────────────────────────────────────────────────────────────
+  // ── File handlers ─────────────────────────────────────────────────────────────
 
   async function handleNew(): Promise<void> {
     if (isDirty && !await confirmDiscard()) return
@@ -155,12 +188,12 @@ export function App(): React.JSX.Element {
     const path = await window.api.openFile()
     if (!path) return
     try {
-      const json = await window.api.readFile(path)
+      const json  = await window.api.readFile(path)
       const state = deserializeSession(json)
       window.api.closeAllMaps()
       loadSession({ ...state, filePath: path })
       markClean(path)
-      // The Zustand subscriber detects new maps and opens windows for each
+      // The Zustand subscriber above detects new maps and opens a window for each
     } catch (e) {
       alert(`Could not open file:\n${(e as Error).message}`)
     }
@@ -173,14 +206,17 @@ export function App(): React.JSX.Element {
       if (!path) return
     }
 
-    // Snapshot current map window positions into the store before serializing
     const currentPrefs = usePrefsStore.getState().prefs
+
+    // Capture current map window positions before serializing, so geometry
+    // is saved to the file and can be restored on next open
     if (currentPrefs.rememberWindowPositions) {
       const positions = await window.api.getMapWindowPositions()
       suppressBroadcast.current = true
       for (const [mapId, pos] of Object.entries(positions)) {
         useAppStore.getState().updateMapConfig(mapId, {
-          windowX: pos.x, windowY: pos.y, windowWidth: pos.width, windowHeight: pos.height
+          windowX: pos.x, windowY: pos.y,
+          windowWidth: pos.width, windowHeight: pos.height
         })
       }
       suppressBroadcast.current = false
@@ -190,7 +226,7 @@ export function App(): React.JSX.Element {
     await window.api.writeFile(path, json)
     markClean(path)
 
-    // Persist lastFilePath in preferences
+    // Record this as the last-used file path for the auto-reopen preference
     const newPrefs: Preferences = { ...currentPrefs, lastFilePath: path }
     usePrefsStore.getState().setPrefs(newPrefs)
     window.api.savePreferences(newPrefs as unknown as Record<string, unknown>)
@@ -200,8 +236,8 @@ export function App(): React.JSX.Element {
     const path = await window.api.openCsvFile()
     if (!path) return
     try {
-      const text = await window.api.readFile(path)
-      const result = parseSpreadsheet(text)
+      const text     = await window.api.readFile(path)
+      const result   = parseSpreadsheet(text)
       const fileName = path.split('/').pop() ?? path
       setImportPreview({ fileName, result })
     } catch (e) {
@@ -220,14 +256,17 @@ export function App(): React.JSX.Element {
     }
   }
 
+  // Toggle showLabels on every open map simultaneously
   function handleToggleLabels(): void {
     const { maps, updateMapConfig } = useAppStore.getState()
     for (const m of maps) updateMapConfig(m.id, { showLabels: !m.showLabels })
   }
 
-  async function confirmDiscard(): Promise<boolean> {
-    return window.confirm('You have unsaved changes. Discard them?')
+  function confirmDiscard(): Promise<boolean> {
+    return Promise.resolve(window.confirm('You have unsaved changes. Discard them?'))
   }
+
+  // ── Render ────────────────────────────────────────────────────────────────────
 
   return (
     <div className={styles.root}>
@@ -240,28 +279,23 @@ export function App(): React.JSX.Element {
           onCancel={() => setImportPreview(null)}
           onConfirm={() => {
             const { elements, dimensions, scores } = importPreview.result
-            loadSession({ filePath: null, isDirty: true, elements, dimensions, scores, maps: [],
-                          selectedElementId: elements[0]?.id ?? null,
-                          selectedDimensionId: dimensions[0]?.id ?? null, activeTab: 'elements' })
+            loadSession({
+              filePath: null, isDirty: true,
+              elements, dimensions, scores, maps: [],
+              selectedElementId:   elements[0]?.id   ?? null,
+              selectedDimensionId: dimensions[0]?.id ?? null,
+              activeTab: 'elements'
+            })
             setImportPreview(null)
           }}
         />
       )}
-      {showStarterPicker && (
-        <StarterListPicker onClose={() => setShowStarterPicker(false)} />
-      )}
-      {showChooseDimensions && (
-        <ChooseDimensions onClose={() => setShowChooseDimensions(false)} />
-      )}
-      {showCreateSemantic && (
-        <CreateSemanticMap onClose={() => setShowCreateSemantic(false)} />
-      )}
-      {activeTransform && (
-        <AdvancedTransform mode={activeTransform} onClose={() => setActiveTransform(null)} />
-      )}
-      {showPreferences && (
-        <PreferencesDialog onClose={() => setShowPreferences(false)} />
-      )}
+
+      {showStarterPicker    && <StarterListPicker    onClose={() => setShowStarterPicker(false)} />}
+      {showChooseDimensions && <ChooseDimensions     onClose={() => setShowChooseDimensions(false)} />}
+      {showCreateSemantic   && <CreateSemanticMap    onClose={() => setShowCreateSemantic(false)} />}
+      {activeTransform      && <AdvancedTransform    mode={activeTransform} onClose={() => setActiveTransform(null)} />}
+      {showPreferences      && <PreferencesDialog    onClose={() => setShowPreferences(false)} />}
     </div>
   )
 }

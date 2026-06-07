@@ -1,3 +1,20 @@
+// ── MapApp.tsx — Map window renderer root ────────────────────────────────────
+//
+// Each map BrowserWindow gets its own renderer process running this component.
+// It is a thin IPC adapter: it wires up listeners, signals readiness, then
+// hands off to MapPanel for all rendering and interaction.
+//
+// Lifecycle:
+//   1. Renderer mounts → registers all IPC listeners → calls signalReady()
+//   2. Main process receives map:ready and sends map:init with full state JSON
+//   3. onMapInit sets mapId (triggers the panel to render) and loads the session
+//   4. Subsequent onState calls replace the session when Score Window changes
+//
+// This component never mutates state directly. Map-initiated mutations
+// (score drags, title edits) are sent back to Score Window via IPC, which
+// owns the authoritative state. The Score Window then broadcasts the update
+// back to all maps via onState.
+
 import { useEffect, useState } from 'react'
 import { useAppStore } from './store/appStore'
 import { deserializeSession } from './lib/parser'
@@ -9,38 +26,54 @@ export function MapApp(): React.JSX.Element {
   const loadSession         = useAppStore(s => s.loadSession)
   const setScore            = useAppStore(s => s.setScore)
   const updateMapConfig     = useAppStore(s => s.updateMapConfig)
-  const mapTitle            = useAppStore(s => mapId ? (s.maps.find(m => m.id === mapId)?.title ?? '') : '')
+
+  // Sync OS window title to the map's title field in state
+  const mapTitle = useAppStore(s => mapId ? (s.maps.find(m => m.id === mapId)?.title ?? '') : '')
+
+  // ── IPC listener registration ─────────────────────────────────────────────
+  //
+  // All listeners are registered before signalReady() so there is no window
+  // between ready and init where an arriving message could be missed.
 
   useEffect(() => {
+    // Initial state — sets mapId (unblocks render) and loads full session
     const removeInit = window.api.onMapInit((id, stateJson) => {
       setMapId(id)
       try { loadSession(deserializeSession(stateJson)) }
       catch (e) { console.error('map:init failed', e) }
     })
 
+    // Full state replacement whenever Score Window mutates the session
     const removeState = window.api.onState((stateJson) => {
       try { loadSession(deserializeSession(stateJson)) }
       catch (e) { console.error('state:push failed', e) }
     })
 
-    // Fine-grained score sync from Score Window or another map window
+    // Fine-grained score update — avoids a full state broadcast for drag events
     const removeScore = window.api.onScore((elementId, dimensionId, value) => {
       setScore(elementId, dimensionId, value)
     })
 
-    // Config change applied by Score Window (e.g. toggle-labels from menu)
+    // Config change relayed from Score Window (e.g. toggle-labels from menu)
     const removeConfig = window.api.onMapConfig((mId, changes) => {
       updateMapConfig(mId, changes as Partial<CartesianMapConfig> | Partial<SemanticMapConfig>)
     })
 
+    // Signal readiness AFTER all listeners are attached to prevent map:init race
     window.api.signalReady()
 
     return () => { removeInit(); removeState(); removeScore(); removeConfig() }
   }, [loadSession, setScore, updateMapConfig])
 
+  // ── OS window title sync ──────────────────────────────────────────────────
+
   useEffect(() => {
     if (mapTitle) document.title = mapTitle
   }, [mapTitle])
+
+  // ── Render ────────────────────────────────────────────────────────────────
+  //
+  // Show a loading state until map:init arrives and sets mapId
 
   if (!mapId) {
     return (
