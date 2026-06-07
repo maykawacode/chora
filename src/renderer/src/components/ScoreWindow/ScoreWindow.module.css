@@ -11,11 +11,29 @@
 .tabBar {
   display: flex;
   flex-shrink: 0;
+  position: relative;
   border-bottom: 1px solid #b0a898;
   background: #e0ddd8;
-  padding: 28px 8px 0 80px;
+  padding: 36px 8px 0 8px;
   gap: 2px;
   -webkit-app-region: drag;
+}
+
+.windowTitle {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding-left: 80px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #333;
+  pointer-events: none;
+  user-select: none;
 }
 
 .tab {

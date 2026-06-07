@@ -21,6 +21,7 @@ export function ScoreWindow({ onOpenStarterPicker }: Props): React.JSX.Element {
   return (
     <div className={styles.window}>
       <div className={styles.tabBar}>
+        <span className={styles.windowTitle}>MapTool 2026</span>
         {(['elements', 'dimensions', 'scores'] as const).map(tab => (
           <button
             key={tab}
