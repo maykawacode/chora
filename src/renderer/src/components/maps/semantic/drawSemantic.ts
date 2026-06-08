@@ -16,8 +16,9 @@ import { drawShape } from '../cartesian/drawCartesian'
 // Horizontal margin — space reserved on each side for pole labels
 export const SEM_MARGIN_H = 96
 
-// Vertical margin — space reserved above the first and below the last axis
-export const SEM_MARGIN_V = 50
+// Vertical margin — space reserved above the first and below the last axis.
+// Top margin is sized to fit 45° element labels above the topmost axis dots.
+export const SEM_MARGIN_V = 85
 
 // Radius of the score dot drawn at each element × dimension intersection
 export const SEM_DOT_R = 6
@@ -147,14 +148,28 @@ export function drawSemantic(
       }
     }
 
-    // Element name label — placed just to the right of the last scored point
+    // Element name label — 45° upward from the topmost scored dot
     if (config.showLabels) {
-      const last = points[points.length - 1]
+      const top = points[0]
+      const MAX_LABEL_W = 88
       ctx.font = '11px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif'
+
+      let label = el.name
+      if (ctx.measureText(label).width > MAX_LABEL_W) {
+        while (label.length > 1 && ctx.measureText(label + '…').width > MAX_LABEL_W) {
+          label = label.slice(0, -1)
+        }
+        label += '…'
+      }
+
+      ctx.save()
+      ctx.translate(top.x, top.y - SEM_DOT_R - 3)
+      ctx.rotate(-Math.PI / 4)
       ctx.fillStyle = '#222'
       ctx.textAlign = 'left'
-      ctx.textBaseline = 'middle'
-      ctx.fillText(el.name, last.x + SEM_DOT_R + 4, last.y)
+      ctx.textBaseline = 'bottom'
+      ctx.fillText(label, 0, 0)
+      ctx.restore()
     }
   }
 }
