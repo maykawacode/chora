@@ -16,8 +16,8 @@ import type { CartesianMapConfig, Element, Dimension, ScoreMap } from '../../../
 export const MARGIN = 48
 
 // Dot radius range — weight 1 → DOT_MIN_RADIUS, weight 100 → DOT_MAX_RADIUS
-export const DOT_MIN_RADIUS = 4
-export const DOT_MAX_RADIUS = 24
+export const DOT_MIN_RADIUS = 6
+export const DOT_MAX_RADIUS = 38
 
 // Gap between dot edge and element name label
 const LABEL_OFFSET = 8
