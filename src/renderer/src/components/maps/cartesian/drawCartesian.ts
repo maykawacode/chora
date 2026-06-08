@@ -33,15 +33,19 @@ export function drawShape(ctx: CanvasRenderingContext2D, shapeIndex: number, cx:
     case 0: // circle
       ctx.arc(cx, cy, r, 0, Math.PI * 2)
       break
-    case 1: // square (axis-aligned, corners at circumradius r)
-      ctx.rect(cx - s, cy - s, s * 2, s * 2)
+    case 1: { // square (axis-aligned, corners at circumradius r) — 15% larger than circle
+      const ss = s * 1.25
+      ctx.rect(cx - ss, cy - ss, ss * 2, ss * 2)
       break
-    case 2: // equilateral triangle, pointing up
-      ctx.moveTo(cx,              cy - r)
-      ctx.lineTo(cx + r * SIN60,  cy + r * COS60)
-      ctx.lineTo(cx - r * SIN60,  cy + r * COS60)
+    }
+    case 2: { // equilateral triangle, pointing up — 15% larger than other shapes
+      const tr = r * 1.28
+      ctx.moveTo(cx,               cy - tr)
+      ctx.lineTo(cx + tr * SIN60,  cy + tr * COS60)
+      ctx.lineTo(cx - tr * SIN60,  cy + tr * COS60)
       ctx.closePath()
       break
+    }
     case 3: // diamond (square rotated 45°)
       ctx.moveTo(cx,     cy - r)
       ctx.lineTo(cx + r, cy)
