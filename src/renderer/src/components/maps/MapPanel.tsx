@@ -320,6 +320,7 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
   // ── Mouse event handlers ──────────────────────────────────────────────────────
 
   function handleMouseDown(e: React.MouseEvent<HTMLDivElement>): void {
+    if (e.button !== 0) return  // ignore right-click and middle-click
     const wrapper = wrapperRef.current
     if (!wrapper || !config) return
     const rect = wrapper.getBoundingClientRect()
