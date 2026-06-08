@@ -13,7 +13,7 @@
 import type { CartesianMapConfig, Element, Dimension, ScoreMap } from '../../../lib/types'
 
 // Space reserved on each side of the canvas for pole labels
-export const MARGIN = 48
+export const MARGIN = 58
 
 // Dot radius range — weight 1 → DOT_MIN_RADIUS, weight 100 → DOT_MAX_RADIUS
 export const DOT_MIN_RADIUS = 6
@@ -117,16 +117,16 @@ export function drawCartesian(
   if (xDim) {
     const leftLabel  = config.xFlipped ? xDim.poleB : xDim.poleA
     const rightLabel = config.xFlipped ? xDim.poleA : xDim.poleB
-    ctx.textAlign = 'left';  ctx.fillText(leftLabel,  4,     midY)
-    ctx.textAlign = 'right'; ctx.fillText(rightLabel, W - 4, midY)
+    ctx.textAlign = 'left';  ctx.fillText(leftLabel,  22,     midY)
+    ctx.textAlign = 'right'; ctx.fillText(rightLabel, W - 22, midY)
   }
 
   if (yDim) {
     const topLabel    = config.yFlipped ? yDim.poleA : yDim.poleB
     const bottomLabel = config.yFlipped ? yDim.poleB : yDim.poleA
     ctx.textAlign = 'center'
-    ctx.textBaseline = 'top';    ctx.fillText(topLabel,    midX, 4)
-    ctx.textBaseline = 'bottom'; ctx.fillText(bottomLabel, midX, H - 4)
+    ctx.textBaseline = 'top';    ctx.fillText(topLabel,    midX, 22)
+    ctx.textBaseline = 'bottom'; ctx.fillText(bottomLabel, midX, H - 22)
   }
 
   // ── Elements ──────────────────────────────────────────────────────────────────
