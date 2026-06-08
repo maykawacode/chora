@@ -9,9 +9,9 @@
 // ipcMain.handle() — renderer uses invoke() and awaits a return value
 // ipcMain.on()     — renderer uses send(), fire-and-forget
 
-import { ipcMain, dialog } from 'electron'
+import { ipcMain, dialog, app } from 'electron'
 import { readFile, writeFile } from 'fs/promises'
-import { getMainWindow } from './index'
+import { getMainWindow, setQuitConfirmed } from './index'
 import {
   openMapWindow,
   closeAllMapWindowsSilent,
@@ -156,5 +156,11 @@ export function registerIpcHandlers(): void {
     if (scoreWin && !scoreWin.isDestroyed() && scoreWin.webContents.id !== event.sender.id) {
       scoreWin.webContents.send('element:update', elementId, changes)
     }
+  })
+
+  // Renderer has confirmed it is safe to quit — mark confirmed then re-trigger quit
+  ipcMain.on('app:confirm-quit', () => {
+    setQuitConfirmed()
+    app.quit()
   })
 }

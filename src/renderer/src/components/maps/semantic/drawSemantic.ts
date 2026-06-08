@@ -33,7 +33,8 @@ export function drawSemantic(
   config: SemanticMapConfig,
   elements: Element[],
   dimensions: Dimension[],
-  scores: ScoreMap
+  scores: ScoreMap,
+  draggingElementId?: string
 ): void {
   // Resolve dimension IDs to full objects, preserving config order
   const dims = config.dimensionIds
@@ -128,9 +129,9 @@ export function drawSemantic(
 
     if (points.length === 0) continue   // element has no scores — nothing to draw
 
-    // Polyline
+    // Polyline — 2x weight while this element is being dragged
     ctx.strokeStyle = el.color
-    ctx.lineWidth = 2
+    ctx.lineWidth = draggingElementId === el.id ? 4 : 2
     ctx.beginPath()
     ctx.moveTo(points[0].x, points[0].y)
     for (let p = 1; p < points.length; p++) ctx.lineTo(points[p].x, points[p].y)

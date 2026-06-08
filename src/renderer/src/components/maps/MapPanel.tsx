@@ -301,7 +301,7 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
     if (config.type === 'cartesian') {
       drawCartesian(ctx, cssW, cssH, config as CartesianMapConfig, elements, dimensions, scores)
     } else if (config.type === 'semantic') {
-      drawSemantic(ctx, cssW, cssH, config as SemanticMapConfig, elements, dimensions, scores)
+      drawSemantic(ctx, cssW, cssH, config as SemanticMapConfig, elements, dimensions, scores, semDraggingRef.current?.elementId)
     }
   }, [config, elements, dimensions, scores])
 
@@ -343,6 +343,7 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
         semDragMovedRef.current = false
         setCursor('grabbing')
         e.preventDefault()
+        redraw()
       }
     }
   }
@@ -432,16 +433,20 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
   }
 
   function handleMouseUp(): void {
+    const wasSemDragging = semDraggingRef.current !== null
     draggingRef.current    = null
     semDraggingRef.current = null
     setCursor('default')
+    if (wasSemDragging) redraw()
   }
 
   function handleMouseLeave(): void {
     // Cancel drag if the pointer leaves the canvas area (e.g. fast movement)
+    const wasSemDragging = semDraggingRef.current !== null
     draggingRef.current    = null
     semDraggingRef.current = null
     setCursor('default')
+    if (wasSemDragging) redraw()
   }
 
   function handleContextMenu(e: React.MouseEvent<HTMLDivElement>): void {

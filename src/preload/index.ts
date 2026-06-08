@@ -133,5 +133,17 @@ contextBridge.exposeInMainWorld('api', {
     const handler = (_: IpcRendererEvent, mapId: string): void => cb(mapId)
     ipcRenderer.on('map:closed', handler)
     return () => ipcRenderer.removeListener('map:closed', handler)
-  }
+  },
+
+  // ── Quit confirmation ─────────────────────────────────────────────────────────
+
+  // Main process fires this before quitting so the renderer can save or cancel
+  onQuitRequested: (cb: () => void): (() => void) => {
+    const handler = (): void => cb()
+    ipcRenderer.on('app:quit-requested', handler)
+    return () => ipcRenderer.removeListener('app:quit-requested', handler)
+  },
+
+  // Renderer calls this to tell main it may proceed with the quit
+  confirmQuit: (): void => ipcRenderer.send('app:confirm-quit')
 })

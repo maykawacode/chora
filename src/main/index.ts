@@ -13,6 +13,9 @@ import { setScoreWindow } from './windowManager'
 import { loadPreferences } from './prefs'
 
 let mainWindow: BrowserWindow | null = null
+let quitConfirmed = false
+
+export function setQuitConfirmed(): void { quitConfirmed = true }
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -74,8 +77,16 @@ app.whenReady().then(async () => {
   })
 })
 
-// Re-enable closable before quit so the window can actually close during shutdown
-app.on('before-quit', () => {
+// Ask the renderer to confirm before quitting if there are unsaved changes.
+// The renderer calls app:confirm-quit to proceed; until then we hold the quit.
+app.on('before-quit', (e) => {
+  if (!quitConfirmed) {
+    e.preventDefault()
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('app:quit-requested')
+    }
+    return
+  }
   if (mainWindow && !mainWindow.isDestroyed()) mainWindow.setClosable(true)
 })
 

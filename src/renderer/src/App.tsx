@@ -47,6 +47,7 @@ export function App(): React.JSX.Element {
     return !(prefs.reopenLastFile && !!prefs.lastFilePath)
   })
 
+  const [showQuitConfirm,      setShowQuitConfirm]      = useState(false)
   const [showChooseDimensions, setShowChooseDimensions] = useState(false)
   const [showCreateSemantic,   setShowCreateSemantic]   = useState(false)
   const [showStarterPicker,    setShowStarterPicker]    = useState(false)
@@ -144,7 +145,16 @@ export function App(): React.JSX.Element {
       window.api.broadcastState(serializeSession(useAppStore.getState()))
     })
 
-    return () => { removeScore(); removeConfig(); removeMapClosed(); removeElementUpdate() }
+    // Quit requested — show confirm dialog if dirty, otherwise let it proceed
+    const removeQuitRequested = window.api.onQuitRequested(() => {
+      if (useAppStore.getState().isDirty) {
+        setShowQuitConfirm(true)
+      } else {
+        window.api.confirmQuit()
+      }
+    })
+
+    return () => { removeScore(); removeConfig(); removeMapClosed(); removeElementUpdate(); removeQuitRequested() }
   }, [])
 
   // ── Modal z-order ─────────────────────────────────────────────────────────────
@@ -300,6 +310,25 @@ export function App(): React.JSX.Element {
       {showCreateSemantic   && <CreateSemanticMap    onClose={() => setShowCreateSemantic(false)} />}
       {activeTransform      && <AdvancedTransform    mode={activeTransform} onClose={() => setActiveTransform(null)} />}
       {showPreferences      && <PreferencesDialog    onClose={() => setShowPreferences(false)} />}
+
+      {showQuitConfirm && (
+        <div className={styles.quitOverlay}>
+          <div className={styles.quitBox}>
+            <p><strong>Unsaved Changes</strong><br />
+              If you quit now, your changes will be lost.</p>
+            <div className={styles.quitButtons}>
+              <button className={styles.quitCancel} onClick={() => setShowQuitConfirm(false)}>Cancel</button>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className={styles.quitSave} onClick={async () => {
+                  await handleSave(false)
+                  if (!useAppStore.getState().isDirty) window.api.confirmQuit()
+                }}>Save & Quit</button>
+                <button className={styles.quitConfirm} onClick={() => window.api.confirmQuit()}>Quit Without Saving</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showWelcome && (
         <WelcomeDialog

@@ -47,5 +47,9 @@ interface Window {
     onMapConfig:     (cb: (mapId: string, changes: Record<string, unknown>) => void) => () => void
     onMapClosed:     (cb: (mapId: string) => void) => () => void
     onElementUpdate: (cb: (elementId: string, changes: Record<string, unknown>) => void) => () => void
+
+    // Quit confirmation
+    onQuitRequested: (cb: () => void) => () => void
+    confirmQuit:     () => void
   }
 }
