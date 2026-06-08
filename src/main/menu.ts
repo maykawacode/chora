@@ -98,14 +98,6 @@ export function buildMenu(): void {
     },
 
     {
-      label: 'Map',
-      submenu: [
-        { label: 'Show/Hide Labels', accelerator: 'CmdOrCtrl+E', click: () => sendToRenderer('menu:toggle-labels') },
-        { label: 'Update All Maps',                               click: () => sendToRenderer('menu:update-maps') }
-      ]
-    },
-
-    {
       label: 'Window',
       submenu: [
         { role: 'minimize' as const },

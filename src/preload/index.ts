@@ -38,7 +38,7 @@ contextBridge.exposeInMainWorld('api', {
       'menu:import-spreadsheet', 'menu:export-spreadsheet',
       'menu:create-cartesian', 'menu:create-semantic',
       'menu:dim-to-weight', 'menu:weight-to-dim', 'menu:dim-to-gray', 'menu:randomize-scores',
-      'menu:toggle-labels', 'menu:update-maps', 'menu:preferences'
+      'menu:preferences'
     ]
     const handlers = actions.map(channel => {
       const handler = (): void => cb(channel.replace('menu:', ''))

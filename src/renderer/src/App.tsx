@@ -173,8 +173,6 @@ export function App(): React.JSX.Element {
         case 'weight-to-dim':      setActiveTransform('weight-to-dim');    break
         case 'dim-to-gray':        setActiveTransform('dim-to-gray');      break
         case 'randomize-scores':   setActiveTransform('randomize-scores'); break
-        case 'toggle-labels':      handleToggleLabels();          break
-        case 'update-maps':        /* maps redraw reactively — no action needed */ break
       }
     })
   }, [filePath, isDirty])   // eslint-disable-line react-hooks/exhaustive-deps
@@ -260,12 +258,6 @@ export function App(): React.JSX.Element {
     } catch (e) {
       alert(`Could not export file:\n${(e as Error).message}`)
     }
-  }
-
-  // Toggle showLabels on every open map simultaneously
-  function handleToggleLabels(): void {
-    const { maps, updateMapConfig } = useAppStore.getState()
-    for (const m of maps) updateMapConfig(m.id, { showLabels: !m.showLabels })
   }
 
   function confirmDiscard(): Promise<boolean> {
