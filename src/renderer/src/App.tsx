@@ -134,10 +134,14 @@ export function App(): React.JSX.Element {
       suppressBroadcast.current = false
     })
 
-    // Element property change from a map window's right-click modal
+    // Element property change from a map window's right-click modal.
+    // Suppress the Zustand subscription during the update so the subscription
+    // doesn't broadcast, then explicitly push the fresh state to all map windows.
     const removeElementUpdate = window.api.onElementUpdate((elementId, changes) => {
+      suppressBroadcast.current = true
       useAppStore.getState().updateElement(elementId, changes as Partial<Element>)
-      // Zustand subscription auto-fires broadcastState — no explicit call needed
+      suppressBroadcast.current = false
+      window.api.broadcastState(serializeSession(useAppStore.getState()))
     })
 
     return () => { removeScore(); removeConfig(); removeMapClosed(); removeElementUpdate() }
