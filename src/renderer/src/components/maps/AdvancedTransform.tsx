@@ -9,7 +9,7 @@
 // All actual data changes happen in the Zustand store (appStore.ts). This
 // component just picks the target dimension and dispatches the right action.
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAppStore } from '../../store/appStore'
 import styles from './ChooseDimensions.module.css'
 
@@ -42,14 +42,32 @@ interface Props {
 
 export function AdvancedTransform({ mode, onClose }: Props): React.JSX.Element {
   const dimensions        = useAppStore(s => s.dimensions)
+  const scores            = useAppStore(s => s.scores)
   const dimensionToWeight = useAppStore(s => s.dimensionToWeight)
   const weightToDimension = useAppStore(s => s.weightToDimension)
   const dimensionToGray   = useAppStore(s => s.dimensionToGray)
   const randomizeScores   = useAppStore(s => s.randomizeScores)
 
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [showConfirm, setShowConfirm] = useState(false)
+
+  useEffect(() => {
+    if (!showConfirm) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setShowConfirm(false) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [showConfirm])
 
   function handleApply(): void {
+    if (!selectedId) return
+    if (mode === 'randomize-scores') {
+      const hasScores = Object.values(scores).some(el => el[selectedId] !== undefined)
+      if (hasScores) { setShowConfirm(true); return }
+    }
+    applyTransform()
+  }
+
+  function applyTransform(): void {
     if (!selectedId) return
     switch (mode) {
       case 'dim-to-weight':    dimensionToWeight(selectedId); break
@@ -61,6 +79,8 @@ export function AdvancedTransform({ mode, onClose }: Props): React.JSX.Element {
   }
 
   const info = INFO[mode]
+
+  const selectedDim = selectedId ? dimensions.find(d => d.id === selectedId) : null
 
   return (
     <div className={styles.overlay} onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
@@ -94,6 +114,18 @@ export function AdvancedTransform({ mode, onClose }: Props): React.JSX.Element {
             Apply
           </button>
         </div>
+
+        {showConfirm && selectedDim && (
+          <div className={styles.confirmOverlay}>
+            <div className={styles.confirmBox}>
+              <p>Randomize <strong>{selectedDim.label}</strong>?<br />Existing scores will be overwritten.</p>
+              <div className={styles.confirmButtons}>
+                <button className={styles.confirmCancel} onClick={() => setShowConfirm(false)}>Cancel</button>
+                <button className={styles.confirmDelete} onClick={applyTransform}>Randomize</button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
