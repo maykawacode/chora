@@ -98,10 +98,10 @@ export function buildMenu(): void {
     },
 
     {
-      label: 'Create',
+      label: 'Maps',
       submenu: [
-        { label: 'Cartesian Map…', accelerator: 'CmdOrCtrl+D',       click: () => sendToRenderer('menu:create-cartesian') },
-        { label: 'Semantic Map…',  accelerator: 'CmdOrCtrl+Shift+D', click: () => sendToRenderer('menu:create-semantic') }
+        { label: 'New Cartesian Map…', accelerator: 'CmdOrCtrl+D',       click: () => sendToRenderer('menu:create-cartesian') },
+        { label: 'New Semantic Map…',  accelerator: 'CmdOrCtrl+Shift+D', click: () => sendToRenderer('menu:create-semantic') }
       ]
     },
 
