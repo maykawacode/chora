@@ -16,7 +16,7 @@ import type { SemanticMapConfig, Element, Dimension, ScoreMap } from '../../../l
 export const SEM_MARGIN_H = 96
 
 // Vertical margin — space reserved above the first and below the last axis
-export const SEM_MARGIN_V = 20
+export const SEM_MARGIN_V = 50
 
 // Radius of the score dot drawn at each element × dimension intersection
 export const SEM_DOT_R = 6

@@ -29,7 +29,25 @@ export function DimensionsTab({ onOpenStarterPicker }: Props): React.JSX.Element
   const selected = dimensions.find(d => d.id === selectedId) ?? null
   const [newLabel,       setNewLabel]       = useState('')
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [detailWidth, setDetailWidth] = useState(160)
   const addInputRef = useRef<HTMLInputElement>(null)
+  const dragRef = useRef<{ startX: number; startWidth: number } | null>(null)
+
+  function onHandleMouseDown(e: React.MouseEvent): void {
+    dragRef.current = { startX: e.clientX, startWidth: detailWidth }
+    const onMove = (ev: MouseEvent) => {
+      if (!dragRef.current) return
+      const delta = dragRef.current.startX - ev.clientX
+      setDetailWidth(Math.max(120, Math.min(320, dragRef.current.startWidth + delta)))
+    }
+    const onUp = () => {
+      dragRef.current = null
+      document.removeEventListener('mousemove', onMove)
+      document.removeEventListener('mouseup', onUp)
+    }
+    document.addEventListener('mousemove', onMove)
+    document.addEventListener('mouseup', onUp)
+  }
 
   // Dismiss the delete confirmation on Escape regardless of where focus is
   useEffect(() => {
@@ -135,8 +153,11 @@ export function DimensionsTab({ onOpenStarterPicker }: Props): React.JSX.Element
         </div>
       </div>
 
+      {/* ── Resize handle ── */}
+      <div className={styles.resizeHandle} onMouseDown={onHandleMouseDown} />
+
       {/* ── Detail pane ── */}
-      <div className={styles.detailPane}>
+      <div className={styles.detailPane} style={{ width: detailWidth }}>
         <div className={styles.fieldRow}>
           <label className={styles.label}>Pole A</label>
           {/* key forces input reset when selection changes */}
