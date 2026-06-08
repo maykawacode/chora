@@ -69,6 +69,11 @@ app.whenReady().then(async () => {
   })
 })
 
+// Re-enable closable before quit so the window can actually close during shutdown
+app.on('before-quit', () => {
+  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.setClosable(true)
+})
+
 // Quit on all windows closed except on macOS (standard platform behavior)
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
