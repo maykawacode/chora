@@ -87,16 +87,21 @@ export function openMapWindow(mapId: string, stateJson: string): void {
 
   mapWindows.set(mapId, win)
 
+  // Capture the webContents ID now — `win.webContents` is inaccessible after
+  // the window is destroyed, and 'closed' fires post-destruction.
+  const wcId = win.webContents.id
+
   // Store the pending init immediately so handleMapReady() always finds it,
   // regardless of whether map:ready arrives before or after ready-to-show.
-  pendingInits.set(win.webContents.id, { win, mapId, stateJson })
+  pendingInits.set(wcId, { win, mapId, stateJson })
 
   win.on('closed', () => {
     mapWindows.delete(mapId)
-    pendingInits.delete(win.webContents.id)  // clean up if closed before map:ready
+    pendingInits.delete(wcId)
     // Only notify Score Window if the close was user-initiated (not programmatic)
-    if (!silentCloseIds.has(mapId)) {
-      scoreWindow?.webContents.send('map:closed', mapId)
+    // Guard isDestroyed() in case Score Window closed first during quit.
+    if (!silentCloseIds.has(mapId) && scoreWindow && !scoreWindow.isDestroyed()) {
+      scoreWindow.webContents.send('map:closed', mapId)
     }
     silentCloseIds.delete(mapId)
   })
