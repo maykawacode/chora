@@ -22,6 +22,36 @@ export const DOT_MAX_RADIUS = 38
 // Gap between dot edge and element name label
 const LABEL_OFFSET = 8
 
+// Shape cycle: circle → square → triangle → diamond, keyed to element index
+const SIN60 = Math.sin(Math.PI / 3)   // √3/2 ≈ 0.866
+const COS60 = Math.cos(Math.PI / 3)   // 0.5
+
+export function drawShape(ctx: CanvasRenderingContext2D, shapeIndex: number, cx: number, cy: number, r: number): void {
+  const s = r / Math.SQRT2   // half-side of circumscribed square
+  ctx.beginPath()
+  switch (shapeIndex % 4) {
+    case 0: // circle
+      ctx.arc(cx, cy, r, 0, Math.PI * 2)
+      break
+    case 1: // square (axis-aligned, corners at circumradius r)
+      ctx.rect(cx - s, cy - s, s * 2, s * 2)
+      break
+    case 2: // equilateral triangle, pointing up
+      ctx.moveTo(cx,              cy - r)
+      ctx.lineTo(cx + r * SIN60,  cy + r * COS60)
+      ctx.lineTo(cx - r * SIN60,  cy + r * COS60)
+      ctx.closePath()
+      break
+    case 3: // diamond (square rotated 45°)
+      ctx.moveTo(cx,     cy - r)
+      ctx.lineTo(cx + r, cy)
+      ctx.lineTo(cx,     cy + r)
+      ctx.lineTo(cx - r, cy)
+      ctx.closePath()
+      break
+  }
+}
+
 export function drawCartesian(
   ctx: CanvasRenderingContext2D,
   W: number,
@@ -102,6 +132,9 @@ export function drawCartesian(
 
   if (!xDim || !yDim) return
 
+  // Map element ID → original index so shape assignment survives the weight sort
+  const elementIndexMap = new Map(elements.map((el, i) => [el.id, i]))
+
   // Draw heaviest elements first so lighter (smaller) dots always sit on top
   const sorted = [...elements].sort((a, b) => b.weight - a.weight)
 
@@ -123,8 +156,7 @@ export function drawCartesian(
     const r  = DOT_MIN_RADIUS + (el.weight - 1) / 99 * (DOT_MAX_RADIUS - DOT_MIN_RADIUS)
 
     if (config.showDots) {
-      ctx.beginPath()
-      ctx.arc(cx, cy, r, 0, Math.PI * 2)
+      drawShape(ctx, elementIndexMap.get(el.id) ?? 0, cx, cy, r)
       if (isPartial) {
         ctx.fillStyle = '#ffffff'
         ctx.fill()

@@ -11,6 +11,7 @@
 //   - Axes are evenly spaced vertically within the canvas
 
 import type { SemanticMapConfig, Element, Dimension, ScoreMap } from '../../../lib/types'
+import { drawShape } from '../cartesian/drawCartesian'
 
 // Horizontal margin — space reserved on each side for pole labels
 export const SEM_MARGIN_H = 96
@@ -45,6 +46,9 @@ export function drawSemantic(
         .map(id => elements.find(e => e.id === id))
         .filter((e): e is Element => e !== undefined)
     : elements
+
+  // Global element index → shape, so shape is consistent across all maps
+  const elementIndexMap = new Map(elements.map((el, i) => [el.id, i]))
 
   ctx.clearRect(0, 0, W, H)
 
@@ -112,6 +116,7 @@ export function drawSemantic(
   // that axis rather than connecting to an arbitrary midpoint.
 
   for (const el of els) {
+    const shapeIndex = elementIndexMap.get(el.id) ?? 0
     const points: Array<{ x: number; y: number }> = []
 
     for (let i = 0; i < dims.length; i++) {
@@ -134,8 +139,7 @@ export function drawSemantic(
     // Score dots at each scored position
     if (config.showDots) {
       for (const pt of points) {
-        ctx.beginPath()
-        ctx.arc(pt.x, pt.y, SEM_DOT_R, 0, Math.PI * 2)
+        drawShape(ctx, shapeIndex, pt.x, pt.y, SEM_DOT_R)
         ctx.fillStyle = el.color
         ctx.fill()
         ctx.strokeStyle = '#ffffff'
