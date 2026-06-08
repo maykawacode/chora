@@ -20,6 +20,11 @@ interface Props {
 export function ScoreWindow({ onOpenStarterPicker, onOpenTransform }: Props): React.JSX.Element {
   const activeTab    = useAppStore(s => s.activeTab)
   const setActiveTab = useAppStore(s => s.setActiveTab)
+  const filePath     = useAppStore(s => s.filePath)
+  const isDirty      = useAppStore(s => s.isDirty)
+
+  const fileName  = filePath ? (filePath.split('/').pop() ?? 'Untitled') : 'Untitled'
+  const titleText = isDirty ? `${fileName} •` : fileName
 
   const [showMenu, setShowMenu] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -43,7 +48,7 @@ export function ScoreWindow({ onOpenStarterPicker, onOpenTransform }: Props): Re
   return (
     <div className={styles.window}>
       <div className={styles.tabBar}>
-        <span className={styles.windowTitle}>MapTool 2026</span>
+        <span className={styles.windowTitle}>{titleText}</span>
 
         {(['elements', 'dimensions', 'scores'] as const).map(tab => (
           <button
