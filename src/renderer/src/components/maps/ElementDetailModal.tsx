@@ -66,7 +66,14 @@ export function ElementDetailModal({ elementId, onClose }: Props): React.JSX.Ele
   }
 
   return (
-    <div className={styles.overlay} onClick={e => { if (e.target === e.currentTarget) handleClose() }}>
+    <div
+      className={styles.overlay}
+      onClick={e => { e.stopPropagation(); if (e.target === e.currentTarget) handleClose() }}
+      onMouseDown={e => e.stopPropagation()}
+      onMouseMove={e => e.stopPropagation()}
+      onMouseUp={e => e.stopPropagation()}
+      onContextMenu={e => e.stopPropagation()}
+    >
       <div className={styles.modal}>
         <div className={styles.header}>
           <span className={styles.name}>{element.name}</span>
