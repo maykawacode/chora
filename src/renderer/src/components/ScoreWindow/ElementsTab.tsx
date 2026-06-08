@@ -15,7 +15,16 @@
 import { useRef, useState, KeyboardEvent } from 'react'
 import { useAppStore } from '../../store/appStore'
 import { usePrefsStore } from '../../store/prefsStore'
+import { ELEMENT_SHAPES } from '../../lib/types'
+import type { ElementShape } from '../../lib/types'
 import styles from './DataTab.module.css'
+
+const SHAPE_SYMBOL: Record<ElementShape, string> = {
+  circle:   '●',
+  square:   '■',
+  triangle: '▲',
+  diamond:  '◆'
+}
 
 export function ElementsTab(): React.JSX.Element {
   const elements      = useAppStore(s => s.elements)
@@ -112,7 +121,7 @@ export function ElementsTab(): React.JSX.Element {
                   className={`${styles.listItem} ${el.id === selectedId ? styles.selected : ''}`}
                   onClick={() => selectElement(el.id)}
                 >
-                  <span className={styles.colorDot} style={{ background: el.color }} />
+                  <span className={styles.shapeIcon} style={{ color: el.color }}>{SHAPE_SYMBOL[el.shape]}</span>
                   <span className={styles.name}>{el.name}</span>
                 </li>
               ))}
@@ -161,6 +170,22 @@ export function ElementsTab(): React.JSX.Element {
             disabled={!selected}
             onChange={e => selected && updateElement(selected.id, { color: e.target.value })}
           />
+        </div>
+        <div className={styles.fieldRow}>
+          <label className={styles.label}>Shape</label>
+          <div className={styles.shapePicker}>
+            {ELEMENT_SHAPES.map(shape => (
+              <button
+                key={shape}
+                className={`${styles.shapeBtn} ${selected?.shape === shape ? styles.shapeBtnActive : ''}`}
+                disabled={!selected}
+                onClick={() => selected && updateElement(selected.id, { shape })}
+                title={shape.charAt(0).toUpperCase() + shape.slice(1)}
+              >
+                {SHAPE_SYMBOL[shape]}
+              </button>
+            ))}
+          </div>
         </div>
         <div className={styles.fieldRow}>
           <label className={styles.label}>Weight</label>

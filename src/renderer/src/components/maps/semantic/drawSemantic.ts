@@ -47,8 +47,7 @@ export function drawSemantic(
         .filter((e): e is Element => e !== undefined)
     : elements
 
-  // Global element index → shape, so shape is consistent across all maps
-  const elementIndexMap = new Map(elements.map((el, i) => [el.id, i]))
+  const SHAPE_INDEX: Record<string, number> = { circle: 0, square: 1, triangle: 2, diamond: 3 }
 
   ctx.clearRect(0, 0, W, H)
 
@@ -116,7 +115,7 @@ export function drawSemantic(
   // that axis rather than connecting to an arbitrary midpoint.
 
   for (const el of els) {
-    const shapeIndex = elementIndexMap.get(el.id) ?? 0
+    const shapeIndex = SHAPE_INDEX[el.shape] ?? 0
     const points: Array<{ x: number; y: number }> = []
 
     for (let i = 0; i < dims.length; i++) {

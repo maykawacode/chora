@@ -82,7 +82,7 @@ export const useAppStore = create<AppStore>((set) => ({
 
   addElement: (name, color) => set((s) => {
     const resolvedColor = color ?? usePrefsStore.getState().prefs.defaultElementColor
-    const el: Element = { id: uuid(), name, weight: 1, color: resolvedColor, description: '' }
+    const el: Element = { id: uuid(), name, weight: 1, color: resolvedColor, shape: 'circle', description: '' }
     return {
       elements: [...s.elements, el],
       selectedElementId: el.id,  // auto-select the new element

@@ -132,8 +132,7 @@ export function drawCartesian(
 
   if (!xDim || !yDim) return
 
-  // Map element ID → original index so shape assignment survives the weight sort
-  const elementIndexMap = new Map(elements.map((el, i) => [el.id, i]))
+  const SHAPE_INDEX: Record<string, number> = { circle: 0, square: 1, triangle: 2, diamond: 3 }
 
   // Draw heaviest elements first so lighter (smaller) dots always sit on top
   const sorted = [...elements].sort((a, b) => b.weight - a.weight)
@@ -156,7 +155,7 @@ export function drawCartesian(
     const r  = DOT_MIN_RADIUS + (el.weight - 1) / 99 * (DOT_MAX_RADIUS - DOT_MIN_RADIUS)
 
     if (config.showDots) {
-      drawShape(ctx, elementIndexMap.get(el.id) ?? 0, cx, cy, r)
+      drawShape(ctx, SHAPE_INDEX[el.shape] ?? 0, cx, cy, r)
       if (isPartial) {
         ctx.fillStyle = '#ffffff'
         ctx.fill()

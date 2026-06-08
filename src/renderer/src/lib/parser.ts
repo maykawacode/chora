@@ -42,6 +42,7 @@ export function deserializeSession(json: string): AppState {
     name: e.name ?? '',
     weight: typeof e.weight === 'number' ? e.weight : 1,
     color: e.color ?? '#808000',
+    shape: (['circle', 'square', 'triangle', 'diamond'].includes(e.shape as string) ? e.shape : 'circle') as Element['shape'],
     description: e.description ?? ''
   }))
 

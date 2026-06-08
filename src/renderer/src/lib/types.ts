@@ -5,11 +5,16 @@
 // Scores live separately from elements/dimensions so adding/removing either
 // doesn't corrupt the other — it just leaves orphaned keys that are ignored.
 
+export type ElementShape = 'circle' | 'square' | 'triangle' | 'diamond'
+
+export const ELEMENT_SHAPES: ElementShape[] = ['circle', 'square', 'triangle', 'diamond']
+
 export interface Element {
   id: string
   name: string
   weight: number       // 1–100; drives dot size on cartesian maps
   color: string        // hex string, e.g. '#808000' (olive default)
+  shape: ElementShape  // plot symbol used on all maps
   description: string
 }
 
