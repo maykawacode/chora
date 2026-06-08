@@ -232,7 +232,21 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
   const [cursor,         setCursor]         = useState('default')
   const [editingTitle,   setEditingTitle]   = useState(false)
   const [titleDraft,     setTitleDraft]     = useState('')
+  const [showMenu,       setShowMenu]       = useState(false)
   const titleInputRef = useRef<HTMLInputElement>(null)
+  const menuRef       = useRef<HTMLDivElement>(null)
+
+  // Close the dropdown when the user clicks outside it
+  useEffect(() => {
+    if (!showMenu) return
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setShowMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [showMenu])
 
   // ── Title editing ─────────────────────────────────────────────────────────────
 
@@ -251,6 +265,17 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
 
   function cancelTitle(): void {
     setEditingTitle(false)
+  }
+
+  function handleExportPng(): void {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const dataUrl = canvas.toDataURL('image/png')
+    const a = document.createElement('a')
+    a.href = dataUrl
+    a.download = `${config?.title ?? 'map'}.png`
+    a.click()
+    setShowMenu(false)
   }
 
   // ── Canvas drawing ────────────────────────────────────────────────────────────
@@ -483,21 +508,39 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
           </span>
         )}
 
-        <div className={styles.titleBarActions}>
+        <div className={styles.titleBarActions} ref={menuRef}>
           <button
-            className={styles.labelToggle}
-            onClick={() => updateConfig({ showDots: !config.showDots })}
-            title="Show/Hide Dots"
+            className={styles.menuBtn}
+            onClick={() => setShowMenu(v => !v)}
+            title="Map options"
           >
-            {config.showDots ? 'Dots ✓' : 'Dots'}
+            ⋯
           </button>
-          <button
-            className={styles.labelToggle}
-            onClick={() => updateConfig({ showLabels: !config.showLabels })}
-            title="Show/Hide Labels"
-          >
-            {config.showLabels ? 'Labels ✓' : 'Labels'}
-          </button>
+
+          {showMenu && (
+            <div className={styles.menuDropdown}>
+              <div
+                className={styles.menuItem}
+                onClick={() => { updateConfig({ showDots: !config.showDots }); setShowMenu(false) }}
+              >
+                <span className={styles.menuCheck}>{config.showDots ? '✓' : ''}</span>
+                Show Dots
+              </div>
+              <div
+                className={styles.menuItem}
+                onClick={() => { updateConfig({ showLabels: !config.showLabels }); setShowMenu(false) }}
+              >
+                <span className={styles.menuCheck}>{config.showLabels ? '✓' : ''}</span>
+                Show Labels
+              </div>
+              <div className={styles.menuSeparator} />
+              <div className={styles.menuItem} onClick={handleExportPng}>
+                <span className={styles.menuCheck} />
+                Export as PNG…
+              </div>
+            </div>
+          )}
+
           {/* Close button only shown in embedded (non-windowed) mode */}
           {!windowed && (
             <button className={styles.closeBtn} onClick={onClose} title="Close map">✕</button>

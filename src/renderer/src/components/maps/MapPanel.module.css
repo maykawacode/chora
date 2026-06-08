@@ -77,21 +77,71 @@
   align-items: center;
   gap: 6px;
   -webkit-app-region: no-drag;
+  position: relative;
 }
 
-.labelToggle {
-  font-size: 11px;
-  padding: 2px 7px;
+.menuBtn {
+  font-size: 16px;
+  width: 24px;
+  height: 20px;
   border: 1px solid #b0a898;
   border-radius: 3px;
   background: #d8d5d0;
   cursor: pointer;
   font-family: inherit;
   color: #444;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  padding: 0;
 }
 
-.labelToggle:hover {
+.menuBtn:hover {
   background: #c8c5c0;
+}
+
+.menuDropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  background: #f5f3f0;
+  border: 1px solid #b0a898;
+  border-radius: 5px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+  z-index: 50;
+  min-width: 140px;
+  padding: 4px 0;
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-family: inherit;
+  color: #222;
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.menuItem:hover {
+  background: #808040;
+  color: #fff;
+}
+
+.menuCheck {
+  width: 12px;
+  text-align: center;
+  font-size: 11px;
+}
+
+.menuSeparator {
+  height: 1px;
+  background: #b0a898;
+  margin: 4px 0;
 }
 
 .closeBtn {
