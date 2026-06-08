@@ -27,7 +27,7 @@ import { serializeSession, deserializeSession } from './lib/parser'
 import { parseSpreadsheet } from './lib/importer'
 import type { ImportResult } from './lib/importer'
 import { exportSpreadsheet } from './lib/exporter'
-import type { CartesianMapConfig, SemanticMapConfig } from './lib/types'
+import type { CartesianMapConfig, SemanticMapConfig, Element } from './lib/types'
 import type { Preferences } from './lib/preferences'
 import styles from './App.module.css'
 
@@ -134,7 +134,13 @@ export function App(): React.JSX.Element {
       suppressBroadcast.current = false
     })
 
-    return () => { removeScore(); removeConfig(); removeMapClosed() }
+    // Element property change from a map window's right-click modal
+    const removeElementUpdate = window.api.onElementUpdate((elementId, changes) => {
+      useAppStore.getState().updateElement(elementId, changes as Partial<Element>)
+      // Zustand subscription auto-fires broadcastState — no explicit call needed
+    })
+
+    return () => { removeScore(); removeConfig(); removeMapClosed(); removeElementUpdate() }
   }, [])
 
   // ── Modal z-order ─────────────────────────────────────────────────────────────

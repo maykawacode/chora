@@ -1,0 +1,143 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal {
+  background: #f0ede8;
+  border: 1px solid #888;
+  border-radius: 8px;
+  width: 280px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px 8px;
+  border-bottom: 1px solid #d0ccc6;
+}
+
+.name {
+  font-weight: 600;
+  font-size: 14px;
+  color: #222;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.closeBtn {
+  background: none;
+  border: none;
+  font-size: 13px;
+  color: #888;
+  cursor: pointer;
+  padding: 0 0 0 8px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.closeBtn:hover { color: #333; }
+
+.fieldRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px 0;
+}
+
+.label {
+  font-size: 11px;
+  color: #666;
+  width: 68px;
+  flex-shrink: 0;
+}
+
+.colorRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+}
+
+.colorSwatch {
+  width: 28px;
+  height: 22px;
+  padding: 1px;
+  border: 1px solid #b0a898;
+  border-radius: 3px;
+  cursor: pointer;
+  flex-shrink: 0;
+  background: none;
+}
+
+.hexInput {
+  flex: 1;
+  padding: 2px 6px;
+  border: 1px solid #b0a898;
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: 'SFMono-Regular', Consolas, monospace;
+  background: #fff;
+  color: #333;
+}
+
+.shapePicker {
+  display: flex;
+  gap: 4px;
+}
+
+.shapeBtn {
+  padding: 3px 9px;
+  border: 1px solid #b0a898;
+  border-radius: 4px;
+  background: #e8e5e0;
+  font-size: 14px;
+  cursor: pointer;
+  line-height: 1.2;
+  color: #555;
+  font-family: inherit;
+}
+
+.shapeBtn:hover { background: #d8d5d0; }
+
+.shapeBtnActive {
+  background: #c8a050 !important;
+  border-color: #a08030 !important;
+  color: #fff !important;
+}
+
+.weightInput {
+  width: 60px;
+  padding: 2px 6px;
+  border: 1px solid #b0a898;
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: inherit;
+  background: #fff;
+  color: #333;
+}
+
+.description {
+  margin: 8px 12px 12px;
+  padding: 6px;
+  border: 1px solid #b0a898;
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: inherit;
+  background: #fff;
+  color: #333;
+  resize: vertical;
+  min-height: 64px;
+}

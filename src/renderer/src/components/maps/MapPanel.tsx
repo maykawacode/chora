@@ -17,6 +17,7 @@ import { useAppStore } from '../../store/appStore'
 import type { CartesianMapConfig, SemanticMapConfig, Dimension, ScoreMap } from '../../lib/types'
 import { drawCartesian, MARGIN, DOT_MIN_RADIUS, DOT_MAX_RADIUS } from './cartesian/drawCartesian'
 import { drawSemantic, SEM_MARGIN_H, SEM_MARGIN_V, SEM_DOT_R } from './semantic/drawSemantic'
+import { ElementDetailModal } from './ElementDetailModal'
 import styles from './MapPanel.module.css'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -203,6 +204,7 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
   const dimensions      = useAppStore(s => s.dimensions)
   const scores          = useAppStore(s => s.scores)
   const updateMapConfig = useAppStore(s => s.updateMapConfig)
+  const updateElement   = useAppStore(s => s.updateElement)
   const setScore        = useAppStore(s => s.setScore)
 
   // Wraps updateMapConfig + IPC so changes made in either window stay in sync.
@@ -229,6 +231,7 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
 
   const [axisPicker,     setAxisPicker]     = useState<AxisPickerState | null>(null)
   const [semanticPicker, setSemanticPicker] = useState<SemanticPickerState | null>(null)
+  const [elementModal,   setElementModal]   = useState<string | null>(null)
   const [cursor,         setCursor]         = useState('default')
   const [editingTitle,   setEditingTitle]   = useState(false)
   const [titleDraft,     setTitleDraft]     = useState('')
@@ -440,6 +443,32 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
     setCursor('default')
   }
 
+  function handleContextMenu(e: React.MouseEvent<HTMLDivElement>): void {
+    e.preventDefault()
+    const wrapper = wrapperRef.current
+    if (!wrapper || !config) return
+    const rect = wrapper.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const y = e.clientY - rect.top
+    const W = rect.width
+    const H = rect.height
+
+    let hitId: string | null = null
+    if (config.type === 'cartesian') {
+      const hit = cartesianHitDot(x, y, W, H, config as CartesianMapConfig, elements, scores)
+      if (hit) hitId = hit.elementId
+    } else if (config.type === 'semantic') {
+      const hit = semanticHitDot(x, y, W, H, config as SemanticMapConfig, elements, dimensions, scores)
+      if (hit) hitId = hit.elementId
+    }
+
+    if (hitId) {
+      setAxisPicker(null)
+      setSemanticPicker(null)
+      setElementModal(hitId)
+    }
+  }
+
   function handleClick(e: React.MouseEvent<HTMLDivElement>): void {
     // If the mouse moved during this gesture it was a drag — suppress the picker
     if (dragMovedRef.current)    { dragMovedRef.current    = false; return }
@@ -558,8 +587,23 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseLeave}
         onClick={handleClick}
+        onContextMenu={handleContextMenu}
       >
         <canvas ref={canvasRef} className={styles.canvas} />
+
+        {/* Element detail modal — shown on right-click of any element dot */}
+        {elementModal && (
+          <ElementDetailModal
+            elementId={elementModal}
+            onClose={(changes) => {
+              if (changes) {
+                updateElement(elementModal, changes)
+                window.api?.broadcastElement(elementModal, changes as Record<string, unknown>)
+              }
+              setElementModal(null)
+            }}
+          />
+        )}
 
         {/* Axis picker — shown when the user clicks a cartesian axis */}
         {axisPicker && config.type === 'cartesian' && (

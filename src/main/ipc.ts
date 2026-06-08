@@ -147,4 +147,14 @@ export function registerIpcHandlers(): void {
       scoreWin.webContents.send('mapConfig:update', mapId, changes)
     }
   })
+
+  // Element property change from a map window's right-click modal — relay to
+  // Score Window. Score Window applies the update; its Zustand subscription
+  // auto-broadcasts full state to all map windows.
+  ipcMain.on('element:update', (event, elementId: string, changes: unknown) => {
+    const scoreWin = getMainWindow()
+    if (scoreWin && !scoreWin.isDestroyed() && scoreWin.webContents.id !== event.sender.id) {
+      scoreWin.webContents.send('element:update', elementId, changes)
+    }
+  })
 }

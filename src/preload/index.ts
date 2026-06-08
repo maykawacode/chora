@@ -82,6 +82,9 @@ contextBridge.exposeInMainWorld('api', {
   // Map config change (axis swap, flip, etc.) initiated in a map window
   broadcastMapConfig: (mapId: string, changes: Record<string, unknown>): void =>
                         ipcRenderer.send('mapConfig:update', mapId, changes),
+  // Element property change from the right-click detail modal in a map window
+  broadcastElement: (elementId: string, changes: Record<string, unknown>): void =>
+                      ipcRenderer.send('element:update', elementId, changes),
 
   // ── Inbound listeners (used by map windows) ───────────────────────────────────
 
@@ -115,6 +118,14 @@ contextBridge.exposeInMainWorld('api', {
       cb(mapId, changes)
     ipcRenderer.on('mapConfig:update', handler)
     return () => ipcRenderer.removeListener('mapConfig:update', handler)
+  },
+
+  // Element property update relayed from a map window's right-click modal
+  onElementUpdate: (cb: (elementId: string, changes: Record<string, unknown>) => void): (() => void) => {
+    const handler = (_: IpcRendererEvent, elementId: string, changes: Record<string, unknown>): void =>
+      cb(elementId, changes)
+    ipcRenderer.on('element:update', handler)
+    return () => ipcRenderer.removeListener('element:update', handler)
   },
 
   // Fired when a map window is closed by the user (not programmatically)
