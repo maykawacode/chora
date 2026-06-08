@@ -87,8 +87,13 @@ export function openMapWindow(mapId: string, stateJson: string): void {
 
   mapWindows.set(mapId, win)
 
+  // Store the pending init immediately so handleMapReady() always finds it,
+  // regardless of whether map:ready arrives before or after ready-to-show.
+  pendingInits.set(win.webContents.id, { win, mapId, stateJson })
+
   win.on('closed', () => {
     mapWindows.delete(mapId)
+    pendingInits.delete(win.webContents.id)  // clean up if closed before map:ready
     // Only notify Score Window if the close was user-initiated (not programmatic)
     if (!silentCloseIds.has(mapId)) {
       scoreWindow?.webContents.send('map:closed', mapId)
@@ -104,9 +109,6 @@ export function openMapWindow(mapId: string, stateJson: string): void {
 
   win.once('ready-to-show', () => {
     win.show()
-    // Store the pending init — do NOT send map:init yet.
-    // The renderer will call 'map:ready' when its IPC listeners are mounted.
-    pendingInits.set(win.webContents.id, { win, mapId, stateJson })
   })
 }
 
