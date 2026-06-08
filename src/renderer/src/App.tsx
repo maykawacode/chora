@@ -152,7 +152,7 @@ export function App(): React.JSX.Element {
 
   useEffect(() => {
     const name = filePath ? filePath.split('/').pop() ?? filePath : 'Untitled'
-    document.title = isDirty ? `${name} •` : name
+    document.title = isDirty ? `${name} (unsaved)` : name
   }, [filePath, isDirty])
 
   // ── Menu action dispatcher ────────────────────────────────────────────────────

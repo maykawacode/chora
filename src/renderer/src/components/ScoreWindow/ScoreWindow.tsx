@@ -24,7 +24,7 @@ export function ScoreWindow({ onOpenStarterPicker, onOpenTransform }: Props): Re
   const isDirty      = useAppStore(s => s.isDirty)
 
   const fileName  = filePath ? (filePath.split('/').pop() ?? 'Untitled') : 'Untitled'
-  const titleText = isDirty ? `${fileName} •` : fileName
+  const titleText = isDirty ? `${fileName} (unsaved)` : fileName
 
   const [showMenu, setShowMenu] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
