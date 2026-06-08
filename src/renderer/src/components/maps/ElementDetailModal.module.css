@@ -37,18 +37,25 @@
   white-space: nowrap;
 }
 
-.closeBtn {
-  background: none;
-  border: none;
-  font-size: 13px;
-  color: #888;
-  cursor: pointer;
-  padding: 0 0 0 8px;
-  line-height: 1;
-  flex-shrink: 0;
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 8px 12px 12px;
 }
 
-.closeBtn:hover { color: #333; }
+.doneBtn {
+  padding: 5px 20px;
+  border: 1px solid #608040;
+  border-radius: 5px;
+  background: #708040;
+  color: #fff;
+  font-size: 13px;
+  font-family: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.doneBtn:hover { background: #607030; }
 
 .fieldRow {
   display: flex;

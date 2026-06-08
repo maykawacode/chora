@@ -68,7 +68,7 @@ export function ElementDetailModal({ elementId, onClose }: Props): React.JSX.Ele
   return (
     <div
       className={styles.overlay}
-      onClick={e => { e.stopPropagation(); if (e.target === e.currentTarget) handleClose() }}
+      onClick={e => e.stopPropagation()}
       onMouseDown={e => e.stopPropagation()}
       onMouseMove={e => e.stopPropagation()}
       onMouseUp={e => e.stopPropagation()}
@@ -77,7 +77,6 @@ export function ElementDetailModal({ elementId, onClose }: Props): React.JSX.Ele
       <div className={styles.modal}>
         <div className={styles.header}>
           <span className={styles.name}>{element.name}</span>
-          <button className={styles.closeBtn} onClick={handleClose} title="Close">✕</button>
         </div>
 
         <div className={styles.fieldRow}>
@@ -136,6 +135,10 @@ export function ElementDetailModal({ elementId, onClose }: Props): React.JSX.Ele
           placeholder="Description…"
           onChange={e => setDescription(e.target.value)}
         />
+
+        <div className={styles.footer}>
+          <button className={styles.doneBtn} onClick={handleClose}>Done</button>
+        </div>
       </div>
     </div>
   )
