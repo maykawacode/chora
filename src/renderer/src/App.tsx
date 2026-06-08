@@ -169,10 +169,6 @@ export function App(): React.JSX.Element {
         case 'create-cartesian':   setShowChooseDimensions(true); break
         case 'create-semantic':    setShowCreateSemantic(true);   break
         case 'preferences':        setShowPreferences(true);      break
-        case 'dim-to-weight':      setActiveTransform('dim-to-weight');    break
-        case 'weight-to-dim':      setActiveTransform('weight-to-dim');    break
-        case 'dim-to-gray':        setActiveTransform('dim-to-gray');      break
-        case 'randomize-scores':   setActiveTransform('randomize-scores'); break
       }
     })
   }, [filePath, isDirty])   // eslint-disable-line react-hooks/exhaustive-deps
@@ -268,7 +264,7 @@ export function App(): React.JSX.Element {
 
   return (
     <div className={styles.root}>
-      <ScoreWindow onOpenStarterPicker={() => setShowStarterPicker(true)} />
+      <ScoreWindow onOpenStarterPicker={() => setShowStarterPicker(true)} onOpenTransform={setActiveTransform} />
 
       {importPreview && (
         <ImportPreview

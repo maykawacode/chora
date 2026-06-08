@@ -7,13 +7,30 @@
 // The string sent as the IPC channel directly maps to the 'action' string
 // handled by onMenuAction() in the preload and dispatched in App.tsx.
 
-import { Menu, MenuItemConstructorOptions, BrowserWindow, app } from 'electron'
+import { Menu, MenuItem, MenuItemConstructorOptions, BrowserWindow, app } from 'electron'
 
 let _mainWindow: BrowserWindow | null = null
+let _closeWindowItem: MenuItem | null = null
 
 /** Called by index.ts right after the Score Window is created. */
 export function setMainWindowForMenu(win: BrowserWindow): void {
   _mainWindow = win
+}
+
+/** Enable or disable the Close Window menu item based on which window has focus. */
+export function setCloseWindowEnabled(enabled: boolean): void {
+  if (_closeWindowItem) _closeWindowItem.enabled = enabled
+}
+
+function findMenuItemByLabel(menu: Menu, label: string): MenuItem | null {
+  for (const item of menu.items) {
+    if (item.label === label) return item
+    if (item.submenu) {
+      const found = findMenuItemByLabel(item.submenu, label)
+      if (found) return found
+    }
+  }
+  return null
 }
 
 /** Sends a channel name to the Score Window renderer. */
@@ -60,8 +77,10 @@ export function buildMenu(): void {
         { type: 'separator' },
         { label: 'Import Spreadsheet…', accelerator: 'CmdOrCtrl+Shift+I', click: () => sendToRenderer('menu:import-spreadsheet') },
         { label: 'Export Spreadsheet…', accelerator: 'CmdOrCtrl+Shift+E', click: () => sendToRenderer('menu:export-spreadsheet') },
-        { type: 'separator' },
-        isMac ? { role: 'close' as const } : { role: 'quit' as const }
+        ...(isMac ? [] : [
+          { type: 'separator' as const },
+          { role: 'quit' as const }
+        ])
       ]
     },
 
@@ -87,19 +106,19 @@ export function buildMenu(): void {
     },
 
     {
-      label: 'Advanced',
-      submenu: [
-        { label: 'Dimension → Weight…', click: () => sendToRenderer('menu:dim-to-weight') },
-        { label: 'Weight → Dimension…', click: () => sendToRenderer('menu:weight-to-dim') },
-        { label: 'Dimension → Gray…',   click: () => sendToRenderer('menu:dim-to-gray') },
-        { type: 'separator' },
-        { label: 'Randomize Scores…',   click: () => sendToRenderer('menu:randomize-scores') }
-      ]
-    },
-
-    {
       label: 'Window',
       submenu: [
+        {
+          label: 'Close Window',
+          accelerator: 'CmdOrCtrl+W',
+          enabled: false,
+          click: (_item, focusedWindow) => {
+            if (focusedWindow && focusedWindow !== _mainWindow) {
+              focusedWindow.close()
+            }
+          }
+        },
+        { type: 'separator' as const },
         { role: 'minimize' as const },
         { role: 'zoom' as const },
         ...(isMac ? [
@@ -110,5 +129,7 @@ export function buildMenu(): void {
     }
   ]
 
-  Menu.setApplicationMenu(Menu.buildFromTemplate(template))
+  const menu = Menu.buildFromTemplate(template)
+  Menu.setApplicationMenu(menu)
+  _closeWindowItem = findMenuItemByLabel(menu, 'Close Window')
 }

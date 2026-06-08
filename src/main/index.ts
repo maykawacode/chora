@@ -8,7 +8,7 @@ import { app, shell, BrowserWindow } from 'electron'
 import { join } from 'path'
 import { is } from '@electron-toolkit/utils'
 import { registerIpcHandlers } from './ipc'
-import { buildMenu, setMainWindowForMenu } from './menu'
+import { buildMenu, setMainWindowForMenu, setCloseWindowEnabled } from './menu'
 import { setScoreWindow } from './windowManager'
 import { loadPreferences } from './prefs'
 
@@ -66,6 +66,11 @@ app.whenReady().then(async () => {
   // macOS: re-create the window if the dock icon is clicked while no windows are open
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
+  })
+
+  // Enable Close Window only when a map window (not the Score Window) has focus
+  app.on('browser-window-focus', (_, win) => {
+    setCloseWindowEnabled(win !== mainWindow)
   })
 })
 
