@@ -22,6 +22,7 @@ import type { TransformMode } from './components/maps/AdvancedTransform'
 import { StarterListPicker } from './components/ScoreWindow/StarterListPicker'
 import { ImportPreview } from './components/ImportPreview'
 import { PreferencesDialog } from './components/PreferencesDialog'
+import { WelcomeDialog } from './components/WelcomeDialog'
 import { serializeSession, deserializeSession } from './lib/parser'
 import { parseSpreadsheet } from './lib/importer'
 import type { ImportResult } from './lib/importer'
@@ -39,6 +40,13 @@ export function App(): React.JSX.Element {
 
   // ── Modal visibility state ────────────────────────────────────────────────────
 
+  // Show the welcome dialog on startup unless a file will be auto-reopened.
+  // Prefs are pre-loaded before React mounts so this initial value is stable.
+  const [showWelcome, setShowWelcome] = useState(() => {
+    const { prefs } = usePrefsStore.getState()
+    return !(prefs.reopenLastFile && !!prefs.lastFilePath)
+  })
+
   const [showChooseDimensions, setShowChooseDimensions] = useState(false)
   const [showCreateSemantic,   setShowCreateSemantic]   = useState(false)
   const [showStarterPicker,    setShowStarterPicker]    = useState(false)
@@ -48,7 +56,7 @@ export function App(): React.JSX.Element {
 
   // True while any modal is open — used to bring the Score Window to the front
   // so it is not obscured by map BrowserWindows
-  const isModalOpen = showChooseDimensions || showCreateSemantic || showStarterPicker ||
+  const isModalOpen = showWelcome || showChooseDimensions || showCreateSemantic || showStarterPicker ||
                       showPreferences || activeTransform !== null || importPreview !== null
 
   // ── suppressBroadcast ref ─────────────────────────────────────────────────────
@@ -179,10 +187,10 @@ export function App(): React.JSX.Element {
     resetToEmpty()
   }
 
-  async function handleOpen(): Promise<void> {
-    if (isDirty && !await confirmDiscard()) return
+  async function handleOpen(): Promise<boolean> {
+    if (isDirty && !await confirmDiscard()) return false
     const path = await window.api.openFile()
-    if (!path) return
+    if (!path) return false
     try {
       const json  = await window.api.readFile(path)
       const state = deserializeSession(json)
@@ -190,8 +198,10 @@ export function App(): React.JSX.Element {
       loadSession({ ...state, filePath: path })
       markClean(path)
       // The Zustand subscriber above detects new maps and opens a window for each
+      return true
     } catch (e) {
       alert(`Could not open file:\n${(e as Error).message}`)
+      return false
     }
   }
 
@@ -292,6 +302,19 @@ export function App(): React.JSX.Element {
       {showCreateSemantic   && <CreateSemanticMap    onClose={() => setShowCreateSemantic(false)} />}
       {activeTransform      && <AdvancedTransform    mode={activeTransform} onClose={() => setActiveTransform(null)} />}
       {showPreferences      && <PreferencesDialog    onClose={() => setShowPreferences(false)} />}
+
+      {showWelcome && (
+        <WelcomeDialog
+          onNew={async () => {
+            await handleNew()
+            setShowWelcome(false)
+          }}
+          onOpen={async () => {
+            const loaded = await handleOpen()
+            if (loaded) setShowWelcome(false)
+          }}
+        />
+      )}
     </div>
   )
 }
