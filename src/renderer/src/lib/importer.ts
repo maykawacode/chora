@@ -2,9 +2,12 @@
 //
 // Parses a TSV or CSV file exported from Excel/Sheets into MapTool session data.
 //
-// Expected layout:
-//   Row 0:  [ignored]    DimLabel1    DimLabel2   ...
-//   Row 1+: ElementName  score        score       ...
+// Expected layout (with optional Description column):
+//   Row 0:  [ignored]    [Description]  DimLabel1    DimLabel2   ...
+//   Row 1+: ElementName  [desc text]    score        score       ...
+//
+// If the second header column is "Description" (case-insensitive), that column
+// is treated as element description text and scores begin at column 3.
 //
 // Scores can use any numeric scale (e.g. 1–7, 0–100).
 // If any value exceeds 1.0, the entire score matrix is linearly normalized
@@ -34,11 +37,16 @@ export function parseSpreadsheet(text: string): ImportResult {
   const headerIdx = rows.findIndex(r => r.filter(c => c.trim()).length > 1)
   if (headerIdx === -1) throw new Error('No header row found. The first row should contain dimension names.')
 
-  const dimLabels = rows[headerIdx].slice(1).map(h => h.trim()).filter(h => h !== '')
+  // Check if second column is a description column
+  const hasDescription = rows[headerIdx][1]?.trim().toLowerCase() === 'description'
+  const scoreStartCol = hasDescription ? 2 : 1
+
+  const dimLabels = rows[headerIdx].slice(scoreStartCol).map(h => h.trim()).filter(h => h !== '')
   if (dimLabels.length === 0) throw new Error('No dimension names found in the header row.')
 
   const warnings: string[] = []
   const elementNames: string[] = []
+  const elementDescriptions: string[] = []
   const rawScores: (number | null)[][] = []
 
   // Parse data rows — skip rows with no element name
@@ -47,9 +55,16 @@ export function parseSpreadsheet(text: string): ImportResult {
     const name = row[0]?.trim()
     if (!name) continue
 
+    // Extract and strip surrounding quotes from description if column is present
+    let description = ''
+    if (hasDescription) {
+      const raw = row[1]?.trim() ?? ''
+      description = raw.startsWith('"') && raw.endsWith('"') ? raw.slice(1, -1) : raw
+    }
+
     const rowScores: (number | null)[] = []
     for (let j = 0; j < dimLabels.length; j++) {
-      const cell = row[j + 1]?.trim() ?? ''
+      const cell = row[j + scoreStartCol]?.trim() ?? ''
       // Treat empty, dash, and "na" as unscored
       if (cell === '' || cell === '-' || cell.toLowerCase() === 'na') {
         rowScores.push(null)
@@ -64,6 +79,7 @@ export function parseSpreadsheet(text: string): ImportResult {
       }
     }
     elementNames.push(name)
+    elementDescriptions.push(description)
     rawScores.push(rowScores)
   }
 
@@ -93,8 +109,9 @@ export function parseSpreadsheet(text: string): ImportResult {
   }
 
   // Build typed objects with fresh UUIDs
-  const elements: Element[] = elementNames.map(name => ({
-    id: uuid(), name, weight: 1, color: '#808000', shape: 'circle' as const, description: ''
+  const elements: Element[] = elementNames.map((name, i) => ({
+    id: uuid(), name, weight: 1, color: '#808000', shape: 'circle' as const,
+    description: elementDescriptions[i] ?? ''
   }))
 
   const dimensions: Dimension[] = dimLabels.map(label => {
