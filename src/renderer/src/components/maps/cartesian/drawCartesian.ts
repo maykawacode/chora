@@ -182,7 +182,7 @@ export function drawCartesian(
       ctx.fillStyle = isPartial ? '#cc0000' : '#222'
       ctx.textAlign = 'left'
       ctx.textBaseline = 'middle'
-      ctx.fillText(el.name, cx + r + LABEL_OFFSET, cy)
+      ctx.fillText(el.name, cx, cy)
     }
   }
 }
