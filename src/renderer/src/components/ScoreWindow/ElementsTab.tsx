@@ -37,6 +37,18 @@ export function ElementsTab(): React.JSX.Element {
   const prefs            = usePrefsStore(s => s.prefs)
 
   const selected    = elements.find(e => e.id === selectedId) ?? null
+
+  // sortAlpha=false → display in creation/import order (the store's canonical order)
+  // sortAlpha=true  → display alphabetically by name (view-only; store order is unchanged)
+  const [sortAlpha, setSortAlpha] = useState(false)
+
+  // Derived display list — sorted copy when sortAlpha is on, raw store array otherwise.
+  // All list rendering and keyboard navigation uses this, never `elements` directly,
+  // so ↑ ↓ keys walk the visible order regardless of which sort is active.
+  const displayElements = sortAlpha
+    ? [...elements].sort((a, b) => a.name.localeCompare(b.name))
+    : elements
+
   const [newName,   setNewName]   = useState('')
   const [confirmId, setConfirmId] = useState<string | null>(null)
   const [detailWidth, setDetailWidth] = useState(160)
@@ -106,14 +118,15 @@ export function ElementsTab(): React.JSX.Element {
   }
 
   function handleListKeyDown(e: KeyboardEvent<HTMLUListElement>): void {
-    if (!selectedId || elements.length === 0) return
-    const idx = elements.findIndex(el => el.id === selectedId)
+    if (!selectedId || displayElements.length === 0) return
+    // Use displayElements so ↑ ↓ navigate the visible order, not the store order
+    const idx = displayElements.findIndex(el => el.id === selectedId)
 
-    if (e.key === 'ArrowDown' && idx < elements.length - 1) {
-      selectElement(elements[idx + 1].id)
+    if (e.key === 'ArrowDown' && idx < displayElements.length - 1) {
+      selectElement(displayElements[idx + 1].id)
       e.preventDefault()
     } else if (e.key === 'ArrowUp' && idx > 0) {
-      selectElement(elements[idx - 1].id)
+      selectElement(displayElements[idx - 1].id)
       e.preventDefault()
     } else if (e.key === 'Backspace' || e.key === 'Delete') {
       requestDelete(selectedId)
@@ -128,7 +141,15 @@ export function ElementsTab(): React.JSX.Element {
     <div className={styles.tab} ref={tabRef}>
       {/* ── List pane ── */}
       <div className={styles.listPane}>
-        <div className={styles.listHeader}>Elements ({elements.length})</div>
+        {/* Header doubles as a sort toggle — click cycles creation order ↔ A–Z */}
+        <button
+          className={styles.listHeaderBtn}
+          onClick={() => setSortAlpha(s => !s)}
+          title={sortAlpha ? 'Showing A–Z — click for creation order' : 'Showing creation order — click for A–Z'}
+        >
+          <span>Elements ({elements.length})</span>
+          <span className={styles.sortBadge}>{sortAlpha ? 'A–Z' : '⇅'}</span>
+        </button>
 
         {elements.length === 0
           ? <p className={styles.emptyHint}>Begin by entering a list of elements.</p>
@@ -139,7 +160,7 @@ export function ElementsTab(): React.JSX.Element {
               onKeyDown={handleListKeyDown}
               aria-label="Elements"
             >
-              {elements.map(el => (
+              {displayElements.map(el => (
                 <li
                   key={el.id}
                   className={`${styles.listItem} ${el.id === selectedId ? styles.selected : ''}`}

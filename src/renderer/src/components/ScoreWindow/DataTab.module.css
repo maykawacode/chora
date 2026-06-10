@@ -23,6 +23,44 @@
   letter-spacing: 0.04em;
 }
 
+/* Clickable header variant — used by ElementsTab to toggle sort order.
+   Resets <button> defaults, then inherits the same look as .listHeader
+   with a hover highlight to signal it is interactive. */
+.listHeaderBtn {
+  all: unset;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  box-sizing: border-box;
+  font-weight: 600;
+  font-size: 12px;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  border-radius: 3px;
+  padding: 1px 2px;
+}
+
+.listHeaderBtn:hover {
+  background: #e0ddd8;
+  color: #333;
+}
+
+/* Sort indicator chip shown at the right of the header button */
+.sortBadge {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #888;
+  background: #d8d5d0;
+  border-radius: 3px;
+  padding: 1px 4px;
+  line-height: 1.4;
+}
+
 .emptyHint {
   color: #888;
   font-size: 12px;
