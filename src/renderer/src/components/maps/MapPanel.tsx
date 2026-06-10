@@ -613,6 +613,16 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
                 <span className={styles.menuCheck}>{config.showLabels ? '✓' : ''}</span>
                 Show Labels
               </div>
+              {/* Size by weight — cartesian maps only */}
+              {config.type === 'cartesian' && (
+                <div
+                  className={styles.menuItem}
+                  onClick={() => { updateConfig({ sizeByWeight: !config.sizeByWeight }); setShowMenu(false) }}
+                >
+                  <span className={styles.menuCheck}>{config.sizeByWeight ? '✓' : ''}</span>
+                  Size by Weight
+                </div>
+              )}
               <div className={styles.menuSeparator} />
               <div className={styles.menuItem} onClick={handleExportPng}>
                 <span className={styles.menuCheck} />

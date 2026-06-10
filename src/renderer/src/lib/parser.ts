@@ -79,6 +79,7 @@ export function deserializeSession(json: string): AppState {
         yDimensionId: typeof cm.yDimensionId === 'string' ? cm.yDimensionId : '',
         xFlipped: cm.xFlipped === true,
         yFlipped: cm.yFlipped === true,
+        sizeByWeight: cm.sizeByWeight !== false,  // default true; false only if explicitly set
       }
     }
     if (m.type === 'semantic') {

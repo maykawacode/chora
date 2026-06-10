@@ -44,6 +44,7 @@ export function ChooseDimensions({ onClose }: Props): React.JSX.Element {
       yDimensionId: selected[1],
       xFlipped: false,
       yFlipped: false,
+      sizeByWeight: true,
       showLabels: prefs.defaultShowLabels,
       showDots: prefs.defaultShowDots,
       windowX: 100,

@@ -18,6 +18,8 @@ export const MARGIN = 58
 // Dot radius range — weight 1 → DOT_MIN_RADIUS, weight 100 → DOT_MAX_RADIUS
 export const DOT_MIN_RADIUS = 6
 export const DOT_MAX_RADIUS = 38
+// Uniform radius used when sizeByWeight is disabled (equivalent to weight ≈ 25)
+export const DOT_DEFAULT_RADIUS = 14
 
 // Gap between dot edge and element name label
 const LABEL_OFFSET = 8
@@ -149,12 +151,16 @@ export function drawCartesian(
   // ── Elements ──────────────────────────────────────────────────────────────────
   //
   // Only elements with scores on BOTH axes are drawn.
-  // Dot radius scales linearly with weight: r = MIN + (weight-1)/99 * (MAX-MIN)
+  // When sizeByWeight=true: radius scales linearly with weight (DOT_MIN → DOT_MAX).
+  // When sizeByWeight=false: all elements use DOT_DEFAULT_RADIUS uniformly.
 
   if (!xDim || !yDim) return
 
-  // Draw heaviest elements first so lighter (smaller) dots always sit on top
-  const sorted = [...elements].sort((a, b) => b.weight - a.weight)
+  // When sizing by weight, draw heaviest first so lighter (smaller) dots sit on top.
+  // When uniform size, preserve store order (no visual reason to sort).
+  const sorted = config.sizeByWeight
+    ? [...elements].sort((a, b) => b.weight - a.weight)
+    : elements
 
   for (const el of sorted) {
     const xScore = scores[el.id]?.[xDim.id]
@@ -171,7 +177,9 @@ export function drawCartesian(
 
     const cx = plotLeft + ex * plotW
     const cy = plotTop  + (1 - ey) * plotH   // invert Y — higher score = higher on canvas
-    const r  = DOT_MIN_RADIUS + (el.weight - 1) / 99 * (DOT_MAX_RADIUS - DOT_MIN_RADIUS)
+    const r  = config.sizeByWeight
+      ? DOT_MIN_RADIUS + (el.weight - 1) / 99 * (DOT_MAX_RADIUS - DOT_MIN_RADIUS)
+      : DOT_DEFAULT_RADIUS
 
     if (config.showDots) {
       drawShape(ctx, SHAPE_INDEX[el.shape] ?? 0, cx, cy, r)

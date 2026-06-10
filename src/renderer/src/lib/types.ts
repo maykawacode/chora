@@ -67,6 +67,7 @@ export interface CartesianMapConfig extends BaseMapConfig {
   yDimensionId: string
   xFlipped: boolean    // reverses poleA/poleB direction on that axis
   yFlipped: boolean
+  sizeByWeight: boolean // true = dot radius scales with element weight; false = uniform default size
 }
 
 export interface SemanticMapConfig extends BaseMapConfig {
