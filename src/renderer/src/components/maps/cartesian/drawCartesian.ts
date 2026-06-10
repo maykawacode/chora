@@ -22,6 +22,15 @@ export const DOT_MAX_RADIUS = 38
 // Gap between dot edge and element name label
 const LABEL_OFFSET = 8
 
+// Font string used for all element and dimension labels.
+// Exported so drawSemantic can share the same value, and so P5-20 (configurable
+// label size) has a single place to parameterize.
+export const LABEL_FONT = '11px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif'
+
+// Maps element.shape string to the numeric index expected by drawShape().
+// Exported so drawSemantic can reuse it without duplicating the mapping.
+export const SHAPE_INDEX: Record<string, number> = { circle: 0, square: 1, triangle: 2, diamond: 3 }
+
 // Shape cycle: circle → square → triangle → diamond, keyed to element index
 const SIN60 = Math.sin(Math.PI / 3)   // √3/2 ≈ 0.866
 const COS60 = Math.cos(Math.PI / 3)   // 0.5
@@ -111,7 +120,7 @@ export function drawCartesian(
   // Labels are drawn in the MARGIN region outside the plot border.
   // Flip flags swap which pole label appears on which end.
 
-  ctx.font = '11px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif'
+  ctx.font = LABEL_FONT
   ctx.fillStyle = '#333'
   ctx.textBaseline = 'middle'
 
@@ -136,8 +145,6 @@ export function drawCartesian(
   // Dot radius scales linearly with weight: r = MIN + (weight-1)/99 * (MAX-MIN)
 
   if (!xDim || !yDim) return
-
-  const SHAPE_INDEX: Record<string, number> = { circle: 0, square: 1, triangle: 2, diamond: 3 }
 
   // Draw heaviest elements first so lighter (smaller) dots always sit on top
   const sorted = [...elements].sort((a, b) => b.weight - a.weight)
@@ -186,7 +193,7 @@ export function drawCartesian(
     }
 
     if (config.showLabels) {
-      ctx.font = '11px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif'
+      ctx.font = LABEL_FONT
       ctx.fillStyle = isPartial ? '#cc0000' : '#222'
       ctx.textAlign = 'left'
       ctx.textBaseline = 'middle'

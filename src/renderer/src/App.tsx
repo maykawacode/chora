@@ -318,8 +318,11 @@ export function App(): React.JSX.Element {
             loadSession({
               filePath: null, isDirty: true,
               elements, dimensions, scores, maps: [],
-              selectedElementId:   elements[0]?.id   ?? null,
-              selectedDimensionId: dimensions[0]?.id ?? null,
+              // Selection defaults to none — consistent with the rest of the app.
+              // Previously auto-selected the first element/dimension, which
+              // contradicted the "selection is driven by map dot clicks" model.
+              selectedElementId:   null,
+              selectedDimensionId: null,
               activeTab: 'elements'
             })
             setImportPreview(null)

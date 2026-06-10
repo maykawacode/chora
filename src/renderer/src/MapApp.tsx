@@ -36,23 +36,33 @@ export function MapApp(): React.JSX.Element {
   // between ready and init where an arriving message could be missed.
 
   useEffect(() => {
+    // Both map:init and state:push carry the same envelope shape:
+    //   { isDirty: boolean, session: string, selectedElementId: string | null }
+    // This helper parses that envelope and applies it to the store.
+    // It is defined inside useEffect so it captures loadSession from the
+    // closure without needing to be passed as a parameter.
+    const applyStatePayload = (payload: string, context: string): void => {
+      try {
+        const { isDirty, session, selectedElementId } = JSON.parse(payload)
+        loadSession({
+          ...deserializeSession(session),
+          isDirty:           isDirty           ?? false,
+          selectedElementId: selectedElementId ?? null
+        })
+      } catch (e) {
+        console.error(`${context} failed`, e)
+      }
+    }
+
     // Initial state — sets mapId (unblocks render) and loads full session
     const removeInit = window.api.onMapInit((id, payload) => {
       setMapId(id)
-      try {
-        const { isDirty, session, selectedElementId } = JSON.parse(payload)
-        loadSession({ ...deserializeSession(session), isDirty: isDirty ?? false, selectedElementId: selectedElementId ?? null })
-      }
-      catch (e) { console.error('map:init failed', e) }
+      applyStatePayload(payload, 'map:init')
     })
 
     // Full state replacement whenever Score Window mutates the session
     const removeState = window.api.onState((payload) => {
-      try {
-        const { isDirty, session, selectedElementId } = JSON.parse(payload)
-        loadSession({ ...deserializeSession(session), isDirty: isDirty ?? false, selectedElementId: selectedElementId ?? null })
-      }
-      catch (e) { console.error('state:push failed', e) }
+      applyStatePayload(payload, 'state:push')
     })
 
     // Fine-grained score update — avoids a full state broadcast for drag events

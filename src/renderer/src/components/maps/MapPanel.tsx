@@ -308,7 +308,11 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
     } else if (config.type === 'semantic') {
       drawSemantic(ctx, cssW, cssH, config as SemanticMapConfig, elements, dimensions, scores, semDraggingRef.current?.elementId, selectedElementId ?? undefined)
     }
-  }, [config, elements, dimensions, scores])
+  // selectedElementId must be in deps: the draw functions use it for the red
+  // selection ring. Without it, the ring only appeared as a side-effect of the
+  // IPC round-trip (broadcastSelection → state:push → new elements reference).
+  // Now it redraws synchronously the moment the store value changes.
+  }, [config, elements, dimensions, scores, selectedElementId])
 
   // Redraw whenever any input data changes
   useEffect(() => { redraw() }, [redraw])
@@ -441,19 +445,36 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
   }
 
   function handleMouseUp(): void {
-    const wasSemDragging = semDraggingRef.current !== null
+    // Capture before clearing — same pattern as wasSemDragging below
+    const wasCartesianDragging = draggingRef.current    !== null
+    const wasSemDragging       = semDraggingRef.current !== null
     draggingRef.current    = null
     semDraggingRef.current = null
     setCursor('default')
+    // The red selection ring and the semantic line-weight boost are both
+    // "active while pressing" indicators. Release the selection on mouseUp
+    // so the highlight disappears the moment the user lets go, mirroring
+    // how the heavy connecting line reverts when a semantic drag ends.
+    if (wasCartesianDragging || wasSemDragging) {
+      selectElement(null)
+      window.api?.broadcastSelection(null)
+    }
     if (wasSemDragging) redraw()
   }
 
   function handleMouseLeave(): void {
     // Cancel drag if the pointer leaves the canvas area (e.g. fast movement)
-    const wasSemDragging = semDraggingRef.current !== null
+    const wasCartesianDragging = draggingRef.current    !== null
+    const wasSemDragging       = semDraggingRef.current !== null
     draggingRef.current    = null
     semDraggingRef.current = null
     setCursor('default')
+    // Same release-on-exit logic as mouseUp — keeps highlight in sync with
+    // the drag state even when the pointer escapes the canvas bounds.
+    if (wasCartesianDragging || wasSemDragging) {
+      selectElement(null)
+      window.api?.broadcastSelection(null)
+    }
     if (wasSemDragging) redraw()
   }
 
@@ -667,7 +688,6 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
         {/* Dimension picker — shown when the user clicks a semantic axis */}
         {semanticPicker && config.type === 'semantic' && (
           <SemanticAxisPicker
-            dimIndex={semanticPicker.dimIndex}
             currentDimId={semanticPicker.dimId}
             isFlipped={semConfig.flippedDimensionIds.includes(semanticPicker.dimId)}
             dimensions={dimensions}
@@ -764,7 +784,8 @@ function AxisPicker({ edge, clickX, clickY, currentId, isFlipped, dimensions, on
 // a given row, or flip its poles.
 
 interface SemanticAxisPickerProps {
-  dimIndex: number
+  // dimIndex was removed: the picker doesn't need to know its row position,
+  // only the caller (SemanticAxisPicker usage site) needs that for onPick.
   currentDimId: string
   isFlipped: boolean
   dimensions: Dimension[]
@@ -811,22 +832,6 @@ function SemanticAxisPicker({ currentDimId, isFlipped, dimensions, clickX, click
   )
 }
 
-// ── MapPanelList ──────────────────────────────────────────────────────────────
-//
-// Renders all maps in the session as stacked embedded panels (non-windowed).
-// Used by the Score Window when it wants to show maps inline.
-
-export function MapPanelList(): React.JSX.Element {
-  const maps      = useAppStore(s => s.maps)
-  const removeMap = useAppStore(s => s.removeMap)
-
-  if (maps.length === 0) return <></>
-
-  return (
-    <div className={styles.panelList}>
-      {maps.map(m => (
-        <MapPanel key={m.id} mapId={m.id} onClose={() => removeMap(m.id)} />
-      ))}
-    </div>
-  )
-}
+// MapPanelList (embedded maps in the Score Window) was removed. Maps now always
+// open as dedicated BrowserWindows via the map:open IPC channel. If embedded
+// maps are ever needed again, restore this component from git history.

@@ -11,7 +11,9 @@
 //   - Axes are evenly spaced vertically within the canvas
 
 import type { SemanticMapConfig, Element, Dimension, ScoreMap } from '../../../lib/types'
-import { drawShape } from '../cartesian/drawCartesian'
+// SHAPE_INDEX and LABEL_FONT are defined once in drawCartesian and shared here
+// so there is a single source of truth for both values.
+import { drawShape, SHAPE_INDEX, LABEL_FONT } from '../cartesian/drawCartesian'
 
 // Horizontal margin — space reserved on each side for pole labels
 export const SEM_MARGIN_H = 96
@@ -50,8 +52,6 @@ export function drawSemantic(
         .filter((e): e is Element => e !== undefined)
     : elements
 
-  const SHAPE_INDEX: Record<string, number> = { circle: 0, square: 1, triangle: 2, diamond: 3 }
-
   ctx.clearRect(0, 0, W, H)
 
   ctx.fillStyle = '#fafaf8'
@@ -78,7 +78,7 @@ export function drawSemantic(
 
   // ── Draw axes ─────────────────────────────────────────────────────────────────
 
-  ctx.font = '11px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif'
+  ctx.font = LABEL_FONT
 
   for (let i = 0; i < dims.length; i++) {
     const dim = dims[i]
@@ -161,7 +161,7 @@ export function drawSemantic(
     if (config.showLabels) {
       const top = points[0]
       const MAX_LABEL_W = 88
-      ctx.font = '11px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif'
+      ctx.font = LABEL_FONT
 
       let label = el.name
       if (ctx.measureText(label).width > MAX_LABEL_W) {
