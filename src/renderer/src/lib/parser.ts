@@ -108,9 +108,8 @@ export function deserializeSession(json: string): AppState {
     dimensions,
     scores: raw.scores ?? {},
     maps,
-    // Reset selection to first item so the UI always has something focused
-    selectedElementId: elements[0]?.id ?? null,
-    selectedDimensionId: dimensions[0]?.id ?? null,
+    selectedElementId: null,
+    selectedDimensionId: null,
     activeTab: 'elements'
   }
 }

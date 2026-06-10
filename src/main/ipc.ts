@@ -148,6 +148,16 @@ export function registerIpcHandlers(): void {
     }
   })
 
+  // Selection change from a map window dot click — relay to Score Window only.
+  // Score Window calls selectElement() and its Zustand subscriber broadcasts
+  // the updated selectedElementId back to all map windows via state:push.
+  ipcMain.on('selection:update', (event, elementId: string | null) => {
+    const scoreWin = getMainWindow()
+    if (scoreWin && !scoreWin.isDestroyed() && scoreWin.webContents.id !== event.sender.id) {
+      scoreWin.webContents.send('selection:update', elementId)
+    }
+  })
+
   // Element property change from a map window's right-click modal — relay to
   // Score Window. Score Window applies the update; its Zustand subscription
   // auto-broadcasts full state to all map windows.

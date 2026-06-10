@@ -37,6 +37,7 @@ interface Window {
     broadcastScore:     (elementId: string, dimensionId: string, value: number) => void
     broadcastMapConfig: (mapId: string, changes: Record<string, unknown>) => void
     broadcastElement:   (elementId: string, changes: Record<string, unknown>) => void
+    broadcastSelection: (elementId: string | null) => void
 
     // Inbound listeners (map windows) — each returns a cleanup function
     onMapInit: (cb: (mapId: string, stateJson: string) => void) => () => void
@@ -47,6 +48,7 @@ interface Window {
     onMapConfig:     (cb: (mapId: string, changes: Record<string, unknown>) => void) => () => void
     onMapClosed:     (cb: (mapId: string) => void) => () => void
     onElementUpdate: (cb: (elementId: string, changes: Record<string, unknown>) => void) => () => void
+    onSelection:     (cb: (elementId: string | null) => void) => () => void
 
     // Quit confirmation
     onQuitRequested: (cb: () => void) => () => void

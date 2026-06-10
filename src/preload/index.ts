@@ -85,6 +85,9 @@ contextBridge.exposeInMainWorld('api', {
   // Element property change from the right-click detail modal in a map window
   broadcastElement: (elementId: string, changes: Record<string, unknown>): void =>
                       ipcRenderer.send('element:update', elementId, changes),
+  // Selection change from a map window dot click (or deselect on empty click)
+  broadcastSelection: (elementId: string | null): void =>
+                        ipcRenderer.send('selection:update', elementId),
 
   // ── Inbound listeners (used by map windows) ───────────────────────────────────
 
@@ -126,6 +129,13 @@ contextBridge.exposeInMainWorld('api', {
       cb(elementId, changes)
     ipcRenderer.on('element:update', handler)
     return () => ipcRenderer.removeListener('element:update', handler)
+  },
+
+  // Selection change relayed from a map window — Score Window listens for this
+  onSelection: (cb: (elementId: string | null) => void): (() => void) => {
+    const handler = (_: IpcRendererEvent, elementId: string | null): void => cb(elementId)
+    ipcRenderer.on('selection:update', handler)
+    return () => ipcRenderer.removeListener('selection:update', handler)
   },
 
   // Fired when a map window is closed by the user (not programmatically)

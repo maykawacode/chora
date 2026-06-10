@@ -207,6 +207,7 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
   const scores              = useAppStore(s => s.scores)
   const isDirty             = useAppStore(s => s.isDirty)
   const selectedElementId   = useAppStore(s => s.selectedElementId)
+  const selectElement       = useAppStore(s => s.selectElement)
   const updateMapConfig     = useAppStore(s => s.updateMapConfig)
   const updateElement       = useAppStore(s => s.updateElement)
   const setScore            = useAppStore(s => s.setScore)
@@ -334,10 +335,11 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
     if (config.type === 'cartesian') {
       const hit = cartesianHitDot(x, y, rect.width, rect.height, config as CartesianMapConfig, elements, scores)
       if (hit) {
-        // Fill in the runtime drag fields that cartesianHitDot doesn't know about
         draggingRef.current  = { ...hit, startX: x, startY: y, lockedAxis: null }
         dragMovedRef.current = false
         setCursor('grabbing')
+        selectElement(hit.elementId)
+        window.api?.broadcastSelection(hit.elementId)
         e.preventDefault()
       }
     } else if (config.type === 'semantic') {
@@ -346,6 +348,8 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
         semDraggingRef.current  = hit
         semDragMovedRef.current = false
         setCursor('grabbing')
+        selectElement(hit.elementId)
+        window.api?.broadcastSelection(hit.elementId)
         e.preventDefault()
         redraw()
       }
@@ -497,8 +501,13 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
       if (cartesianHitDot(x, y, W, H, config as CartesianMapConfig, elements, scores)) return
       setSemanticPicker(null)
       const edge = cartesianHitEdge(x, y, W, H)
-      if (edge) setAxisPicker({ edge, clickX: x, clickY: y })
-      else      setAxisPicker(null)
+      if (edge) {
+        setAxisPicker({ edge, clickX: x, clickY: y })
+      } else {
+        setAxisPicker(null)
+        selectElement(null)
+        window.api?.broadcastSelection(null)
+      }
     } else if (config.type === 'semantic') {
       setAxisPicker(null)
       const semCfg = config as SemanticMapConfig
@@ -511,6 +520,8 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
         setSemanticPicker({ dimIndex: rowIdx, dimId: dims[rowIdx].id, clickX: x, clickY: y })
       } else {
         setSemanticPicker(null)
+        selectElement(null)
+        window.api?.broadcastSelection(null)
       }
     }
   }

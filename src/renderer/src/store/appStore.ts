@@ -83,11 +83,7 @@ export const useAppStore = create<AppStore>((set) => ({
   addElement: (name, color) => set((s) => {
     const resolvedColor = color ?? usePrefsStore.getState().prefs.defaultElementColor
     const el: Element = { id: uuid(), name, weight: 1, color: resolvedColor, shape: 'circle', description: '' }
-    return {
-      elements: [...s.elements, el],
-      selectedElementId: el.id,  // auto-select the new element
-      isDirty: true
-    }
+    return { elements: [...s.elements, el], isDirty: true }
   }),
 
   updateElement: (id, changes) => set((s) => ({
@@ -97,13 +93,12 @@ export const useAppStore = create<AppStore>((set) => ({
 
   removeElement: (id) => set((s) => {
     const remaining = s.elements.filter(e => e.id !== id)
-    // Also remove all scores for this element to keep the score map clean
     const scores = { ...s.scores }
     delete scores[id]
     return {
       elements: remaining,
       scores,
-      selectedElementId: remaining[0]?.id ?? null,  // fallback to first remaining
+      selectedElementId: s.selectedElementId === id ? null : s.selectedElementId,
       isDirty: true
     }
   }),
@@ -121,11 +116,7 @@ export const useAppStore = create<AppStore>((set) => ({
       description: '',
       categories: categories ?? defaultCategories()
     }
-    return {
-      dimensions: [...s.dimensions, dim],
-      selectedDimensionId: dim.id,  // auto-select the new dimension
-      isDirty: true
-    }
+    return { dimensions: [...s.dimensions, dim], isDirty: true }
   }),
 
   updateDimension: (id, changes) => set((s) => ({
@@ -144,7 +135,7 @@ export const useAppStore = create<AppStore>((set) => ({
     return {
       dimensions: remaining,
       scores,
-      selectedDimensionId: remaining[0]?.id ?? null,  // fallback to first remaining
+      selectedDimensionId: s.selectedDimensionId === id ? null : s.selectedDimensionId,
       isDirty: true
     }
   }),

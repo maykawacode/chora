@@ -32,11 +32,12 @@ import type { Preferences } from './lib/preferences'
 import styles from './App.module.css'
 
 export function App(): React.JSX.Element {
-  const filePath     = useAppStore(s => s.filePath)
-  const isDirty      = useAppStore(s => s.isDirty)
-  const loadSession  = useAppStore(s => s.loadSession)
-  const markClean    = useAppStore(s => s.markClean)
-  const resetToEmpty = useAppStore(s => s.resetToEmpty)
+  const filePath      = useAppStore(s => s.filePath)
+  const isDirty       = useAppStore(s => s.isDirty)
+  const loadSession   = useAppStore(s => s.loadSession)
+  const markClean     = useAppStore(s => s.markClean)
+  const resetToEmpty  = useAppStore(s => s.resetToEmpty)
+  const selectElement = useAppStore(s => s.selectElement)
 
   // ── Modal visibility state ────────────────────────────────────────────────────
 
@@ -157,6 +158,26 @@ export function App(): React.JSX.Element {
 
     return () => { removeScore(); removeConfig(); removeMapClosed(); removeElementUpdate(); removeQuitRequested() }
   }, [])
+
+  // ── Selection sync ────────────────────────────────────────────────────────────
+  //
+  // Map windows drive selection: clicking a dot sends selection:update to main,
+  // which relays it here. We apply it and the Zustand subscriber broadcasts it
+  // back to all maps via selectedElementId in the state envelope.
+  //
+  // Losing focus to a map window clears selection so the red ring disappears
+  // until the user explicitly clicks a dot.
+
+  useEffect(() => {
+    const removeSelection = window.api.onSelection((elementId) => {
+      selectElement(elementId)
+    })
+
+    const handleBlur = (): void => { selectElement(null) }
+    window.addEventListener('blur', handleBlur)
+
+    return () => { removeSelection(); window.removeEventListener('blur', handleBlur) }
+  }, [selectElement])
 
   // ── Modal z-order ─────────────────────────────────────────────────────────────
   //
