@@ -18,9 +18,9 @@ export const MARGIN = 58
 // Dot radius range — weight 1 → DOT_MIN_RADIUS, weight 100 → DOT_MAX_RADIUS
 export const DOT_MIN_RADIUS = 6
 export const DOT_MAX_RADIUS = 38
-// Fallback uniform radius — used only when drawCartesian is called without a dotDefaultSize arg.
-// The authoritative default lives in DEFAULT_PREFERENCES.dotDefaultSize.
-export const DOT_DEFAULT_RADIUS = 14
+// Uniform radius used when sizeByWeight is off — same as weight=1 so the smallest
+// weighted dot and the uniform dot are the same visual size.
+export const DOT_DEFAULT_RADIUS = DOT_MIN_RADIUS
 
 // Gap between dot edge and element name label
 const LABEL_OFFSET = 8
@@ -83,8 +83,7 @@ export function drawCartesian(
   scores: ScoreMap,
   selectedElementId?: string,
   elementLabelSize: number = LABEL_SIZE_DEFAULT,
-  dimensionLabelSize: number = LABEL_SIZE_DEFAULT,
-  dotDefaultSize: number = DOT_DEFAULT_RADIUS
+  dimensionLabelSize: number = LABEL_SIZE_DEFAULT
 ): void {
   const plotLeft   = MARGIN
   const plotTop    = MARGIN
@@ -181,7 +180,7 @@ export function drawCartesian(
     const cy = plotTop  + (1 - ey) * plotH   // invert Y — higher score = higher on canvas
     const r  = config.sizeByWeight
       ? DOT_MIN_RADIUS + (el.weight - 1) / 99 * (DOT_MAX_RADIUS - DOT_MIN_RADIUS)
-      : dotDefaultSize
+      : DOT_MIN_RADIUS
 
     if (config.showDots) {
       drawShape(ctx, SHAPE_INDEX[el.shape] ?? 0, cx, cy, r)

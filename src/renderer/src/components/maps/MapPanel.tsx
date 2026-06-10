@@ -218,7 +218,6 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
   // → redraw useCallback deps change → canvas repaints).
   const elementLabelSize   = usePrefsStore(s => s.prefs.elementLabelSize)
   const dimensionLabelSize = usePrefsStore(s => s.prefs.dimensionLabelSize)
-  const dotDefaultSize     = usePrefsStore(s => s.prefs.dotDefaultSize)
 
   // Wraps updateMapConfig + IPC so changes made in either window stay in sync.
   // Map windows send broadcastMapConfig → main → Score Window's onMapConfig
@@ -313,7 +312,7 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
 
     if (config.type === 'cartesian') {
       drawCartesian(ctx, cssW, cssH, config as CartesianMapConfig, elements, dimensions, scores,
-        selectedElementId ?? undefined, elementLabelSize, dimensionLabelSize, dotDefaultSize)
+        selectedElementId ?? undefined, elementLabelSize, dimensionLabelSize)
     } else if (config.type === 'semantic') {
       drawSemantic(ctx, cssW, cssH, config as SemanticMapConfig, elements, dimensions, scores,
         semDraggingRef.current?.elementId, selectedElementId ?? undefined,
@@ -321,7 +320,7 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
     }
   // selectedElementId, elementLabelSize, dimensionLabelSize must all be deps:
   // any of them changing should immediately repaint the canvas.
-  }, [config, elements, dimensions, scores, selectedElementId, elementLabelSize, dimensionLabelSize, dotDefaultSize])
+  }, [config, elements, dimensions, scores, selectedElementId, elementLabelSize, dimensionLabelSize])
 
   // Redraw whenever any input data changes
   useEffect(() => { redraw() }, [redraw])
