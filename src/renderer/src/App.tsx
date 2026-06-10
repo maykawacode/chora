@@ -99,13 +99,13 @@ export function App(): React.JSX.Element {
       const prevIds = new Set(prevState.maps.map(m => m.id))
       for (const map of state.maps) {
         if (!prevIds.has(map.id)) {
-          window.api.openMap(map.id, JSON.stringify({ isDirty: state.isDirty, session: serializeSession(state) }))
+          window.api.openMap(map.id, JSON.stringify({ isDirty: state.isDirty, session: serializeSession(state), selectedElementId: state.selectedElementId }))
         }
       }
 
       // Broadcast full state to all open map windows (unless we're mid-IPC-receive)
       if (!suppressBroadcast.current) {
-        window.api.broadcastState(JSON.stringify({ isDirty: state.isDirty, session: serializeSession(state) }))
+        window.api.broadcastState(JSON.stringify({ isDirty: state.isDirty, session: serializeSession(state), selectedElementId: state.selectedElementId }))
       }
     })
   }, [])
@@ -143,7 +143,7 @@ export function App(): React.JSX.Element {
       useAppStore.getState().updateElement(elementId, changes as Partial<Element>)
       suppressBroadcast.current = false
       const s = useAppStore.getState()
-      window.api.broadcastState(JSON.stringify({ isDirty: s.isDirty, session: serializeSession(s) }))
+      window.api.broadcastState(JSON.stringify({ isDirty: s.isDirty, session: serializeSession(s), selectedElementId: s.selectedElementId }))
     })
 
     // Quit requested — show confirm dialog if dirty, otherwise let it proceed
