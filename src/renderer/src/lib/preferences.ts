@@ -20,6 +20,8 @@ export interface Preferences {
   lastFilePath: string | null       // path of the most recently saved file (auto-updated)
   elementLabelSize: number          // font size (px) for element name labels on maps
   dimensionLabelSize: number        // font size (px) for dimension pole labels on maps
+  dimColorLow: string               // hex color mapped to score 0 by the Dimension → Color transform
+  dimColorHigh: string              // hex color mapped to score 1 by the Dimension → Color transform
 }
 
 export const DEFAULT_PREFERENCES: Preferences = {
@@ -31,5 +33,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   confirmDeleteElement: true,
   lastFilePath: null,
   elementLabelSize: 11,
-  dimensionLabelSize: 11
+  dimensionLabelSize: 11,
+  dimColorLow: '#b04040',   // muted red — low end of the color ramp
+  dimColorHigh: '#508050'   // muted green — high end of the color ramp
 }

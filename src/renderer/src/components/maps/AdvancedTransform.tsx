@@ -13,7 +13,7 @@ import { useState, useEffect } from 'react'
 import { useAppStore } from '../../store/appStore'
 import styles from './ChooseDimensions.module.css'
 
-export type TransformMode = 'dim-to-weight' | 'weight-to-dim' | 'dim-to-gray' | 'randomize-scores'
+export type TransformMode = 'dim-to-weight' | 'weight-to-dim' | 'dim-to-color' | 'randomize-scores'
 
 // Human-readable labels and descriptions for each transform mode
 const INFO: Record<TransformMode, { title: string; subtitle: string }> = {
@@ -25,9 +25,9 @@ const INFO: Record<TransformMode, { title: string; subtitle: string }> = {
     title: 'Weight → Dimension',
     subtitle: "Writes each element's weight as its score on the chosen dimension (scaled 0–1). All elements are updated."
   },
-  'dim-to-gray': {
-    title: 'Dimension → Gray',
-    subtitle: "Sets each element's color to a gray shade based on its score on the chosen dimension. Unscored elements are unchanged."
+  'dim-to-color': {
+    title: 'Dimension → Color',
+    subtitle: "Sets each element's color by interpolating between the low and high colors configured in Preferences. Unscored elements are unchanged."
   },
   'randomize-scores': {
     title: 'Randomize Scores',
@@ -45,7 +45,7 @@ export function AdvancedTransform({ mode, onClose }: Props): React.JSX.Element {
   const scores            = useAppStore(s => s.scores)
   const dimensionToWeight = useAppStore(s => s.dimensionToWeight)
   const weightToDimension = useAppStore(s => s.weightToDimension)
-  const dimensionToGray   = useAppStore(s => s.dimensionToGray)
+  const dimensionToColor  = useAppStore(s => s.dimensionToColor)
   const randomizeScores   = useAppStore(s => s.randomizeScores)
 
   const [selectedId, setSelectedId]   = useState<string | null>(null)
@@ -80,7 +80,7 @@ export function AdvancedTransform({ mode, onClose }: Props): React.JSX.Element {
       // Pass poleFlipped so the store can invert the score direction when needed
       case 'dim-to-weight':    dimensionToWeight(selectedId, poleFlipped); break
       case 'weight-to-dim':    weightToDimension(selectedId, poleFlipped); break
-      case 'dim-to-gray':      dimensionToGray(selectedId);                break
+      case 'dim-to-color':     dimensionToColor(selectedId);               break
       case 'randomize-scores': randomizeScores(selectedId);                break
     }
     onClose()

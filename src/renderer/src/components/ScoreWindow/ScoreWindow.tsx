@@ -77,8 +77,8 @@ export function ScoreWindow({ onOpenStarterPicker, onOpenTransform }: Props): Re
               <div className={styles.menuItem} onClick={() => openTransform('weight-to-dim')}>
                 Weight → Dimension…
               </div>
-              <div className={styles.menuItem} onClick={() => openTransform('dim-to-gray')}>
-                Dimension → Gray…
+              <div className={styles.menuItem} onClick={() => openTransform('dim-to-color')}>
+                Dimension → Color…
               </div>
               <div className={styles.menuSeparator} />
               <div className={styles.menuItem} onClick={() => openTransform('randomize-scores')}>

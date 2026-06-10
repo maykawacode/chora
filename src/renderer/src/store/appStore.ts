@@ -47,7 +47,7 @@ interface AppStore extends AppState {
   // flip=true inverts the score direction so poleA maps to the "high" end instead of poleB
   dimensionToWeight: (dimensionId: string, flip?: boolean) => void
   weightToDimension: (dimensionId: string, flip?: boolean) => void
-  dimensionToGray:   (dimensionId: string) => void
+  dimensionToColor:  (dimensionId: string) => void
   randomizeScores:   (dimensionId: string) => void
 
   // Score Window navigation
@@ -229,18 +229,35 @@ export const useAppStore = create<AppStore>((set) => ({
     return { scores: newScores, isDirty: true }
   }),
 
-  // Sets each element's color to a gray shade based on its score (darker = lower score).
-  // Range is clamped to #141414–#e6e6e6 to keep dots visible against the white background.
+  // Sets each element's color by interpolating between dimColorLow (score 0) and
+  // dimColorHigh (score 1), both read from the user's preferences at call time.
   // Unscored elements are left unchanged.
-  dimensionToGray: (dimensionId) => set((s) => ({
-    elements: s.elements.map(el => {
-      const score = s.scores[el.id]?.[dimensionId]
-      if (score === undefined) return el
-      const v = Math.round(20 + score * 210).toString(16).padStart(2, '0')
-      return { ...el, color: `#${v}${v}${v}` }
-    }),
-    isDirty: true
-  })),
+  dimensionToColor: (dimensionId) => set((s) => {
+    const { dimColorLow, dimColorHigh } = usePrefsStore.getState().prefs
+
+    // Parse a '#rrggbb' hex string into an [r, g, b] triple
+    const hexToRgb = (hex: string): [number, number, number] => {
+      const n = parseInt(hex.slice(1), 16)
+      return [(n >> 16) & 0xff, (n >> 8) & 0xff, n & 0xff]
+    }
+
+    const [lr, lg, lb] = hexToRgb(dimColorLow)
+    const [hr, hg, hb] = hexToRgb(dimColorHigh)
+
+    return {
+      elements: s.elements.map(el => {
+        const score = s.scores[el.id]?.[dimensionId]
+        if (score === undefined) return el
+        // Linear interpolation between the two preference colors
+        const r = Math.round(lr + (hr - lr) * score)
+        const g = Math.round(lg + (hg - lg) * score)
+        const b = Math.round(lb + (hb - lb) * score)
+        const hex = '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('')
+        return { ...el, color: hex }
+      }),
+      isDirty: true
+    }
+  }),
 
   // Assigns a random score to every element on the chosen dimension.
   // Useful for seeding a new dataset before manual scoring begins.

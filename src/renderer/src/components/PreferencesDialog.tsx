@@ -81,6 +81,29 @@ export function PreferencesDialog({ onClose }: Props): React.JSX.Element {
           </label>
         </section>
 
+        {/* ── Dimension → Color ── */}
+        <section className={styles.section}>
+          <div className={styles.sectionTitle}>Dimension → Color</div>
+          <div className={styles.row}>
+            <span>Low end color</span>
+            <input
+              type="color"
+              className={styles.colorInput}
+              value={draft.dimColorLow}
+              onChange={e => setDraft(d => ({ ...d, dimColorLow: e.target.value }))}
+            />
+          </div>
+          <div className={styles.row}>
+            <span>High end color</span>
+            <input
+              type="color"
+              className={styles.colorInput}
+              value={draft.dimColorHigh}
+              onChange={e => setDraft(d => ({ ...d, dimColorHigh: e.target.value }))}
+            />
+          </div>
+        </section>
+
         {/* ── Labels ── */}
         <section className={styles.section}>
           <div className={styles.sectionTitle}>Labels</div>

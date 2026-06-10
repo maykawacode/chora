@@ -23,6 +23,8 @@ interface Preferences {
   lastFilePath: string | null
   elementLabelSize: number
   dimensionLabelSize: number
+  dimColorLow: string   // hex color mapped to score 0 by the Dimension → Color transform
+  dimColorHigh: string  // hex color mapped to score 1 by the Dimension → Color transform
 }
 
 const DEFAULT: Preferences = {
@@ -34,7 +36,9 @@ const DEFAULT: Preferences = {
   confirmDeleteElement: true,
   lastFilePath: null,
   elementLabelSize: 11,
-  dimensionLabelSize: 11
+  dimensionLabelSize: 11,
+  dimColorLow: '#b04040',
+  dimColorHigh: '#508050'
 }
 
 // In-memory cache; null means not yet loaded from disk
