@@ -179,3 +179,58 @@
 }
 
 .confirmDelete:hover { background: #8b2020; }
+
+/* ── Pole direction toggle (AdvancedTransform dim-to-weight / weight-to-dim) ── */
+
+.poleSection {
+  margin: 0 0 14px;
+}
+
+/* Small uppercase label above the segment control */
+.poleSectionLabel {
+  font-size: 11px;
+  color: #888;
+  margin: 0 0 4px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Pill-shaped segment control housing both pole buttons */
+.poleButtons {
+  display: flex;
+  border: 1px solid #b0a898;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.poleBtn {
+  flex: 1;
+  padding: 5px 8px;
+  font-size: 12px;
+  font-family: inherit;
+  background: #fff;
+  border: none;
+  cursor: pointer;
+  color: #555;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Divider between the two segments */
+.poleBtn + .poleBtn {
+  border-left: 1px solid #b0a898;
+}
+
+.poleBtn:hover {
+  background: #f0ede8;
+}
+
+/* Active segment matches the list selection highlight color */
+.poleBtnActive {
+  background: #c8a050 !important;
+  color: #fff;
+  font-weight: 500;
+}

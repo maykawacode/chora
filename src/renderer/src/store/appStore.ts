@@ -44,8 +44,9 @@ interface AppStore extends AppState {
   removeMap:       (id: string) => void
 
   // Advanced transforms (see descriptions in implementation below)
-  dimensionToWeight: (dimensionId: string) => void
-  weightToDimension: (dimensionId: string) => void
+  // flip=true inverts the score direction so poleA maps to the "high" end instead of poleB
+  dimensionToWeight: (dimensionId: string, flip?: boolean) => void
+  weightToDimension: (dimensionId: string, flip?: boolean) => void
   dimensionToGray:   (dimensionId: string) => void
   randomizeScores:   (dimensionId: string) => void
 
@@ -203,10 +204,13 @@ export const useAppStore = create<AppStore>((set) => ({
 
   // Converts each element's score on a dimension to its weight (scaled 1–100).
   // Unscored elements are left unchanged.
-  dimensionToWeight: (dimensionId) => set((s) => ({
+  // flip=true: score 0.0 (poleA) → weight 100; score 1.0 (poleB) → weight 1
+  // flip=false (default): score 1.0 (poleB) → weight 100; score 0.0 (poleA) → weight 1
+  dimensionToWeight: (dimensionId, flip = false) => set((s) => ({
     elements: s.elements.map(el => {
-      const score = s.scores[el.id]?.[dimensionId]
-      if (score === undefined) return el
+      const raw = s.scores[el.id]?.[dimensionId]
+      if (raw === undefined) return el
+      const score = flip ? 1 - raw : raw
       return { ...el, weight: Math.round(score * 99 + 1) }
     }),
     isDirty: true
@@ -214,10 +218,13 @@ export const useAppStore = create<AppStore>((set) => ({
 
   // Writes each element's weight (1–100) back as its score on a dimension (0–1).
   // All elements are updated, even those not previously scored on this dimension.
-  weightToDimension: (dimensionId) => set((s) => {
+  // flip=true: weight 100 → score 0.0 (poleA end); weight 1 → score 1.0 (poleB end)
+  // flip=false (default): weight 100 → score 1.0 (poleB end)
+  weightToDimension: (dimensionId, flip = false) => set((s) => {
     const newScores = { ...s.scores }
     for (const el of s.elements) {
-      newScores[el.id] = { ...newScores[el.id], [dimensionId]: (el.weight - 1) / 99 }
+      const raw = (el.weight - 1) / 99
+      newScores[el.id] = { ...newScores[el.id], [dimensionId]: flip ? 1 - raw : raw }
     }
     return { scores: newScores, isDirty: true }
   }),

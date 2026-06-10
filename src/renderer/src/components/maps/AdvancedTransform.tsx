@@ -48,8 +48,15 @@ export function AdvancedTransform({ mode, onClose }: Props): React.JSX.Element {
   const dimensionToGray   = useAppStore(s => s.dimensionToGray)
   const randomizeScores   = useAppStore(s => s.randomizeScores)
 
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [selectedId, setSelectedId]   = useState<string | null>(null)
   const [showConfirm, setShowConfirm] = useState(false)
+  // poleFlipped=false (default): poleB maps to the "high" end (score 1.0 / weight 100)
+  // poleFlipped=true:            poleA maps to the "high" end (score direction inverted)
+  // Only relevant for dim-to-weight and weight-to-dim — other modes ignore it.
+  const [poleFlipped, setPoleFlipped] = useState(false)
+
+  // Whether this mode has a meaningful pole direction to expose to the user
+  const hasPoleControl = mode === 'dim-to-weight' || mode === 'weight-to-dim'
 
   useEffect(() => {
     if (!showConfirm) return
@@ -70,10 +77,11 @@ export function AdvancedTransform({ mode, onClose }: Props): React.JSX.Element {
   function applyTransform(): void {
     if (!selectedId) return
     switch (mode) {
-      case 'dim-to-weight':    dimensionToWeight(selectedId); break
-      case 'weight-to-dim':    weightToDimension(selectedId); break
-      case 'dim-to-gray':      dimensionToGray(selectedId);   break
-      case 'randomize-scores': randomizeScores(selectedId);   break
+      // Pass poleFlipped so the store can invert the score direction when needed
+      case 'dim-to-weight':    dimensionToWeight(selectedId, poleFlipped); break
+      case 'weight-to-dim':    weightToDimension(selectedId, poleFlipped); break
+      case 'dim-to-gray':      dimensionToGray(selectedId);                break
+      case 'randomize-scores': randomizeScores(selectedId);                break
     }
     onClose()
   }
@@ -103,6 +111,36 @@ export function AdvancedTransform({ mode, onClose }: Props): React.JSX.Element {
             </li>
           ))}
         </ul>
+
+        {/* ── Pole direction — only for score↔weight transforms ── */}
+        {/* Shows which end of the chosen dimension maps to the "high" value.   */}
+        {/* Default (poleB active): score 1.0 / weight 100 = the B pole.        */}
+        {/* Flipped (poleA active): score direction is inverted before mapping.  */}
+        {hasPoleControl && (
+          <div className={styles.poleSection}>
+            <div className={styles.poleSectionLabel}>High end</div>
+            <div className={styles.poleButtons}>
+              {/* poleA button — active when poleFlipped=true */}
+              <button
+                type="button"
+                className={`${styles.poleBtn} ${poleFlipped ? styles.poleBtnActive : ''}`}
+                onClick={() => setPoleFlipped(true)}
+                title={selectedDim?.poleA ?? 'Pole A'}
+              >
+                {selectedDim?.poleA || 'Pole A'}
+              </button>
+              {/* poleB button — active by default (flip=false is the current behavior) */}
+              <button
+                type="button"
+                className={`${styles.poleBtn} ${!poleFlipped ? styles.poleBtnActive : ''}`}
+                onClick={() => setPoleFlipped(false)}
+                title={selectedDim?.poleB ?? 'Pole B'}
+              >
+                {selectedDim?.poleB || 'Pole B'}
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className={styles.buttons}>
           <button className={styles.btnCancel} onClick={onClose}>Cancel</button>
