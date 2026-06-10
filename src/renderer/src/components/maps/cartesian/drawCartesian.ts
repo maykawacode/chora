@@ -63,7 +63,8 @@ export function drawCartesian(
   config: CartesianMapConfig,
   elements: Element[],
   dimensions: Dimension[],
-  scores: ScoreMap
+  scores: ScoreMap,
+  selectedElementId?: string
 ): void {
   const plotLeft   = MARGIN
   const plotTop    = MARGIN
@@ -173,6 +174,13 @@ export function drawCartesian(
         ctx.fill()
         ctx.strokeStyle = '#ffffff'
         ctx.lineWidth = 1.5
+        ctx.stroke()
+      }
+
+      if (el.id === selectedElementId) {
+        drawShape(ctx, SHAPE_INDEX[el.shape] ?? 0, cx, cy, r + 3)
+        ctx.strokeStyle = '#ff0000'
+        ctx.lineWidth = 2
         ctx.stroke()
       }
     }

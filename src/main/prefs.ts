@@ -29,7 +29,7 @@ const DEFAULT: Preferences = {
   defaultShowLabels: true,
   defaultElementColor: '#9d9d53',
   reopenLastFile: false,
-  confirmDeleteElement: false,
+  confirmDeleteElement: true,
   lastFilePath: null
 }
 

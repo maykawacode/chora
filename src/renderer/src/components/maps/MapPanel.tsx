@@ -201,14 +201,15 @@ interface Props {
 }
 
 export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element | null {
-  const config          = useAppStore(s => s.maps.find(m => m.id === mapId))
-  const elements        = useAppStore(s => s.elements)
-  const dimensions      = useAppStore(s => s.dimensions)
-  const scores          = useAppStore(s => s.scores)
-  const isDirty         = useAppStore(s => s.isDirty)
-  const updateMapConfig = useAppStore(s => s.updateMapConfig)
-  const updateElement   = useAppStore(s => s.updateElement)
-  const setScore        = useAppStore(s => s.setScore)
+  const config              = useAppStore(s => s.maps.find(m => m.id === mapId))
+  const elements            = useAppStore(s => s.elements)
+  const dimensions          = useAppStore(s => s.dimensions)
+  const scores              = useAppStore(s => s.scores)
+  const isDirty             = useAppStore(s => s.isDirty)
+  const selectedElementId   = useAppStore(s => s.selectedElementId)
+  const updateMapConfig     = useAppStore(s => s.updateMapConfig)
+  const updateElement       = useAppStore(s => s.updateElement)
+  const setScore            = useAppStore(s => s.setScore)
 
   // Wraps updateMapConfig + IPC so changes made in either window stay in sync.
   // Map windows send broadcastMapConfig → main → Score Window's onMapConfig
@@ -302,9 +303,9 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
     ctx.scale(window.devicePixelRatio, window.devicePixelRatio)
 
     if (config.type === 'cartesian') {
-      drawCartesian(ctx, cssW, cssH, config as CartesianMapConfig, elements, dimensions, scores)
+      drawCartesian(ctx, cssW, cssH, config as CartesianMapConfig, elements, dimensions, scores, selectedElementId ?? undefined)
     } else if (config.type === 'semantic') {
-      drawSemantic(ctx, cssW, cssH, config as SemanticMapConfig, elements, dimensions, scores, semDraggingRef.current?.elementId)
+      drawSemantic(ctx, cssW, cssH, config as SemanticMapConfig, elements, dimensions, scores, semDraggingRef.current?.elementId, selectedElementId ?? undefined)
     }
   }, [config, elements, dimensions, scores])
 

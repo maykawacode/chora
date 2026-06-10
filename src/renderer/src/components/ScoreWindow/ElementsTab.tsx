@@ -12,7 +12,7 @@
 //   - Otherwise → deletes immediately
 //   - There is no delete button in the UI; the keyboard is the only trigger.
 
-import { useRef, useState, KeyboardEvent } from 'react'
+import { useRef, useState, useEffect, KeyboardEvent } from 'react'
 import { useAppStore } from '../../store/appStore'
 import { usePrefsStore } from '../../store/prefsStore'
 import { ELEMENT_SHAPES } from '../../lib/types'
@@ -40,7 +40,16 @@ export function ElementsTab(): React.JSX.Element {
   const [confirmId, setConfirmId] = useState<string | null>(null)
   const [detailWidth, setDetailWidth] = useState(160)
   const addInputRef = useRef<HTMLInputElement>(null)
-  const dragRef = useRef<{ startX: number; startWidth: number } | null>(null)
+  const dragRef     = useRef<{ startX: number; startWidth: number } | null>(null)
+  const tabRef      = useRef<HTMLDivElement>(null)
+
+  // Set detail pane to 50% of the tab container width on first render
+  useEffect(() => {
+    if (tabRef.current) {
+      const w = tabRef.current.getBoundingClientRect().width
+      if (w > 0) setDetailWidth(Math.round(w / 2))
+    }
+  }, [])
 
   function onHandleMouseDown(e: React.MouseEvent): void {
     dragRef.current = { startX: e.clientX, startWidth: detailWidth }
@@ -101,7 +110,7 @@ export function ElementsTab(): React.JSX.Element {
   // ── Render ────────────────────────────────────────────────────────────────────
 
   return (
-    <div className={styles.tab}>
+    <div className={styles.tab} ref={tabRef}>
       {/* ── List pane ── */}
       <div className={styles.listPane}>
         <div className={styles.listHeader}>Elements ({elements.length})</div>

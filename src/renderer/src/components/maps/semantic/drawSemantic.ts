@@ -34,7 +34,8 @@ export function drawSemantic(
   elements: Element[],
   dimensions: Dimension[],
   scores: ScoreMap,
-  draggingElementId?: string
+  draggingElementId?: string,
+  selectedElementId?: string
 ): void {
   // Resolve dimension IDs to full objects, preserving config order
   const dims = config.dimensionIds
@@ -146,6 +147,13 @@ export function drawSemantic(
         ctx.strokeStyle = '#ffffff'
         ctx.lineWidth = 1.5
         ctx.stroke()
+
+        if (el.id === selectedElementId) {
+          drawShape(ctx, shapeIndex, pt.x, pt.y, SEM_DOT_R + 3)
+          ctx.strokeStyle = '#ff0000'
+          ctx.lineWidth = 2
+          ctx.stroke()
+        }
       }
     }
 
