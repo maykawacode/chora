@@ -99,13 +99,13 @@ export function App(): React.JSX.Element {
       const prevIds = new Set(prevState.maps.map(m => m.id))
       for (const map of state.maps) {
         if (!prevIds.has(map.id)) {
-          window.api.openMap(map.id, serializeSession(state))
+          window.api.openMap(map.id, JSON.stringify({ isDirty: state.isDirty, session: serializeSession(state) }))
         }
       }
 
       // Broadcast full state to all open map windows (unless we're mid-IPC-receive)
       if (!suppressBroadcast.current) {
-        window.api.broadcastState(serializeSession(state))
+        window.api.broadcastState(JSON.stringify({ isDirty: state.isDirty, session: serializeSession(state) }))
       }
     })
   }, [])
@@ -142,7 +142,8 @@ export function App(): React.JSX.Element {
       suppressBroadcast.current = true
       useAppStore.getState().updateElement(elementId, changes as Partial<Element>)
       suppressBroadcast.current = false
-      window.api.broadcastState(serializeSession(useAppStore.getState()))
+      const s = useAppStore.getState()
+      window.api.broadcastState(JSON.stringify({ isDirty: s.isDirty, session: serializeSession(s) }))
     })
 
     // Quit requested — show confirm dialog if dirty, otherwise let it proceed
@@ -172,8 +173,8 @@ export function App(): React.JSX.Element {
 
   useEffect(() => {
     const name = filePath ? filePath.split('/').pop() ?? filePath : 'Untitled'
-    document.title = isDirty ? `${name} (unsaved)` : name
-  }, [filePath, isDirty])
+    document.title = name
+  }, [filePath])
 
   // ── Menu action dispatcher ────────────────────────────────────────────────────
 

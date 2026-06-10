@@ -24,7 +24,6 @@ export function ScoreWindow({ onOpenStarterPicker, onOpenTransform }: Props): Re
   const isDirty      = useAppStore(s => s.isDirty)
 
   const fileName  = filePath ? (filePath.split('/').pop() ?? 'Untitled') : 'Untitled'
-  const titleText = isDirty ? `${fileName} (unsaved)` : fileName
 
   const [showMenu, setShowMenu] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -48,7 +47,7 @@ export function ScoreWindow({ onOpenStarterPicker, onOpenTransform }: Props): Re
   return (
     <div className={styles.window}>
       <div className={styles.tabBar}>
-        <span className={styles.windowTitle}>{titleText}</span>
+        <span className={styles.windowTitle}>{fileName}</span>
 
         {(['elements', 'dimensions', 'scores'] as const).map(tab => (
           <button
@@ -61,6 +60,7 @@ export function ScoreWindow({ onOpenStarterPicker, onOpenTransform }: Props): Re
         ))}
 
         <div className={styles.titleActions} ref={menuRef}>
+          {isDirty && <span className={styles.unsavedBadge}>Unsaved</span>}
           <button
             className={styles.menuBtn}
             onClick={() => setShowMenu(v => !v)}

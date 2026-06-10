@@ -203,6 +203,7 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
   const elements        = useAppStore(s => s.elements)
   const dimensions      = useAppStore(s => s.dimensions)
   const scores          = useAppStore(s => s.scores)
+  const isDirty         = useAppStore(s => s.isDirty)
   const updateMapConfig = useAppStore(s => s.updateMapConfig)
   const updateElement   = useAppStore(s => s.updateElement)
   const setScore        = useAppStore(s => s.setScore)
@@ -544,6 +545,7 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
         )}
 
         <div className={styles.titleBarActions} ref={menuRef}>
+          {isDirty && <span className={styles.unsavedBadge}>Unsaved</span>}
           <button
             className={styles.menuBtn}
             onClick={() => setShowMenu(v => !v)}

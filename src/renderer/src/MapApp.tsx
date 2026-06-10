@@ -37,15 +37,21 @@ export function MapApp(): React.JSX.Element {
 
   useEffect(() => {
     // Initial state — sets mapId (unblocks render) and loads full session
-    const removeInit = window.api.onMapInit((id, stateJson) => {
+    const removeInit = window.api.onMapInit((id, payload) => {
       setMapId(id)
-      try { loadSession(deserializeSession(stateJson)) }
+      try {
+        const { isDirty, session } = JSON.parse(payload)
+        loadSession({ ...deserializeSession(session), isDirty: isDirty ?? false })
+      }
       catch (e) { console.error('map:init failed', e) }
     })
 
     // Full state replacement whenever Score Window mutates the session
-    const removeState = window.api.onState((stateJson) => {
-      try { loadSession(deserializeSession(stateJson)) }
+    const removeState = window.api.onState((payload) => {
+      try {
+        const { isDirty, session } = JSON.parse(payload)
+        loadSession({ ...deserializeSession(session), isDirty: isDirty ?? false })
+      }
       catch (e) { console.error('state:push failed', e) }
     })
 

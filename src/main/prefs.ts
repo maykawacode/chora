@@ -27,7 +27,7 @@ const DEFAULT: Preferences = {
   rememberWindowPositions: true,
   defaultShowDots: true,
   defaultShowLabels: true,
-  defaultElementColor: '#808000',
+  defaultElementColor: '#b5b503',
   reopenLastFile: false,
   confirmDeleteElement: false,
   lastFilePath: null

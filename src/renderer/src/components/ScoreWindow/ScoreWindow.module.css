@@ -29,6 +29,18 @@
   -webkit-app-region: no-drag;
 }
 
+.unsavedBadge {
+  font-size: 10px;
+  font-weight: 600;
+  color: #6b5a00;
+  background: #f5e080;
+  border: 1px solid #c8a800;
+  border-radius: 3px;
+  padding: 1px 6px;
+  user-select: none;
+  pointer-events: none;
+}
+
 .menuBtn {
   font-size: 16px;
   width: 24px;
