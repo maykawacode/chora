@@ -24,7 +24,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   rememberWindowPositions: true,
   defaultShowDots: true,
   defaultShowLabels: true,
-  defaultElementColor: '#b5b503',
+  defaultElementColor: '#9d9d53',
   reopenLastFile: false,
   confirmDeleteElement: false,
   lastFilePath: null

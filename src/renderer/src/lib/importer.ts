@@ -110,7 +110,7 @@ export function parseSpreadsheet(text: string): ImportResult {
 
   // Build typed objects with fresh UUIDs
   const elements: Element[] = elementNames.map((name, i) => ({
-    id: uuid(), name, weight: 1, color: '#b5b503', shape: 'circle' as const,
+    id: uuid(), name, weight: 1, color: '#9d9d53', shape: 'circle' as const,
     description: elementDescriptions[i] ?? ''
   }))
 

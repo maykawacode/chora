@@ -26,8 +26,8 @@ interface Props {
 export function ElementDetailModal({ elementId, onClose }: Props): React.JSX.Element | null {
   const element = useAppStore(s => s.elements.find(e => e.id === elementId))
 
-  const [color,       setColor]       = useState(element?.color       ?? '#808000')
-  const [hexInput,    setHexInput]    = useState(element?.color       ?? '#808000')
+  const [color,       setColor]       = useState(element?.color       ?? '#9d9d53')
+  const [hexInput,    setHexInput]    = useState(element?.color       ?? '#9d9d53')
   const [shape,       setShape]       = useState<ElementShape>(element?.shape ?? 'circle')
   const [weight,      setWeight]      = useState(String(element?.weight ?? 1))
   const [description, setDescription] = useState(element?.description ?? '')

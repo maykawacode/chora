@@ -166,7 +166,7 @@ export function ElementsTab(): React.JSX.Element {
           <input
             type="color"
             className={styles.colorInput}
-            value={selected?.color ?? '#808000'}
+            value={selected?.color ?? '#9d9d53'}
             disabled={!selected}
             onChange={e => selected && updateElement(selected.id, { color: e.target.value })}
           />

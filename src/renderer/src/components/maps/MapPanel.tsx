@@ -124,7 +124,9 @@ function cartesianHitDot(
   const plotW = plotRight - plotLeft
   const plotH = plotBottom - plotTop
 
-  for (const el of elements) {
+  // Test lightest (topmost-drawn) elements first so stacked dots select correctly
+  const sorted = [...elements].sort((a, b) => a.weight - b.weight)
+  for (const el of sorted) {
     const xScore = scores[el.id]?.[config.xDimensionId]
     const yScore = scores[el.id]?.[config.yDimensionId]
 
