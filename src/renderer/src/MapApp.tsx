@@ -17,15 +17,19 @@
 
 import { useEffect, useState } from 'react'
 import { useAppStore } from './store/appStore'
+import { usePrefsStore } from './store/prefsStore'
 import { deserializeSession } from './lib/parser'
 import { MapPanel } from './components/maps/MapPanel'
 import type { CartesianMapConfig, SemanticMapConfig } from './lib/types'
+import type { Preferences } from './lib/preferences'
+import { DEFAULT_PREFERENCES } from './lib/preferences'
 
 export function MapApp(): React.JSX.Element {
   const [mapId, setMapId]   = useState<string | null>(null)
   const loadSession         = useAppStore(s => s.loadSession)
   const setScore            = useAppStore(s => s.setScore)
   const updateMapConfig     = useAppStore(s => s.updateMapConfig)
+  const setPrefs            = usePrefsStore(s => s.setPrefs)
 
   // Sync OS window title to the map's title field in state
   const mapTitle = useAppStore(s => mapId ? (s.maps.find(m => m.id === mapId)?.title ?? '') : '')
@@ -75,10 +79,17 @@ export function MapApp(): React.JSX.Element {
       updateMapConfig(mId, changes as Partial<CartesianMapConfig> | Partial<SemanticMapConfig>)
     })
 
+    // Preference update pushed from the Score Window after the user saves the
+    // Preferences dialog. Merging with defaults ensures any field not yet in
+    // the stored prefs (newly added fields) gets a sensible fallback value.
+    const removePrefs = window.api.onPrefs((raw) => {
+      setPrefs({ ...DEFAULT_PREFERENCES, ...(raw as Partial<Preferences>) })
+    })
+
     // Signal readiness AFTER all listeners are attached to prevent map:init race
     window.api.signalReady()
 
-    return () => { removeInit(); removeState(); removeScore(); removeConfig() }
+    return () => { removeInit(); removeState(); removeScore(); removeConfig(); removePrefs() }
   }, [loadSession, setScore, updateMapConfig])
 
   // ── OS window title sync ──────────────────────────────────────────────────

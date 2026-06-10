@@ -76,6 +76,10 @@ contextBridge.exposeInMainWorld('api', {
 
   // Full session state after any bulk change (new element, load file, etc.)
   broadcastState:     (stateJson: string): void => ipcRenderer.send('state:push', stateJson),
+  // Preference changes — sent whenever the user saves the Preferences dialog
+  // so that map BrowserWindows (separate renderer processes with their own
+  // prefsStore instances) stay in sync without needing a full app restart.
+  broadcastPrefs: (prefs: Record<string, unknown>): void => ipcRenderer.send('prefs:push', prefs),
   // Single score update from a drag — cheaper than a full state broadcast
   broadcastScore:     (elementId: string, dimensionId: string, value: number): void =>
                         ipcRenderer.send('score:update', elementId, dimensionId, value),
@@ -90,6 +94,13 @@ contextBridge.exposeInMainWorld('api', {
                         ipcRenderer.send('selection:update', elementId),
 
   // ── Inbound listeners (used by map windows) ───────────────────────────────────
+
+  // Preferences pushed from the Score Window after the user saves the dialog
+  onPrefs: (cb: (prefs: Record<string, unknown>) => void): (() => void) => {
+    const handler = (_: IpcRendererEvent, prefs: Record<string, unknown>): void => cb(prefs)
+    ipcRenderer.on('prefs:push', handler)
+    return () => ipcRenderer.removeListener('prefs:push', handler)
+  },
 
   // Initial payload sent once after the renderer signals readiness
   onMapInit: (cb: (mapId: string, stateJson: string) => void): (() => void) => {

@@ -138,6 +138,12 @@ export function registerIpcHandlers(): void {
     broadcastToMaps('state:push', stateJson)
   })
 
+  // Preference update from Score Window (user saved Preferences dialog) —
+  // relay to all map windows so their prefsStore stays in sync.
+  ipcMain.on('prefs:push', (_event, prefs: unknown) => {
+    broadcastToMaps('prefs:push', prefs)
+  })
+
   // Map config change (e.g. axis swap, flip) from a map window — relay to
   // Score Window only. Score Window applies the change and re-broadcasts the
   // full state so all other map windows stay in sync.

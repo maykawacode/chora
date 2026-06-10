@@ -38,8 +38,10 @@ interface Window {
     broadcastMapConfig: (mapId: string, changes: Record<string, unknown>) => void
     broadcastElement:   (elementId: string, changes: Record<string, unknown>) => void
     broadcastSelection: (elementId: string | null) => void
+    broadcastPrefs:     (prefs: Record<string, unknown>) => void
 
     // Inbound listeners (map windows) — each returns a cleanup function
+    onPrefs:   (cb: (prefs: Record<string, unknown>) => void) => () => void
     onMapInit: (cb: (mapId: string, stateJson: string) => void) => () => void
     onState:   (cb: (stateJson: string) => void) => () => void
     onScore:   (cb: (elementId: string, dimensionId: string, value: number) => void) => () => void

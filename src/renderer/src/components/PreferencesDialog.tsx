@@ -25,6 +25,10 @@ export function PreferencesDialog({ onClose }: Props): React.JSX.Element {
   function handleSave(): void {
     setPrefs(draft)
     window.api?.savePreferences(draft as unknown as Record<string, unknown>)
+    // Push updated prefs to all open map BrowserWindows. Each has its own
+    // renderer process with its own prefsStore, so they won't see the change
+    // unless we explicitly relay it over IPC.
+    window.api?.broadcastPrefs(draft as unknown as Record<string, unknown>)
     onClose()
   }
 
