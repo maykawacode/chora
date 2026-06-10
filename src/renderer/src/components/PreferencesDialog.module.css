@@ -85,6 +85,30 @@
   text-overflow: ellipsis;
 }
 
+.shortcutRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: #333;
+}
+
+.kbd {
+  display: inline-block;
+  min-width: 32px;
+  padding: 2px 6px;
+  border: 1px solid #b0a898;
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: #e8e5e0;
+  font-size: 11px;
+  font-family: inherit;
+  text-align: center;
+  color: #444;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
 .buttons {
   display: flex;
   justify-content: flex-end;

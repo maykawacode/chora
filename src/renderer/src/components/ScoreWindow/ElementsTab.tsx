@@ -27,13 +27,14 @@ const SHAPE_SYMBOL: Record<ElementShape, string> = {
 }
 
 export function ElementsTab(): React.JSX.Element {
-  const elements      = useAppStore(s => s.elements)
-  const selectedId    = useAppStore(s => s.selectedElementId)
-  const addElement    = useAppStore(s => s.addElement)
-  const updateElement = useAppStore(s => s.updateElement)
-  const removeElement = useAppStore(s => s.removeElement)
-  const selectElement = useAppStore(s => s.selectElement)
-  const prefs         = usePrefsStore(s => s.prefs)
+  const elements         = useAppStore(s => s.elements)
+  const selectedId       = useAppStore(s => s.selectedElementId)
+  const addElement       = useAppStore(s => s.addElement)
+  const duplicateElement = useAppStore(s => s.duplicateElement)
+  const updateElement    = useAppStore(s => s.updateElement)
+  const removeElement    = useAppStore(s => s.removeElement)
+  const selectElement    = useAppStore(s => s.selectElement)
+  const prefs            = usePrefsStore(s => s.prefs)
 
   const selected    = elements.find(e => e.id === selectedId) ?? null
   const [newName,   setNewName]   = useState('')
@@ -50,6 +51,20 @@ export function ElementsTab(): React.JSX.Element {
       if (w > 0) setDetailWidth(Math.round(w / 2))
     }
   }, [])
+
+  // Cmd+D (Mac) / Ctrl+D (Windows/Linux) duplicates the selected element.
+  // Registered at document level so it fires even when a detail field has
+  // focus, not just when the list itself is focused.
+  useEffect(() => {
+    const handler = (e: KeyboardEvent): void => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'd' && selectedId) {
+        e.preventDefault()   // prevent browser "add to bookmarks" default
+        duplicateElement(selectedId)
+      }
+    }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [selectedId, duplicateElement])
 
   function onHandleMouseDown(e: React.MouseEvent): void {
     dragRef.current = { startX: e.clientX, startWidth: detailWidth }

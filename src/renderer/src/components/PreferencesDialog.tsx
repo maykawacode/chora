@@ -92,6 +92,14 @@ export function PreferencesDialog({ onClose }: Props): React.JSX.Element {
           )}
         </section>
 
+        {/* ── Keyboard Shortcuts ── */}
+        <section className={styles.section}>
+          <div className={styles.sectionTitle}>Keyboard Shortcuts</div>
+          <div className={styles.shortcutRow}><kbd className={styles.kbd}>⌘D</kbd><span>Duplicate selected element</span></div>
+          <div className={styles.shortcutRow}><kbd className={styles.kbd}>↑ ↓</kbd><span>Navigate element / dimension list</span></div>
+          <div className={styles.shortcutRow}><kbd className={styles.kbd}>⌫</kbd><span>Delete selected element / dimension</span></div>
+        </section>
+
         <div className={styles.buttons}>
           <button className={styles.btnCancel} onClick={onClose}>Cancel</button>
           <button className={styles.btnSave} onClick={handleSave}>Save</button>

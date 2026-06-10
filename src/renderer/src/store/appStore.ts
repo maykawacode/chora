@@ -24,9 +24,10 @@ import { usePrefsStore } from './prefsStore'
 
 interface AppStore extends AppState {
   // Elements
-  addElement:    (name: string, color?: string) => void
-  updateElement: (id: string, changes: Partial<Element>) => void
-  removeElement: (id: string) => void
+  addElement:       (name: string, color?: string) => void
+  duplicateElement: (id: string) => void
+  updateElement:    (id: string, changes: Partial<Element>) => void
+  removeElement:    (id: string) => void
 
   // Dimensions
   addDimension:    (label: string, categories?: DimensionCategories) => void
@@ -84,6 +85,28 @@ export const useAppStore = create<AppStore>((set) => ({
     const resolvedColor = color ?? usePrefsStore.getState().prefs.defaultElementColor
     const el: Element = { id: uuid(), name, weight: 1, color: resolvedColor, shape: 'circle', description: '' }
     return { elements: [...s.elements, el], isDirty: true }
+  }),
+
+  // Creates a copy of the element immediately after the original in the list.
+  // The copy gets a new UUID, a " copy" name suffix, and all scores from the
+  // original so it starts positioned identically on every map.
+  duplicateElement: (id) => set((s) => {
+    const original = s.elements.find(e => e.id === id)
+    if (!original) return s
+    const copy: Element = { ...original, id: uuid(), name: `${original.name} copy` }
+    // Insert the copy right after the original rather than appending to the end
+    const idx = s.elements.findIndex(e => e.id === id)
+    const elements = [
+      ...s.elements.slice(0, idx + 1),
+      copy,
+      ...s.elements.slice(idx + 1)
+    ]
+    return {
+      elements,
+      scores: { ...s.scores, [copy.id]: { ...s.scores[id] } },
+      selectedElementId: copy.id,   // select the new copy so the user can rename it immediately
+      isDirty: true
+    }
   }),
 
   updateElement: (id, changes) => set((s) => ({
