@@ -22,6 +22,7 @@ export interface Preferences {
   dimensionLabelSize: number        // font size (px) for dimension pole labels on maps
   dimColorLow: string               // hex color mapped to score 0 by the Dimension → Color transform
   dimColorHigh: string              // hex color mapped to score 1 by the Dimension → Color transform
+  dotDefaultSize: number            // dot radius (px) used when Size by Weight is off on cartesian maps
 }
 
 export const DEFAULT_PREFERENCES: Preferences = {
@@ -35,5 +36,6 @@ export const DEFAULT_PREFERENCES: Preferences = {
   elementLabelSize: 11,
   dimensionLabelSize: 11,
   dimColorLow: '#b04040',   // muted red — low end of the color ramp
-  dimColorHigh: '#508050'   // muted green — high end of the color ramp
+  dimColorHigh: '#508050',  // muted green — high end of the color ramp
+  dotDefaultSize: 14        // dot radius when Size by Weight is off
 }

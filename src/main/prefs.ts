@@ -25,6 +25,7 @@ interface Preferences {
   dimensionLabelSize: number
   dimColorLow: string   // hex color mapped to score 0 by the Dimension → Color transform
   dimColorHigh: string  // hex color mapped to score 1 by the Dimension → Color transform
+  dotDefaultSize: number
 }
 
 const DEFAULT: Preferences = {
@@ -38,7 +39,8 @@ const DEFAULT: Preferences = {
   elementLabelSize: 11,
   dimensionLabelSize: 11,
   dimColorLow: '#b04040',
-  dimColorHigh: '#508050'
+  dimColorHigh: '#508050',
+  dotDefaultSize: 14
 }
 
 // In-memory cache; null means not yet loaded from disk

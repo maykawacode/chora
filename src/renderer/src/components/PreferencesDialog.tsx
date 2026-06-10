@@ -104,9 +104,9 @@ export function PreferencesDialog({ onClose }: Props): React.JSX.Element {
           </div>
         </section>
 
-        {/* ── Labels ── */}
+        {/* ── Labels & Sizes ── */}
         <section className={styles.section}>
-          <div className={styles.sectionTitle}>Labels</div>
+          <div className={styles.sectionTitle}>Labels &amp; Sizes</div>
           <div className={styles.row}>
             <span>Element label size</span>
             <input
@@ -126,6 +126,17 @@ export function PreferencesDialog({ onClose }: Props): React.JSX.Element {
               min={8} max={24} step={1}
               value={draft.dimensionLabelSize}
               onChange={e => setDraft(d => ({ ...d, dimensionLabelSize: Math.max(8, Math.min(24, +e.target.value || 11)) }))}
+            />
+            <span className={styles.sizeUnit}>px</span>
+          </div>
+          <div className={styles.row}>
+            <span>Default dot size</span>
+            <input
+              type="number"
+              className={styles.sizeInput}
+              min={4} max={38} step={1}
+              value={draft.dotDefaultSize}
+              onChange={e => setDraft(d => ({ ...d, dotDefaultSize: Math.max(4, Math.min(38, +e.target.value || 14)) }))}
             />
             <span className={styles.sizeUnit}>px</span>
           </div>
