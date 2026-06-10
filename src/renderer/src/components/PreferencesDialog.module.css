@@ -85,6 +85,25 @@
   text-overflow: ellipsis;
 }
 
+.sizeInput {
+  width: 48px;
+  padding: 2px 4px;
+  border: 1px solid #b0a898;
+  border-radius: 4px;
+  background: #fff;
+  font-size: 13px;
+  font-family: inherit;
+  color: #333;
+  text-align: right;
+  margin-left: auto;
+}
+
+.sizeUnit {
+  font-size: 11px;
+  color: #888;
+  margin-left: 2px;
+}
+
 .shortcutRow {
   display: flex;
   align-items: center;

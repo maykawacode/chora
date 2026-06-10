@@ -77,6 +77,33 @@ export function PreferencesDialog({ onClose }: Props): React.JSX.Element {
           </label>
         </section>
 
+        {/* ── Labels ── */}
+        <section className={styles.section}>
+          <div className={styles.sectionTitle}>Labels</div>
+          <div className={styles.row}>
+            <span>Element label size</span>
+            <input
+              type="number"
+              className={styles.sizeInput}
+              min={8} max={24} step={1}
+              value={draft.elementLabelSize}
+              onChange={e => setDraft(d => ({ ...d, elementLabelSize: Math.max(8, Math.min(24, +e.target.value || 11)) }))}
+            />
+            <span className={styles.sizeUnit}>px</span>
+          </div>
+          <div className={styles.row}>
+            <span>Dimension label size</span>
+            <input
+              type="number"
+              className={styles.sizeInput}
+              min={8} max={24} step={1}
+              value={draft.dimensionLabelSize}
+              onChange={e => setDraft(d => ({ ...d, dimensionLabelSize: Math.max(8, Math.min(24, +e.target.value || 11)) }))}
+            />
+            <span className={styles.sizeUnit}>px</span>
+          </div>
+        </section>
+
         {/* ── Session ── */}
         <section className={styles.section}>
           <div className={styles.sectionTitle}>Session</div>

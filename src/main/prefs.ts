@@ -21,6 +21,8 @@ interface Preferences {
   reopenLastFile: boolean
   confirmDeleteElement: boolean
   lastFilePath: string | null
+  elementLabelSize: number
+  dimensionLabelSize: number
 }
 
 const DEFAULT: Preferences = {
@@ -30,7 +32,9 @@ const DEFAULT: Preferences = {
   defaultElementColor: '#9d9d53',
   reopenLastFile: false,
   confirmDeleteElement: true,
-  lastFilePath: null
+  lastFilePath: null,
+  elementLabelSize: 11,
+  dimensionLabelSize: 11
 }
 
 // In-memory cache; null means not yet loaded from disk

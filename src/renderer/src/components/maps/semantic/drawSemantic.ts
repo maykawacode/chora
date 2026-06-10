@@ -11,9 +11,9 @@
 //   - Axes are evenly spaced vertically within the canvas
 
 import type { SemanticMapConfig, Element, Dimension, ScoreMap } from '../../../lib/types'
-// SHAPE_INDEX and LABEL_FONT are defined once in drawCartesian and shared here
-// so there is a single source of truth for both values.
-import { drawShape, SHAPE_INDEX, LABEL_FONT } from '../cartesian/drawCartesian'
+// SHAPE_INDEX, labelFont, and LABEL_SIZE_DEFAULT are defined once in
+// drawCartesian and shared here so there is a single source of truth.
+import { drawShape, SHAPE_INDEX, labelFont, LABEL_SIZE_DEFAULT } from '../cartesian/drawCartesian'
 
 // Horizontal margin — space reserved on each side for pole labels
 export const SEM_MARGIN_H = 96
@@ -37,7 +37,9 @@ export function drawSemantic(
   dimensions: Dimension[],
   scores: ScoreMap,
   draggingElementId?: string,
-  selectedElementId?: string
+  selectedElementId?: string,
+  elementLabelSize: number = LABEL_SIZE_DEFAULT,
+  dimensionLabelSize: number = LABEL_SIZE_DEFAULT
 ): void {
   // Resolve dimension IDs to full objects, preserving config order
   const dims = config.dimensionIds
@@ -78,7 +80,7 @@ export function drawSemantic(
 
   // ── Draw axes ─────────────────────────────────────────────────────────────────
 
-  ctx.font = LABEL_FONT
+  ctx.font = labelFont(dimensionLabelSize)
 
   for (let i = 0; i < dims.length; i++) {
     const dim = dims[i]
@@ -160,8 +162,11 @@ export function drawSemantic(
     // Element name label — 45° upward from the topmost scored dot
     if (config.showLabels) {
       const top = points[0]
-      const MAX_LABEL_W = 88
-      ctx.font = LABEL_FONT
+      // Scale the truncation budget proportionally with font size so labels
+      // don't get clipped more aggressively just because the user made them
+      // larger. Base budget of 88px is calibrated for the default 11px size.
+      const MAX_LABEL_W = 88 * (elementLabelSize / LABEL_SIZE_DEFAULT)
+      ctx.font = labelFont(elementLabelSize)
 
       let label = el.name
       if (ctx.measureText(label).width > MAX_LABEL_W) {

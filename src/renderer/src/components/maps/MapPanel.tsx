@@ -14,6 +14,7 @@
 
 import { useRef, useEffect, useCallback, useState } from 'react'
 import { useAppStore } from '../../store/appStore'
+import { usePrefsStore } from '../../store/prefsStore'
 import type { CartesianMapConfig, SemanticMapConfig, Dimension, ScoreMap } from '../../lib/types'
 import { drawCartesian, MARGIN, DOT_MIN_RADIUS, DOT_MAX_RADIUS } from './cartesian/drawCartesian'
 import { drawSemantic, SEM_MARGIN_H, SEM_MARGIN_V, SEM_DOT_R } from './semantic/drawSemantic'
@@ -212,6 +213,12 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
   const updateElement       = useAppStore(s => s.updateElement)
   const setScore            = useAppStore(s => s.setScore)
 
+  // Label sizes come from user preferences so they update live when the
+  // Preferences dialog is saved (prefsStore notifies → component re-renders
+  // → redraw useCallback deps change → canvas repaints).
+  const elementLabelSize   = usePrefsStore(s => s.prefs.elementLabelSize)
+  const dimensionLabelSize = usePrefsStore(s => s.prefs.dimensionLabelSize)
+
   // Wraps updateMapConfig + IPC so changes made in either window stay in sync.
   // Map windows send broadcastMapConfig → main → Score Window's onMapConfig
   // listener → Score Window re-broadcasts full state to all maps.
@@ -304,15 +311,16 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
     ctx.scale(window.devicePixelRatio, window.devicePixelRatio)
 
     if (config.type === 'cartesian') {
-      drawCartesian(ctx, cssW, cssH, config as CartesianMapConfig, elements, dimensions, scores, selectedElementId ?? undefined)
+      drawCartesian(ctx, cssW, cssH, config as CartesianMapConfig, elements, dimensions, scores,
+        selectedElementId ?? undefined, elementLabelSize, dimensionLabelSize)
     } else if (config.type === 'semantic') {
-      drawSemantic(ctx, cssW, cssH, config as SemanticMapConfig, elements, dimensions, scores, semDraggingRef.current?.elementId, selectedElementId ?? undefined)
+      drawSemantic(ctx, cssW, cssH, config as SemanticMapConfig, elements, dimensions, scores,
+        semDraggingRef.current?.elementId, selectedElementId ?? undefined,
+        elementLabelSize, dimensionLabelSize)
     }
-  // selectedElementId must be in deps: the draw functions use it for the red
-  // selection ring. Without it, the ring only appeared as a side-effect of the
-  // IPC round-trip (broadcastSelection → state:push → new elements reference).
-  // Now it redraws synchronously the moment the store value changes.
-  }, [config, elements, dimensions, scores, selectedElementId])
+  // selectedElementId, elementLabelSize, dimensionLabelSize must all be deps:
+  // any of them changing should immediately repaint the canvas.
+  }, [config, elements, dimensions, scores, selectedElementId, elementLabelSize, dimensionLabelSize])
 
   // Redraw whenever any input data changes
   useEffect(() => { redraw() }, [redraw])

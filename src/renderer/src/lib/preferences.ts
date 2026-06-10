@@ -18,6 +18,8 @@ export interface Preferences {
   reopenLastFile: boolean           // automatically reopen the last saved file on startup
   confirmDeleteElement: boolean     // show a confirmation dialog before deleting an element
   lastFilePath: string | null       // path of the most recently saved file (auto-updated)
+  elementLabelSize: number          // font size (px) for element name labels on maps
+  dimensionLabelSize: number        // font size (px) for dimension pole labels on maps
 }
 
 export const DEFAULT_PREFERENCES: Preferences = {
@@ -27,5 +29,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   defaultElementColor: '#9d9d53',
   reopenLastFile: false,
   confirmDeleteElement: true,
-  lastFilePath: null
+  lastFilePath: null,
+  elementLabelSize: 11,
+  dimensionLabelSize: 11
 }

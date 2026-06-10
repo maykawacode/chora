@@ -22,10 +22,15 @@ export const DOT_MAX_RADIUS = 38
 // Gap between dot edge and element name label
 const LABEL_OFFSET = 8
 
-// Font string used for all element and dimension labels.
-// Exported so drawSemantic can share the same value, and so P5-20 (configurable
-// label size) has a single place to parameterize.
-export const LABEL_FONT = '11px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif'
+// Default label size used when callers don't supply an explicit size.
+export const LABEL_SIZE_DEFAULT = 11
+
+// Builds the canvas font string for any given pixel size.
+// Exported so drawSemantic can share the same typeface without duplicating it.
+// Called with a runtime size so P5-20 preference values flow through cleanly.
+export function labelFont(size: number): string {
+  return `${size}px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif`
+}
 
 // Maps element.shape string to the numeric index expected by drawShape().
 // Exported so drawSemantic can reuse it without duplicating the mapping.
@@ -73,7 +78,9 @@ export function drawCartesian(
   elements: Element[],
   dimensions: Dimension[],
   scores: ScoreMap,
-  selectedElementId?: string
+  selectedElementId?: string,
+  elementLabelSize: number = LABEL_SIZE_DEFAULT,
+  dimensionLabelSize: number = LABEL_SIZE_DEFAULT
 ): void {
   const plotLeft   = MARGIN
   const plotTop    = MARGIN
@@ -120,7 +127,7 @@ export function drawCartesian(
   // Labels are drawn in the MARGIN region outside the plot border.
   // Flip flags swap which pole label appears on which end.
 
-  ctx.font = LABEL_FONT
+  ctx.font = labelFont(dimensionLabelSize)
   ctx.fillStyle = '#333'
   ctx.textBaseline = 'middle'
 
@@ -193,7 +200,7 @@ export function drawCartesian(
     }
 
     if (config.showLabels) {
-      ctx.font = LABEL_FONT
+      ctx.font = labelFont(elementLabelSize)
       ctx.fillStyle = isPartial ? '#cc0000' : '#222'
       ctx.textAlign = 'left'
       ctx.textBaseline = 'middle'
