@@ -55,6 +55,13 @@ interface AppStore extends AppState {
   selectDimension: (id: string | null) => void
   setActiveTab:    (tab: AppState['activeTab']) => void
 
+  // Multi-select (map-window local; not persisted or synced via IPC)
+  selectedElementIds:     string[]
+  selectElements:          (ids: string[]) => void
+  toggleElementSelection:  (id: string) => void
+  clearElementSelection:   () => void
+  bulkUpdateElements:      (ids: string[], changes: Partial<Element>) => void
+
   // Session lifecycle
   loadSession:  (state: AppState) => void
   markClean:    (filePath: string) => void
@@ -79,6 +86,7 @@ const emptyState: AppState = {
 
 export const useAppStore = create<AppStore>((set) => ({
   ...emptyState,
+  selectedElementIds: [],
 
   // ── Elements ────────────────────────────────────────────────────────────────
 
@@ -275,6 +283,18 @@ export const useAppStore = create<AppStore>((set) => ({
   selectDimension: (id) => set({ selectedDimensionId: id }),
   setActiveTab:    (tab) => set({ activeTab: tab }),
 
+  selectElements:         (ids) => set({ selectedElementIds: ids }),
+  toggleElementSelection: (id) => set((s) => ({
+    selectedElementIds: s.selectedElementIds.includes(id)
+      ? s.selectedElementIds.filter(x => x !== id)
+      : [...s.selectedElementIds, id]
+  })),
+  clearElementSelection:  () => set({ selectedElementIds: [] }),
+  bulkUpdateElements:     (ids, changes) => set((s) => ({
+    elements: s.elements.map(e => ids.includes(e.id) ? { ...e, ...changes } : e),
+    isDirty: true
+  })),
+
   // ── Session lifecycle ────────────────────────────────────────────────────────
 
   // Replaces the entire store state. Used by file open, import, and by
@@ -285,5 +305,5 @@ export const useAppStore = create<AppStore>((set) => ({
   markClean: (filePath) => set({ filePath, isDirty: false }),
 
   // Resets to an empty session (File → New)
-  resetToEmpty: () => set({ ...emptyState })
+  resetToEmpty: () => set({ ...emptyState, selectedElementIds: [] })
 }))

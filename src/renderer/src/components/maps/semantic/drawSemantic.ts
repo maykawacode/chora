@@ -39,7 +39,8 @@ export function drawSemantic(
   draggingElementId?: string,
   selectedElementId?: string,
   elementLabelSize: number = LABEL_SIZE_DEFAULT,
-  dimensionLabelSize: number = LABEL_SIZE_DEFAULT
+  dimensionLabelSize: number = LABEL_SIZE_DEFAULT,
+  selectedElementIds: string[] = []
 ): void {
   // Resolve dimension IDs to full objects, preserving config order
   const dims = config.dimensionIds
@@ -150,9 +151,15 @@ export function drawSemantic(
         ctx.lineWidth = 1.5
         ctx.stroke()
 
-        if (el.id === selectedElementId) {
+        if (el.id === selectedElementId && selectedElementIds.length === 0) {
           drawShape(ctx, shapeIndex, pt.x, pt.y, SEM_DOT_R + 3)
-          ctx.strokeStyle = '#ff0000'
+          ctx.strokeStyle = '#e8c040'
+          ctx.lineWidth = 2
+          ctx.stroke()
+        }
+        if (selectedElementIds.includes(el.id)) {
+          drawShape(ctx, shapeIndex, pt.x, pt.y, SEM_DOT_R + 3)
+          ctx.strokeStyle = '#e8c040'
           ctx.lineWidth = 2
           ctx.stroke()
         }

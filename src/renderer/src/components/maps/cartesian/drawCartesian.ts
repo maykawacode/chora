@@ -83,7 +83,8 @@ export function drawCartesian(
   scores: ScoreMap,
   selectedElementId?: string,
   elementLabelSize: number = LABEL_SIZE_DEFAULT,
-  dimensionLabelSize: number = LABEL_SIZE_DEFAULT
+  dimensionLabelSize: number = LABEL_SIZE_DEFAULT,
+  selectedElementIds: string[] = []
 ): void {
   const plotLeft   = MARGIN
   const plotTop    = MARGIN
@@ -200,9 +201,15 @@ export function drawCartesian(
         ctx.stroke()
       }
 
-      if (el.id === selectedElementId) {
+      if (el.id === selectedElementId && selectedElementIds.length === 0) {
         drawShape(ctx, SHAPE_INDEX[el.shape] ?? 0, cx, cy, r + 3)
-        ctx.strokeStyle = '#ff0000'
+        ctx.strokeStyle = '#e8c040'
+        ctx.lineWidth = 2
+        ctx.stroke()
+      }
+      if (selectedElementIds.includes(el.id)) {
+        drawShape(ctx, SHAPE_INDEX[el.shape] ?? 0, cx, cy, r + 3)
+        ctx.strokeStyle = '#e8c040'
         ctx.lineWidth = 2
         ctx.stroke()
       }

@@ -19,6 +19,7 @@ import type { CartesianMapConfig, SemanticMapConfig, Dimension, ScoreMap } from 
 import { drawCartesian, MARGIN, DOT_MIN_RADIUS, DOT_MAX_RADIUS } from './cartesian/drawCartesian'
 import { drawSemantic, SEM_MARGIN_H, SEM_MARGIN_V, SEM_DOT_R } from './semantic/drawSemantic'
 import { ElementDetailModal } from './ElementDetailModal'
+import { BulkEditModal } from './BulkEditModal'
 import styles from './MapPanel.module.css'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -53,6 +54,8 @@ interface DragTarget {
 interface SemanticDragTarget {
   elementId: string
   dimId: string
+  startX: number
+  startY: number
 }
 
 // ── Hit-test helpers ──────────────────────────────────────────────────────────
@@ -193,6 +196,86 @@ function semanticHitDot(
   return null
 }
 
+/**
+ * Returns IDs of all elements whose cartesian dot center falls inside the
+ * lasso rectangle defined by (rx1,ry1)→(rx2,ry2) in canvas coordinates.
+ */
+function cartesianHitRect(
+  rx1: number, ry1: number, rx2: number, ry2: number,
+  W: number, H: number,
+  config: CartesianMapConfig,
+  elements: { id: string }[],
+  scores: ScoreMap
+): string[] {
+  const minX = Math.min(rx1, rx2), maxX = Math.max(rx1, rx2)
+  const minY = Math.min(ry1, ry2), maxY = Math.max(ry1, ry2)
+
+  const plotLeft = MARGIN, plotRight = W - MARGIN
+  const plotTop  = MARGIN, plotBottom = H - MARGIN
+  const plotW    = plotRight - plotLeft
+  const plotH    = plotBottom - plotTop
+
+  const hitIds: string[] = []
+  for (const el of elements) {
+    const rawX = scores[el.id]?.[config.xDimensionId] ?? 0.5
+    const rawY = scores[el.id]?.[config.yDimensionId] ?? 0.5
+    const ex = config.xFlipped ? 1 - rawX : rawX
+    const ey = config.yFlipped ? 1 - rawY : rawY
+    const cx = plotLeft + ex * plotW
+    const cy = plotTop  + (1 - ey) * plotH
+    if (cx >= minX && cx <= maxX && cy >= minY && cy <= maxY) hitIds.push(el.id)
+  }
+  return hitIds
+}
+
+/**
+ * Returns IDs of all elements that have at least one scored dot inside the
+ * lasso rectangle defined by (rx1,ry1)→(rx2,ry2) in canvas coordinates.
+ */
+function semanticHitRect(
+  rx1: number, ry1: number, rx2: number, ry2: number,
+  W: number, H: number,
+  config: SemanticMapConfig,
+  elements: { id: string }[],
+  dimensions: Dimension[],
+  scores: ScoreMap
+): string[] {
+  const minX = Math.min(rx1, rx2)
+  const maxX = Math.max(rx1, rx2)
+  const minY = Math.min(ry1, ry2)
+  const maxY = Math.max(ry1, ry2)
+
+  const axisLeft  = SEM_MARGIN_H
+  const axisRight = W - SEM_MARGIN_H
+  const axisWidth = axisRight - axisLeft
+
+  const dims = config.dimensionIds
+    .map(id => dimensions.find(d => d.id === id))
+    .filter((d): d is Dimension => d !== undefined)
+
+  const els = config.elementIds.length > 0
+    ? config.elementIds.map(id => elements.find(e => e.id === id)).filter((e): e is { id: string } => e !== undefined)
+    : elements
+
+  const ys     = semAxisYs(H, dims.length)
+  const hitIds = new Set<string>()
+
+  for (let i = 0; i < dims.length; i++) {
+    const ay = ys[i]
+    if (ay < minY || ay > maxY) continue
+    const dim = dims[i]
+    for (const el of els) {
+      const raw = scores[el.id]?.[dim.id]
+      if (raw === undefined) continue
+      const score = config.flippedDimensionIds.includes(dim.id) ? 1 - raw : raw
+      const dx = axisLeft + score * axisWidth
+      if (dx >= minX && dx <= maxX) hitIds.add(el.id)
+    }
+  }
+
+  return [...hitIds]
+}
+
 // ── MapPanel component ────────────────────────────────────────────────────────
 
 interface Props {
@@ -208,9 +291,14 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
   const scores              = useAppStore(s => s.scores)
   const isDirty             = useAppStore(s => s.isDirty)
   const selectedElementId   = useAppStore(s => s.selectedElementId)
+  const selectedElementIds  = useAppStore(s => s.selectedElementIds)
   const selectElement       = useAppStore(s => s.selectElement)
+  const selectElements      = useAppStore(s => s.selectElements)
+  const toggleElementSelection = useAppStore(s => s.toggleElementSelection)
+  const clearElementSelection  = useAppStore(s => s.clearElementSelection)
   const updateMapConfig     = useAppStore(s => s.updateMapConfig)
   const updateElement       = useAppStore(s => s.updateElement)
+  const bulkUpdateElements  = useAppStore(s => s.bulkUpdateElements)
   const setScore            = useAppStore(s => s.setScore)
 
   // Label sizes come from user preferences so they update live when the
@@ -239,11 +327,17 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
   const semDraggingRef  = useRef<SemanticDragTarget | null>(null)
   const semDragMovedRef = useRef(false)
 
+  // Lasso (rubber-band multi-select) — semantic maps only. Mutated in place
+  // during mouse-move so the canvas overlay always reflects the current rect.
+  const lassoRef      = useRef<{ x1: number; y1: number; x2: number; y2: number } | null>(null)
+  const lassoMovedRef = useRef(false)
+
   // ── React state ───────────────────────────────────────────────────────────────
 
   const [axisPicker,     setAxisPicker]     = useState<AxisPickerState | null>(null)
   const [semanticPicker, setSemanticPicker] = useState<SemanticPickerState | null>(null)
   const [elementModal,   setElementModal]   = useState<string | null>(null)
+  const [bulkModal,      setBulkModal]      = useState(false)
   const [cursor,         setCursor]         = useState('default')
   const [editingTitle,   setEditingTitle]   = useState(false)
   const [titleDraft,     setTitleDraft]     = useState('')
@@ -262,6 +356,19 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [showMenu])
+
+  // Escape clears all selection
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        clearElementSelection()
+        selectElement(null)
+        window.api?.broadcastSelection(null)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [clearElementSelection, selectElement])
 
   // ── Title editing ─────────────────────────────────────────────────────────────
 
@@ -312,15 +419,26 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
 
     if (config.type === 'cartesian') {
       drawCartesian(ctx, cssW, cssH, config as CartesianMapConfig, elements, dimensions, scores,
-        selectedElementId ?? undefined, elementLabelSize, dimensionLabelSize)
+        selectedElementId ?? undefined, elementLabelSize, dimensionLabelSize, selectedElementIds)
     } else if (config.type === 'semantic') {
       drawSemantic(ctx, cssW, cssH, config as SemanticMapConfig, elements, dimensions, scores,
         semDraggingRef.current?.elementId, selectedElementId ?? undefined,
-        elementLabelSize, dimensionLabelSize)
+        elementLabelSize, dimensionLabelSize, selectedElementIds)
     }
-  // selectedElementId, elementLabelSize, dimensionLabelSize must all be deps:
+
+    // Lasso overlay — applies to both map types
+    if (lassoRef.current) {
+      const { x1, y1, x2, y2 } = lassoRef.current
+      ctx.save()
+      ctx.strokeStyle = '#4488ff'
+      ctx.lineWidth = 1
+      ctx.setLineDash([4, 3])
+      ctx.strokeRect(x1, y1, x2 - x1, y2 - y1)
+      ctx.restore()
+    }
+  // selectedElementId, selectedElementIds, elementLabelSize, dimensionLabelSize must all be deps:
   // any of them changing should immediately repaint the canvas.
-  }, [config, elements, dimensions, scores, selectedElementId, elementLabelSize, dimensionLabelSize])
+  }, [config, elements, dimensions, scores, selectedElementId, selectedElementIds, elementLabelSize, dimensionLabelSize])
 
   // Redraw whenever any input data changes
   useEffect(() => { redraw() }, [redraw])
@@ -347,23 +465,36 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
     if (config.type === 'cartesian') {
       const hit = cartesianHitDot(x, y, rect.width, rect.height, config as CartesianMapConfig, elements, scores)
       if (hit) {
+        if (e.shiftKey) return  // defer to handleClick for toggle selection
         draggingRef.current  = { ...hit, startX: x, startY: y, lockedAxis: null }
         dragMovedRef.current = false
         setCursor('grabbing')
         selectElement(hit.elementId)
         window.api?.broadcastSelection(hit.elementId)
         e.preventDefault()
+      } else if (e.shiftKey) {
+        lassoRef.current      = { x1: x, y1: y, x2: x, y2: y }
+        lassoMovedRef.current = false
       }
     } else if (config.type === 'semantic') {
       const hit = semanticHitDot(x, y, rect.width, rect.height, config as SemanticMapConfig, elements, dimensions, scores)
       if (hit) {
-        semDraggingRef.current  = hit
+        if (e.shiftKey) {
+          // Shift+mousedown on a dot: defer to handleClick for toggle
+          return
+        }
+        semDraggingRef.current  = { ...hit, startX: x, startY: y }
         semDragMovedRef.current = false
         setCursor('grabbing')
         selectElement(hit.elementId)
+        selectElements([hit.elementId])
         window.api?.broadcastSelection(hit.elementId)
         e.preventDefault()
         redraw()
+      } else if (e.shiftKey) {
+        // Shift + drag on empty space — start lasso
+        lassoRef.current      = { x1: x, y1: y, x2: x, y2: y }
+        lassoMovedRef.current = false
       }
     }
   }
@@ -382,6 +513,12 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
     if (draggingRef.current && config.type === 'cartesian') {
       const drag    = draggingRef.current
       const cartCfg = config as CartesianMapConfig
+
+      if (!dragMovedRef.current) {
+        const dx = Math.abs(x - drag.startX), dy = Math.abs(y - drag.startY)
+        if (dx < 4 && dy < 4) { setCursor('grabbing'); return }
+      }
+
       const plotLeft = MARGIN, plotRight  = W - MARGIN
       const plotTop  = MARGIN, plotBottom = H - MARGIN
       const plotW    = plotRight - plotLeft
@@ -423,7 +560,14 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
     // ── Active semantic drag (horizontal only) ────────────────────────────────
 
     if (semDraggingRef.current && config.type === 'semantic') {
-      const { elementId, dimId } = semDraggingRef.current
+      const semDrag = semDraggingRef.current
+
+      if (!semDragMovedRef.current) {
+        const dx = Math.abs(x - semDrag.startX), dy = Math.abs(y - semDrag.startY)
+        if (dx < 4 && dy < 4) { setCursor('grabbing'); return }
+      }
+
+      const { elementId, dimId } = semDrag
       const semCfg    = config as SemanticMapConfig
       const axisLeft  = SEM_MARGIN_H
       const axisRight = W - SEM_MARGIN_H
@@ -438,32 +582,67 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
       return
     }
 
+    // ── Active lasso ──────────────────────────────────────────────────────────
+
+    if (lassoRef.current) {
+      lassoRef.current.x2   = x
+      lassoRef.current.y2   = y
+      lassoMovedRef.current = true
+      setCursor('crosshair')
+      redraw()
+      return
+    }
+
     // ── Hover cursor ──────────────────────────────────────────────────────────
 
     if (config.type === 'cartesian') {
       const hit = cartesianHitDot(x, y, W, H, config as CartesianMapConfig, elements, scores)
-      if (hit)                           { setCursor('grab');    return }
+      if (hit)                           { setCursor(e.shiftKey ? 'copy' : 'grab'); return }
       if (cartesianHitEdge(x, y, W, H)) { setCursor('pointer'); return }
-      setCursor('default')
+      setCursor(e.shiftKey ? 'crosshair' : 'default')
     } else if (config.type === 'semantic') {
       const hit = semanticHitDot(x, y, W, H, config as SemanticMapConfig, elements, dimensions, scores)
-      if (hit) { setCursor('grab'); return }
-      setCursor(semanticHitRow(y, H, (config as SemanticMapConfig).dimensionIds.length) >= 0 ? 'pointer' : 'default')
+      if (hit) { setCursor(e.shiftKey ? 'copy' : 'grab'); return }
+      if (semanticHitRow(y, H, (config as SemanticMapConfig).dimensionIds.length) >= 0) { setCursor('pointer'); return }
+      setCursor(e.shiftKey ? 'crosshair' : 'default')
     }
   }
 
   function handleMouseUp(): void {
-    // Capture before clearing — same pattern as wasSemDragging below
+    // Commit lasso if active
+    if (lassoRef.current) {
+      if (lassoMovedRef.current) {
+        const wrapper = wrapperRef.current
+        if (wrapper && config) {
+          const { width, height } = wrapper.getBoundingClientRect()
+          const { x1, y1, x2, y2 } = lassoRef.current
+          const existing = useAppStore.getState().selectedElementIds
+          if (config.type === 'cartesian') {
+            const newIds = cartesianHitRect(x1, y1, x2, y2, width, height,
+              config as CartesianMapConfig, elements, scores)
+            selectElements([...new Set([...existing, ...newIds])])
+          } else if (config.type === 'semantic') {
+            const newIds = semanticHitRect(x1, y1, x2, y2, width, height,
+              config as SemanticMapConfig, elements, dimensions, scores)
+            selectElements([...new Set([...existing, ...newIds])])
+            selectElement(null)
+            window.api?.broadcastSelection(null)
+          }
+        }
+      }
+      // Don't clear lassoMovedRef here — handleClick reads it to suppress the click event
+      lassoRef.current = null
+      setCursor('default')
+      redraw()
+      return
+    }
+
     const wasCartesianDragging = draggingRef.current    !== null
     const wasSemDragging       = semDraggingRef.current !== null
     draggingRef.current    = null
     semDraggingRef.current = null
     setCursor('default')
-    // The red selection ring and the semantic line-weight boost are both
-    // "active while pressing" indicators. Release the selection on mouseUp
-    // so the highlight disappears the moment the user lets go, mirroring
-    // how the heavy connecting line reverts when a semantic drag ends.
-    if (wasCartesianDragging || wasSemDragging) {
+    if (wasCartesianDragging) {
       selectElement(null)
       window.api?.broadcastSelection(null)
     }
@@ -471,15 +650,22 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
   }
 
   function handleMouseLeave(): void {
+    // Cancel lasso if active
+    if (lassoRef.current) {
+      lassoRef.current      = null
+      lassoMovedRef.current = false
+      setCursor('default')
+      redraw()
+      return
+    }
+
     // Cancel drag if the pointer leaves the canvas area (e.g. fast movement)
     const wasCartesianDragging = draggingRef.current    !== null
     const wasSemDragging       = semDraggingRef.current !== null
     draggingRef.current    = null
     semDraggingRef.current = null
     setCursor('default')
-    // Same release-on-exit logic as mouseUp — keeps highlight in sync with
-    // the drag state even when the pointer escapes the canvas bounds.
-    if (wasCartesianDragging || wasSemDragging) {
+    if (wasCartesianDragging) {
       selectElement(null)
       window.api?.broadcastSelection(null)
     }
@@ -488,6 +674,11 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
 
   function handleContextMenu(e: React.MouseEvent<HTMLDivElement>): void {
     e.preventDefault()
+    // Modal intercepts mouseup so the canvas would never see it — clear drag
+    // state here so it can't leak through after the modal closes.
+    draggingRef.current    = null
+    semDraggingRef.current = null
+    setCursor('default')
     const wrapper = wrapperRef.current
     if (!wrapper || !config) return
     const rect = wrapper.getBoundingClientRect()
@@ -508,7 +699,13 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
     if (hitId) {
       setAxisPicker(null)
       setSemanticPicker(null)
-      setElementModal(hitId)
+      // Read directly from store to avoid stale React closure (e.g. after rapid shift+click)
+      const liveIds = useAppStore.getState().selectedElementIds
+      if (liveIds.length > 1 && liveIds.includes(hitId)) {
+        setBulkModal(true)
+      } else {
+        setElementModal(hitId)
+      }
     }
   }
 
@@ -516,6 +713,7 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
     // If the mouse moved during this gesture it was a drag — suppress the picker
     if (dragMovedRef.current)    { dragMovedRef.current    = false; return }
     if (semDragMovedRef.current) { semDragMovedRef.current = false; return }
+    if (lassoMovedRef.current)   { lassoMovedRef.current   = false; return }
 
     const wrapper = wrapperRef.current
     if (!wrapper || !config) return
@@ -526,8 +724,12 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
     const H = rect.height
 
     if (config.type === 'cartesian') {
-      // Dot clicks don't open the axis picker
-      if (cartesianHitDot(x, y, W, H, config as CartesianMapConfig, elements, scores)) return
+      const dotHit = cartesianHitDot(x, y, W, H, config as CartesianMapConfig, elements, scores)
+      if (dotHit) {
+        if (e.shiftKey) toggleElementSelection(dotHit.elementId)
+        // Non-shift: transient highlight via selectedElementId (cleared on mouseUp)
+        return
+      }
       setSemanticPicker(null)
       const edge = cartesianHitEdge(x, y, W, H)
       if (edge) {
@@ -535,12 +737,18 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
       } else {
         setAxisPicker(null)
         selectElement(null)
+        clearElementSelection()
         window.api?.broadcastSelection(null)
       }
     } else if (config.type === 'semantic') {
       setAxisPicker(null)
       const semCfg = config as SemanticMapConfig
-      if (semanticHitDot(x, y, W, H, semCfg, elements, dimensions, scores)) return
+      const hit = semanticHitDot(x, y, W, H, semCfg, elements, dimensions, scores)
+      if (hit) {
+        if (e.shiftKey) toggleElementSelection(hit.elementId)
+        // Non-shift: mouseDown already called selectElements([id]) — nothing to do
+        return
+      }
       const dims = semCfg.dimensionIds
         .map(id => dimensions.find(d => d.id === id))
         .filter((d): d is Dimension => d !== undefined)
@@ -551,6 +759,7 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
         setSemanticPicker(null)
         selectElement(null)
         window.api?.broadcastSelection(null)
+        clearElementSelection()
       }
     }
   }
@@ -662,6 +871,23 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
                 window.api?.broadcastElement(elementModal, changes as Record<string, unknown>)
               }
               setElementModal(null)
+            }}
+          />
+        )}
+
+        {/* Bulk edit modal — shown on right-click when multiple elements are selected */}
+        {bulkModal && selectedElementIds.length > 0 && (
+          <BulkEditModal
+            elementIds={selectedElementIds}
+            elements={elements}
+            onClose={(changes) => {
+              if (changes) {
+                bulkUpdateElements(selectedElementIds, changes)
+                for (const id of selectedElementIds) {
+                  window.api?.broadcastElement(id, changes as Record<string, unknown>)
+                }
+              }
+              setBulkModal(false)
             }}
           />
         )}
