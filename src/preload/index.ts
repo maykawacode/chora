@@ -56,6 +56,8 @@ contextBridge.exposeInMainWorld('api', {
   signalReady:  (): void                                  => ipcRenderer.send('map:ready'),
   // Notify main that a modal is open so it can bring the Score Window to front
   setModalOpen: (open: boolean): void                     => ipcRenderer.send('modal:open', open),
+  // Awaitable — bring the Score Window to front before showing a native dialog
+  focusMainWindow: (): Promise<void>                      => ipcRenderer.invoke('window:focus-main'),
 
   // ── Preferences ───────────────────────────────────────────────────────────────
 

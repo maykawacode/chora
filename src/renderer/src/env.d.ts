@@ -25,6 +25,7 @@ interface Window {
     closeAllMaps: () => void
     signalReady:  () => void    // map renderer calls this after mounting IPC listeners
     setModalOpen: (open: boolean) => void
+    focusMainWindow: () => Promise<void>
 
     // Preferences
     getPrefsSync:         () => Record<string, unknown>

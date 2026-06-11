@@ -102,6 +102,13 @@ export function registerIpcHandlers(): void {
     if (win && !win.isDestroyed()) { win.focus(); win.moveTop() }
   })
 
+  // Awaitable focus — renderer calls this before showing a native dialog
+  // (window.confirm / alert) so the window is on top before the dialog fires.
+  ipcMain.handle('window:focus-main', () => {
+    const win = getMainWindow()
+    if (win && !win.isDestroyed()) { win.focus(); win.moveTop() }
+  })
+
   // ── Preferences ───────────────────────────────────────────────────────────────
 
   ipcMain.handle('prefs:load', () => loadPreferences())

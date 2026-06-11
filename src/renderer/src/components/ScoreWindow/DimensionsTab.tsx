@@ -49,6 +49,11 @@ export function DimensionsTab({ onOpenStarterPicker }: Props): React.JSX.Element
     document.addEventListener('mouseup', onUp)
   }
 
+  // Bring Score Window to front when the delete confirmation overlay opens
+  useEffect(() => {
+    if (confirmDeleteId !== null) window.api.setModalOpen(true)
+  }, [confirmDeleteId])
+
   // Dismiss the delete confirmation on Escape regardless of where focus is
   useEffect(() => {
     if (!confirmDeleteId) return

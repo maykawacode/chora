@@ -59,7 +59,7 @@ export function App(): React.JSX.Element {
   // True while any modal is open — used to bring the Score Window to the front
   // so it is not obscured by map BrowserWindows
   const isModalOpen = showWelcome || showChooseDimensions || showCreateSemantic || showStarterPicker ||
-                      showPreferences || activeTransform !== null || importPreview !== null
+                      showPreferences || showQuitConfirm || activeTransform !== null || importPreview !== null
 
   // ── suppressBroadcast ref ─────────────────────────────────────────────────────
   //
@@ -236,6 +236,7 @@ export function App(): React.JSX.Element {
       // The Zustand subscriber above detects new maps and opens a window for each
       return true
     } catch (e) {
+      await window.api.focusMainWindow()
       alert(`Could not open file:\n${(e as Error).message}`)
       return false
     }
@@ -283,6 +284,7 @@ export function App(): React.JSX.Element {
       const fileName = path.split('/').pop() ?? path
       setImportPreview({ fileName, result })
     } catch (e) {
+      await window.api.focusMainWindow()
       alert(`Could not parse file:\n${(e as Error).message}`)
     }
   }
@@ -294,12 +296,14 @@ export function App(): React.JSX.Element {
       const tsv = exportSpreadsheet(useAppStore.getState())
       await window.api.writeFile(path, tsv)
     } catch (e) {
+      await window.api.focusMainWindow()
       alert(`Could not export file:\n${(e as Error).message}`)
     }
   }
 
-  function confirmDiscard(): Promise<boolean> {
-    return Promise.resolve(window.confirm('You have unsaved changes. Discard them?'))
+  async function confirmDiscard(): Promise<boolean> {
+    await window.api.focusMainWindow()
+    return window.confirm('You have unsaved changes. Discard them?')
   }
 
   // ── Render ────────────────────────────────────────────────────────────────────

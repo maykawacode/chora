@@ -56,6 +56,11 @@ export function ElementsTab(): React.JSX.Element {
   const dragRef     = useRef<{ startX: number; startWidth: number } | null>(null)
   const tabRef      = useRef<HTMLDivElement>(null)
 
+  // Bring Score Window to front when the delete confirmation overlay opens
+  useEffect(() => {
+    if (confirmId !== null) window.api.setModalOpen(true)
+  }, [confirmId])
+
   // Set detail pane to 50% of the tab container width on first render
   useEffect(() => {
     if (tabRef.current) {
