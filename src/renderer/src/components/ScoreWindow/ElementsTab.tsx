@@ -73,7 +73,7 @@ export function ElementsTab(): React.JSX.Element {
   // Registered at document level so it fires even when a detail field has
   // focus, not just when the list itself is focused.
   useEffect(() => {
-    const handler = (e: KeyboardEvent): void => {
+    const handler = (e: globalThis.KeyboardEvent): void => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'd' && selectedId) {
         e.preventDefault()   // prevent browser "add to bookmarks" default
         duplicateElement(selectedId)

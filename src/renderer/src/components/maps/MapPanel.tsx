@@ -161,7 +161,7 @@ function semanticHitDot(
   elements: { id: string }[],
   dimensions: Dimension[],
   scores: ScoreMap
-): SemanticDragTarget | null {
+): Pick<SemanticDragTarget, 'elementId' | 'dimId'> | null {
   if (!config.showDots) return null
 
   const axisLeft  = SEM_MARGIN_H
