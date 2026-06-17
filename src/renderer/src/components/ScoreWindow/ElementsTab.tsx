@@ -255,10 +255,10 @@ export function ElementsTab(): React.JSX.Element {
         </div>
         <textarea
           className={styles.description}
-          placeholder="Description…"
-          value={selected?.description ?? ''}
+          placeholder="Definition…"
+          value={selected?.definition ?? ''}
           disabled={!selected}
-          onChange={e => selected && updateElement(selected.id, { description: e.target.value })}
+          onChange={e => selected && updateElement(selected.id, { definition: e.target.value })}
         />
       </div>
 

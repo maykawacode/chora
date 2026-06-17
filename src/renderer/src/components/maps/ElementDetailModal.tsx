@@ -30,7 +30,7 @@ export function ElementDetailModal({ elementId, onClose }: Props): React.JSX.Ele
   const [hexInput,    setHexInput]    = useState(element?.color       ?? '#9d9d53')
   const [shape,       setShape]       = useState<ElementShape>(element?.shape ?? 'circle')
   const [weight,      setWeight]      = useState(String(element?.weight ?? 1))
-  const [description, setDescription] = useState(element?.description ?? '')
+  const [definition, setDefinition] = useState(element?.definition ?? '')
 
   // Keep a stable ref to the close handler so the Escape listener never goes stale
   const handleCloseRef = useRef<() => void>(() => {})
@@ -41,7 +41,7 @@ export function ElementDetailModal({ elementId, onClose }: Props): React.JSX.Ele
     if (color       !== element.color)       changes.color       = color
     if (shape       !== element.shape)       changes.shape       = shape
     if (parsedWeight !== element.weight)     changes.weight      = parsedWeight
-    if (description !== element.description) changes.description = description
+    if (definition !== element.definition) changes.definition = definition
     onClose(Object.keys(changes).length > 0 ? changes : null)
   }
 
@@ -130,10 +130,10 @@ export function ElementDetailModal({ elementId, onClose }: Props): React.JSX.Ele
 
         <textarea
           className={styles.description}
-          value={description}
+          value={definition}
           rows={4}
-          placeholder="Description…"
-          onChange={e => setDescription(e.target.value)}
+          placeholder="Definition…"
+          onChange={e => setDefinition(e.target.value)}
         />
 
         <div className={styles.footer}>

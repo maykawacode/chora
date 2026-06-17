@@ -4,11 +4,16 @@
 // FORMAT_VERSION must be bumped any time the saved schema changes in a
 // backward-incompatible way. The deserializer always merges missing fields
 // with safe defaults so that older files don't crash on load.
+//
+// Migration table:
+//   3.0 → 4.0: element.description → element.definition
+//               dimension.description → dimension.definition
+//               added sessionMeta, types[]
 
-import type { AppState, Element, Dimension, MapConfig } from './types'
-import { defaultCategories, parsePoles } from './types'
+import type { AppState, Element, Type, Dimension, MapConfig, SessionMeta } from './types'
+import { defaultCategories, defaultSessionMeta, parsePoles } from './types'
 
-const FORMAT_VERSION = '3.0'
+const FORMAT_VERSION = '4.0'
 
 /**
  * Serializes only the persistent parts of AppState to a JSON string.
@@ -18,7 +23,9 @@ const FORMAT_VERSION = '3.0'
 export function serializeSession(state: AppState): string {
   return JSON.stringify({
     version: FORMAT_VERSION,
+    sessionMeta: state.sessionMeta,
     elements: state.elements,
+    types: state.types,
     dimensions: state.dimensions,
     scores: state.scores,
     maps: state.maps
@@ -27,76 +34,117 @@ export function serializeSession(state: AppState): string {
 
 /**
  * Parses a JSON string back into a fresh AppState.
- * Throws if the JSON is malformed or the version string does not match.
- * All optional fields are filled with safe defaults to handle old files
- * that predate a particular field being added.
+ * Accepts version 3.0 (migrates description→definition, adds sessionMeta/types)
+ * and version 4.0. Throws if the JSON is malformed or the version is unrecognized.
+ * All optional fields are filled with safe defaults to handle old files.
  */
 export function deserializeSession(json: string): AppState {
   const raw = JSON.parse(json)
 
   if (!raw || typeof raw !== 'object') throw new Error('Invalid file format')
-  if (raw.version !== FORMAT_VERSION) throw new Error(`Unsupported file version: ${raw.version}`)
+  const version = raw.version
+  if (version !== FORMAT_VERSION && version !== '3.0') {
+    throw new Error(`Unsupported file version: ${version}`)
+  }
 
-  const elements: Element[] = (raw.elements ?? []).map((e: Partial<Element>) => ({
-    id: requireString(e.id, 'element.id'),
-    name: e.name ?? '',
-    weight: typeof e.weight === 'number' ? e.weight : 1,
-    color: e.color ?? '#9d9d53',
-    shape: (['circle', 'square', 'triangle', 'diamond'].includes(e.shape as string) ? e.shape : 'circle') as Element['shape'],
-    description: e.description ?? ''
+  // ── SessionMeta (new in 4.0) ─────────────────────────────────────────────
+  const sessionMeta: SessionMeta = raw.sessionMeta
+    ? {
+        id:         raw.sessionMeta.id         ?? crypto.randomUUID(),
+        name:       raw.sessionMeta.name        ?? '',
+        definition: raw.sessionMeta.definition  ?? ''
+      }
+    : defaultSessionMeta()
+
+  // ── Elements ─────────────────────────────────────────────────────────────
+  const elements: Element[] = (raw.elements ?? []).map((e: Record<string, unknown>) => ({
+    id:         requireString(e.id, 'element.id'),
+    name:       typeof e.name       === 'string' ? e.name       : '',
+    // 3.0 files store 'description'; 4.0 files store 'definition'
+    definition: typeof e.definition === 'string' ? e.definition
+                : typeof e.description === 'string' ? e.description : '',
+    weight:     typeof e.weight === 'number' ? e.weight : 1,
+    color:      typeof e.color  === 'string' ? e.color  : '#9d9d53',
+    shape:      (['circle', 'square', 'triangle', 'diamond'].includes(e.shape as string)
+                  ? e.shape : 'circle') as Element['shape']
   }))
 
-  const dimensions: Dimension[] = (raw.dimensions ?? []).map((d: Partial<Dimension>) => {
-    const label = d.label ?? ''
+  // ── Types (new in 4.0) ───────────────────────────────────────────────────
+  const types: Type[] = (raw.types ?? []).map((t: Record<string, unknown>) => ({
+    id:         requireString(t.id, 'type.id'),
+    name:       typeof t.name       === 'string' ? t.name       : '',
+    definition: typeof t.definition === 'string' ? t.definition : ''
+  }))
+
+  // ── Dimensions ───────────────────────────────────────────────────────────
+  const dimensions: Dimension[] = (raw.dimensions ?? []).map((d: Record<string, unknown>) => {
+    const label = typeof d.label === 'string' ? d.label : ''
     const poles = parsePoles(label)
     return {
-      id: requireString(d.id, 'dimension.id'),
+      id:    requireString(d.id, 'dimension.id'),
       label,
       // poleA/poleB may be missing in very old files — re-derive from label
-      poleA: d.poleA ?? poles.poleA,
-      poleB: d.poleB ?? poles.poleB,
+      poleA: typeof d.poleA === 'string' ? d.poleA : poles.poleA,
+      poleB: typeof d.poleB === 'string' ? d.poleB : poles.poleB,
+      // 3.0 files store 'description'; 4.0 files store 'definition'
+      definition: typeof d.definition === 'string' ? d.definition
+                  : typeof d.description === 'string' ? d.description : '',
       weight: typeof d.weight === 'number' ? d.weight : 1,
-      description: d.description ?? '',
       // categories may be missing in old files — merge with empty defaults
-      categories: { ...defaultCategories(), ...(d.categories ?? {}) }
+      categories: { ...defaultCategories(), ...((d.categories as object) ?? {}) }
     }
   })
 
-  const maps: MapConfig[] = (raw.maps ?? []).map((m: Partial<MapConfig>) => {
+  // ── Maps ─────────────────────────────────────────────────────────────────
+  const maps: MapConfig[] = (raw.maps ?? []).map((m: Record<string, unknown>) => {
     if (m.type === 'cartesian') {
-      const cm = m as Record<string, unknown>
       return {
-        id: requireString(m.id, 'map.id'),
-        type: 'cartesian' as const,
-        title: m.title ?? 'Map',
-        showLabels: m.showLabels !== false,
-        showDots: m.showDots !== false,
-        windowX:      typeof cm.windowX      === 'number' ? cm.windowX      : 100,
-        windowY:      typeof cm.windowY      === 'number' ? cm.windowY      : 100,
-        windowWidth:  typeof cm.windowWidth  === 'number' ? cm.windowWidth  : 600,
-        windowHeight: typeof cm.windowHeight === 'number' ? cm.windowHeight : 500,
-        xDimensionId: typeof cm.xDimensionId === 'string' ? cm.xDimensionId : '',
-        yDimensionId: typeof cm.yDimensionId === 'string' ? cm.yDimensionId : '',
-        xFlipped: cm.xFlipped === true,
-        yFlipped: cm.yFlipped === true,
-        sizeByWeight: cm.sizeByWeight !== false,  // default true; false only if explicitly set
+        id:           requireString(m.id, 'map.id'),
+        type:         'cartesian' as const,
+        title:        typeof m.title       === 'string'  ? m.title       : 'Map',
+        showLabels:   m.showLabels  !== false,
+        showDots:     m.showDots    !== false,
+        windowX:      typeof m.windowX      === 'number' ? m.windowX      : 100,
+        windowY:      typeof m.windowY      === 'number' ? m.windowY      : 100,
+        windowWidth:  typeof m.windowWidth  === 'number' ? m.windowWidth  : 600,
+        windowHeight: typeof m.windowHeight === 'number' ? m.windowHeight : 500,
+        xDimensionId: typeof m.xDimensionId === 'string' ? m.xDimensionId : '',
+        yDimensionId: typeof m.yDimensionId === 'string' ? m.yDimensionId : '',
+        xFlipped:     m.xFlipped    === true,
+        yFlipped:     m.yFlipped    === true,
+        sizeByWeight: m.sizeByWeight !== false
       }
     }
     if (m.type === 'semantic') {
-      const sm = m as Record<string, unknown>
       return {
-        id: requireString(m.id, 'map.id'),
-        type: 'semantic' as const,
-        title: m.title ?? 'Semantic Map',
-        showLabels: m.showLabels !== false,
-        showDots: m.showDots !== false,
-        windowX:      typeof sm.windowX      === 'number' ? sm.windowX      : 100,
-        windowY:      typeof sm.windowY      === 'number' ? sm.windowY      : 100,
-        windowWidth:  typeof sm.windowWidth  === 'number' ? sm.windowWidth  : 600,
-        windowHeight: typeof sm.windowHeight === 'number' ? sm.windowHeight : 500,
-        elementIds:          Array.isArray(sm.elementIds)          ? sm.elementIds          as string[] : [],
-        dimensionIds:        Array.isArray(sm.dimensionIds)        ? sm.dimensionIds        as string[] : [],
-        flippedDimensionIds: Array.isArray(sm.flippedDimensionIds) ? sm.flippedDimensionIds as string[] : [],
+        id:           requireString(m.id, 'map.id'),
+        type:         'semantic' as const,
+        title:        typeof m.title       === 'string'  ? m.title       : 'Semantic Map',
+        showLabels:   m.showLabels  !== false,
+        showDots:     m.showDots    !== false,
+        windowX:      typeof m.windowX      === 'number' ? m.windowX      : 100,
+        windowY:      typeof m.windowY      === 'number' ? m.windowY      : 100,
+        windowWidth:  typeof m.windowWidth  === 'number' ? m.windowWidth  : 600,
+        windowHeight: typeof m.windowHeight === 'number' ? m.windowHeight : 500,
+        elementIds:          Array.isArray(m.elementIds)          ? m.elementIds          as string[] : [],
+        dimensionIds:        Array.isArray(m.dimensionIds)        ? m.dimensionIds        as string[] : [],
+        flippedDimensionIds: Array.isArray(m.flippedDimensionIds) ? m.flippedDimensionIds as string[] : []
+      }
+    }
+    if (m.type === 'typegroup') {
+      return {
+        id:           requireString(m.id, 'map.id'),
+        type:         'typegroup' as const,
+        title:        typeof m.title       === 'string'  ? m.title       : 'Type Map',
+        showLabels:   m.showLabels  !== false,
+        showDots:     m.showDots    !== false,
+        windowX:      typeof m.windowX      === 'number' ? m.windowX      : 100,
+        windowY:      typeof m.windowY      === 'number' ? m.windowY      : 100,
+        windowWidth:  typeof m.windowWidth  === 'number' ? m.windowWidth  : 600,
+        windowHeight: typeof m.windowHeight === 'number' ? m.windowHeight : 500,
+        typeIds:    Array.isArray(m.typeIds)    ? m.typeIds    as string[] : [],
+        elementIds: Array.isArray(m.elementIds) ? m.elementIds as string[] : [],
+        threshold:  typeof m.threshold === 'number' ? m.threshold : 0.5
       }
     }
     throw new Error(`Unknown map type: ${m.type}`)
@@ -105,9 +153,11 @@ export function deserializeSession(json: string): AppState {
   return {
     filePath: null,           // always reset on open — caller sets it from the actual path
     isDirty: false,
+    sessionMeta,
     elements,
+    types,
     dimensions,
-    scores: raw.scores ?? {},
+    scores: (raw.scores as AppState['scores']) ?? {},
     maps,
     selectedElementId: null,
     selectedDimensionId: null,

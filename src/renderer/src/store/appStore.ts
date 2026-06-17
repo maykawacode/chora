@@ -1,8 +1,8 @@
 // ── Application state store ───────────────────────────────────────────────────
 //
-// Single source of truth for all session data: elements, dimensions, scores,
-// and map configurations. Built with Zustand so any component can subscribe
-// to exactly the slice it needs without prop drilling.
+// Single source of truth for all session data: elements, types, dimensions,
+// scores, and map configurations. Built with Zustand so any component can
+// subscribe to exactly the slice it needs without prop drilling.
 //
 // Architecture note:
 //   The Score Window (App.tsx) subscribes to this store and broadcasts the
@@ -14,33 +14,41 @@
 import { create } from 'zustand'
 import { v4 as uuid } from 'uuid'
 import type {
-  AppState, Element, Dimension, DimensionCategories,
-  MapConfig, CartesianMapConfig, SemanticMapConfig
+  AppState, Element, Type, Dimension, DimensionCategories, SessionMeta,
+  MapConfig, CartesianMapConfig, SemanticMapConfig, TypeGroupMapConfig
 } from '../lib/types'
-import { defaultCategories, parsePoles } from '../lib/types'
+import { defaultCategories, defaultSessionMeta, parsePoles } from '../lib/types'
 import { usePrefsStore } from './prefsStore'
 
 // ── Store interface ───────────────────────────────────────────────────────────
 
 interface AppStore extends AppState {
+  // Session metadata
+  updateSessionMeta: (changes: Partial<SessionMeta>) => void
+
   // Elements
   addElement:       (name: string, color?: string) => void
   duplicateElement: (id: string) => void
   updateElement:    (id: string, changes: Partial<Element>) => void
   removeElement:    (id: string) => void
 
+  // Types
+  addType:    (name: string) => void
+  updateType: (id: string, changes: Partial<Type>) => void
+  removeType: (id: string) => void
+
   // Dimensions
   addDimension:    (label: string, categories?: DimensionCategories) => void
   updateDimension: (id: string, changes: Partial<Dimension>) => void
   removeDimension: (id: string) => void
 
-  // Scores
-  setScore:   (elementId: string, dimensionId: string, value: number) => void
-  clearScore: (elementId: string, dimensionId: string) => void
+  // Scores (covers both dimension scores and type membership scores)
+  setScore:   (elementId: string, targetId: string, value: number) => void
+  clearScore: (elementId: string, targetId: string) => void
 
   // Maps
   addMap:          (config: MapConfig) => void
-  updateMapConfig: (id: string, changes: Partial<CartesianMapConfig> | Partial<SemanticMapConfig>) => void
+  updateMapConfig: (id: string, changes: Partial<CartesianMapConfig> | Partial<SemanticMapConfig> | Partial<TypeGroupMapConfig>) => void
   removeMap:       (id: string) => void
 
   // Advanced transforms (see descriptions in implementation below)
@@ -73,7 +81,9 @@ interface AppStore extends AppState {
 const emptyState: AppState = {
   filePath: null,
   isDirty: false,
+  sessionMeta: defaultSessionMeta(),
   elements: [],
+  types: [],
   dimensions: [],
   scores: {},
   maps: [],
@@ -88,11 +98,18 @@ export const useAppStore = create<AppStore>((set) => ({
   ...emptyState,
   selectedElementIds: [],
 
+  // ── Session metadata ─────────────────────────────────────────────────────
+
+  updateSessionMeta: (changes) => set((s) => ({
+    sessionMeta: { ...s.sessionMeta, ...changes },
+    isDirty: true
+  })),
+
   // ── Elements ────────────────────────────────────────────────────────────────
 
   addElement: (name, color) => set((s) => {
     const resolvedColor = color ?? usePrefsStore.getState().prefs.defaultElementColor
-    const el: Element = { id: uuid(), name, weight: 1, color: resolvedColor, shape: 'circle', description: '' }
+    const el: Element = { id: uuid(), name, definition: '', weight: 1, color: resolvedColor, shape: 'circle' }
     return { elements: [...s.elements, el], isDirty: true }
   }),
 
@@ -135,6 +152,29 @@ export const useAppStore = create<AppStore>((set) => ({
     }
   }),
 
+  // ── Types ────────────────────────────────────────────────────────────────────
+
+  addType: (name) => set((s) => {
+    const type: Type = { id: uuid(), name, definition: '' }
+    return { types: [...s.types, type], isDirty: true }
+  }),
+
+  updateType: (id, changes) => set((s) => ({
+    types: s.types.map(t => t.id === id ? { ...t, ...changes } : t),
+    isDirty: true
+  })),
+
+  // Removes the type and prunes all type-membership scores from the ScoreMap.
+  removeType: (id) => set((s) => {
+    const remaining = s.types.filter(t => t.id !== id)
+    const scores: typeof s.scores = {}
+    for (const [elId, elScores] of Object.entries(s.scores)) {
+      const { [id]: _removed, ...rest } = elScores
+      scores[elId] = rest
+    }
+    return { types: remaining, scores, isDirty: true }
+  }),
+
   // ── Dimensions ──────────────────────────────────────────────────────────────
 
   addDimension: (label, categories) => set((s) => {
@@ -144,8 +184,8 @@ export const useAppStore = create<AppStore>((set) => ({
       label,
       poleA,
       poleB,
+      definition: '',
       weight: 1,
-      description: '',
       categories: categories ?? defaultCategories()
     }
     return { dimensions: [...s.dimensions, dim], isDirty: true }
@@ -174,16 +214,16 @@ export const useAppStore = create<AppStore>((set) => ({
 
   // ── Scores ──────────────────────────────────────────────────────────────────
 
-  setScore: (elementId, dimensionId, value) => set((s) => ({
+  setScore: (elementId, targetId, value) => set((s) => ({
     scores: {
       ...s.scores,
-      [elementId]: { ...s.scores[elementId], [dimensionId]: value }
+      [elementId]: { ...s.scores[elementId], [targetId]: value }
     },
     isDirty: true
   })),
 
-  clearScore: (elementId, dimensionId) => set((s) => {
-    const { [dimensionId]: _removed, ...rest } = s.scores[elementId] ?? {}
+  clearScore: (elementId, targetId) => set((s) => {
+    const { [targetId]: _removed, ...rest } = s.scores[elementId] ?? {}
     return { scores: { ...s.scores, [elementId]: rest }, isDirty: true }
   }),
 
@@ -305,5 +345,5 @@ export const useAppStore = create<AppStore>((set) => ({
   markClean: (filePath) => set({ filePath, isDirty: false }),
 
   // Resets to an empty session (File → New)
-  resetToEmpty: () => set({ ...emptyState, selectedElementIds: [] })
+  resetToEmpty: () => set({ ...emptyState, sessionMeta: defaultSessionMeta(), selectedElementIds: [] })
 }))

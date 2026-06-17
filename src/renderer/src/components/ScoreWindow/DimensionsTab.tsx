@@ -210,10 +210,10 @@ export function DimensionsTab({ onOpenStarterPicker }: Props): React.JSX.Element
         </div>
         <textarea
           className={styles.description}
-          placeholder="Description…"
-          value={selected?.description ?? ''}
+          placeholder="Definition…"
+          value={selected?.definition ?? ''}
           disabled={!selected}
-          onChange={e => selected && updateDimension(selected.id, { description: e.target.value })}
+          onChange={e => selected && updateDimension(selected.id, { definition: e.target.value })}
         />
       </div>
 

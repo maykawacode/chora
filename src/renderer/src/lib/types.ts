@@ -2,20 +2,36 @@
 //
 // These are the plain data structures shared across all windows via JSON.
 // All IDs are UUIDs (generated at creation, never changed).
-// Scores live separately from elements/dimensions so adding/removing either
-// doesn't corrupt the other — it just leaves orphaned keys that are ignored.
+// Scores live separately from elements/dimensions/types so adding/removing any
+// of them doesn't corrupt the other — it just leaves orphaned keys that are ignored.
+//
+// Canonical schema reference: Output/2026-06-17_dataset-schema_v1.md
 
 export type ElementShape = 'circle' | 'square' | 'triangle' | 'diamond'
 
 export const ELEMENT_SHAPES: ElementShape[] = ['circle', 'square', 'triangle', 'diamond']
 
+export interface SessionMeta {
+  id: string          // UUID, generated once at session creation, never changed
+  name: string        // human name for this analysis
+  definition: string  // what this dataset represents / what is being analyzed
+}
+
 export interface Element {
   id: string
   name: string
+  definition: string   // what this element IS
   weight: number       // 1–100; drives dot size on cartesian maps
   color: string        // hex string, e.g. '#808000' (olive default)
   shape: ElementShape  // plot symbol used on all maps
-  description: string
+}
+
+// A Type is a nominal membership category. Elements are scored against types
+// (via ScoreMap) to express degree of membership (0 = none, 1 = full).
+export interface Type {
+  id: string
+  name: string
+  definition: string  // what defines membership in this category
 }
 
 export interface DimensionCategories {
@@ -30,15 +46,16 @@ export interface DimensionCategories {
 export interface Dimension {
   id: string
   label: string        // full display string, e.g. "Hot–Cold"
-  poleA: string        // left / bottom end of the axis
-  poleB: string        // right / top end of the axis
+  poleA: string        // left / bottom end of the axis (score 0.0)
+  poleB: string        // right / top end of the axis (score 1.0)
+  definition: string   // how scores are calculated; what 0.0 and 1.0 mean for this axis
   weight: number       // future use; stored now so files round-trip cleanly
-  description: string
   categories: DimensionCategories  // used by the Starter Lists picker
 }
 
-// scores[elementId][dimensionId] = 0.0–1.0
-// A missing key means the element has not been scored on that dimension yet.
+// scores[elementId][typeOrDimensionId] = 0.0–1.0
+// A missing key means the element has not been scored on that type/dimension yet.
+// Type IDs and Dimension IDs are both UUIDs and never collide in this namespace.
 export type ScoreMap = Record<string, Record<string, number | undefined>>
 
 // ── Map configuration types ───────────────────────────────────────────────────
@@ -47,7 +64,7 @@ export type ScoreMap = Record<string, Record<string, number | undefined>>
 // session. Window geometry (x/y/width/height) is stored here so it can be
 // restored on next open when rememberWindowPositions is enabled.
 
-export type MapType = 'cartesian' | 'semantic'
+export type MapType = 'cartesian' | 'semantic' | 'typegroup'
 
 export interface BaseMapConfig {
   id: string
@@ -77,7 +94,16 @@ export interface SemanticMapConfig extends BaseMapConfig {
   flippedDimensionIds: string[]  // subset of dimensionIds whose poles are reversed
 }
 
-export type MapConfig = CartesianMapConfig | SemanticMapConfig
+// TypeGroupMapConfig — groups elements by their highest type membership score.
+// Elements whose top-matching type score is below `threshold` are ungrouped.
+export interface TypeGroupMapConfig extends BaseMapConfig {
+  type: 'typegroup'
+  typeIds: string[]      // ordered list of types to display as columns/groups
+  elementIds: string[]   // elements to include; empty = all elements
+  threshold: number      // minimum membership score to place element in a group (default 0.5)
+}
+
+export type MapConfig = CartesianMapConfig | SemanticMapConfig | TypeGroupMapConfig
 
 // ── Application state ─────────────────────────────────────────────────────────
 //
@@ -88,7 +114,9 @@ export type MapConfig = CartesianMapConfig | SemanticMapConfig
 export interface AppState {
   filePath: string | null           // null = not yet saved
   isDirty: boolean                  // true = unsaved changes exist
+  sessionMeta: SessionMeta
   elements: Element[]
+  types: Type[]
   dimensions: Dimension[]
   scores: ScoreMap
   maps: MapConfig[]
@@ -109,6 +137,11 @@ export function defaultCategories(): DimensionCategories {
     socialMeaning: false,
     aesthetics: false
   }
+}
+
+/** Returns a SessionMeta with a fresh UUID and empty strings. */
+export function defaultSessionMeta(): SessionMeta {
+  return { id: crypto.randomUUID(), name: '', definition: '' }
 }
 
 /**

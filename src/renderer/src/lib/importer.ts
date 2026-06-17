@@ -2,12 +2,12 @@
 //
 // Parses a TSV or CSV file exported from Excel/Sheets into MapTool session data.
 //
-// Expected layout (with optional Description column):
-//   Row 0:  [ignored]    [Description]  DimLabel1    DimLabel2   ...
-//   Row 1+: ElementName  [desc text]    score        score       ...
+// Expected layout (with optional Definition column):
+//   Row 0:  [ignored]    [Definition]   DimLabel1    DimLabel2   ...
+//   Row 1+: ElementName  [def text]     score        score       ...
 //
-// If the second header column is "Description" (case-insensitive), that column
-// is treated as element description text and scores begin at column 3.
+// If the second header column is "Definition" (case-insensitive), that column
+// is treated as element definition text and scores begin at column 3.
 //
 // Scores can use any numeric scale (e.g. 1–7, 0–100).
 // If any value exceeds 1.0, the entire score matrix is linearly normalized
@@ -37,8 +37,8 @@ export function parseSpreadsheet(text: string): ImportResult {
   const headerIdx = rows.findIndex(r => r.filter(c => c.trim()).length > 1)
   if (headerIdx === -1) throw new Error('No header row found. The first row should contain dimension names.')
 
-  // Check if second column is a description column
-  const hasDescription = rows[headerIdx][1]?.trim().toLowerCase() === 'description'
+  // Check if second column is a definition column
+  const hasDescription = rows[headerIdx][1]?.trim().toLowerCase() === 'definition'
   const scoreStartCol = hasDescription ? 2 : 1
 
   const dimLabels = rows[headerIdx].slice(scoreStartCol).map(h => h.trim()).filter(h => h !== '')
@@ -55,7 +55,7 @@ export function parseSpreadsheet(text: string): ImportResult {
     const name = row[0]?.trim()
     if (!name) continue
 
-    // Extract and strip surrounding quotes from description if column is present
+    // Extract and strip surrounding quotes from definition if column is present
     let description = ''
     if (hasDescription) {
       const raw = row[1]?.trim() ?? ''
@@ -110,13 +110,12 @@ export function parseSpreadsheet(text: string): ImportResult {
 
   // Build typed objects with fresh UUIDs
   const elements: Element[] = elementNames.map((name, i) => ({
-    id: uuid(), name, weight: 1, color: '#9d9d53', shape: 'circle' as const,
-    description: elementDescriptions[i] ?? ''
+    id: uuid(), name, definition: elementDescriptions[i] ?? '', weight: 1, color: '#9d9d53', shape: 'circle' as const
   }))
 
   const dimensions: Dimension[] = dimLabels.map(label => {
     const { poleA, poleB } = parsePoles(label)
-    return { id: uuid(), label, poleA, poleB, weight: 1, description: '', categories: defaultCategories() }
+    return { id: uuid(), label, poleA, poleB, definition: '', weight: 1, categories: defaultCategories() }
   })
 
   // Build score map: scores[elementId][dimensionId] = 0–1 or absent
