@@ -406,7 +406,12 @@ export function drawTypeProjection(
   // Base radius for the 'circle' style — 12% of the shorter plot dimension.
   const BASE_HALO_RADIUS = Math.min(plotW, plotH) * 0.12
 
-  for (const type of types) {
+  // typeIds = [] means "show all"; a non-empty list restricts to that subset.
+  const visibleTypes = config.typeIds.length === 0
+    ? types
+    : types.filter(t => config.typeIds.includes(t.id))
+
+  for (const type of visibleTypes) {
     const color = computeTypeColor(type, elements, scores, config.threshold)
 
     // Compute the membership-weighted centroid for label placement and circle mode.

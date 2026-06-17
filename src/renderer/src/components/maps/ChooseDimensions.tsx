@@ -112,8 +112,10 @@ export function CreateTypeProjectionMap({ onClose }: Props): React.JSX.Element {
   const addMap     = useAppStore(s => s.addMap)
   const prefs      = usePrefsStore(s => s.prefs)
 
-  const [selected,  setSelected]  = useState<string[]>([])
-  const [threshold, setThreshold] = useState(0.5)
+  const [selected,      setSelected]      = useState<string[]>([])
+  const [threshold,     setThreshold]     = useState(0.5)
+  // Start with all types selected; empty array stored in config means "show all"
+  const [selectedTypes, setSelectedTypes] = useState<string[]>(() => types.map(t => t.id))
 
   function toggle(id: string): void {
     setSelected(prev => {
@@ -123,9 +125,17 @@ export function CreateTypeProjectionMap({ onClose }: Props): React.JSX.Element {
     })
   }
 
+  function toggleType(id: string): void {
+    setSelectedTypes(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    )
+  }
+
   function handleDraw(): void {
     if (selected.length !== 2) return
     const projCount = maps.filter(m => m.type === 'typeprojection').length
+    // Store [] when all types are selected — draw function treats [] as "show all"
+    const typeIds = selectedTypes.length === types.length ? [] : selectedTypes
     const config: TypeProjectionMapConfig = {
       id: uuid(),
       type: 'typeprojection',
@@ -137,6 +147,7 @@ export function CreateTypeProjectionMap({ onClose }: Props): React.JSX.Element {
       threshold,
       sizeByWeight: true,
       blobStyle: 'circle',
+      typeIds,
       showLabels: prefs.defaultShowLabels,
       showDots: prefs.defaultShowDots,
       windowX: 100,
@@ -200,6 +211,27 @@ export function CreateTypeProjectionMap({ onClose }: Props): React.JSX.Element {
             Elements must score ≥ {threshold.toFixed(2)} on a type to anchor its halo.
           </span>
         </div>
+
+        {types.length > 0 && (
+          <>
+            <p className={styles.sectionLabel}>Types to show</p>
+            <ul className={styles.list}>
+              {types.map(type => {
+                const isOn = selectedTypes.includes(type.id)
+                return (
+                  <li
+                    key={type.id}
+                    className={`${styles.item} ${isOn ? styles.selected : ''}`}
+                    onClick={() => toggleType(type.id)}
+                  >
+                    <span className={styles.axisLabel}>{isOn ? '✓' : ''}</span>
+                    <span className={styles.dimLabel}>{type.name}</span>
+                  </li>
+                )
+              })}
+            </ul>
+          </>
+        )}
 
         <div className={styles.buttons}>
           <button className={styles.btnCancel} onClick={onClose}>Cancel</button>

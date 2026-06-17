@@ -148,7 +148,8 @@ export function deserializeSession(json: string): AppState {
         yFlipped:     m.yFlipped     === true,
         threshold:    typeof m.threshold    === 'number'  ? m.threshold    : 0.5,
         sizeByWeight: m.sizeByWeight !== false,
-        blobStyle:    m.blobStyle === 'blob' ? 'blob' : 'circle'
+        blobStyle:    m.blobStyle === 'blob' ? 'blob' : 'circle',
+        typeIds:      Array.isArray(m.typeIds) ? m.typeIds as string[] : []
       }
     }
     throw new Error(`Unknown map type: ${m.type}`)

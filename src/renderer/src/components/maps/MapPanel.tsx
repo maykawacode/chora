@@ -849,6 +849,35 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
                   Blob Groups
                 </div>
               )}
+              {/* Per-type visibility toggles — typeprojection maps with at least one type */}
+              {config.type === 'typeprojection' && types.length > 0 && (
+                <>
+                  <div className={styles.menuSeparator} />
+                  {types.map(type => {
+                    // typeIds=[] means all visible; otherwise check explicit list
+                    const isVisible = projConfig.typeIds.length === 0 || projConfig.typeIds.includes(type.id)
+                    return (
+                      <div
+                        key={type.id}
+                        className={styles.menuItem}
+                        onClick={() => {
+                          const allIds  = types.map(t => t.id)
+                          const current = projConfig.typeIds.length === 0 ? allIds : [...projConfig.typeIds]
+                          const next    = isVisible
+                            ? current.filter(id => id !== type.id)
+                            : [...current, type.id]
+                          // Normalize: if all types are now selected, store [] (show all)
+                          updateConfig({ typeIds: next.length === allIds.length ? [] : next })
+                          // Don't close menu — lets user toggle multiple types in one session
+                        }}
+                      >
+                        <span className={styles.menuCheck}>{isVisible ? '✓' : ''}</span>
+                        {type.name}
+                      </div>
+                    )
+                  })}
+                </>
+              )}
               <div className={styles.menuSeparator} />
               <div className={styles.menuItem} onClick={handleExportPng}>
                 <span className={styles.menuCheck} />

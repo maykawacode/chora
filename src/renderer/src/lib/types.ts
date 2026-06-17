@@ -108,6 +108,7 @@ export interface TypeProjectionMapConfig extends BaseMapConfig {
   threshold: number      // min membership score for an element to contribute to a type's centroid
   sizeByWeight: boolean
   blobStyle: 'circle' | 'blob'  // 'circle' = single circle at centroid; 'blob' = convex hull spline
+  typeIds: string[]     // types to display; empty = show all
 }
 
 export type MapConfig = CartesianMapConfig | SemanticMapConfig | TypeProjectionMapConfig
