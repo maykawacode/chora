@@ -312,7 +312,7 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
   // Wraps updateMapConfig + IPC so changes made in either window stay in sync.
   // Map windows send broadcastMapConfig → main → Score Window's onMapConfig
   // listener → Score Window re-broadcasts full state to all maps.
-  function updateConfig(changes: Partial<CartesianMapConfig> | Partial<SemanticMapConfig>): void {
+  function updateConfig(changes: Partial<CartesianMapConfig> | Partial<SemanticMapConfig> | Partial<TypeProjectionMapConfig>): void {
     updateMapConfig(mapId, changes)
     window.api?.broadcastMapConfig(mapId, changes as Record<string, unknown>)
   }
@@ -776,6 +776,7 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
 
   const cartConfig = config as CartesianMapConfig
   const semConfig  = config as SemanticMapConfig
+  const projConfig = config as TypeProjectionMapConfig
 
   return (
     <div className={windowed ? styles.panelWindowed : styles.panel}>
@@ -836,6 +837,16 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
                 >
                   <span className={styles.menuCheck}>{(config as CartesianMapConfig).sizeByWeight ? '✓' : ''}</span>
                   Size by Weight
+                </div>
+              )}
+              {/* Blob groups — typeprojection maps only */}
+              {config.type === 'typeprojection' && (
+                <div
+                  className={styles.menuItem}
+                  onClick={() => { updateConfig({ blobStyle: projConfig.blobStyle === 'blob' ? 'circle' : 'blob' }); setShowMenu(false) }}
+                >
+                  <span className={styles.menuCheck}>{projConfig.blobStyle === 'blob' ? '✓' : ''}</span>
+                  Blob Groups
                 </div>
               )}
               <div className={styles.menuSeparator} />

@@ -136,6 +136,7 @@ export function CreateTypeProjectionMap({ onClose }: Props): React.JSX.Element {
       yFlipped: false,
       threshold,
       sizeByWeight: true,
+      blobStyle: 'circle',
       showLabels: prefs.defaultShowLabels,
       showDots: prefs.defaultShowDots,
       windowX: 100,
