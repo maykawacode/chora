@@ -130,7 +130,8 @@ export interface AppState {
   maps: MapConfig[]
   selectedElementId: string | null
   selectedDimensionId: string | null
-  activeTab: 'elements' | 'dimensions' | 'scores'
+  selectedTypeId: string | null
+  activeTab: 'elements' | 'dimensions' | 'scores' | 'types'
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -150,6 +151,26 @@ export function defaultCategories(): DimensionCategories {
 /** Returns a SessionMeta with a fresh UUID and empty strings. */
 export function defaultSessionMeta(): SessionMeta {
   return { id: crypto.randomUUID(), name: '', definition: '' }
+}
+
+/**
+ * Returns a display indicator showing how completely an element has been scored
+ * against the available types.
+ * '●' — all types scored
+ * '◇' — the currently selected type is scored (but not all)
+ * '–' — nothing scored yet (or no types exist)
+ */
+export function typeScoreStatus(
+  element: Element,
+  types: Type[],
+  scores: ScoreMap,
+  activeTypeId: string | null
+): '–' | '◇' | '●' {
+  if (types.length === 0) return '–'
+  const elScores = scores[element.id] ?? {}
+  if (types.every(t => elScores[t.id] !== undefined)) return '●'
+  if (activeTypeId && elScores[activeTypeId] !== undefined) return '◇'
+  return '–'
 }
 
 /**

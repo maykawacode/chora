@@ -61,6 +61,7 @@ interface AppStore extends AppState {
   // Score Window navigation
   selectElement:   (id: string | null) => void
   selectDimension: (id: string | null) => void
+  selectType:      (id: string | null) => void
   setActiveTab:    (tab: AppState['activeTab']) => void
 
   // Multi-select (map-window local; not persisted or synced via IPC)
@@ -89,6 +90,7 @@ const emptyState: AppState = {
   maps: [],
   selectedElementId: null,
   selectedDimensionId: null,
+  selectedTypeId: null,
   activeTab: 'elements'
 }
 
@@ -172,7 +174,12 @@ export const useAppStore = create<AppStore>((set) => ({
       const { [id]: _removed, ...rest } = elScores
       scores[elId] = rest
     }
-    return { types: remaining, scores, isDirty: true }
+    return {
+      types: remaining,
+      scores,
+      selectedTypeId: s.selectedTypeId === id ? null : s.selectedTypeId,
+      isDirty: true
+    }
   }),
 
   // ── Dimensions ──────────────────────────────────────────────────────────────
@@ -321,6 +328,7 @@ export const useAppStore = create<AppStore>((set) => ({
 
   selectElement:   (id) => set({ selectedElementId: id }),
   selectDimension: (id) => set({ selectedDimensionId: id }),
+  selectType:      (id) => set({ selectedTypeId: id }),
   setActiveTab:    (tab) => set({ activeTab: tab }),
 
   selectElements:         (ids) => set({ selectedElementIds: ids }),

@@ -166,6 +166,7 @@ export function deserializeSession(json: string): AppState {
     maps,
     selectedElementId: null,
     selectedDimensionId: null,
+    selectedTypeId: null,
     activeTab: 'elements'
   }
 }

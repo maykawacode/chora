@@ -329,6 +329,7 @@ export function App(): React.JSX.Element {
               // contradicted the "selection is driven by map dot clicks" model.
               selectedElementId:   null,
               selectedDimensionId: null,
+              selectedTypeId:      null,
               activeTab: 'elements'
             })
             setImportPreview(null)
