@@ -603,8 +603,8 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
 
     if (config.type === 'cartesian' || config.type === 'typeprojection') {
       const hit = cartesianHitDot(x, y, W, H, config as CartesianMapConfig, elements, scores)
-      if (hit)                                            { setCursor(e.shiftKey ? 'copy' : 'grab'); return }
-      if (config.type === 'cartesian' && cartesianHitEdge(x, y, W, H)) { setCursor('pointer'); return }
+      if (hit)                           { setCursor(e.shiftKey ? 'copy' : 'grab'); return }
+      if (cartesianHitEdge(x, y, W, H)) { setCursor('pointer'); return }
       setCursor(e.shiftKey ? 'crosshair' : 'default')
     } else if (config.type === 'semantic') {
       const hit = semanticHitDot(x, y, W, H, config as SemanticMapConfig, elements, dimensions, scores)
@@ -737,13 +737,10 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
         return
       }
       setSemanticPicker(null)
-      // Axis picker only on cartesian (typeprojection has no clickable axis lines)
-      if (config.type === 'cartesian') {
-        const edge = cartesianHitEdge(x, y, W, H)
-        if (edge) {
-          setAxisPicker({ edge, clickX: x, clickY: y })
-          return
-        }
+      const edge = cartesianHitEdge(x, y, W, H)
+      if (edge) {
+        setAxisPicker({ edge, clickX: x, clickY: y })
+        return
       }
       setAxisPicker(null)
       selectElement(null)
@@ -901,8 +898,8 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
           />
         )}
 
-        {/* Axis picker — shown when the user clicks a cartesian axis */}
-        {axisPicker && config.type === 'cartesian' && (
+        {/* Axis picker — shown when the user clicks a cartesian or typeprojection axis */}
+        {axisPicker && (config.type === 'cartesian' || config.type === 'typeprojection') && (
           <AxisPicker
             edge={axisPicker.edge}
             clickX={axisPicker.clickX}

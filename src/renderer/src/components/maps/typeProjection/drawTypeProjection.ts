@@ -64,19 +64,20 @@ function computePrototype(
   yDimId: string,
   threshold: number
 ): { x: number; y: number; memberCount: number } | null {
-  let sumX = 0, sumY = 0, count = 0
+  let sumX = 0, sumY = 0, totalWeight = 0, count = 0
   for (const el of elements) {
     const membership = scores[el.id]?.[type.id]
     if (membership === undefined || membership < threshold) continue
     const xScore = scores[el.id]?.[xDimId]
     const yScore = scores[el.id]?.[yDimId]
     if (xScore === undefined || yScore === undefined) continue
-    sumX += xScore
-    sumY += yScore
+    sumX += xScore * membership
+    sumY += yScore * membership
+    totalWeight += membership
     count++
   }
   if (count === 0) return null
-  return { x: sumX / count, y: sumY / count, memberCount: count }
+  return { x: sumX / totalWeight, y: sumY / totalWeight, memberCount: count }
 }
 
 export function drawTypeProjection(
