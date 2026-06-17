@@ -28,7 +28,6 @@ import { parseSpreadsheet } from './lib/importer'
 import type { ImportResult } from './lib/importer'
 import { exportSpreadsheet } from './lib/exporter'
 import type { CartesianMapConfig, SemanticMapConfig, Element } from './lib/types'
-import { defaultSessionMeta } from './lib/types'
 import type { Preferences } from './lib/preferences'
 import styles from './App.module.css'
 
@@ -319,11 +318,10 @@ export function App(): React.JSX.Element {
           result={importPreview.result}
           onCancel={() => setImportPreview(null)}
           onConfirm={() => {
-            const { elements, dimensions, scores } = importPreview.result
+            const { sessionMeta, elements, types, dimensions, scores } = importPreview.result
             loadSession({
               filePath: null, isDirty: true,
-              sessionMeta: defaultSessionMeta(),
-              elements, types: [], dimensions, scores, maps: [],
+              sessionMeta, elements, types, dimensions, scores, maps: [],
               // Selection defaults to none — consistent with the rest of the app.
               // Previously auto-selected the first element/dimension, which
               // contradicted the "selection is driven by map dot clicks" model.

@@ -1,34 +1,86 @@
 // ── Spreadsheet exporter ──────────────────────────────────────────────────────
 //
-// Writes the current session as a tab-separated (TSV) file.
-// The layout mirrors the import format so files round-trip cleanly:
+// Writes the current session as a tab-separated (TSV) file using the full
+// ##SECTION format. Covers all analysis data for a lossless round-trip:
 //
-//   [blank]       Dim1Label   Dim2Label   ...
-//   ElementName   0.750       0.333       ...
+//   ##SESSION        — name and definition of the analysis
+//   ##ELEMENTS       — name, definition, color, weight, shape per element
+//   ##TYPES          — name and definition per type
+//   ##DIMENSIONS     — label, poles, definition, weight per dimension
+//   ##TYPE_SCORES    — element × type membership matrix (0–1)
+//   ##DIMENSION_SCORES — element × dimension score matrix (0–1)
 //
-// Unscored cells are left empty. Scores are written to 3 decimal places
-// (e.g. 0.750) to avoid floating-point noise while preserving enough
-// precision that a re-import will produce visually identical results.
+// Application data (map configs, window positions, UUIDs) is intentionally
+// excluded — it is not meaningful outside this session instance.
+//
+// The file can be re-imported via Import Spreadsheet. Any section may be
+// omitted or partially edited; the importer fills missing fields with defaults.
 
 import type { AppState } from './types'
 
+function cell(s: string): string {
+  return s.replace(/\t/g, ' ').replace(/\r?\n/g, ' ')
+}
+
 export function exportSpreadsheet(state: AppState): string {
-  const { elements, dimensions, scores } = state
+  const { sessionMeta, elements, types, dimensions, scores } = state
+  const sections: string[] = []
 
-  const rows: string[][] = []
+  // ── ##SESSION ──────────────────────────────────────────────────────────────
+  sections.push([
+    '##SESSION',
+    `Name\t${cell(sessionMeta.name)}`,
+    `Definition\t${cell(sessionMeta.definition)}`
+  ].join('\n'))
 
-  // Header row: blank first cell, then one column per dimension
-  rows.push(['', ...dimensions.map(d => d.label)])
+  // ── ##ELEMENTS ─────────────────────────────────────────────────────────────
+  sections.push([
+    '##ELEMENTS',
+    'Name\tDefinition\tColor\tWeight\tShape',
+    ...elements.map(e => `${cell(e.name)}\t${cell(e.definition)}\t${e.color}\t${e.weight}\t${e.shape}`)
+  ].join('\n'))
 
-  // Data rows: element name, then one score cell per dimension
-  for (const el of elements) {
-    const row = [el.name]
-    for (const dim of dimensions) {
-      const v = scores[el.id]?.[dim.id]
-      row.push(v !== undefined ? v.toFixed(3) : '')
-    }
-    rows.push(row)
+  // ── ##TYPES ────────────────────────────────────────────────────────────────
+  sections.push([
+    '##TYPES',
+    'Name\tDefinition',
+    ...types.map(t => `${cell(t.name)}\t${cell(t.definition)}`)
+  ].join('\n'))
+
+  // ── ##DIMENSIONS ───────────────────────────────────────────────────────────
+  sections.push([
+    '##DIMENSIONS',
+    'Label\tPole A\tPole B\tDefinition\tWeight',
+    ...dimensions.map(d => `${cell(d.label)}\t${cell(d.poleA)}\t${cell(d.poleB)}\t${cell(d.definition)}\t${d.weight}`)
+  ].join('\n'))
+
+  // ── ##TYPE_SCORES ──────────────────────────────────────────────────────────
+  {
+    const header = ['', ...types.map(t => cell(t.name))].join('\t')
+    const rows = elements.map(el => {
+      const cells = [cell(el.name)]
+      for (const t of types) {
+        const v = scores[el.id]?.[t.id]
+        cells.push(v !== undefined ? v.toFixed(3) : '')
+      }
+      return cells.join('\t')
+    })
+    sections.push(['##TYPE_SCORES', header, ...rows].join('\n'))
   }
 
-  return rows.map(r => r.join('\t')).join('\n')
+  // ── ##DIMENSION_SCORES ─────────────────────────────────────────────────────
+  {
+    const header = ['', ...dimensions.map(d => cell(d.label))].join('\t')
+    const rows = elements.map(el => {
+      const cells = [cell(el.name)]
+      for (const dim of dimensions) {
+        const v = scores[el.id]?.[dim.id]
+        cells.push(v !== undefined ? v.toFixed(3) : '')
+      }
+      return cells.join('\t')
+    })
+    sections.push(['##DIMENSION_SCORES', header, ...rows].join('\n'))
+  }
+
+  return sections.join('\n\n')
 }
