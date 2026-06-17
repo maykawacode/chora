@@ -36,7 +36,7 @@ contextBridge.exposeInMainWorld('api', {
     const actions = [
       'menu:new', 'menu:open', 'menu:save', 'menu:save-as',
       'menu:import-spreadsheet', 'menu:export-spreadsheet',
-      'menu:create-cartesian', 'menu:create-semantic',
+      'menu:create-cartesian', 'menu:create-semantic', 'menu:create-typeprojection',
       'menu:preferences'
     ]
     const handlers = actions.map(channel => {

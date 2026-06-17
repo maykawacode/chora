@@ -15,9 +15,10 @@
 import { useRef, useEffect, useCallback, useState } from 'react'
 import { useAppStore } from '../../store/appStore'
 import { usePrefsStore } from '../../store/prefsStore'
-import type { CartesianMapConfig, SemanticMapConfig, Dimension, ScoreMap } from '../../lib/types'
+import type { CartesianMapConfig, SemanticMapConfig, TypeProjectionMapConfig, Dimension, ScoreMap } from '../../lib/types'
 import { drawCartesian, MARGIN, DOT_MIN_RADIUS, DOT_MAX_RADIUS } from './cartesian/drawCartesian'
 import { drawSemantic, SEM_MARGIN_H, SEM_MARGIN_V, SEM_DOT_R } from './semantic/drawSemantic'
+import { drawTypeProjection } from './typeProjection/drawTypeProjection'
 import { ElementDetailModal } from './ElementDetailModal'
 import { BulkEditModal } from './BulkEditModal'
 import styles from './MapPanel.module.css'
@@ -287,6 +288,7 @@ interface Props {
 export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element | null {
   const config              = useAppStore(s => s.maps.find(m => m.id === mapId))
   const elements            = useAppStore(s => s.elements)
+  const types               = useAppStore(s => s.types)
   const dimensions          = useAppStore(s => s.dimensions)
   const scores              = useAppStore(s => s.scores)
   const isDirty             = useAppStore(s => s.isDirty)
@@ -424,9 +426,12 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
       drawSemantic(ctx, cssW, cssH, config as SemanticMapConfig, elements, dimensions, scores,
         semDraggingRef.current?.elementId, selectedElementId ?? undefined,
         elementLabelSize, dimensionLabelSize, selectedElementIds)
+    } else if (config.type === 'typeprojection') {
+      drawTypeProjection(ctx, cssW, cssH, config as TypeProjectionMapConfig, elements, types, dimensions, scores,
+        selectedElementId ?? undefined, elementLabelSize, dimensionLabelSize, selectedElementIds)
     }
 
-    // Lasso overlay — applies to both map types
+    // Lasso overlay — applies to all map types
     if (lassoRef.current) {
       const { x1, y1, x2, y2 } = lassoRef.current
       ctx.save()
@@ -438,7 +443,7 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
     }
   // selectedElementId, selectedElementIds, elementLabelSize, dimensionLabelSize must all be deps:
   // any of them changing should immediately repaint the canvas.
-  }, [config, elements, dimensions, scores, selectedElementId, selectedElementIds, elementLabelSize, dimensionLabelSize])
+  }, [config, elements, types, dimensions, scores, selectedElementId, selectedElementIds, elementLabelSize, dimensionLabelSize])
 
   // Redraw whenever any input data changes
   useEffect(() => { redraw() }, [redraw])
@@ -462,8 +467,9 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
     const x = e.clientX - rect.left
     const y = e.clientY - rect.top
 
-    if (config.type === 'cartesian') {
-      const hit = cartesianHitDot(x, y, rect.width, rect.height, config as CartesianMapConfig, elements, scores)
+    if (config.type === 'cartesian' || config.type === 'typeprojection') {
+      const cartCfg = config as CartesianMapConfig | TypeProjectionMapConfig
+      const hit = cartesianHitDot(x, y, rect.width, rect.height, cartCfg as CartesianMapConfig, elements, scores)
       if (hit) {
         if (e.shiftKey) return  // defer to handleClick for toggle selection
         draggingRef.current  = { ...hit, startX: x, startY: y, lockedAxis: null }
@@ -510,9 +516,9 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
 
     // ── Active cartesian drag ─────────────────────────────────────────────────
 
-    if (draggingRef.current && config.type === 'cartesian') {
+    if (draggingRef.current && (config.type === 'cartesian' || config.type === 'typeprojection')) {
       const drag    = draggingRef.current
-      const cartCfg = config as CartesianMapConfig
+      const cartCfg = config as CartesianMapConfig | TypeProjectionMapConfig
 
       if (!dragMovedRef.current) {
         const dx = Math.abs(x - drag.startX), dy = Math.abs(y - drag.startY)
@@ -595,10 +601,10 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
 
     // ── Hover cursor ──────────────────────────────────────────────────────────
 
-    if (config.type === 'cartesian') {
+    if (config.type === 'cartesian' || config.type === 'typeprojection') {
       const hit = cartesianHitDot(x, y, W, H, config as CartesianMapConfig, elements, scores)
-      if (hit)                           { setCursor(e.shiftKey ? 'copy' : 'grab'); return }
-      if (cartesianHitEdge(x, y, W, H)) { setCursor('pointer'); return }
+      if (hit)                                            { setCursor(e.shiftKey ? 'copy' : 'grab'); return }
+      if (config.type === 'cartesian' && cartesianHitEdge(x, y, W, H)) { setCursor('pointer'); return }
       setCursor(e.shiftKey ? 'crosshair' : 'default')
     } else if (config.type === 'semantic') {
       const hit = semanticHitDot(x, y, W, H, config as SemanticMapConfig, elements, dimensions, scores)
@@ -617,7 +623,7 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
           const { width, height } = wrapper.getBoundingClientRect()
           const { x1, y1, x2, y2 } = lassoRef.current
           const existing = useAppStore.getState().selectedElementIds
-          if (config.type === 'cartesian') {
+          if (config.type === 'cartesian' || config.type === 'typeprojection') {
             const newIds = cartesianHitRect(x1, y1, x2, y2, width, height,
               config as CartesianMapConfig, elements, scores)
             selectElements([...new Set([...existing, ...newIds])])
@@ -688,7 +694,7 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
     const H = rect.height
 
     let hitId: string | null = null
-    if (config.type === 'cartesian') {
+    if (config.type === 'cartesian' || config.type === 'typeprojection') {
       const hit = cartesianHitDot(x, y, W, H, config as CartesianMapConfig, elements, scores)
       if (hit) hitId = hit.elementId
     } else if (config.type === 'semantic') {
@@ -723,7 +729,7 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
     const W = rect.width
     const H = rect.height
 
-    if (config.type === 'cartesian') {
+    if (config.type === 'cartesian' || config.type === 'typeprojection') {
       const dotHit = cartesianHitDot(x, y, W, H, config as CartesianMapConfig, elements, scores)
       if (dotHit) {
         if (e.shiftKey) toggleElementSelection(dotHit.elementId)
@@ -731,15 +737,18 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
         return
       }
       setSemanticPicker(null)
-      const edge = cartesianHitEdge(x, y, W, H)
-      if (edge) {
-        setAxisPicker({ edge, clickX: x, clickY: y })
-      } else {
-        setAxisPicker(null)
-        selectElement(null)
-        clearElementSelection()
-        window.api?.broadcastSelection(null)
+      // Axis picker only on cartesian (typeprojection has no clickable axis lines)
+      if (config.type === 'cartesian') {
+        const edge = cartesianHitEdge(x, y, W, H)
+        if (edge) {
+          setAxisPicker({ edge, clickX: x, clickY: y })
+          return
+        }
       }
+      setAxisPicker(null)
+      selectElement(null)
+      clearElementSelection()
+      window.api?.broadcastSelection(null)
     } else if (config.type === 'semantic') {
       setAxisPicker(null)
       const semCfg = config as SemanticMapConfig
@@ -822,13 +831,13 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
                 <span className={styles.menuCheck}>{config.showLabels ? '✓' : ''}</span>
                 Show Labels
               </div>
-              {/* Size by weight — cartesian maps only */}
-              {config.type === 'cartesian' && (
+              {/* Size by weight — cartesian and typeprojection maps */}
+              {(config.type === 'cartesian' || config.type === 'typeprojection') && (
                 <div
                   className={styles.menuItem}
-                  onClick={() => { updateConfig({ sizeByWeight: !config.sizeByWeight }); setShowMenu(false) }}
+                  onClick={() => { updateConfig({ sizeByWeight: !(config as CartesianMapConfig).sizeByWeight }); setShowMenu(false) }}
                 >
-                  <span className={styles.menuCheck}>{config.sizeByWeight ? '✓' : ''}</span>
+                  <span className={styles.menuCheck}>{(config as CartesianMapConfig).sizeByWeight ? '✓' : ''}</span>
                   Size by Weight
                 </div>
               )}

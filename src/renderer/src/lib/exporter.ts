@@ -18,26 +18,33 @@
 
 import type { AppState } from './types'
 
+// Sanitize a plain text cell: collapse tabs and newlines to spaces.
 function cell(s: string): string {
   return s.replace(/\t/g, ' ').replace(/\r?\n/g, ' ')
+}
+
+// Wrap a text value in double-quotes, escaping any embedded quotes as "".
+// Used for definition fields so they survive round-trips through Excel/Numbers.
+function quoted(s: string): string {
+  return `"${cell(s).replace(/"/g, '""')}"`
 }
 
 export function exportSpreadsheet(state: AppState): string {
   const { sessionMeta, elements, types, dimensions, scores } = state
   const sections: string[] = []
 
-  // ── ##SESSION ──────────────────────────────────────────────────────────────
+  // ── ##SESSION — header row then one data row ────────────────────────────────
   sections.push([
     '##SESSION',
-    `Name\t${cell(sessionMeta.name)}`,
-    `Definition\t${cell(sessionMeta.definition)}`
+    'Name\tPurpose of Analysis',
+    `${cell(sessionMeta.name)}\t${cell(sessionMeta.definition)}`
   ].join('\n'))
 
   // ── ##ELEMENTS ─────────────────────────────────────────────────────────────
   sections.push([
     '##ELEMENTS',
     'Name\tDefinition\tColor\tWeight\tShape',
-    ...elements.map(e => `${cell(e.name)}\t${cell(e.definition)}\t${e.color}\t${e.weight}\t${e.shape}`)
+    ...elements.map(e => `${cell(e.name)}\t${quoted(e.definition)}\t${e.color}\t${e.weight}\t${e.shape}`)
   ].join('\n'))
 
   // ── ##TYPES ────────────────────────────────────────────────────────────────

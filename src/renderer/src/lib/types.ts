@@ -64,7 +64,7 @@ export type ScoreMap = Record<string, Record<string, number | undefined>>
 // session. Window geometry (x/y/width/height) is stored here so it can be
 // restored on next open when rememberWindowPositions is enabled.
 
-export type MapType = 'cartesian' | 'semantic' | 'typegroup'
+export type MapType = 'cartesian' | 'semantic' | 'typeprojection'
 
 export interface BaseMapConfig {
   id: string
@@ -94,16 +94,22 @@ export interface SemanticMapConfig extends BaseMapConfig {
   flippedDimensionIds: string[]  // subset of dimensionIds whose poles are reversed
 }
 
-// TypeGroupMapConfig — groups elements by their highest type membership score.
-// Elements whose top-matching type score is below `threshold` are ungrouped.
-export interface TypeGroupMapConfig extends BaseMapConfig {
-  type: 'typegroup'
-  typeIds: string[]      // ordered list of types to display as columns/groups
-  elementIds: string[]   // elements to include; empty = all elements
-  threshold: number      // minimum membership score to place element in a group (default 0.5)
+// TypeProjectionMapConfig — projects types into a 2D dimension space.
+// Each type is drawn as a translucent halo centered on the prototype position —
+// the centroid of dimension scores for all elements with membership >= threshold.
+// Element dots are plotted by their own dimension scores (same as cartesian).
+// Dragging an element updates its dimension scores and halos recompute live.
+export interface TypeProjectionMapConfig extends BaseMapConfig {
+  type: 'typeprojection'
+  xDimensionId: string
+  yDimensionId: string
+  xFlipped: boolean
+  yFlipped: boolean
+  threshold: number      // min membership score for an element to contribute to a type's centroid
+  sizeByWeight: boolean
 }
 
-export type MapConfig = CartesianMapConfig | SemanticMapConfig | TypeGroupMapConfig
+export type MapConfig = CartesianMapConfig | SemanticMapConfig | TypeProjectionMapConfig
 
 // ── Application state ─────────────────────────────────────────────────────────
 //

@@ -27,6 +27,17 @@ import { v4 as uuid } from 'uuid'
 import type { Element, Dimension, ScoreMap, SessionMeta, Type } from './types'
 import { defaultCategories, defaultSessionMeta, parsePoles } from './types'
 
+// Strip surrounding double-quotes and unescape "" → " (standard TSV/CSV quoting).
+function stripQuotes(s: string): string {
+  if (s.startsWith('"') && s.endsWith('"')) return s.slice(1, -1).replace(/""/g, '"')
+  return s
+}
+
+// Trim whitespace then strip surrounding quotes from a raw cell value.
+function tc(raw: string | undefined): string {
+  return stripQuotes((raw ?? '').trim())
+}
+
 export interface ImportResult {
   sessionMeta: SessionMeta
   elements:    Element[]
@@ -52,11 +63,17 @@ function parseFullSpreadsheet(text: string): ImportResult {
   const warnings: string[] = []
 
   // ── Session ────────────────────────────────────────────────────────────────
+  // Format: header row (Name | <definition label>) then one data row.
   const sessionRows = sections['SESSION'] ?? []
-  const sessionMeta: SessionMeta = {
-    id:         crypto.randomUUID(),
-    name:       sessionRows.find(r => r[0]?.trim() === 'Name')?.slice(1).join('\t') ?? '',
-    definition: sessionRows.find(r => r[0]?.trim() === 'Definition')?.slice(1).join('\t') ?? ''
+  const sessionMeta: SessionMeta = { id: crypto.randomUUID(), name: '', definition: '' }
+  if (sessionRows.length >= 2) {
+    const hdr  = sessionRows[0].map(h => h.trim().toLowerCase())
+    const data = sessionRows[1]
+    const nameCol = Math.max(0, hdr.indexOf('name'))
+    // definition lives in the first column that isn't 'name'
+    const defCol  = hdr.findIndex((h, i) => i !== nameCol && h !== '')
+    sessionMeta.name       = tc(data[nameCol])
+    sessionMeta.definition = defCol >= 0 ? tc(data[defCol]) : ''
   }
 
   // ── Elements ───────────────────────────────────────────────────────────────
@@ -72,16 +89,16 @@ function parseFullSpreadsheet(text: string): ImportResult {
     const shapeCol  = hdr.indexOf('shape')
 
     for (const row of elemRows.slice(1)) {
-      const name = row[nameCol]?.trim()
+      const name = tc(row[nameCol])
       if (!name) continue
-      const rawColor  = row[colorCol]?.trim() ?? ''
-      const rawShape  = row[shapeCol]?.trim() ?? ''
+      const rawColor = tc(row[colorCol])
+      const rawShape = tc(row[shapeCol])
       elementsByName.set(name, {
         id:         uuid(),
         name,
-        definition: defCol >= 0 ? (row[defCol]?.trim() ?? '') : '',
+        definition: defCol >= 0 ? tc(row[defCol]) : '',
         color:      /^#[0-9a-fA-F]{6}$/.test(rawColor) ? rawColor : '#9d9d53',
-        weight:     weightCol >= 0 ? Math.max(1, Math.min(100, parseInt(row[weightCol]) || 1)) : 1,
+        weight:     weightCol >= 0 ? Math.max(1, Math.min(100, parseInt(row[weightCol] ?? '') || 1)) : 1,
         shape:      (['circle', 'square', 'triangle', 'diamond'] as const).includes(rawShape as Element['shape'])
                       ? rawShape as Element['shape'] : 'circle'
       })
@@ -98,12 +115,12 @@ function parseFullSpreadsheet(text: string): ImportResult {
     const defCol  = hdr.indexOf('definition')
 
     for (const row of typeRows.slice(1)) {
-      const name = row[nameCol]?.trim()
+      const name = tc(row[nameCol])
       if (!name) continue
       typesByName.set(name, {
         id:         uuid(),
         name,
-        definition: defCol >= 0 ? (row[defCol]?.trim() ?? '') : ''
+        definition: defCol >= 0 ? tc(row[defCol]) : ''
       })
     }
   }
@@ -121,16 +138,16 @@ function parseFullSpreadsheet(text: string): ImportResult {
     const weightCol = hdr.indexOf('weight')
 
     for (const row of dimRows.slice(1)) {
-      const label = row[labelCol]?.trim()
+      const label = tc(row[labelCol])
       if (!label) continue
       const derived = parsePoles(label)
       dimensionsByName.set(label, {
         id:         uuid(),
         label,
-        poleA:      (poleACol >= 0 ? row[poleACol]?.trim() : '') || derived.poleA,
-        poleB:      (poleBCol >= 0 ? row[poleBCol]?.trim() : '') || derived.poleB,
-        definition: defCol    >= 0 ? (row[defCol]?.trim()    ?? '') : '',
-        weight:     weightCol >= 0 ? Math.max(1, Math.min(100, parseInt(row[weightCol]) || 1)) : 1,
+        poleA:      (poleACol >= 0 ? tc(row[poleACol]) : '') || derived.poleA,
+        poleB:      (poleBCol >= 0 ? tc(row[poleBCol]) : '') || derived.poleB,
+        definition: defCol    >= 0 ? tc(row[defCol])         : '',
+        weight:     weightCol >= 0 ? Math.max(1, Math.min(100, parseInt(row[weightCol] ?? '') || 1)) : 1,
         categories: defaultCategories()
       })
     }
@@ -146,62 +163,78 @@ function parseFullSpreadsheet(text: string): ImportResult {
   }
 
   // ── Type scores ────────────────────────────────────────────────────────────
+  // When ##TYPES was present, columns are matched to types by position (N→N).
+  // Column headers are treated as human-readable labels only.
+  // When ##TYPES was absent, fall back to name-based find-or-create.
   const typeScoreRows = sections['TYPE_SCORES'] ?? []
   if (typeScoreRows.length >= 2) {
-    const colNames = typeScoreRows[0].slice(1).map(h => h.trim())
+    const colHeaders = typeScoreRows[0].slice(1).map(h => h.trim())
+    const typeList = [...typesByName.values()]
+    const usePositional = sections['TYPES'] !== undefined
 
-    for (const name of colNames) {
-      if (name && !typesByName.has(name)) typesByName.set(name, { id: uuid(), name, definition: '' })
-    }
+    const colTypes: (Type | null)[] = colHeaders.map((header, i) => {
+      if (!header) return null
+      if (usePositional) return typeList[i] ?? null
+      if (!typesByName.has(header)) typesByName.set(header, { id: uuid(), name: header, definition: '' })
+      return typesByName.get(header)!
+    })
 
     for (const row of typeScoreRows.slice(1)) {
-      const elName = row[0]?.trim()
+      const elName = tc(row[0])
       if (!elName) continue
       const el = ensureElement(elName)
       scores[el.id] = scores[el.id] ?? {}
 
-      for (let j = 0; j < colNames.length; j++) {
-        const typeName = colNames[j]
-        if (!typeName) continue
-        const t = typesByName.get(typeName)!
-        const cell = row[j + 1]?.trim()
-        if (!cell) continue
-        const v = parseFloat(cell)
-        if (isNaN(v)) warnings.push(`Type scores: "${elName}" × "${typeName}": "${cell}" is not a number — skipped.`)
+      for (let j = 0; j < colHeaders.length; j++) {
+        const t = colTypes[j]
+        if (!t) continue
+        const cellVal = row[j + 1]?.trim()
+        if (!cellVal) continue
+        const v = parseFloat(cellVal)
+        if (isNaN(v)) warnings.push(`Type scores: "${elName}" × "${colHeaders[j]}": "${cellVal}" is not a number — skipped.`)
         else scores[el.id][t.id] = Math.max(0, Math.min(1, v))
       }
     }
   }
 
   // ── Dimension scores ───────────────────────────────────────────────────────
+  // When ##DIMENSIONS was present, columns are matched to dimensions by position
+  // (N→N). Column headers are treated as human-readable labels only, so the user
+  // can use short names in the score matrix without breaking the import.
+  // When ##DIMENSIONS was absent, fall back to name-based find-or-create.
   const dimScoreRows = sections['DIMENSION_SCORES'] ?? []
   if (dimScoreRows.length >= 2) {
-    const colNames = dimScoreRows[0].slice(1).map(h => h.trim())
+    const colHeaders = dimScoreRows[0].slice(1).map(h => h.trim())
+    const dimList = [...dimensionsByName.values()]
+    const usePositional = sections['DIMENSIONS'] !== undefined
 
-    for (const label of colNames) {
-      if (label && !dimensionsByName.has(label)) {
-        const derived = parsePoles(label)
-        dimensionsByName.set(label, {
-          id: uuid(), label, poleA: derived.poleA, poleB: derived.poleB,
+    const colDims: (Dimension | null)[] = colHeaders.map((header, i) => {
+      if (!header) return null
+      if (usePositional) return dimList[i] ?? null
+      if (!dimensionsByName.has(header)) {
+        const derived = parsePoles(header)
+        const dim: Dimension = {
+          id: uuid(), label: header, poleA: derived.poleA, poleB: derived.poleB,
           definition: '', weight: 1, categories: defaultCategories()
-        })
+        }
+        dimensionsByName.set(header, dim)
       }
-    }
+      return dimensionsByName.get(header)!
+    })
 
     for (const row of dimScoreRows.slice(1)) {
-      const elName = row[0]?.trim()
+      const elName = tc(row[0])
       if (!elName) continue
       const el = ensureElement(elName)
       scores[el.id] = scores[el.id] ?? {}
 
-      for (let j = 0; j < colNames.length; j++) {
-        const label = colNames[j]
-        if (!label) continue
-        const dim = dimensionsByName.get(label)!
-        const cell = row[j + 1]?.trim()
-        if (!cell) continue
-        const v = parseFloat(cell)
-        if (isNaN(v)) warnings.push(`Dimension scores: "${elName}" × "${label}": "${cell}" is not a number — skipped.`)
+      for (let j = 0; j < colHeaders.length; j++) {
+        const dim = colDims[j]
+        if (!dim) continue
+        const cellVal = row[j + 1]?.trim()
+        if (!cellVal) continue
+        const v = parseFloat(cellVal)
+        if (isNaN(v)) warnings.push(`Dimension scores: "${elName}" × "${colHeaders[j]}": "${cellVal}" is not a number — skipped.`)
         else scores[el.id][dim.id] = Math.max(0, Math.min(1, v))
       }
     }

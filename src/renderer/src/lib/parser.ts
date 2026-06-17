@@ -131,20 +131,23 @@ export function deserializeSession(json: string): AppState {
         flippedDimensionIds: Array.isArray(m.flippedDimensionIds) ? m.flippedDimensionIds as string[] : []
       }
     }
-    if (m.type === 'typegroup') {
+    if (m.type === 'typeprojection') {
       return {
         id:           requireString(m.id, 'map.id'),
-        type:         'typegroup' as const,
-        title:        typeof m.title       === 'string'  ? m.title       : 'Type Map',
+        type:         'typeprojection' as const,
+        title:        typeof m.title        === 'string'  ? m.title        : 'Type Map',
         showLabels:   m.showLabels  !== false,
         showDots:     m.showDots    !== false,
-        windowX:      typeof m.windowX      === 'number' ? m.windowX      : 100,
-        windowY:      typeof m.windowY      === 'number' ? m.windowY      : 100,
-        windowWidth:  typeof m.windowWidth  === 'number' ? m.windowWidth  : 600,
-        windowHeight: typeof m.windowHeight === 'number' ? m.windowHeight : 500,
-        typeIds:    Array.isArray(m.typeIds)    ? m.typeIds    as string[] : [],
-        elementIds: Array.isArray(m.elementIds) ? m.elementIds as string[] : [],
-        threshold:  typeof m.threshold === 'number' ? m.threshold : 0.5
+        windowX:      typeof m.windowX      === 'number'  ? m.windowX      : 100,
+        windowY:      typeof m.windowY      === 'number'  ? m.windowY      : 100,
+        windowWidth:  typeof m.windowWidth  === 'number'  ? m.windowWidth  : 650,
+        windowHeight: typeof m.windowHeight === 'number'  ? m.windowHeight : 550,
+        xDimensionId: typeof m.xDimensionId === 'string'  ? m.xDimensionId : '',
+        yDimensionId: typeof m.yDimensionId === 'string'  ? m.yDimensionId : '',
+        xFlipped:     m.xFlipped     === true,
+        yFlipped:     m.yFlipped     === true,
+        threshold:    typeof m.threshold    === 'number'  ? m.threshold    : 0.5,
+        sizeByWeight: m.sizeByWeight !== false
       }
     }
     throw new Error(`Unknown map type: ${m.type}`)
