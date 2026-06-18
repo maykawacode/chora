@@ -102,13 +102,13 @@ export function App(): React.JSX.Element {
       const prevIds = new Set(prevState.maps.map(m => m.id))
       for (const map of state.maps) {
         if (!prevIds.has(map.id)) {
-          window.api.openMap(map.id, JSON.stringify({ isDirty: state.isDirty, session: serializeSession(state), selectedElementId: state.selectedElementId, selectedElementIds: state.selectedElementIds }))
+          window.api.openMap(map.id, JSON.stringify({ isDirty: state.isDirty, filePath: state.filePath, session: serializeSession(state), selectedElementId: state.selectedElementId, selectedElementIds: state.selectedElementIds }))
         }
       }
 
       // Broadcast full state to all open map windows (unless we're mid-IPC-receive)
       if (!suppressBroadcast.current) {
-        window.api.broadcastState(JSON.stringify({ isDirty: state.isDirty, session: serializeSession(state), selectedElementId: state.selectedElementId, selectedElementIds: state.selectedElementIds }))
+        window.api.broadcastState(JSON.stringify({ isDirty: state.isDirty, filePath: state.filePath, session: serializeSession(state), selectedElementId: state.selectedElementId, selectedElementIds: state.selectedElementIds }))
       }
     })
   }, [])
@@ -146,7 +146,7 @@ export function App(): React.JSX.Element {
       useAppStore.getState().updateElement(elementId, changes as Partial<Element>)
       suppressBroadcast.current = false
       const s = useAppStore.getState()
-      window.api.broadcastState(JSON.stringify({ isDirty: s.isDirty, session: serializeSession(s), selectedElementId: s.selectedElementId }))
+      window.api.broadcastState(JSON.stringify({ isDirty: s.isDirty, filePath: s.filePath, session: serializeSession(s), selectedElementId: s.selectedElementId }))
     })
 
     // Quit requested — show confirm dialog if dirty, otherwise let it proceed

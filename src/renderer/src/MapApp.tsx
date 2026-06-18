@@ -32,8 +32,9 @@ export function MapApp(): React.JSX.Element {
   const updateMapConfig     = useAppStore(s => s.updateMapConfig)
   const setPrefs            = usePrefsStore(s => s.setPrefs)
 
-  // Sync OS window title to the map's title field in state
+  // Sync OS window title to the map's title and file name
   const mapTitle = useAppStore(s => mapId ? (s.maps.find(m => m.id === mapId)?.title ?? '') : '')
+  const filePath = useAppStore(s => s.filePath)
 
   // ── IPC listener registration ─────────────────────────────────────────────
   //
@@ -48,10 +49,11 @@ export function MapApp(): React.JSX.Element {
     // closure without needing to be passed as a parameter.
     const applyStatePayload = (payload: string, context: string): void => {
       try {
-        const { isDirty, session, selectedElementId, selectedElementIds } = JSON.parse(payload)
+        const { isDirty, filePath, session, selectedElementId, selectedElementIds } = JSON.parse(payload)
         loadSession({
           ...deserializeSession(session),
           isDirty:           isDirty           ?? false,
+          filePath:          filePath          ?? null,
           selectedElementId: selectedElementId ?? null
         })
         selectElements(selectedElementIds ?? [])
@@ -97,8 +99,11 @@ export function MapApp(): React.JSX.Element {
   // ── OS window title sync ──────────────────────────────────────────────────
 
   useEffect(() => {
-    if (mapTitle) document.title = mapTitle
-  }, [mapTitle])
+    if (mapTitle) {
+      const fileName = filePath ? (filePath.split('/').pop() ?? '') : ''
+      document.title = fileName ? `${mapTitle} — ${fileName}` : mapTitle
+    }
+  }, [mapTitle, filePath])
 
   // ── Render ────────────────────────────────────────────────────────────────
   //

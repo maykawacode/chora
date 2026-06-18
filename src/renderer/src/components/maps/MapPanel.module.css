@@ -49,11 +49,30 @@
   -webkit-app-region: drag;
 }
 
+.titleGroup {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  -webkit-app-region: no-drag;
+}
+
 .title {
   font-size: 12px;
   font-weight: 600;
   color: #333;
   cursor: text;
+  -webkit-app-region: no-drag;
+}
+
+.titleFileName {
+  font-size: 12px;
+  font-weight: 600;
+  color: #999;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
   -webkit-app-region: no-drag;
 }
 

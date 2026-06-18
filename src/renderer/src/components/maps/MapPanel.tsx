@@ -287,6 +287,7 @@ interface Props {
 
 export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element | null {
   const config              = useAppStore(s => s.maps.find(m => m.id === mapId))
+  const filePath            = useAppStore(s => s.filePath)
   const elements            = useAppStore(s => s.elements)
   const types               = useAppStore(s => s.types)
   const dimensions          = useAppStore(s => s.dimensions)
@@ -804,13 +805,20 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
             }}
           />
         ) : (
-          <span
-            className={styles.title}
-            onDoubleClick={startEditingTitle}
-            title="Double-click to rename"
-          >
-            {config.title}
-          </span>
+          <div className={styles.titleGroup}>
+            <span
+              className={styles.title}
+              onDoubleClick={startEditingTitle}
+              title="Double-click to rename"
+            >
+              {config.title}
+            </span>
+            {windowed && filePath && (
+              <span className={styles.titleFileName}>
+                {filePath.split('/').pop()}
+              </span>
+            )}
+          </div>
         )}
 
         <div className={styles.titleBarActions} ref={menuRef}>
