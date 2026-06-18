@@ -1,0 +1,114 @@
+/* Extra layout for the types panel (list + add-input), layered on top of
+   the shared ScoresTab.module.css styles. */
+
+.typesPanel {
+  border-left: 1px solid #d0cdc8;
+}
+
+/* ── Add-type input row ── */
+
+.addRow {
+  display: flex;
+  gap: 4px;
+  padding-top: 5px;
+  flex-shrink: 0;
+}
+
+.addInput {
+  flex: 1;
+  min-width: 0;
+  padding: 3px 5px;
+  border: 1px solid #b0a898;
+  border-radius: 4px;
+  background: #fff;
+  font-size: 12px;
+  font-family: inherit;
+}
+
+.addInput:focus {
+  outline: none;
+  border-color: #6a5a9a;
+}
+
+/* ── Inline name editor (shown when a type is selected) ── */
+
+.inlineInput {
+  flex: 1;
+  min-width: 0;
+  padding: 0 2px;
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.6);
+  background: transparent;
+  font-size: 12px;
+  font-family: inherit;
+  color: inherit;
+  outline: none;
+  cursor: text;
+}
+
+.inlineInput:focus {
+  border-bottom-color: #fff;
+}
+
+/* ── Delete confirmation overlay ── */
+
+.confirmOverlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.confirmBox {
+  background: #f5f3f0;
+  border: 1px solid #b0a898;
+  border-radius: 6px;
+  padding: 16px 20px;
+  max-width: 280px;
+  text-align: center;
+  font-size: 13px;
+  color: #333;
+}
+
+.confirmBox p {
+  margin: 0 0 14px;
+  line-height: 1.5;
+}
+
+.confirmButtons {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.confirmCancel {
+  padding: 4px 12px;
+  border: 1px solid #b0a898;
+  border-radius: 4px;
+  background: #e8e5e0;
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.confirmCancel:hover {
+  background: #d8d5d0;
+}
+
+.confirmDelete {
+  padding: 4px 12px;
+  border: 1px solid #8b2020;
+  border-radius: 4px;
+  background: #b03030;
+  color: #fff;
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.confirmDelete:hover {
+  background: #922020;
+}
