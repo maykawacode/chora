@@ -15,7 +15,8 @@ import { create } from 'zustand'
 import { v4 as uuid } from 'uuid'
 import type {
   AppState, Element, Type, Dimension, DimensionCategories, SessionMeta,
-  MapConfig, CartesianMapConfig, SemanticMapConfig, TypeProjectionMapConfig
+  MapConfig, CartesianMapConfig, SemanticMapConfig, TypeProjectionMapConfig,
+  ElementShape
 } from '../lib/types'
 import { defaultCategories, defaultSessionMeta, parsePoles } from '../lib/types'
 import { usePrefsStore } from './prefsStore'
@@ -60,6 +61,11 @@ interface AppStore extends AppState {
   randomizeScores:   (dimensionId: string) => void
   randomizeWeights:  () => void
   randomizeColors:   () => void
+  typeToElementColor: () => void
+  typeToElementShape: () => void
+  shapeToColor:       () => void
+  colorToShape:       () => void
+  shapeToType:        () => void
 
   // Score Window navigation
   selectElement:   (id: string | null) => void
@@ -95,6 +101,38 @@ const emptyState: AppState = {
   selectedDimensionId: null,
   selectedTypeId: null,
   activeTab: 'elements'
+}
+
+// ── Shape / color conversion helpers ─────────────────────────────────────────
+
+const SHAPE_SEQUENCE: ElementShape[] = ['circle', 'square', 'triangle', 'diamond']
+
+const SHAPE_COLORS: Record<ElementShape, string> = {
+  circle:   '#4080c0',
+  square:   '#c04040',
+  triangle: '#40a040',
+  diamond:  '#a040a0',
+}
+
+function hexToHue(hex: string): number {
+  const r = parseInt(hex.slice(1, 3), 16) / 255
+  const g = parseInt(hex.slice(3, 5), 16) / 255
+  const b = parseInt(hex.slice(5, 7), 16) / 255
+  const max = Math.max(r, g, b), min = Math.min(r, g, b)
+  if (max === min) return 0
+  const d = max - min
+  let h: number
+  if (max === r)      h = (g - b) / d + (g < b ? 6 : 0)
+  else if (max === g) h = (b - r) / d + 2
+  else                h = (r - g) / d + 4
+  return (h / 6) * 360
+}
+
+function hueToShape(hue: number): ElementShape {
+  if (hue < 30 || hue >= 330) return 'circle'
+  if (hue < 150)              return 'square'
+  if (hue < 270)              return 'triangle'
+  return 'diamond'
 }
 
 // ── Store implementation ──────────────────────────────────────────────────────
@@ -357,6 +395,63 @@ export const useAppStore = create<AppStore>((set) => ({
     }),
     isDirty: true
   })),
+
+  // Sets each element's color from the color of its dominant type (highest score).
+  // Elements with no type scores are left unchanged.
+  typeToElementColor: () => set((s) => ({
+    elements: s.elements.map(el => {
+      let bestScore = -1
+      let bestColor: string | null = null
+      for (const t of s.types) {
+        const score = s.scores[el.id]?.[t.id] ?? -1
+        if (score > bestScore) { bestScore = score; bestColor = t.color }
+      }
+      return bestColor !== null && bestScore >= 0 ? { ...el, color: bestColor } : el
+    }),
+    isDirty: true
+  })),
+
+  // Sets each element's shape from its dominant type, assigning shapes by type
+  // creation order (circle, square, triangle, diamond, cycling). Elements with
+  // no type scores are left unchanged.
+  typeToElementShape: () => set((s) => ({
+    elements: s.elements.map(el => {
+      let bestScore = -1
+      let bestShape: ElementShape | null = null
+      s.types.forEach((t, i) => {
+        const score = s.scores[el.id]?.[t.id] ?? -1
+        if (score > bestScore) { bestScore = score; bestShape = SHAPE_SEQUENCE[i % SHAPE_SEQUENCE.length] }
+      })
+      return bestShape !== null && bestScore >= 0 ? { ...el, shape: bestShape } : el
+    }),
+    isDirty: true
+  })),
+
+  // Sets each element's color using the fixed shape-to-color mapping.
+  shapeToColor: () => set((s) => ({
+    elements: s.elements.map(el => ({ ...el, color: SHAPE_COLORS[el.shape] })),
+    isDirty: true
+  })),
+
+  // Sets each element's shape by mapping its color's hue to a shape bucket.
+  colorToShape: () => set((s) => ({
+    elements: s.elements.map(el => ({ ...el, shape: hueToShape(hexToHue(el.color)) })),
+    isDirty: true
+  })),
+
+  // Sets type membership scores based on each element's shape. Type assignment
+  // mirrors typeToElementShape: 1st type=circle, 2nd=square, 3rd=triangle,
+  // 4th=diamond (cycling). Sets 1.0 for the matched type, 0.0 for all others.
+  shapeToType: () => set((s) => {
+    const newScores = { ...s.scores }
+    for (const el of s.elements) {
+      const shapeIdx = SHAPE_SEQUENCE.indexOf(el.shape)
+      const elScores: Record<string, number> = { ...newScores[el.id] }
+      s.types.forEach((t, i) => { elScores[t.id] = i % SHAPE_SEQUENCE.length === shapeIdx ? 1 : 0 })
+      newScores[el.id] = elScores
+    }
+    return { scores: newScores, isDirty: true }
+  }),
 
   // ── Navigation ───────────────────────────────────────────────────────────────
 

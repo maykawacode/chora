@@ -2,64 +2,78 @@
 //
 // Data-conversion operations presented as a FROM → TO pipeline.
 // User picks a source kind and a destination kind from dropdowns; contextual
-// controls (dimension pickers, pole toggle) appear only when relevant.
-// All mutations delegate to existing store actions — no new store changes needed.
+// controls (dimension pickers, pole toggle, color pickers) appear only when
+// relevant. All mutations delegate to store actions.
 
 import { useState } from 'react'
 import { useAppStore } from '../../store/appStore'
 import { usePrefsStore } from '../../store/prefsStore'
 import styles from './ConversionsTab.module.css'
 
-type FromSource = 'dim-scores' | 'el-weight' | 'random'
-type ToTarget   = 'el-weight'  | 'el-color'  | 'dim-scores'
+type FromSource = 'dim-scores' | 'el-weight' | 'random' | 'type' | 'el-shape' | 'el-color'
+type ToTarget   = 'el-weight'  | 'el-color'  | 'dim-scores' | 'el-shape' | 'type'
 
 const FROM_LABELS: Record<FromSource, string> = {
   'dim-scores': 'Dimension scores',
   'el-weight':  'Element weight',
   'random':     'Random values',
+  'type':       'Type membership',
+  'el-shape':   'Element shape',
+  'el-color':   'Element color',
 }
 
 const TO_LABELS: Record<ToTarget, string> = {
   'el-weight':  'Element weight',
   'el-color':   'Element color',
   'dim-scores': 'Dimension scores',
+  'el-shape':   'Element shape',
+  'type':       'Type membership',
 }
 
 const VALID_TO: Record<FromSource, ToTarget[]> = {
   'dim-scores': ['el-weight', 'el-color', 'dim-scores'],
   'el-weight':  ['dim-scores'],
   'random':     ['dim-scores', 'el-weight', 'el-color'],
+  'type':       ['el-color', 'el-shape'],
+  'el-shape':   ['el-color', 'type'],
+  'el-color':   ['el-shape'],
 }
 
-function buildSummary(
-  from: FromSource | '',
-  to: ToTarget | '',
-  fromLabel: string,
-  toLabel: string
-): string {
+function buildSummary(from: FromSource | '', to: ToTarget | '', fromLabel: string, toLabel: string): string {
   if (!from || !to) return ''
   const fd = fromLabel || 'the chosen dimension'
   const td = toLabel   || 'the chosen dimension'
   if (from === 'dim-scores' && to === 'el-weight')  return `Sets each element's weight from ${fd} scores (scaled 1–100). Unscored elements unchanged.`
-  if (from === 'dim-scores' && to === 'el-color')   return `Sets each element's color from ${fd} scores, interpolating between Preferences colors. Unscored elements unchanged.`
-  if (from === 'el-weight'  && to === 'dim-scores') return `Writes each element's weight as its ${td} score (scaled 0–1). All elements updated.`
+  if (from === 'dim-scores' && to === 'el-color')   return `Sets each element's color from ${fd} scores, interpolating between the chosen colors. Unscored elements unchanged.`
   if (from === 'dim-scores' && to === 'dim-scores') return `Copies scores from ${fd} to ${td}. Only scored elements are updated; unscored elements unchanged.`
+  if (from === 'el-weight'  && to === 'dim-scores') return `Writes each element's weight as its ${td} score (scaled 0–1). All elements updated.`
   if (from === 'random'     && to === 'dim-scores') return `Assigns a random score to every element on ${td}.`
   if (from === 'random'     && to === 'el-weight')  return "Assigns a random weight (1–100) to every element."
   if (from === 'random'     && to === 'el-color')   return "Assigns a random color to every element."
+  if (from === 'type'       && to === 'el-color')   return "Sets each element's color from its dominant type's color. Elements with no type scores unchanged."
+  if (from === 'type'       && to === 'el-shape')   return "Assigns shapes by type order: circle, square, triangle, diamond (cycling). Elements with no type scores unchanged."
+  if (from === 'el-shape'   && to === 'el-color')   return "Sets each element's color by shape: circle→blue, square→red, triangle→green, diamond→purple."
+  if (from === 'el-shape'   && to === 'type')       return "Sets type membership to 1.0 for each element's matched type, 0.0 for others. Matched by creation order: circle=1st, square=2nd, triangle=3rd, diamond=4th (cycling)."
+  if (from === 'el-color'   && to === 'el-shape')   return "Sets each element's shape by hue: red→circle, yellow-green→square, blue→triangle, purple→diamond."
   return ''
 }
 
 export function ConversionsTab(): React.JSX.Element {
-  const dimensions        = useAppStore(s => s.dimensions)
-  const scores            = useAppStore(s => s.scores)
-  const dimensionToWeight = useAppStore(s => s.dimensionToWeight)
-  const weightToDimension = useAppStore(s => s.weightToDimension)
-  const dimensionToColor  = useAppStore(s => s.dimensionToColor)
-  const dimToDimScores    = useAppStore(s => s.dimToDimScores)
-  const randomizeScores   = useAppStore(s => s.randomizeScores)
-  const randomizeWeights  = useAppStore(s => s.randomizeWeights)
-  const randomizeColors   = useAppStore(s => s.randomizeColors)
+  const dimensions         = useAppStore(s => s.dimensions)
+  const types              = useAppStore(s => s.types)
+  const scores             = useAppStore(s => s.scores)
+  const dimensionToWeight  = useAppStore(s => s.dimensionToWeight)
+  const weightToDimension  = useAppStore(s => s.weightToDimension)
+  const dimensionToColor   = useAppStore(s => s.dimensionToColor)
+  const dimToDimScores     = useAppStore(s => s.dimToDimScores)
+  const randomizeScores    = useAppStore(s => s.randomizeScores)
+  const randomizeWeights   = useAppStore(s => s.randomizeWeights)
+  const randomizeColors    = useAppStore(s => s.randomizeColors)
+  const typeToElementColor = useAppStore(s => s.typeToElementColor)
+  const typeToElementShape = useAppStore(s => s.typeToElementShape)
+  const shapeToColor       = useAppStore(s => s.shapeToColor)
+  const colorToShape       = useAppStore(s => s.colorToShape)
+  const shapeToType        = useAppStore(s => s.shapeToType)
 
   const { dimColorLow: prefLow, dimColorHigh: prefHigh } = usePrefsStore(s => s.prefs)
 
@@ -90,16 +104,14 @@ export function ConversionsTab(): React.JSX.Element {
 
   const showFromDimPicker = fromSource === 'dim-scores'
   const showToDimPicker   = toTarget === 'dim-scores'
-  // Pole toggle is only meaningful when converting between dim scores and weight
   const showPole = (fromSource === 'dim-scores' && toTarget === 'el-weight') ||
                    (fromSource === 'el-weight'  && toTarget === 'dim-scores')
+  const showColorPickers  = fromSource === 'dim-scores' && toTarget === 'el-color'
 
-  const fromDim  = fromDimId ? dimensions.find(d => d.id === fromDimId) ?? null : null
-  const toDim    = toDimId   ? dimensions.find(d => d.id === toDimId)   ?? null : null
-  // The dimension that supplies pole labels for the toggle
-  const poleDim  = fromSource === 'dim-scores' ? fromDim : toDim
+  const fromDim = fromDimId ? dimensions.find(d => d.id === fromDimId) ?? null : null
+  const toDim   = toDimId   ? dimensions.find(d => d.id === toDimId)   ?? null : null
+  const poleDim = fromSource === 'dim-scores' ? fromDim : toDim
 
-  // Warn before randomizing a dimension that already has scores
   const hasExistingScores = (fromSource === 'random' && !!toDimId)
     ? Object.values(scores).some(el => el[toDimId] !== undefined)
     : false
@@ -109,12 +121,11 @@ export function ConversionsTab(): React.JSX.Element {
     if (fromSource === 'dim-scores' && !fromDimId) return false
     if (toTarget   === 'dim-scores' && !toDimId)   return false
     if (fromSource === 'dim-scores' && toTarget === 'dim-scores' && fromDimId === toDimId) return false
+    if ((fromSource === 'type' || toTarget === 'type') && types.length === 0) return false
     return true
   })()
 
-  const fromDimLabel = fromDim?.label ?? ''
-  const toDimLabel   = toDim?.label   ?? ''
-  const summary      = buildSummary(fromSource, toTarget, fromDimLabel, toDimLabel)
+  const summary = buildSummary(fromSource, toTarget, fromDim?.label ?? '', toDim?.label ?? '')
 
   function handleApply(): void {
     if (!canApply) return
@@ -125,6 +136,11 @@ export function ConversionsTab(): React.JSX.Element {
     else if (fromSource === 'random'     && toTarget === 'dim-scores') randomizeScores(toDimId)
     else if (fromSource === 'random'     && toTarget === 'el-weight')  randomizeWeights()
     else if (fromSource === 'random'     && toTarget === 'el-color')   randomizeColors()
+    else if (fromSource === 'type'       && toTarget === 'el-color')   typeToElementColor()
+    else if (fromSource === 'type'       && toTarget === 'el-shape')   typeToElementShape()
+    else if (fromSource === 'el-shape'   && toTarget === 'el-color')   shapeToColor()
+    else if (fromSource === 'el-shape'   && toTarget === 'type')       shapeToType()
+    else if (fromSource === 'el-color'   && toTarget === 'el-shape')   colorToShape()
     setApplied(true)
   }
 
@@ -160,7 +176,10 @@ export function ConversionsTab(): React.JSX.Element {
         )}
 
         {fromSource === 'el-weight' && <p className={styles.descriptor}>Each element's weight value (1–100).</p>}
-        {fromSource === 'random'    && <p className={styles.descriptor}>Random values 0–1, one per element.</p>}
+        {fromSource === 'random'    && <p className={styles.descriptor}>Random values, one per element.</p>}
+        {fromSource === 'type'      && <p className={styles.descriptor}>Each element's dominant type (highest membership score).</p>}
+        {fromSource === 'el-shape'  && <p className={styles.descriptor}>Each element's current shape.</p>}
+        {fromSource === 'el-color'  && <p className={styles.descriptor}>Each element's current color.</p>}
       </div>
 
       {/* ── Divider ─────────────────────────────────────────────────────────── */}
@@ -206,7 +225,6 @@ export function ConversionsTab(): React.JSX.Element {
           </div>
         )}
 
-        {/* Pole toggle — shown only for dim↔weight, and only once a dimension is chosen */}
         {showPole && poleDim && (
           <div className={styles.subControl}>
             <div className={styles.subLabel}>High end</div>
@@ -229,27 +247,38 @@ export function ConversionsTab(): React.JSX.Element {
           </div>
         )}
 
-        {toTarget === 'el-color' && fromSource === 'dim-scores' && (
+        {showColorPickers && (
           <div className={styles.colorRow}>
             <label className={styles.colorField}>
               <span className={styles.subLabel}>Low (score 0)</span>
-              <input
-                type="color"
-                className={styles.colorPicker}
-                value={colorLow}
-                onChange={e => { setColorLow(e.target.value); setApplied(false) }}
-              />
+              <input type="color" className={styles.colorPicker} value={colorLow}
+                onChange={e => { setColorLow(e.target.value); setApplied(false) }} />
             </label>
             <label className={styles.colorField}>
               <span className={styles.subLabel}>High (score 1)</span>
-              <input
-                type="color"
-                className={styles.colorPicker}
-                value={colorHigh}
-                onChange={e => { setColorHigh(e.target.value); setApplied(false) }}
-              />
+              <input type="color" className={styles.colorPicker} value={colorHigh}
+                onChange={e => { setColorHigh(e.target.value); setApplied(false) }} />
             </label>
           </div>
+        )}
+
+        {fromSource === 'type' && toTarget === 'el-color' && types.length === 0 && (
+          <p className={styles.hint}>No types defined.</p>
+        )}
+        {fromSource === 'el-shape' && toTarget === 'type' && types.length === 0 && (
+          <p className={styles.hint}>No types defined.</p>
+        )}
+        {fromSource === 'el-shape' && toTarget === 'el-color' && (
+          <p className={styles.descriptor}>circle → #4080c0 · square → #c04040 · triangle → #40a040 · diamond → #a040a0</p>
+        )}
+        {fromSource === 'el-color' && toTarget === 'el-shape' && (
+          <p className={styles.descriptor}>By hue: red → circle · yellow-green → square · blue → triangle · purple → diamond</p>
+        )}
+        {fromSource === 'type' && toTarget === 'el-shape' && types.length > 0 && (
+          <p className={styles.descriptor}>Type order → shape: 1st circle · 2nd square · 3rd triangle · 4th diamond (cycling)</p>
+        )}
+        {fromSource === 'el-shape' && toTarget === 'type' && types.length > 0 && (
+          <p className={styles.descriptor}>Matched by creation order: circle=1st type · square=2nd · triangle=3rd · diamond=4th (cycling)</p>
         )}
       </div>
 
