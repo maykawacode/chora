@@ -73,7 +73,8 @@ export function deserializeSession(json: string): AppState {
   const types: Type[] = (raw.types ?? []).map((t: Record<string, unknown>) => ({
     id:         requireString(t.id, 'type.id'),
     name:       typeof t.name       === 'string' ? t.name       : '',
-    definition: typeof t.definition === 'string' ? t.definition : ''
+    definition: typeof t.definition === 'string' ? t.definition : '',
+    color:      typeof t.color      === 'string' ? t.color      : '#808080'
   }))
 
   // ── Dimensions ───────────────────────────────────────────────────────────

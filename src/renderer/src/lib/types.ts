@@ -29,9 +29,10 @@ export interface Element {
 // A Type is a nominal membership category. Elements are scored against types
 // (via ScoreMap) to express degree of membership (0 = none, 1 = full).
 export interface Type {
-  id: string
-  name: string
+  id:         string
+  name:       string
   definition: string  // what defines membership in this category
+  color:      string  // hex color, e.g. '#808080'
 }
 
 export interface DimensionCategories {

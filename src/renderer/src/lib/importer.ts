@@ -111,8 +111,9 @@ function parseFullSpreadsheet(text: string): ImportResult {
   const typeRows = sections['TYPES'] ?? []
   if (typeRows.length >= 2) {
     const hdr = typeRows[0].map(h => h.trim().toLowerCase())
-    const nameCol = Math.max(0, hdr.indexOf('name'))
-    const defCol  = hdr.indexOf('definition')
+    const nameCol  = Math.max(0, hdr.indexOf('name'))
+    const defCol   = hdr.indexOf('definition')
+    const colorCol = hdr.indexOf('color')
 
     for (const row of typeRows.slice(1)) {
       const name = tc(row[nameCol])
@@ -120,7 +121,8 @@ function parseFullSpreadsheet(text: string): ImportResult {
       typesByName.set(name, {
         id:         uuid(),
         name,
-        definition: defCol >= 0 ? tc(row[defCol]) : ''
+        definition: defCol   >= 0 ? tc(row[defCol])   : '',
+        color:      colorCol >= 0 ? tc(row[colorCol]) || '#808080' : '#808080'
       })
     }
   }
@@ -175,7 +177,7 @@ function parseFullSpreadsheet(text: string): ImportResult {
     const colTypes: (Type | null)[] = colHeaders.map((header, i) => {
       if (!header) return null
       if (usePositional) return typeList[i] ?? null
-      if (!typesByName.has(header)) typesByName.set(header, { id: uuid(), name: header, definition: '' })
+      if (!typesByName.has(header)) typesByName.set(header, { id: uuid(), name: header, definition: '', color: '#808080' })
       return typesByName.get(header)!
     })
 

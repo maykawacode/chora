@@ -152,6 +152,16 @@ export function TypesTab(): React.JSX.Element {
             }}
           />
         </div>
+        <div className={styles.fieldRow}>
+          <label className={styles.label}>Color</label>
+          <input
+            type="color"
+            className={styles.colorInput}
+            value={selected?.color ?? '#808080'}
+            disabled={!selected}
+            onChange={e => selected && updateType(selected.id, { color: e.target.value })}
+          />
+        </div>
         <textarea
           className={styles.description}
           placeholder="Definition…"

@@ -157,7 +157,7 @@ export const useAppStore = create<AppStore>((set) => ({
   // ── Types ────────────────────────────────────────────────────────────────────
 
   addType: (name) => set((s) => {
-    const type: Type = { id: uuid(), name, definition: '' }
+    const type: Type = { id: uuid(), name, definition: '', color: '#808080' }
     return { types: [...s.types, type], isDirty: true }
   }),
 

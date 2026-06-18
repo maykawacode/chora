@@ -50,8 +50,8 @@ export function exportSpreadsheet(state: AppState): string {
   // ── ##TYPES ────────────────────────────────────────────────────────────────
   sections.push([
     '##TYPES',
-    'Name\tDefinition',
-    ...types.map(t => `${cell(t.name)}\t${cell(t.definition)}`)
+    'Name\tDefinition\tColor',
+    ...types.map(t => `${cell(t.name)}\t${cell(t.definition)}\t${cell(t.color)}`)
   ].join('\n'))
 
   // ── ##DIMENSIONS ───────────────────────────────────────────────────────────
