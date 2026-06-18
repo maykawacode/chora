@@ -26,7 +26,7 @@ const TO_LABELS: Record<ToTarget, string> = {
 }
 
 const VALID_TO: Record<FromSource, ToTarget[]> = {
-  'dim-scores': ['el-weight', 'el-color'],
+  'dim-scores': ['el-weight', 'el-color', 'dim-scores'],
   'el-weight':  ['dim-scores'],
   'random':     ['dim-scores', 'el-weight', 'el-color'],
 }
@@ -43,6 +43,7 @@ function buildSummary(
   if (from === 'dim-scores' && to === 'el-weight')  return `Sets each element's weight from ${fd} scores (scaled 1–100). Unscored elements unchanged.`
   if (from === 'dim-scores' && to === 'el-color')   return `Sets each element's color from ${fd} scores, interpolating between Preferences colors. Unscored elements unchanged.`
   if (from === 'el-weight'  && to === 'dim-scores') return `Writes each element's weight as its ${td} score (scaled 0–1). All elements updated.`
+  if (from === 'dim-scores' && to === 'dim-scores') return `Copies scores from ${fd} to ${td}. Only scored elements are updated; unscored elements unchanged.`
   if (from === 'random'     && to === 'dim-scores') return `Assigns a random score to every element on ${td}.`
   if (from === 'random'     && to === 'el-weight')  return "Assigns a random weight (1–100) to every element."
   if (from === 'random'     && to === 'el-color')   return "Assigns a random color to every element."
@@ -55,6 +56,7 @@ export function ConversionsTab(): React.JSX.Element {
   const dimensionToWeight = useAppStore(s => s.dimensionToWeight)
   const weightToDimension = useAppStore(s => s.weightToDimension)
   const dimensionToColor  = useAppStore(s => s.dimensionToColor)
+  const dimToDimScores    = useAppStore(s => s.dimToDimScores)
   const randomizeScores   = useAppStore(s => s.randomizeScores)
   const randomizeWeights  = useAppStore(s => s.randomizeWeights)
   const randomizeColors   = useAppStore(s => s.randomizeColors)
@@ -106,6 +108,7 @@ export function ConversionsTab(): React.JSX.Element {
     if (!fromSource || !toTarget) return false
     if (fromSource === 'dim-scores' && !fromDimId) return false
     if (toTarget   === 'dim-scores' && !toDimId)   return false
+    if (fromSource === 'dim-scores' && toTarget === 'dim-scores' && fromDimId === toDimId) return false
     return true
   })()
 
@@ -117,6 +120,7 @@ export function ConversionsTab(): React.JSX.Element {
     if (!canApply) return
     if      (fromSource === 'dim-scores' && toTarget === 'el-weight')  dimensionToWeight(fromDimId, poleFlipped)
     else if (fromSource === 'dim-scores' && toTarget === 'el-color')   dimensionToColor(fromDimId, colorLow, colorHigh)
+    else if (fromSource === 'dim-scores' && toTarget === 'dim-scores') dimToDimScores(fromDimId, toDimId)
     else if (fromSource === 'el-weight'  && toTarget === 'dim-scores') weightToDimension(toDimId, poleFlipped)
     else if (fromSource === 'random'     && toTarget === 'dim-scores') randomizeScores(toDimId)
     else if (fromSource === 'random'     && toTarget === 'el-weight')  randomizeWeights()
@@ -144,7 +148,7 @@ export function ConversionsTab(): React.JSX.Element {
             {dimensions.length === 0
               ? <p className={styles.hint}>No dimensions defined.</p>
               : (
-                <select className={styles.select} value={fromDimId} onChange={e => { setFromDimId(e.target.value); setApplied(false) }}>
+                <select className={styles.select} value={fromDimId} onChange={e => { const v = e.target.value; setFromDimId(v); if (v === toDimId) setToDimId(''); setApplied(false) }}>
                   <option value="">Choose dimension…</option>
                   {dimensions.map((d, i) => (
                     <option key={d.id} value={d.id}>{d.label || `Dimension ${i + 1}`}</option>
@@ -191,9 +195,11 @@ export function ConversionsTab(): React.JSX.Element {
               : (
                 <select className={styles.select} value={toDimId} onChange={e => { setToDimId(e.target.value); setApplied(false) }}>
                   <option value="">Choose dimension…</option>
-                  {dimensions.map((d, i) => (
-                    <option key={d.id} value={d.id}>{d.label || `Dimension ${i + 1}`}</option>
-                  ))}
+                  {dimensions
+                    .filter(d => !(fromSource === 'dim-scores' && d.id === fromDimId))
+                    .map((d, i) => (
+                      <option key={d.id} value={d.id}>{d.label || `Dimension ${i + 1}`}</option>
+                    ))}
                 </select>
               )
             }

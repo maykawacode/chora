@@ -56,6 +56,7 @@ interface AppStore extends AppState {
   dimensionToWeight: (dimensionId: string, flip?: boolean) => void
   weightToDimension: (dimensionId: string, flip?: boolean) => void
   dimensionToColor:  (dimensionId: string, colorLow?: string, colorHigh?: string) => void
+  dimToDimScores:    (sourceDimId: string, targetDimId: string) => void
   randomizeScores:   (dimensionId: string) => void
   randomizeWeights:  () => void
   randomizeColors:   () => void
@@ -316,6 +317,20 @@ export const useAppStore = create<AppStore>((set) => ({
       }),
       isDirty: true
     }
+  }),
+
+  // Copies each element's score from sourceDimId to targetDimId.
+  // Only elements that have a score on the source are updated; unscored elements
+  // keep their existing target score (or remain unscored on the target).
+  dimToDimScores: (sourceDimId, targetDimId) => set((s) => {
+    const newScores = { ...s.scores }
+    for (const el of s.elements) {
+      const score = newScores[el.id]?.[sourceDimId]
+      if (score !== undefined) {
+        newScores[el.id] = { ...newScores[el.id], [targetDimId]: score }
+      }
+    }
+    return { scores: newScores, isDirty: true }
   }),
 
   // Assigns a random score to every element on the chosen dimension.
