@@ -17,8 +17,6 @@ import { useAppStore } from './store/appStore'
 import { usePrefsStore } from './store/prefsStore'
 import { ScoreWindow } from './components/ScoreWindow/ScoreWindow'
 import { ChooseDimensions, CreateSemanticMap, CreateTypeProjectionMap } from './components/maps/ChooseDimensions'
-import { AdvancedTransform } from './components/maps/AdvancedTransform'
-import type { TransformMode } from './components/maps/AdvancedTransform'
 import { StarterListPicker } from './components/ScoreWindow/StarterListPicker'
 import { ImportPreview } from './components/ImportPreview'
 import { PreferencesDialog } from './components/PreferencesDialog'
@@ -55,13 +53,12 @@ export function App(): React.JSX.Element {
   const [showTypeProjectionMap,   setShowTypeProjectionMap]   = useState(false)
   const [showStarterPicker,    setShowStarterPicker]    = useState(false)
   const [showPreferences,      setShowPreferences]      = useState(false)
-  const [activeTransform,      setActiveTransform]      = useState<TransformMode | null>(null)
   const [importPreview,        setImportPreview]        = useState<{ fileName: string; result: ImportResult } | null>(null)
 
   // True while any modal is open — used to bring the Score Window to the front
   // so it is not obscured by map BrowserWindows
   const isModalOpen = showWelcome || showChooseDimensions || showCreateSemantic || showTypeProjectionMap ||
-                      showStarterPicker || showPreferences || showQuitConfirm || activeTransform !== null || importPreview !== null
+                      showStarterPicker || showPreferences || showQuitConfirm || importPreview !== null
 
   // ── suppressBroadcast ref ─────────────────────────────────────────────────────
   //
@@ -320,7 +317,7 @@ export function App(): React.JSX.Element {
 
   return (
     <div className={styles.root}>
-      <ScoreWindow onOpenStarterPicker={() => setShowStarterPicker(true)} onOpenTransform={setActiveTransform} />
+      <ScoreWindow onOpenStarterPicker={() => setShowStarterPicker(true)} />
 
       {importPreview && (
         <ImportPreview
@@ -349,7 +346,6 @@ export function App(): React.JSX.Element {
       {showChooseDimensions   && <ChooseDimensions        onClose={() => setShowChooseDimensions(false)} />}
       {showCreateSemantic     && <CreateSemanticMap       onClose={() => setShowCreateSemantic(false)} />}
       {showTypeProjectionMap  && <CreateTypeProjectionMap onClose={() => setShowTypeProjectionMap(false)} />}
-      {activeTransform      && <AdvancedTransform    mode={activeTransform} onClose={() => setActiveTransform(null)} />}
       {showPreferences      && <PreferencesDialog    onClose={() => setShowPreferences(false)} />}
 
       {showQuitConfirm && (
