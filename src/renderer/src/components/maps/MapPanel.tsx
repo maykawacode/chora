@@ -658,8 +658,18 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
           const { x1, y1, x2, y2 } = lassoRef.current
           const existing = useAppStore.getState().selectedElementIds
           if (config.type === 'cartesian' || config.type === 'typeprojection') {
+            // For TypeProjection: mirror the visibility filter from drawTypeProjection —
+            // only elements qualifying for at least one visible type are selectable.
+            const projCfg = config as TypeProjectionMapConfig
+            const lassoElements = config.type === 'typeprojection' && projCfg.typeIds.length > 0
+              ? elements.filter(el =>
+                  types
+                    .filter(t => projCfg.typeIds.includes(t.id))
+                    .some(t => { const m = scores[el.id]?.[t.id]; return m !== undefined && m >= projCfg.threshold })
+                )
+              : elements
             const newIds = cartesianHitRect(x1, y1, x2, y2, width, height,
-              config as CartesianMapConfig, elements, scores)
+              config as CartesianMapConfig, lassoElements, scores)
             selectElements([...new Set([...existing, ...newIds])])
             window.api?.broadcastMultiSelection(useAppStore.getState().selectedElementIds)
           } else if (config.type === 'semantic') {
