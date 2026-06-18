@@ -38,8 +38,9 @@ interface Window {
     broadcastScore:     (elementId: string, dimensionId: string, value: number) => void
     broadcastMapConfig: (mapId: string, changes: Record<string, unknown>) => void
     broadcastElement:   (elementId: string, changes: Record<string, unknown>) => void
-    broadcastSelection: (elementId: string | null) => void
-    broadcastPrefs:     (prefs: Record<string, unknown>) => void
+    broadcastSelection:      (elementId: string | null) => void
+    broadcastMultiSelection: (ids: string[]) => void
+    broadcastPrefs:          (prefs: Record<string, unknown>) => void
 
     // Inbound listeners (map windows) — each returns a cleanup function
     onPrefs:   (cb: (prefs: Record<string, unknown>) => void) => () => void
@@ -48,10 +49,11 @@ interface Window {
     onScore:   (cb: (elementId: string, dimensionId: string, value: number) => void) => () => void
 
     // Inbound listeners (Score Window) — each returns a cleanup function
-    onMapConfig:     (cb: (mapId: string, changes: Record<string, unknown>) => void) => () => void
-    onMapClosed:     (cb: (mapId: string) => void) => () => void
-    onElementUpdate: (cb: (elementId: string, changes: Record<string, unknown>) => void) => () => void
-    onSelection:     (cb: (elementId: string | null) => void) => () => void
+    onMapConfig:          (cb: (mapId: string, changes: Record<string, unknown>) => void) => () => void
+    onMapClosed:          (cb: (mapId: string) => void) => () => void
+    onElementUpdate:      (cb: (elementId: string, changes: Record<string, unknown>) => void) => () => void
+    onSelection:          (cb: (elementId: string | null) => void) => () => void
+    onMultiSelection:     (cb: (ids: string[]) => void) => () => void
 
     // Quit confirmation
     onQuitRequested: (cb: () => void) => () => void

@@ -495,6 +495,7 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
         selectElement(hit.elementId)
         selectElements([hit.elementId])
         window.api?.broadcastSelection(hit.elementId)
+        window.api?.broadcastMultiSelection([hit.elementId])
         e.preventDefault()
         redraw()
       } else if (e.shiftKey) {
@@ -627,10 +628,12 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
             const newIds = cartesianHitRect(x1, y1, x2, y2, width, height,
               config as CartesianMapConfig, elements, scores)
             selectElements([...new Set([...existing, ...newIds])])
+            window.api?.broadcastMultiSelection(useAppStore.getState().selectedElementIds)
           } else if (config.type === 'semantic') {
             const newIds = semanticHitRect(x1, y1, x2, y2, width, height,
               config as SemanticMapConfig, elements, dimensions, scores)
             selectElements([...new Set([...existing, ...newIds])])
+            window.api?.broadcastMultiSelection(useAppStore.getState().selectedElementIds)
             selectElement(null)
             window.api?.broadcastSelection(null)
           }
@@ -732,7 +735,10 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
     if (config.type === 'cartesian' || config.type === 'typeprojection') {
       const dotHit = cartesianHitDot(x, y, W, H, config as CartesianMapConfig, elements, scores)
       if (dotHit) {
-        if (e.shiftKey) toggleElementSelection(dotHit.elementId)
+        if (e.shiftKey) {
+          toggleElementSelection(dotHit.elementId)
+          window.api?.broadcastMultiSelection(useAppStore.getState().selectedElementIds)
+        }
         // Non-shift: transient highlight via selectedElementId (cleared on mouseUp)
         return
       }
@@ -746,12 +752,16 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
       selectElement(null)
       clearElementSelection()
       window.api?.broadcastSelection(null)
+      window.api?.broadcastMultiSelection([])
     } else if (config.type === 'semantic') {
       setAxisPicker(null)
       const semCfg = config as SemanticMapConfig
       const hit = semanticHitDot(x, y, W, H, semCfg, elements, dimensions, scores)
       if (hit) {
-        if (e.shiftKey) toggleElementSelection(hit.elementId)
+        if (e.shiftKey) {
+          toggleElementSelection(hit.elementId)
+          window.api?.broadcastMultiSelection(useAppStore.getState().selectedElementIds)
+        }
         // Non-shift: mouseDown already called selectElements([id]) — nothing to do
         return
       }

@@ -171,6 +171,16 @@ export function registerIpcHandlers(): void {
     }
   })
 
+  // Multi-selection change from a map window shift-click or lasso — relay to
+  // Score Window only. Score Window calls selectElements() and its Zustand
+  // subscriber broadcasts the updated selectedElementIds to all map windows.
+  ipcMain.on('multiSelection:update', (event, ids: string[]) => {
+    const scoreWin = getMainWindow()
+    if (scoreWin && !scoreWin.isDestroyed() && scoreWin.webContents.id !== event.sender.id) {
+      scoreWin.webContents.send('multiSelection:update', ids)
+    }
+  })
+
   // Element property change from a map window's right-click modal — relay to
   // Score Window. Score Window applies the update; its Zustand subscription
   // auto-broadcasts full state to all map windows.

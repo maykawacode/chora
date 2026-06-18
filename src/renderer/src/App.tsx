@@ -37,7 +37,8 @@ export function App(): React.JSX.Element {
   const loadSession   = useAppStore(s => s.loadSession)
   const markClean     = useAppStore(s => s.markClean)
   const resetToEmpty  = useAppStore(s => s.resetToEmpty)
-  const selectElement = useAppStore(s => s.selectElement)
+  const selectElement  = useAppStore(s => s.selectElement)
+  const selectElements = useAppStore(s => s.selectElements)
 
   // ── Modal visibility state ────────────────────────────────────────────────────
 
@@ -101,13 +102,13 @@ export function App(): React.JSX.Element {
       const prevIds = new Set(prevState.maps.map(m => m.id))
       for (const map of state.maps) {
         if (!prevIds.has(map.id)) {
-          window.api.openMap(map.id, JSON.stringify({ isDirty: state.isDirty, session: serializeSession(state), selectedElementId: state.selectedElementId }))
+          window.api.openMap(map.id, JSON.stringify({ isDirty: state.isDirty, session: serializeSession(state), selectedElementId: state.selectedElementId, selectedElementIds: state.selectedElementIds }))
         }
       }
 
       // Broadcast full state to all open map windows (unless we're mid-IPC-receive)
       if (!suppressBroadcast.current) {
-        window.api.broadcastState(JSON.stringify({ isDirty: state.isDirty, session: serializeSession(state), selectedElementId: state.selectedElementId }))
+        window.api.broadcastState(JSON.stringify({ isDirty: state.isDirty, session: serializeSession(state), selectedElementId: state.selectedElementId, selectedElementIds: state.selectedElementIds }))
       }
     })
   }, [])
@@ -174,11 +175,15 @@ export function App(): React.JSX.Element {
       selectElement(elementId)
     })
 
+    const removeMultiSelection = window.api.onMultiSelection((ids) => {
+      selectElements(ids)
+    })
+
     const handleBlur = (): void => { selectElement(null) }
     window.addEventListener('blur', handleBlur)
 
-    return () => { removeSelection(); window.removeEventListener('blur', handleBlur) }
-  }, [selectElement])
+    return () => { removeSelection(); removeMultiSelection(); window.removeEventListener('blur', handleBlur) }
+  }, [selectElement, selectElements])
 
   // ── Modal z-order ─────────────────────────────────────────────────────────────
   //

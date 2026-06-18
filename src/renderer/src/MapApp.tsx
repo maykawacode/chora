@@ -27,6 +27,7 @@ import { DEFAULT_PREFERENCES } from './lib/preferences'
 export function MapApp(): React.JSX.Element {
   const [mapId, setMapId]   = useState<string | null>(null)
   const loadSession         = useAppStore(s => s.loadSession)
+  const selectElements      = useAppStore(s => s.selectElements)
   const setScore            = useAppStore(s => s.setScore)
   const updateMapConfig     = useAppStore(s => s.updateMapConfig)
   const setPrefs            = usePrefsStore(s => s.setPrefs)
@@ -47,12 +48,13 @@ export function MapApp(): React.JSX.Element {
     // closure without needing to be passed as a parameter.
     const applyStatePayload = (payload: string, context: string): void => {
       try {
-        const { isDirty, session, selectedElementId } = JSON.parse(payload)
+        const { isDirty, session, selectedElementId, selectedElementIds } = JSON.parse(payload)
         loadSession({
           ...deserializeSession(session),
           isDirty:           isDirty           ?? false,
           selectedElementId: selectedElementId ?? null
         })
+        selectElements(selectedElementIds ?? [])
       } catch (e) {
         console.error(`${context} failed`, e)
       }
@@ -90,7 +92,7 @@ export function MapApp(): React.JSX.Element {
     window.api.signalReady()
 
     return () => { removeInit(); removeState(); removeScore(); removeConfig(); removePrefs() }
-  }, [loadSession, setScore, updateMapConfig])
+  }, [loadSession, selectElements, setScore, updateMapConfig])
 
   // ── OS window title sync ──────────────────────────────────────────────────
 

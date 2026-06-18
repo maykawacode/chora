@@ -94,6 +94,9 @@ contextBridge.exposeInMainWorld('api', {
   // Selection change from a map window dot click (or deselect on empty click)
   broadcastSelection: (elementId: string | null): void =>
                         ipcRenderer.send('selection:update', elementId),
+  // Multi-selection change from a map window shift-click or lasso
+  broadcastMultiSelection: (ids: string[]): void =>
+                             ipcRenderer.send('multiSelection:update', ids),
 
   // ── Inbound listeners (used by map windows) ───────────────────────────────────
 
@@ -149,6 +152,13 @@ contextBridge.exposeInMainWorld('api', {
     const handler = (_: IpcRendererEvent, elementId: string | null): void => cb(elementId)
     ipcRenderer.on('selection:update', handler)
     return () => ipcRenderer.removeListener('selection:update', handler)
+  },
+
+  // Multi-selection change relayed from a map window — Score Window listens for this
+  onMultiSelection: (cb: (ids: string[]) => void): (() => void) => {
+    const handler = (_: IpcRendererEvent, ids: string[]): void => cb(ids)
+    ipcRenderer.on('multiSelection:update', handler)
+    return () => ipcRenderer.removeListener('multiSelection:update', handler)
   },
 
   // Fired when a map window is closed by the user (not programmatically)

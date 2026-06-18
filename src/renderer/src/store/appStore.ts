@@ -64,7 +64,7 @@ interface AppStore extends AppState {
   selectType:      (id: string | null) => void
   setActiveTab:    (tab: AppState['activeTab']) => void
 
-  // Multi-select (map-window local; not persisted or synced via IPC)
+  // Multi-select (not persisted; synced across map windows via multiSelection:update IPC)
   selectedElementIds:     string[]
   selectElements:          (ids: string[]) => void
   toggleElementSelection:  (id: string) => void
