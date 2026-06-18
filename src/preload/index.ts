@@ -73,6 +73,8 @@ contextBridge.exposeInMainWorld('api', {
 
   getMapWindowPositions: (): Promise<Record<string, { x: number; y: number; width: number; height: number }>> =>
     ipcRenderer.invoke('maps:getPositions'),
+  // Move + resize the main window to its saved prefs position after session start
+  restoreMainWindowBounds: (): void => ipcRenderer.send('window:restore-main-bounds'),
 
   // ── Outbound state broadcasts (Score Window → main → maps) ───────────────────
 

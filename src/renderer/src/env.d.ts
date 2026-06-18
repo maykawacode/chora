@@ -32,6 +32,7 @@ interface Window {
     loadPreferences:      () => Promise<Record<string, unknown>>
     savePreferences:      (prefs: Record<string, unknown>) => void
     getMapWindowPositions: () => Promise<Record<string, { x: number; y: number; width: number; height: number }>>
+    restoreMainWindowBounds: () => void
 
     // Outbound state broadcasts (Score Window → maps)
     broadcastState:     (stateJson: string) => void

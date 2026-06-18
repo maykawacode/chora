@@ -19,13 +19,12 @@ export function setQuitConfirmed(): void { quitConfirmed = true }
 
 function createWindow(): void {
   const prefs = getCachedPreferences()
-  const hasStoredBounds = prefs.rememberWindowPositions && prefs.mainWindowX != null
 
+  // Always open centered on launch — saved position is applied later via IPC
+  // once the user selects a file or starts a new session.
   mainWindow = new BrowserWindow({
-    x:      hasStoredBounds ? prefs.mainWindowX!     : undefined,
-    y:      hasStoredBounds ? prefs.mainWindowY!     : undefined,
-    width:  hasStoredBounds ? prefs.mainWindowWidth  : 530,
-    height: hasStoredBounds ? prefs.mainWindowHeight : 800,
+    width:  prefs.rememberWindowPositions ? prefs.mainWindowWidth  : 530,
+    height: prefs.rememberWindowPositions ? prefs.mainWindowHeight : 800,
     minWidth: 300,
     minHeight: 500,
     show: false,
@@ -43,6 +42,10 @@ function createWindow(): void {
   setScoreWindow(mainWindow)
   // Register with menu.ts so menu actions can be sent to this window
   setMainWindowForMenu(mainWindow)
+
+  // Center first, then register handlers — center() fires a 'moved' event on
+  // macOS which would otherwise overwrite the user's saved position immediately.
+  mainWindow.center()
 
   // Persist main window geometry so it can be restored on next launch
   const saveBounds = (): void => {

@@ -140,6 +140,22 @@ export function registerIpcHandlers(): void {
   // it can embed each map window's current position into the saved file
   ipcMain.handle('maps:getPositions', () => getMapWindowPositions())
 
+  // Renderer calls this once a session is established (file opened or new session
+  // started) to move the main window from its centered launch position to its
+  // last saved position and size. No-op if no bounds have been saved yet.
+  ipcMain.on('window:restore-main-bounds', () => {
+    const win = getMainWindow()
+    if (!win || win.isDestroyed()) return
+    const prefs = getCachedPreferences()
+    if (!prefs.rememberWindowPositions || prefs.mainWindowX == null || prefs.mainWindowY == null) return
+    win.setBounds({
+      x:      prefs.mainWindowX,
+      y:      prefs.mainWindowY,
+      width:  prefs.mainWindowWidth,
+      height: prefs.mainWindowHeight
+    }, true)  // true = animate on macOS
+  })
+
   // ── State relay ───────────────────────────────────────────────────────────────
   //
   // The Score Window owns the authoritative app state (Zustand store).

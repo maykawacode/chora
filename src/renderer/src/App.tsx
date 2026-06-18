@@ -86,6 +86,7 @@ export function App(): React.JSX.Element {
           const state = deserializeSession(json)
           loadSession({ ...state, filePath: prefs.lastFilePath! })
           markClean(prefs.lastFilePath!)
+          window.api.restoreMainWindowBounds()
         })
         .catch(() => { /* file has moved or been deleted — silently ignore */ })
     }
@@ -228,6 +229,7 @@ export function App(): React.JSX.Element {
     if (isDirty && !await confirmDiscard()) return
     window.api.closeAllMaps()
     resetToEmpty()
+    window.api.restoreMainWindowBounds()
   }
 
   async function handleOpen(): Promise<boolean> {
@@ -240,6 +242,7 @@ export function App(): React.JSX.Element {
       window.api.closeAllMaps()
       loadSession({ ...state, filePath: path })
       markClean(path)
+      window.api.restoreMainWindowBounds()
       // The Zustand subscriber above detects new maps and opens a window for each
       return true
     } catch (e) {
