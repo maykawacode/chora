@@ -75,6 +75,30 @@
   margin: 0;
 }
 
+/* ── Color pickers (dim → element color) ────────────────────────────────── */
+
+.colorRow {
+  display: flex;
+  gap: 12px;
+}
+
+.colorField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.colorPicker {
+  width: 56px;
+  height: 28px;
+  padding: 1px 2px;
+  border: 1px solid #b0a898;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+}
+
 /* ── Divider between FROM and TO ─────────────────────────────────────────── */
 
 .divider {

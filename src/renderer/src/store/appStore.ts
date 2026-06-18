@@ -55,8 +55,10 @@ interface AppStore extends AppState {
   // flip=true inverts the score direction so poleA maps to the "high" end instead of poleB
   dimensionToWeight: (dimensionId: string, flip?: boolean) => void
   weightToDimension: (dimensionId: string, flip?: boolean) => void
-  dimensionToColor:  (dimensionId: string) => void
+  dimensionToColor:  (dimensionId: string, colorLow?: string, colorHigh?: string) => void
   randomizeScores:   (dimensionId: string) => void
+  randomizeWeights:  () => void
+  randomizeColors:   () => void
 
   // Score Window navigation
   selectElement:   (id: string | null) => void
@@ -287,8 +289,10 @@ export const useAppStore = create<AppStore>((set) => ({
   // Sets each element's color by interpolating between dimColorLow (score 0) and
   // dimColorHigh (score 1), both read from the user's preferences at call time.
   // Unscored elements are left unchanged.
-  dimensionToColor: (dimensionId) => set((s) => {
-    const { dimColorLow, dimColorHigh } = usePrefsStore.getState().prefs
+  dimensionToColor: (dimensionId, colorLow, colorHigh) => set((s) => {
+    const prefs = usePrefsStore.getState().prefs
+    const dimColorLow  = colorLow  ?? prefs.dimColorLow
+    const dimColorHigh = colorHigh ?? prefs.dimColorHigh
 
     // Parse a '#rrggbb' hex string into an [r, g, b] triple
     const hexToRgb = (hex: string): [number, number, number] => {
@@ -323,6 +327,21 @@ export const useAppStore = create<AppStore>((set) => ({
     }
     return { scores: newScores, isDirty: true }
   }),
+
+  randomizeWeights: () => set((s) => ({
+    elements: s.elements.map(el => ({ ...el, weight: Math.round(Math.random() * 99 + 1) })),
+    isDirty: true
+  })),
+
+  randomizeColors: () => set((s) => ({
+    elements: s.elements.map(el => {
+      const r = Math.floor(Math.random() * 256)
+      const g = Math.floor(Math.random() * 256)
+      const b = Math.floor(Math.random() * 256)
+      return { ...el, color: '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('') }
+    }),
+    isDirty: true
+  })),
 
   // ── Navigation ───────────────────────────────────────────────────────────────
 

@@ -7,6 +7,7 @@
 
 import { useState } from 'react'
 import { useAppStore } from '../../store/appStore'
+import { usePrefsStore } from '../../store/prefsStore'
 import styles from './ConversionsTab.module.css'
 
 type FromSource = 'dim-scores' | 'el-weight' | 'random'
@@ -27,7 +28,7 @@ const TO_LABELS: Record<ToTarget, string> = {
 const VALID_TO: Record<FromSource, ToTarget[]> = {
   'dim-scores': ['el-weight', 'el-color'],
   'el-weight':  ['dim-scores'],
-  'random':     ['dim-scores'],
+  'random':     ['dim-scores', 'el-weight', 'el-color'],
 }
 
 function buildSummary(
@@ -43,6 +44,8 @@ function buildSummary(
   if (from === 'dim-scores' && to === 'el-color')   return `Sets each element's color from ${fd} scores, interpolating between Preferences colors. Unscored elements unchanged.`
   if (from === 'el-weight'  && to === 'dim-scores') return `Writes each element's weight as its ${td} score (scaled 0–1). All elements updated.`
   if (from === 'random'     && to === 'dim-scores') return `Assigns a random score to every element on ${td}.`
+  if (from === 'random'     && to === 'el-weight')  return "Assigns a random weight (1–100) to every element."
+  if (from === 'random'     && to === 'el-color')   return "Assigns a random color to every element."
   return ''
 }
 
@@ -53,12 +56,18 @@ export function ConversionsTab(): React.JSX.Element {
   const weightToDimension = useAppStore(s => s.weightToDimension)
   const dimensionToColor  = useAppStore(s => s.dimensionToColor)
   const randomizeScores   = useAppStore(s => s.randomizeScores)
+  const randomizeWeights  = useAppStore(s => s.randomizeWeights)
+  const randomizeColors   = useAppStore(s => s.randomizeColors)
+
+  const { dimColorLow: prefLow, dimColorHigh: prefHigh } = usePrefsStore(s => s.prefs)
 
   const [fromSource,  setFromSource]  = useState<FromSource | ''>('')
   const [toTarget,    setToTarget]    = useState<ToTarget   | ''>('')
   const [fromDimId,   setFromDimId]   = useState('')
   const [toDimId,     setToDimId]     = useState('')
   const [poleFlipped, setPoleFlipped] = useState(false)
+  const [colorLow,    setColorLow]    = useState(prefLow)
+  const [colorHigh,   setColorHigh]   = useState(prefHigh)
   const [applied,     setApplied]     = useState(false)
 
   function handleFromChange(val: string): void {
@@ -107,9 +116,11 @@ export function ConversionsTab(): React.JSX.Element {
   function handleApply(): void {
     if (!canApply) return
     if      (fromSource === 'dim-scores' && toTarget === 'el-weight')  dimensionToWeight(fromDimId, poleFlipped)
-    else if (fromSource === 'dim-scores' && toTarget === 'el-color')   dimensionToColor(fromDimId)
+    else if (fromSource === 'dim-scores' && toTarget === 'el-color')   dimensionToColor(fromDimId, colorLow, colorHigh)
     else if (fromSource === 'el-weight'  && toTarget === 'dim-scores') weightToDimension(toDimId, poleFlipped)
     else if (fromSource === 'random'     && toTarget === 'dim-scores') randomizeScores(toDimId)
+    else if (fromSource === 'random'     && toTarget === 'el-weight')  randomizeWeights()
+    else if (fromSource === 'random'     && toTarget === 'el-color')   randomizeColors()
     setApplied(true)
   }
 
@@ -213,7 +224,26 @@ export function ConversionsTab(): React.JSX.Element {
         )}
 
         {toTarget === 'el-color' && fromSource === 'dim-scores' && (
-          <p className={styles.descriptor}>Interpolates between low/high colors set in Preferences.</p>
+          <div className={styles.colorRow}>
+            <label className={styles.colorField}>
+              <span className={styles.subLabel}>Low (score 0)</span>
+              <input
+                type="color"
+                className={styles.colorPicker}
+                value={colorLow}
+                onChange={e => { setColorLow(e.target.value); setApplied(false) }}
+              />
+            </label>
+            <label className={styles.colorField}>
+              <span className={styles.subLabel}>High (score 1)</span>
+              <input
+                type="color"
+                className={styles.colorPicker}
+                value={colorHigh}
+                onChange={e => { setColorHigh(e.target.value); setApplied(false) }}
+              />
+            </label>
+          </div>
         )}
       </div>
 
