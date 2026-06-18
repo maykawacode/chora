@@ -239,7 +239,7 @@ function ScoreSlider({ elementName, poleA, poleB, score, onScore }: DimSliderPro
 
   return (
     <div className={styles.slider}>
-      <div className={styles.sliderElementName}>{elementName}</div>
+      <div className={styles.sliderElementName}>{elementName || ' '}</div>
       <div className={styles.sliderPoles}>
         <span className={styles.poleLabel}>{poleA}</span>
         <span className={styles.poleLabel}>{poleB}</span>
@@ -257,9 +257,9 @@ function ScoreSlider({ elementName, poleA, poleB, score, onScore }: DimSliderPro
           />
         )}
       </div>
-      {pct === null && (
-        <p className={styles.sliderHint}>Click on the line to indicate the score. Slide the dot to adjust it.</p>
-      )}
+      <p className={styles.sliderHint} style={{ visibility: pct !== null ? 'hidden' : 'visible' }}>
+        Click on the line to indicate the score. Slide the dot to adjust it.
+      </p>
     </div>
   )
 }
@@ -306,10 +306,8 @@ function TypeScoreSlider({ elementName, typeName, score, onScore }: TypeSliderPr
     <div className={styles.slider}>
       <div className={styles.sliderElementName}>{elementName || ' '}</div>
       <div className={styles.sliderPoles}>
-        <span className={styles.poleLabel}>{typeName || ' '}</span>
-      </div>
-      <div className={styles.sliderPoles}>
         <span className={styles.poleLabel}>None</span>
+        <span className={`${styles.poleLabel} ${styles.poleLabelCenter}`}>{typeName || ' '}</span>
         <span className={styles.poleLabel}>Full</span>
       </div>
       <div ref={trackRef} className={styles.sliderTrack} onClick={handleTrackClick}>
@@ -325,9 +323,9 @@ function TypeScoreSlider({ elementName, typeName, score, onScore }: TypeSliderPr
           />
         )}
       </div>
-      {pct === null && (
-        <p className={styles.sliderHint}>Click the line to set a membership score. Slide the dot to adjust it.</p>
-      )}
+      <p className={styles.sliderHint} style={{ visibility: pct !== null ? 'hidden' : 'visible' }}>
+        Click the line to set a membership score. Slide the dot to adjust it.
+      </p>
     </div>
   )
 }
