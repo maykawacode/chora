@@ -495,7 +495,18 @@ export function drawTypeProjection(
     ? [...elements].sort((a, b) => b.weight - a.weight)
     : elements
 
-  for (const el of sorted) {
+  // When any type is deselected, hide elements that don't qualify for at least
+  // one visible type. typeIds=[] means all types are visible so no filtering.
+  const visibleElements = config.typeIds.length === 0
+    ? sorted
+    : sorted.filter(el =>
+        visibleTypes.some(t => {
+          const m = scores[el.id]?.[t.id]
+          return m !== undefined && m >= config.threshold
+        })
+      )
+
+  for (const el of visibleElements) {
     const xScore = scores[el.id]?.[xDim.id]
     const yScore = scores[el.id]?.[yDim.id]
 
