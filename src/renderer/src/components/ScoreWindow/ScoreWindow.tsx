@@ -10,7 +10,6 @@ import { ElementsTab } from './ElementsTab'
 import { DimensionsTab } from './DimensionsTab'
 import { ScoresTab } from './ScoresTab'
 import { TypesTab } from './TypesTab'
-import { ScoreTypeTab } from './ScoreTypeTab'
 import type { TransformMode } from '../maps/AdvancedTransform'
 import styles from './ScoreWindow.module.css'
 
@@ -51,13 +50,13 @@ export function ScoreWindow({ onOpenStarterPicker, onOpenTransform }: Props): Re
       <div className={styles.tabBar}>
         <span className={styles.windowTitle}>{fileName}</span>
 
-        {(['elements', 'types', 'dimensions', 'scores', 'scoretype'] as const).map(tab => (
+        {(['elements', 'types', 'dimensions', 'scores'] as const).map(tab => (
           <button
             key={tab}
             className={`${styles.tab} ${activeTab === tab ? styles.tabActive : ''}`}
             onClick={() => setActiveTab(tab)}
           >
-            {tab === 'scoretype' ? 'ScoreType' : tab.charAt(0).toUpperCase() + tab.slice(1)}
+            {tab.charAt(0).toUpperCase() + tab.slice(1)}
           </button>
         ))}
 
@@ -96,7 +95,6 @@ export function ScoreWindow({ onOpenStarterPicker, onOpenTransform }: Props): Re
         {activeTab === 'types'      && <TypesTab />}
         {activeTab === 'dimensions' && <DimensionsTab onOpenStarterPicker={onOpenStarterPicker} />}
         {activeTab === 'scores'     && <ScoresTab />}
-        {activeTab === 'scoretype'  && <ScoreTypeTab />}
       </div>
     </div>
   )
