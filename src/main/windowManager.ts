@@ -56,14 +56,12 @@ export function openMapWindow(mapId: string, stateJson: string): void {
 
   if (getCachedPreferences().rememberWindowPositions) {
     try {
-      const state = JSON.parse(stateJson) as {
-        maps?: Array<{
-          id: string
-          windowX?: number; windowY?: number
-          windowWidth?: number; windowHeight?: number
-        }>
-      }
-      const cfg = state.maps?.find(m => m.id === mapId)
+      // stateJson is the IPC envelope { isDirty, session: "...", ... }.
+      // Maps live inside the nested session string, not at the top level.
+      const envelope = JSON.parse(stateJson) as { session?: string }
+      const sessionData = envelope.session ? JSON.parse(envelope.session) : envelope
+      type MapGeom = { id: string; windowX?: number; windowY?: number; windowWidth?: number; windowHeight?: number }
+      const cfg = (sessionData.maps as MapGeom[] | undefined)?.find(m => m.id === mapId)
       if (cfg) {
         if (cfg.windowX != null && cfg.windowY != null) { x = cfg.windowX; y = cfg.windowY }
         if (cfg.windowWidth)  width  = cfg.windowWidth

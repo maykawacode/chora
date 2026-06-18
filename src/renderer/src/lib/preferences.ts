@@ -22,6 +22,10 @@ export interface Preferences {
   dimensionLabelSize: number        // font size (px) for dimension pole labels on maps
   dimColorLow: string               // hex color mapped to score 0 by the Dimension → Color transform
   dimColorHigh: string              // hex color mapped to score 1 by the Dimension → Color transform
+  mainWindowX: number | null        // last known main window position (null = use OS default)
+  mainWindowY: number | null
+  mainWindowWidth: number           // last known main window size
+  mainWindowHeight: number
 }
 
 export const DEFAULT_PREFERENCES: Preferences = {
@@ -35,5 +39,9 @@ export const DEFAULT_PREFERENCES: Preferences = {
   elementLabelSize: 11,
   dimensionLabelSize: 11,
   dimColorLow: '#b04040',   // muted red — low end of the color ramp
-  dimColorHigh: '#508050'   // muted green — high end of the color ramp
+  dimColorHigh: '#508050',  // muted green — high end of the color ramp
+  mainWindowX: null,
+  mainWindowY: null,
+  mainWindowWidth: 530,
+  mainWindowHeight: 800
 }

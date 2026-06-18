@@ -10,7 +10,7 @@ import { is } from '@electron-toolkit/utils'
 import { registerIpcHandlers } from './ipc'
 import { buildMenu, setMainWindowForMenu, setCloseWindowEnabled } from './menu'
 import { setScoreWindow } from './windowManager'
-import { loadPreferences } from './prefs'
+import { loadPreferences, getCachedPreferences, savePreferences, savePreferencesSync } from './prefs'
 
 let mainWindow: BrowserWindow | null = null
 let quitConfirmed = false
@@ -18,9 +18,14 @@ let quitConfirmed = false
 export function setQuitConfirmed(): void { quitConfirmed = true }
 
 function createWindow(): void {
+  const prefs = getCachedPreferences()
+  const hasStoredBounds = prefs.rememberWindowPositions && prefs.mainWindowX != null
+
   mainWindow = new BrowserWindow({
-    width: 530,
-    height: 800,
+    x:      hasStoredBounds ? prefs.mainWindowX!     : undefined,
+    y:      hasStoredBounds ? prefs.mainWindowY!     : undefined,
+    width:  hasStoredBounds ? prefs.mainWindowWidth  : 530,
+    height: hasStoredBounds ? prefs.mainWindowHeight : 800,
     minWidth: 300,
     minHeight: 500,
     show: false,
@@ -38,6 +43,16 @@ function createWindow(): void {
   setScoreWindow(mainWindow)
   // Register with menu.ts so menu actions can be sent to this window
   setMainWindowForMenu(mainWindow)
+
+  // Persist main window geometry so it can be restored on next launch
+  const saveBounds = (): void => {
+    if (!getCachedPreferences().rememberWindowPositions) return
+    const [x, y] = mainWindow!.getPosition()
+    const [w, h] = mainWindow!.getSize()
+    savePreferences({ ...getCachedPreferences(), mainWindowX: x, mainWindowY: y, mainWindowWidth: w, mainWindowHeight: h })
+  }
+  mainWindow.on('moved',   saveBounds)
+  mainWindow.on('resized', saveBounds)
 
   mainWindow.on('ready-to-show', () => {
     mainWindow!.show()
@@ -87,7 +102,16 @@ app.on('before-quit', (e) => {
     }
     return
   }
-  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.setClosable(true)
+  // Capture final window bounds synchronously before the process exits.
+  // Async writes from moved/resized events may not have completed yet.
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    if (getCachedPreferences().rememberWindowPositions) {
+      const [x, y] = mainWindow.getPosition()
+      const [w, h] = mainWindow.getSize()
+      savePreferencesSync({ ...getCachedPreferences(), mainWindowX: x, mainWindowY: y, mainWindowWidth: w, mainWindowHeight: h })
+    }
+    mainWindow.setClosable(true)
+  }
 })
 
 // Quit on all windows closed except on macOS (standard platform behavior)

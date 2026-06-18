@@ -11,6 +11,7 @@
 
 import { app } from 'electron'
 import { join } from 'path'
+import { writeFileSync } from 'fs'
 import { readFile, writeFile } from 'fs/promises'
 
 interface Preferences {
@@ -25,6 +26,10 @@ interface Preferences {
   dimensionLabelSize: number
   dimColorLow: string   // hex color mapped to score 0 by the Dimension → Color transform
   dimColorHigh: string  // hex color mapped to score 1 by the Dimension → Color transform
+  mainWindowX: number | null
+  mainWindowY: number | null
+  mainWindowWidth: number
+  mainWindowHeight: number
 }
 
 const DEFAULT: Preferences = {
@@ -38,7 +43,11 @@ const DEFAULT: Preferences = {
   elementLabelSize: 11,
   dimensionLabelSize: 11,
   dimColorLow: '#b04040',
-  dimColorHigh: '#508050'
+  dimColorHigh: '#508050',
+  mainWindowX: null,
+  mainWindowY: null,
+  mainWindowWidth: 530,
+  mainWindowHeight: 800
 }
 
 // In-memory cache; null means not yet loaded from disk
@@ -72,6 +81,17 @@ export async function savePreferences(prefs: Preferences): Promise<void> {
   cached = prefs
   try {
     await writeFile(prefsPath(), JSON.stringify(prefs, null, 2), 'utf-8')
+  } catch { /* ignore write errors */ }
+}
+
+/**
+ * Writes preferences synchronously. Used in before-quit where async I/O
+ * might not complete before the process exits.
+ */
+export function savePreferencesSync(prefs: Preferences): void {
+  cached = prefs
+  try {
+    writeFileSync(prefsPath(), JSON.stringify(prefs, null, 2), 'utf-8')
   } catch { /* ignore write errors */ }
 }
 

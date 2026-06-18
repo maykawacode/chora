@@ -120,7 +120,18 @@ export function registerIpcHandlers(): void {
   })
 
   ipcMain.on('prefs:save', (_event, prefs: unknown) => {
-    savePreferences(prefs as Parameters<typeof savePreferences>[0])
+    // Preserve mainWindow bounds — the renderer never receives updates to these
+    // fields after startup, so its copy is always stale. Always take them from
+    // the main-process cache, which is kept current by the moved/resized handlers.
+    const current = getCachedPreferences()
+    const incoming = prefs as Parameters<typeof savePreferences>[0]
+    savePreferences({
+      ...incoming,
+      mainWindowX:      current.mainWindowX,
+      mainWindowY:      current.mainWindowY,
+      mainWindowWidth:  current.mainWindowWidth,
+      mainWindowHeight: current.mainWindowHeight
+    })
   })
 
   // ── Window geometry ───────────────────────────────────────────────────────────
