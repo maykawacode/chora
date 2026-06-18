@@ -143,6 +143,8 @@
   z-index: 50;
   min-width: 140px;
   padding: 4px 0;
+  max-height: 80vh;
+  overflow-y: auto;
 }
 
 .menuItem {

@@ -16,6 +16,7 @@ import { useRef, useEffect, useCallback, useState } from 'react'
 import { useAppStore } from '../../store/appStore'
 import { usePrefsStore } from '../../store/prefsStore'
 import type { CartesianMapConfig, SemanticMapConfig, TypeProjectionMapConfig, Dimension, ScoreMap } from '../../lib/types'
+import C2S from 'canvas2svg'
 import { drawCartesian, MARGIN, DOT_MIN_RADIUS, DOT_MAX_RADIUS } from './cartesian/drawCartesian'
 import { drawSemantic, SEM_MARGIN_H, SEM_MARGIN_V, SEM_DOT_R } from './semantic/drawSemantic'
 import { drawTypeProjection } from './typeProjection/drawTypeProjection'
@@ -400,6 +401,37 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
     a.href = dataUrl
     a.download = `${config?.title ?? 'map'}.png`
     a.click()
+    setShowMenu(false)
+  }
+
+  function handleExportSvg(): void {
+    const wrapper = wrapperRef.current
+    if (!wrapper || !config) return
+    const rect = wrapper.getBoundingClientRect()
+    const cssW = rect.width
+    const cssH = rect.height
+    const ctx = new C2S(cssW, cssH)
+    // canvas2svg v1.0.16 omits setLineDash — patch a no-op so draw functions
+    // don't throw; dashed lines simply render as solid in the SVG output
+    ;(ctx as unknown as Record<string, unknown>).setLineDash = (): void => {}
+    if (config.type === 'cartesian') {
+      drawCartesian(ctx, cssW, cssH, config as CartesianMapConfig, elements, dimensions, scores,
+        selectedElementId ?? undefined, elementLabelSize, dimensionLabelSize, selectedElementIds)
+    } else if (config.type === 'semantic') {
+      drawSemantic(ctx, cssW, cssH, config as SemanticMapConfig, elements, dimensions, scores,
+        undefined, selectedElementId ?? undefined, elementLabelSize, dimensionLabelSize, selectedElementIds)
+    } else if (config.type === 'typeprojection') {
+      drawTypeProjection(ctx, cssW, cssH, config as TypeProjectionMapConfig, elements, types, dimensions, scores,
+        selectedElementId ?? undefined, elementLabelSize, dimensionLabelSize, selectedElementIds)
+    }
+    const svg = ctx.getSerializedSvg(true)
+    const blob = new Blob([svg], { type: 'image/svg+xml' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${config.title ?? 'map'}.svg`
+    a.click()
+    URL.revokeObjectURL(url)
     setShowMenu(false)
   }
 
@@ -900,6 +932,10 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
               <div className={styles.menuItem} onClick={handleExportPng}>
                 <span className={styles.menuCheck} />
                 Export as PNG…
+              </div>
+              <div className={styles.menuItem} onClick={handleExportSvg}>
+                <span className={styles.menuCheck} />
+                Export as SVG…
               </div>
             </div>
           )}

@@ -1,5 +1,13 @@
 /// <reference types="vite/client" />
 
+declare module 'canvas2svg' {
+  class C2S extends CanvasRenderingContext2D {
+    constructor(width: number, height: number)
+    getSerializedSvg(fixNamedEntities?: boolean): string
+  }
+  export default C2S
+}
+
 // ── window.api type declarations ─────────────────────────────────────────────
 //
 // These types must stay in sync with the actual object exposed by
