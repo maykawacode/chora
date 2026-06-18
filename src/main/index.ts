@@ -19,8 +19,8 @@ export function setQuitConfirmed(): void { quitConfirmed = true }
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
-    width: 430,
-    height: 700,
+    width: 530,
+    height: 800,
     minWidth: 300,
     minHeight: 500,
     show: false,

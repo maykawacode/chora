@@ -32,6 +32,14 @@ export function DimensionsTab({ onOpenStarterPicker }: Props): React.JSX.Element
   const [detailWidth, setDetailWidth] = useState(160)
   const addInputRef = useRef<HTMLInputElement>(null)
   const dragRef = useRef<{ startX: number; startWidth: number } | null>(null)
+  const tabRef  = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (tabRef.current) {
+      const w = tabRef.current.getBoundingClientRect().width
+      if (w > 0) setDetailWidth(Math.round(w / 2))
+    }
+  }, [])
 
   function onHandleMouseDown(e: React.MouseEvent): void {
     dragRef.current = { startX: e.clientX, startWidth: detailWidth }
@@ -112,7 +120,7 @@ export function DimensionsTab({ onOpenStarterPicker }: Props): React.JSX.Element
   // ── Render ────────────────────────────────────────────────────────────────────
 
   return (
-    <div className={styles.tab}>
+    <div className={styles.tab} ref={tabRef}>
       {/* ── List pane ── */}
       <div className={styles.listPane}>
         <div className={styles.listHeader}>Dimensions ({dimensions.length})</div>
