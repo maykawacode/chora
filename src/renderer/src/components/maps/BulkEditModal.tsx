@@ -1,11 +1,13 @@
 // ── BulkEditModal ─────────────────────────────────────────────────────────────
 //
-// Modal for batch-editing color, shape, and/or weight across multiple selected
-// elements. Triggered by right-clicking a selected dot when 2+ elements are
-// in selectedElementIds. Empty/null draft fields mean "don't change this
-// property" — only fields the user explicitly touches are applied.
+// Modal for batch-editing color, shape, weight, and type membership across
+// multiple selected elements. Triggered by right-clicking a selected dot when
+// 2+ elements are in selectedElementIds. Empty/null draft fields mean "don't
+// change this property" — only fields the user explicitly touches are applied.
+// Type actions are flushed to the store on Apply; Cancel discards all changes.
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useAppStore } from '../../store/appStore'
 import { ELEMENT_SHAPES } from '../../lib/types'
 import type { Element, ElementShape } from '../../lib/types'
 import styles from './BulkEditModal.module.css'
@@ -26,25 +28,74 @@ interface Props {
 export function BulkEditModal({ elementIds, elements, onClose }: Props): React.JSX.Element {
   const selected = elements.filter(e => elementIds.includes(e.id))
 
-  // Derive initial values — null/empty means values are mixed across the selection
+  const types      = useAppStore(s => s.types)
+  const scores     = useAppStore(s => s.scores)
+  const addType    = useAppStore(s => s.addType)
+  const setScore   = useAppStore(s => s.setScore)
+  const clearScore = useAppStore(s => s.clearScore)
+
+  // Derive initial element field values
   const allSameColor  = selected.length > 0 && selected.every(e => e.color  === selected[0].color)
   const allSameShape  = selected.length > 0 && selected.every(e => e.shape  === selected[0].shape)
   const allSameWeight = selected.length > 0 && selected.every(e => e.weight === selected[0].weight)
 
-  const [color,    setColor]    = useState<string | null>(allSameColor  ? selected[0].color            : null)
+  const [color,    setColor]    = useState<string | null>(allSameColor  ? selected[0].color  : null)
   const [hexInput, setHexInput] = useState(allSameColor ? selected[0].color : '')
-  const [shape,    setShape]    = useState<ElementShape | null>(allSameShape  ? selected[0].shape : null)
+  const [shape,    setShape]    = useState<ElementShape | null>(allSameShape ? selected[0].shape : null)
   const [weight,   setWeight]   = useState(allSameWeight ? String(selected[0].weight) : '')
+
+  // 'assign' → set all to 1.0, 'unassign' → clear all, null → untouched
+  const [typeActions, setTypeActions] = useState<Record<string, 'assign' | 'unassign' | null>>({})
+  const [newTypeName, setNewTypeName] = useState('')
+
+  function getInitialTypeState(typeId: string): 'all' | 'none' | 'mixed' {
+    const count = elementIds.filter(eid => (scores[eid]?.[typeId] ?? 0) > 0).length
+    if (count === 0) return 'none'
+    if (count === elementIds.length) return 'all'
+    return 'mixed'
+  }
+
+  function getEffectiveState(typeId: string): 'all' | 'none' | 'mixed' {
+    if (typeActions[typeId] === 'assign') return 'all'
+    if (typeActions[typeId] === 'unassign') return 'none'
+    return getInitialTypeState(typeId)
+  }
+
+  function toggleType(typeId: string): void {
+    const current = getEffectiveState(typeId)
+    setTypeActions(prev => ({ ...prev, [typeId]: current === 'all' ? 'unassign' : 'assign' }))
+  }
+
+  function handleAddType(): void {
+    const name = newTypeName.trim()
+    if (!name) return
+    const id = addType(name)
+    window.api?.broadcastNewType(id, name)
+    setTypeActions(prev => ({ ...prev, [id]: 'assign' }))
+    setNewTypeName('')
+  }
 
   const handleCloseRef = useRef<(apply: boolean) => void>(() => {})
   handleCloseRef.current = (apply: boolean) => {
     if (!apply) { onClose(undefined); return }
+    // Broadcast scores to main window BEFORE the element update IPC fires —
+    // same ordering fix as ElementDetailModal.
+    const hasTypeChanges = Object.values(typeActions).some(a => a !== null)
+    for (const [typeId, action] of Object.entries(typeActions)) {
+      if (!action) continue
+      for (const eid of elementIds) {
+        window.api?.broadcastScore(eid, typeId, action === 'assign' ? 1.0 : 0)
+        if (action === 'assign') setScore(eid, typeId, 1.0)
+        else clearScore(eid, typeId)
+      }
+    }
     const changes: Partial<Element> = {}
     if (color !== null) changes.color = color
     if (shape !== null) changes.shape = shape
     const parsed = parseInt(weight, 10)
     if (!isNaN(parsed) && parsed >= 1 && parsed <= 100) changes.weight = parsed
-    onClose(Object.keys(changes).length > 0 ? changes : undefined)
+    const payload = Object.keys(changes).length > 0 ? changes : (hasTypeChanges ? {} : undefined)
+    onClose(payload)
   }
 
   useEffect(() => {
@@ -129,6 +180,52 @@ export function BulkEditModal({ elementIds, elements, onClose }: Props): React.J
             placeholder="mixed"
             onChange={e => setWeight(e.target.value)}
           />
+        </div>
+
+        <div className={styles.typesSection}>
+          <span className={styles.typesLabel}>Types</span>
+          {types.length > 0 && (
+            <div className={styles.typeList}>
+              {types.map(t => {
+                const state = getEffectiveState(t.id)
+                return (
+                  <div
+                    key={t.id}
+                    className={`${styles.typeRow} ${state === 'all' ? styles.typeRowOn : ''}`}
+                    onClick={() => toggleType(t.id)}
+                  >
+                    <span className={styles.typeDot} style={{ background: t.color }} />
+                    <span className={styles.typeName}>{t.name}</span>
+                    {state === 'all'   && <span className={styles.typeCheck}>✓</span>}
+                    {state === 'mixed' && <span className={styles.typeMixed}>–</span>}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+          {types.length === 0 && (
+            <span className={styles.typesEmpty}>No types — add one below</span>
+          )}
+          <div className={styles.newTypeRow}>
+            <input
+              className={styles.newTypeInput}
+              value={newTypeName}
+              placeholder="New type…"
+              onChange={e => setNewTypeName(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Escape') {
+                  if (newTypeName.trim()) { e.nativeEvent.stopImmediatePropagation(); setNewTypeName('') }
+                  return
+                }
+                if (e.key === 'Enter' && newTypeName.trim()) handleAddType()
+              }}
+            />
+            <button
+              className={styles.addTypeBtn}
+              disabled={!newTypeName.trim()}
+              onClick={handleAddType}
+            >Add</button>
+          </div>
         </div>
 
         <div className={styles.footer}>

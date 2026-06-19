@@ -47,6 +47,7 @@ interface Window {
     broadcastScore:     (elementId: string, dimensionId: string, value: number) => void
     broadcastMapConfig: (mapId: string, changes: Record<string, unknown>) => void
     broadcastElement:   (elementId: string, changes: Record<string, unknown>) => void
+    broadcastNewType:   (id: string, name: string) => void
     broadcastSelection:      (elementId: string | null) => void
     broadcastMultiSelection: (ids: string[]) => void
     broadcastPrefs:          (prefs: Record<string, unknown>) => void
@@ -61,6 +62,7 @@ interface Window {
     onMapConfig:          (cb: (mapId: string, changes: Record<string, unknown>) => void) => () => void
     onMapClosed:          (cb: (mapId: string) => void) => () => void
     onElementUpdate:      (cb: (elementId: string, changes: Record<string, unknown>) => void) => () => void
+    onTypeAdd:            (cb: (id: string, name: string) => void) => () => void
     onSelection:          (cb: (elementId: string | null) => void) => () => void
     onMultiSelection:     (cb: (ids: string[]) => void) => () => void
 

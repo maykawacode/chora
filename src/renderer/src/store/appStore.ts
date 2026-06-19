@@ -34,7 +34,7 @@ interface AppStore extends AppState {
   removeElement:    (id: string) => void
 
   // Types
-  addType:    (name: string) => void
+  addType:    (name: string, id?: string) => string
   updateType: (id: string, changes: Partial<Type>) => void
   removeType: (id: string) => void
 
@@ -197,10 +197,11 @@ export const useAppStore = create<AppStore>((set) => ({
 
   // ── Types ────────────────────────────────────────────────────────────────────
 
-  addType: (name) => set((s) => {
-    const type: Type = { id: uuid(), name, definition: '', color: '#808080' }
-    return { types: [...s.types, type], isDirty: true }
-  }),
+  addType: (name, id) => {
+    const newId = id ?? uuid()
+    set((s) => ({ types: [...s.types, { id: newId, name, definition: '', color: '#808080' }], isDirty: true }))
+    return newId
+  },
 
   updateType: (id, changes) => set((s) => ({
     types: s.types.map(t => t.id === id ? { ...t, ...changes } : t),

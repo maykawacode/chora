@@ -218,6 +218,16 @@ export function registerIpcHandlers(): void {
     }
   })
 
+  // New type created inline from a map window modal — relay to Score Window.
+  // Score Window adds the type with the same UUID so it matches the score
+  // entries that will arrive via the subsequent broadcastScore calls.
+  ipcMain.on('type:add', (event, id: string, name: string) => {
+    const scoreWin = getMainWindow()
+    if (scoreWin && !scoreWin.isDestroyed() && scoreWin.webContents.id !== event.sender.id) {
+      scoreWin.webContents.send('type:add', id, name)
+    }
+  })
+
   // Renderer has confirmed it is safe to quit — mark confirmed then re-trigger quit
   ipcMain.on('app:confirm-quit', () => {
     setQuitConfirmed()

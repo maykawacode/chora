@@ -147,6 +147,15 @@ export function App(): React.JSX.Element {
       window.api.broadcastState(JSON.stringify({ isDirty: s.isDirty, filePath: s.filePath, session: serializeSession(s), selectedElementId: s.selectedElementId }))
     })
 
+    // New type created inline from a map window modal. Suppress re-broadcast —
+    // the subsequent onElementUpdate will push the full state (with the new type
+    // and its scores) once the modal closes.
+    const removeTypeAdd = window.api.onTypeAdd((id, name) => {
+      suppressBroadcast.current = true
+      useAppStore.getState().addType(name, id)
+      suppressBroadcast.current = false
+    })
+
     // Quit requested — show confirm dialog if dirty, otherwise let it proceed
     const removeQuitRequested = window.api.onQuitRequested(() => {
       if (useAppStore.getState().isDirty) {
@@ -156,7 +165,7 @@ export function App(): React.JSX.Element {
       }
     })
 
-    return () => { removeScore(); removeConfig(); removeMapClosed(); removeElementUpdate(); removeQuitRequested() }
+    return () => { removeScore(); removeConfig(); removeMapClosed(); removeElementUpdate(); removeTypeAdd(); removeQuitRequested() }
   }, [])
 
   // ── Selection sync ────────────────────────────────────────────────────────────

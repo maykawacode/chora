@@ -1,9 +1,9 @@
 // ── ElementDetailModal ────────────────────────────────────────────────────────
 //
 // Centered modal triggered by right-clicking an element dot on any map.
-// Edits color, shape, weight, and description in local draft state.
-// All changes are batched and committed in a single updateElement call when
-// the modal closes — no per-keystroke updates.
+// Edits color, shape, weight, definition, and type membership in local draft
+// state. Element field changes are batched and committed via onClose callback;
+// type assignment changes are flushed to the store before the callback fires.
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAppStore } from '../../store/appStore'
@@ -24,25 +24,63 @@ interface Props {
 }
 
 export function ElementDetailModal({ elementId, onClose }: Props): React.JSX.Element | null {
-  const element = useAppStore(s => s.elements.find(e => e.id === elementId))
+  const element    = useAppStore(s => s.elements.find(e => e.id === elementId))
+  const types      = useAppStore(s => s.types)
+  const scores     = useAppStore(s => s.scores)
+  const addType    = useAppStore(s => s.addType)
+  const setScore   = useAppStore(s => s.setScore)
+  const clearScore = useAppStore(s => s.clearScore)
 
   const [color,       setColor]       = useState(element?.color       ?? '#9d9d53')
   const [hexInput,    setHexInput]    = useState(element?.color       ?? '#9d9d53')
   const [shape,       setShape]       = useState<ElementShape>(element?.shape ?? 'circle')
   const [weight,      setWeight]      = useState(String(element?.weight ?? 1))
-  const [definition, setDefinition] = useState(element?.definition ?? '')
+  const [definition,  setDefinition]  = useState(element?.definition ?? '')
+  const [typeChanges, setTypeChanges] = useState<Record<string, boolean>>({})
+  const [newTypeName, setNewTypeName] = useState('')
 
-  // Keep a stable ref to the close handler so the Escape listener never goes stale
+  function isAssigned(typeId: string): boolean {
+    if (typeId in typeChanges) return typeChanges[typeId]
+    return (scores[elementId]?.[typeId] ?? 0) > 0
+  }
+
+  function toggleType(typeId: string): void {
+    setTypeChanges(prev => ({ ...prev, [typeId]: !isAssigned(typeId) }))
+  }
+
+  function handleAddType(): void {
+    const name = newTypeName.trim()
+    if (!name) return
+    const id = addType(name)
+    window.api?.broadcastNewType(id, name)
+    setTypeChanges(prev => ({ ...prev, [id]: true }))
+    setNewTypeName('')
+  }
+
+  // Re-assigned every render so the closure always captures latest state
   const handleCloseRef = useRef<() => void>(() => {})
   handleCloseRef.current = () => {
     if (!element) { onClose(null); return }
+    // Broadcast scores to main window BEFORE the element update IPC fires.
+    // The main window's onElementUpdate re-broadcasts full state to all map
+    // windows; if scores haven't reached the main window first, the broadcast
+    // overwrites the local score change and the assignment reverts.
+    const hasTypeChanges = Object.keys(typeChanges).length > 0
+    for (const [typeId, assigned] of Object.entries(typeChanges)) {
+      window.api?.broadcastScore(elementId, typeId, assigned ? 1.0 : 0)
+      if (assigned) setScore(elementId, typeId, 1.0)
+      else clearScore(elementId, typeId)
+    }
     const parsedWeight = Math.max(1, Math.min(100, +weight || 1))
     const changes: Partial<Element> = {}
-    if (color       !== element.color)       changes.color       = color
-    if (shape       !== element.shape)       changes.shape       = shape
-    if (parsedWeight !== element.weight)     changes.weight      = parsedWeight
-    if (definition !== element.definition) changes.definition = definition
-    onClose(Object.keys(changes).length > 0 ? changes : null)
+    if (color       !== element.color)      changes.color      = color
+    if (shape       !== element.shape)      changes.shape      = shape
+    if (parsedWeight !== element.weight)    changes.weight     = parsedWeight
+    if (definition  !== element.definition) changes.definition = definition
+    // Pass {} when only type changes were made so broadcastElement still fires,
+    // which triggers the main window to broadcast the updated state back.
+    const payload = Object.keys(changes).length > 0 ? changes : (hasTypeChanges ? {} : null)
+    onClose(payload)
   }
 
   useEffect(() => {
@@ -135,6 +173,51 @@ export function ElementDetailModal({ elementId, onClose }: Props): React.JSX.Ele
           placeholder="Definition…"
           onChange={e => setDefinition(e.target.value)}
         />
+
+        <div className={styles.typesSection}>
+          <span className={styles.typesLabel}>Types</span>
+          {types.length > 0 && (
+            <div className={styles.typeList}>
+              {types.map(t => {
+                const assigned = isAssigned(t.id)
+                return (
+                  <div
+                    key={t.id}
+                    className={`${styles.typeRow} ${assigned ? styles.typeRowOn : ''}`}
+                    onClick={() => toggleType(t.id)}
+                  >
+                    <span className={styles.typeDot} style={{ background: t.color }} />
+                    <span className={styles.typeName}>{t.name}</span>
+                    {assigned && <span className={styles.typeCheck}>✓</span>}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+          {types.length === 0 && (
+            <span className={styles.typesEmpty}>No types — add one below</span>
+          )}
+          <div className={styles.newTypeRow}>
+            <input
+              className={styles.newTypeInput}
+              value={newTypeName}
+              placeholder="New type…"
+              onChange={e => setNewTypeName(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Escape') {
+                  if (newTypeName.trim()) { e.nativeEvent.stopImmediatePropagation(); setNewTypeName('') }
+                  return
+                }
+                if (e.key === 'Enter' && newTypeName.trim()) handleAddType()
+              }}
+            />
+            <button
+              className={styles.addTypeBtn}
+              disabled={!newTypeName.trim()}
+              onClick={handleAddType}
+            >Add</button>
+          </div>
+        </div>
 
         <div className={styles.footer}>
           <button className={styles.doneBtn} onClick={handleClose}>Done</button>
