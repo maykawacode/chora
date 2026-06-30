@@ -59,6 +59,7 @@ interface AppStore extends AppState {
   dimensionToColor:  (dimensionId: string, colorLow?: string, colorHigh?: string) => void
   dimToDimScores:    (sourceDimId: string, targetDimId: string) => void
   randomizeScores:   (dimensionId: string) => void
+  spreadDimensionScores: (dimensionId: string) => void
   randomizeWeights:  () => void
   randomizeColors:   () => void
   typeToElementColor: () => void
@@ -378,6 +379,29 @@ export const useAppStore = create<AppStore>((set) => ({
     const newScores = { ...s.scores }
     for (const el of s.elements) {
       newScores[el.id] = { ...newScores[el.id], [dimensionId]: Math.random() }
+    }
+    return { scores: newScores, isDirty: true }
+  }),
+
+  // Rescales a dimension's existing scores so the lowest value maps to 0.05
+  // and the highest maps to 0.95, preserving relative spacing in between.
+  // Unscored elements are left unchanged. If every scored element has the
+  // same value, they're all set to 0.5 (no spread to derive a ratio from).
+  spreadDimensionScores: (dimensionId) => set((s) => {
+    const scored = s.elements
+      .map(el => ({ id: el.id, raw: s.scores[el.id]?.[dimensionId] }))
+      .filter((e): e is { id: string; raw: number } => e.raw !== undefined)
+
+    if (scored.length === 0) return s
+
+    const min = Math.min(...scored.map(e => e.raw))
+    const max = Math.max(...scored.map(e => e.raw))
+    const range = max - min
+
+    const newScores = { ...s.scores }
+    for (const { id, raw } of scored) {
+      const value = range === 0 ? 0.5 : 0.05 + ((raw - min) / range) * 0.9
+      newScores[id] = { ...newScores[id], [dimensionId]: value }
     }
     return { scores: newScores, isDirty: true }
   }),

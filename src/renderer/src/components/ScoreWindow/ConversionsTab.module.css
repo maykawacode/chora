@@ -148,6 +148,12 @@
   font-weight: 500;
 }
 
+/* ── Standalone "Spread" section (separate from the FROM/TO pipeline) ───── */
+
+.standaloneSection {
+  margin-top: 16px;
+}
+
 /* ── Footer: summary, warning, apply button ──────────────────────────────── */
 
 .footer {

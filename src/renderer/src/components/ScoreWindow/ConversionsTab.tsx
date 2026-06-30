@@ -74,6 +74,7 @@ export function ConversionsTab(): React.JSX.Element {
   const shapeToColor       = useAppStore(s => s.shapeToColor)
   const colorToShape       = useAppStore(s => s.colorToShape)
   const shapeToType        = useAppStore(s => s.shapeToType)
+  const spreadDimensionScores = useAppStore(s => s.spreadDimensionScores)
 
   const { dimColorLow: prefLow, dimColorHigh: prefHigh } = usePrefsStore(s => s.prefs)
 
@@ -85,6 +86,16 @@ export function ConversionsTab(): React.JSX.Element {
   const [colorLow,    setColorLow]    = useState(prefLow)
   const [colorHigh,   setColorHigh]   = useState(prefHigh)
   const [applied,     setApplied]     = useState(false)
+
+  const [spreadDimId, setSpreadDimId] = useState('')
+  const [spreadApplied, setSpreadApplied] = useState(false)
+  const spreadDim = spreadDimId ? dimensions.find(d => d.id === spreadDimId) ?? null : null
+
+  function handleSpreadApply(): void {
+    if (!spreadDimId) return
+    spreadDimensionScores(spreadDimId)
+    setSpreadApplied(true)
+  }
 
   function handleFromChange(val: string): void {
     setFromSource(val as FromSource | '')
@@ -300,6 +311,38 @@ export function ConversionsTab(): React.JSX.Element {
           </button>
         </div>
       )}
+
+      {/* ── Spread: rescale a dimension's scores to fill .05–.95 ───────────── */}
+      <div className={`${styles.section} ${styles.standaloneSection}`}>
+        <div className={styles.sectionLabel}>Spread dimension to fill range</div>
+
+        <select
+          className={styles.select}
+          value={spreadDimId}
+          onChange={e => { setSpreadDimId(e.target.value); setSpreadApplied(false) }}
+        >
+          <option value="">Choose dimension…</option>
+          {dimensions.map((d, i) => (
+            <option key={d.id} value={d.id}>{d.label || `Dimension ${i + 1}`}</option>
+          ))}
+        </select>
+
+        {spreadDim && (
+          <div className={styles.footer}>
+            <p className={styles.summary}>
+              Rescales {spreadDim.label || 'this dimension'}&apos;s scores so the lowest becomes .05 and the
+              highest becomes .95, preserving relative spacing. Unscored elements unchanged.
+            </p>
+            <button
+              className={spreadApplied ? styles.applyBtnDone : styles.applyBtn}
+              disabled={spreadApplied}
+              onClick={handleSpreadApply}
+            >
+              {spreadApplied ? 'Applied' : 'Apply Spread'}
+            </button>
+          </div>
+        )}
+      </div>
 
     </div>
   )
