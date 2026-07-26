@@ -36,7 +36,13 @@
 /* The 10px above sits on the title rather than in .section's padding so the
    space belongs to the heading and travels with it, and so the section's
    bottom rule keeps its own spacing independent of this. */
+/* Flex so a section can carry an action on the right — Collections uses it for
+   its All/None link. Baseline alignment keeps that link sitting on the same
+   line as the heading despite the two different font sizes. */
 .sectionTitle {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
   margin: 10px 0 6px;
   font-size: 10px;
   font-weight: 700;
@@ -45,34 +51,60 @@
   letter-spacing: 0.06em;
 }
 
-.check {
+/* ── Collection rows ──────────────────────────────────────────────────────────
+   Whole row is the button, matching the setting rows above it. */
+.collection {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  width: 100%;
   padding: 3px 0;
+  border: none;
+  background: none;
+  font-family: inherit;
   font-size: 12px;
   color: #222;
+  text-align: left;
   cursor: pointer;
 }
 
-.check input {
-  margin: 0;
+/* Solid when the blob is drawn, hollow when it isn't — both states set inline
+   from the collection's own color, so only the shared geometry lives here. The
+   1.5px border is what survives as the ring in the hollow state; thinner and it
+   reads as a shadow rather than an outline. */
+.collectionSwatch {
+  width: 12px;
+  height: 12px;
   flex: none;
-  cursor: pointer;
+  border-radius: 3px;
+  border: 1.5px solid;
 }
 
-.checkLabel {
+.collectionName {
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.swatch {
-  width: 9px;
-  height: 9px;
-  border-radius: 2px;
-  border: 1px solid rgba(0, 0, 0, 0.25);
+/* Tabular figures so the counts form a column instead of shifting as the
+   threshold slider changes them. */
+.collectionCount {
   flex: none;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: #7b746a;
+}
+
+.collection:hover .collectionName {
+  text-decoration: underline;
+}
+
+.collection:focus-visible .collectionName {
+  outline: 2px solid rgba(128, 128, 64, 0.5);
+  outline-offset: 2px;
+  border-radius: 2px;
 }
 
 .slider {
@@ -168,18 +200,6 @@
   outline: 2px solid rgba(128, 128, 64, 0.5);
   outline-offset: 2px;
   border-radius: 2px;
-}
-
-.subhead {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  font-size: 10px;
-  font-weight: 700;
-  color: #888;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  margin: 8px 0 2px;
 }
 
 .linkBtn {

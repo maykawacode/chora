@@ -13,6 +13,9 @@
 //               readColorMode; old files still load unchanged.
 //   within 4.0: map.showDots (boolean) → map.marks (enum) — see readMarkMode;
 //               old files still load unchanged.
+//   within 4.0: map.showTypes (boolean) + map.typeIds (element filter, empty =
+//               all) → map.typeIds alone (blob selection, empty = none) — see
+//               readTypeIds. This one genuinely reinterprets a saved field.
 
 import type { AppState, ColorMode, MarkMode, Element, Type, Dimension, MapConfig, SessionMeta } from './types'
 import { defaultCategories, defaultSessionMeta, parsePoles } from './types'
@@ -48,6 +51,35 @@ const MARK_MODES: MarkMode[] = ['none', 'circle', 'element']
 function readMarkMode(m: Record<string, unknown>): MarkMode {
   if (MARK_MODES.includes(m.marks as MarkMode)) return m.marks as MarkMode
   return m.showDots === false ? 'none' : 'element'
+}
+
+/**
+ * Reads which types a cartesian map draws blobs for, reinterpreting the older
+ * pairing of a showTypes flag with a typeIds element filter.
+ *
+ * The meaning of an empty list inverted, so this is the one migration here that
+ * cannot simply leave a field alone: it used to mean "every type", and now means
+ * "no blobs". A map that was showing its overlay with no explicit selection is
+ * expanded to the full type list, which is what it was drawing.
+ *
+ * Types created after the file was saved are deliberately not picked up by that
+ * expansion — under the new rule a type is drawn because it was chosen, and
+ * nothing chose those.
+ *
+ * `wasTypeMap` covers pre-merge type-projection maps, which drew every blob but
+ * predate showTypes and so never stored it.
+ */
+function readTypeIds(m: Record<string, unknown>, types: Type[], wasTypeMap: boolean): string[] {
+  const saved = Array.isArray(m.typeIds) ? m.typeIds as string[] : []
+  const expand = (): string[] => saved.length > 0 ? saved : types.map(t => t.id)
+
+  if (typeof m.showTypes === 'boolean') return m.showTypes ? expand() : []
+  if (wasTypeMap) return expand()
+
+  // No showTypes to reconcile and not a type-projection map: either already
+  // written under the new rule, or old enough to predate blobs entirely — in
+  // which case saved is empty and "no blobs" is right either way.
+  return saved
 }
 
 /**
@@ -134,8 +166,8 @@ export function deserializeSession(json: string): AppState {
   // ── Maps ─────────────────────────────────────────────────────────────────
   //
   // 'typeprojection' was a separate map type through Phase 5. It is now a
-  // cartesian map with showTypes on — see the migration branch below. Files
-  // written by this version only ever contain 'cartesian' and 'semantic'.
+  // cartesian map with every blob selected — see readTypeIds. Files written by
+  // this version only ever contain 'cartesian' and 'semantic'.
   const maps: MapConfig[] = (raw.maps ?? []).map((m: Record<string, unknown>) => {
     // Settings shared by every map type, all sidebar-driven.
     const base = {
@@ -163,8 +195,7 @@ export function deserializeSession(json: string): AppState {
         yDimensionId: typeof m.yDimensionId === 'string' ? m.yDimensionId : '',
         xFlipped:     m.xFlipped === true,
         yFlipped:     m.yFlipped === true,
-        showTypes:    typeof m.showTypes === 'boolean' ? m.showTypes : wasTypeMap,
-        typeIds:      Array.isArray(m.typeIds) ? m.typeIds as string[] : [],
+        typeIds:      readTypeIds(m, types, wasTypeMap),
         threshold:    typeof m.threshold === 'number' ? m.threshold : 0.5
       }
     }

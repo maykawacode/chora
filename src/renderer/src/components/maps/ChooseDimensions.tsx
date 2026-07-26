@@ -49,8 +49,7 @@ export function ChooseDimensions({ onClose }: Props): React.JSX.Element {
       yFlipped: false,
       sizeByWeight: true,
       colorMode: 'element',
-      // Type clusters start off — switch them on in the map's sidebar.
-      showTypes: false,
+      // No blobs to start — select collections in the map's sidebar to draw them.
       typeIds: [],
       threshold: 0.5,
       showLabels: prefs.defaultShowLabels,

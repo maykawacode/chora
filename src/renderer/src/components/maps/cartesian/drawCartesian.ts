@@ -14,11 +14,12 @@
 // element dots → element labels. Blobs go under the dots so dots stay readable.
 //
 // This renderer absorbed the former Type Projection map: the type overlay is
-// now a toggle (config.showTypes) rather than a separate map type.
+// now per-type (config.typeIds) rather than a separate map type. Selecting a
+// type draws its blob; it has no effect on which elements are plotted.
 
 import type { CartesianMapConfig, Element, Dimension, Type, ScoreMap } from '../../../lib/types'
 import { setBlobPath, BLOB_PADDING, type Pt } from '../blob'
-import { resolveElementColor, resolveTypeColor } from '../color'
+import { resolveElementColor } from '../color'
 import { drawMark, markShapeIndex } from '../shape'
 
 // Space reserved on each side of the canvas for pole labels
@@ -97,51 +98,33 @@ function drawPoleLabel(
 }
 
 /**
- * Returns the types this map is currently showing.
- * An empty config.typeIds means "all types" rather than "none".
+ * Returns the types this map draws a blob for — exactly the ones selected in
+ * the sidebar, so an empty selection draws none.
+ *
+ * Selecting a type no longer filters which elements appear: every element is
+ * always plotted, and this only governs the overlay.
  */
-export function visibleTypes(config: CartesianMapConfig, types: Type[]): Type[] {
-  return config.typeIds.length === 0 ? types : types.filter(t => config.typeIds.includes(t.id))
+export function shownTypes(config: CartesianMapConfig, types: Type[]): Type[] {
+  return types.filter(t => config.typeIds.includes(t.id))
 }
 
 /**
- * Returns the elements this map is currently showing.
+ * How many elements a type's blob would enclose — its members clearing the
+ * map's threshold.
  *
- * An element is hidden only when every type it belongs to has been deselected.
- * Selection wins over deselection, so an element in both a selected and a
- * deselected type stays on the map — one surviving type is enough.
- *
- * An element belonging to no type at all is never hidden: it has no membership
- * that could be switched off, so it stays visible whatever the selection.
- *
- * Membership here means a score meeting config.threshold, so raising the
- * threshold can strand an element by dropping it out of the type that was
- * keeping it visible.
- *
- * This applies whether or not the blob overlay itself is switched on, so types
- * can be used purely as an element filter.
- *
- * Exported because MapPanel's hit-testing, dragging and lasso selection must
- * apply exactly the same rule — otherwise you could grab a dot you can't see.
+ * Exported for the sidebar, which shows the count beside each collection so the
+ * threshold slider's effect is visible while dragging it.
  */
-export function visibleElements(
-  config: CartesianMapConfig,
+export function memberCount(
+  type: Type,
   elements: Element[],
-  types: Type[],
-  scores: ScoreMap
-): Element[] {
-  if (config.typeIds.length === 0) return elements
-
-  const isMember = (el: Element, t: Type): boolean => {
-    const m = scores[el.id]?.[t.id]
-    return m !== undefined && m >= config.threshold
-  }
-
-  const shown = visibleTypes(config, types)
-
-  return elements.filter(el =>
-    shown.some(t => isMember(el, t)) || !types.some(t => isMember(el, t))
-  )
+  scores: ScoreMap,
+  threshold: number
+): number {
+  return elements.filter(el => {
+    const m = scores[el.id]?.[type.id]
+    return m !== undefined && m >= threshold
+  }).length
 }
 
 export function drawCartesian(
@@ -231,77 +214,82 @@ export function drawCartesian(
     y: plotTop  + (1 - (config.yFlipped ? 1 - yScore : yScore)) * plotH
   })
 
-  const shownElements = visibleElements(config, elements, types, scores)
-
   // ── Type blobs ────────────────────────────────────────────────────────────────
   //
   // Drawn before element dots so dots always render on top and stay readable.
-  // Each type becomes a freeform shape containing every qualifying member —
-  // an element whose membership score meets the threshold AND which has been
-  // scored on both chosen axes (otherwise it can't be placed in 2D space).
+  // Each selected type becomes a freeform shape containing every qualifying
+  // member — an element whose membership score meets the threshold AND which
+  // has been scored on both chosen axes (otherwise it can't be placed in 2D
+  // space).
   //
-  // Members are taken from shownElements, not the full list, so a blob never
-  // wraps around a dot the type filter has hidden.
+  // Members are taken from the full element list: selecting a type draws its
+  // blob and nothing more, so there is no hidden dot for a blob to wrap around.
   //
-  // The blob color is the membership-weighted average of member element colors,
-  // and its label sits at the membership-weighted centroid, so the name lands on
-  // the densest part of the cluster rather than the bounding box middle.
+  // A blob is drawn in its own type's color, always — the element color mode
+  // has no say, so switching elements to neutral gray leaves the collections
+  // readable rather than flattening the whole map into one tone. That color also
+  // matches the swatch beside the collection in the sidebar.
+  //
+  // The label sits at the membership-weighted centroid, so the name lands on the
+  // densest part of the cluster rather than the bounding box middle.
+  //
+  // Computed once and reused by the element pass below, which colors dots by
+  // whichever of these blobs they fall inside.
+  const shown = shownTypes(config, types)
 
-  if (config.showTypes) {
-    for (const type of visibleTypes(config, types)) {
-      const color = resolveTypeColor(config.colorMode, type, shownElements, scores, config.threshold)
+  for (const type of shown) {
+    const color = type.color
 
-      // Collect member positions along with their membership strength, which
-      // doubles as the weight for the label centroid below.
-      const pts: Pt[] = []
-      let sumX = 0, sumY = 0, totalWeight = 0
-      for (const el of shownElements) {
-        const membership = scores[el.id]?.[type.id]
-        if (membership === undefined || membership < config.threshold) continue
-        const xScore = scores[el.id]?.[xDim.id]
-        const yScore = scores[el.id]?.[yDim.id]
-        if (xScore === undefined || yScore === undefined) continue
-        const pt = project(xScore, yScore)
-        pts.push(pt)
-        sumX += pt.x * membership
-        sumY += pt.y * membership
-        totalWeight += membership
-      }
-
-      ctx.save()
-
-      if (pts.length === 0) {
-        // Ghost ring: the type exists but no members meet the threshold on both
-        // axes. Drawn faintly at canvas center as a placeholder so the type
-        // doesn't silently vanish from the map.
-        ctx.beginPath()
-        ctx.arc(midX, midY, BLOB_PADDING, 0, Math.PI * 2)
-        ctx.strokeStyle = color + '44'
-        ctx.lineWidth = 1
-        ctx.setLineDash([4, 4])
-        ctx.stroke()
-        ctx.setLineDash([])
-        ctx.restore()
-        continue
-      }
-
-      setBlobPath(ctx, pts)
-      ctx.fillStyle   = color + '22'   // ~13% opacity — translucent fill
-      ctx.fill()
-      ctx.strokeStyle = color + '99'   // ~60% opacity — visible but soft border
-      ctx.lineWidth   = 1.5
-      ctx.stroke()
-      ctx.restore()
-
-      // Type name at the membership-weighted centroid
-      ctx.save()
-      ctx.font = `bold ${dimensionLabelSize + 1}px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif`
-      ctx.fillStyle    = color
-      ctx.textAlign    = 'center'
-      ctx.textBaseline = 'middle'
-      ctx.fillText(type.name, sumX / totalWeight, sumY / totalWeight)
-      ctx.restore()
+    // Collect member positions along with their membership strength, which
+    // doubles as the weight for the label centroid below.
+    const pts: Pt[] = []
+    let sumX = 0, sumY = 0, totalWeight = 0
+    for (const el of elements) {
+      const membership = scores[el.id]?.[type.id]
+      if (membership === undefined || membership < config.threshold) continue
+      const xScore = scores[el.id]?.[xDim.id]
+      const yScore = scores[el.id]?.[yDim.id]
+      if (xScore === undefined || yScore === undefined) continue
+      const pt = project(xScore, yScore)
+      pts.push(pt)
+      sumX += pt.x * membership
+      sumY += pt.y * membership
+      totalWeight += membership
     }
+
+    ctx.save()
+
+    if (pts.length === 0) {
+      // Ghost ring: the type exists but no members meet the threshold on both
+      // axes. Drawn faintly at canvas center as a placeholder so the type
+      // doesn't silently vanish from the map.
+      ctx.beginPath()
+      ctx.arc(midX, midY, BLOB_PADDING, 0, Math.PI * 2)
+      ctx.strokeStyle = color + '44'
+      ctx.lineWidth = 1
+      ctx.setLineDash([4, 4])
+      ctx.stroke()
+      ctx.setLineDash([])
+      ctx.restore()
+      continue
+    }
+
+    setBlobPath(ctx, pts)
+    ctx.fillStyle   = color + '22'   // ~13% opacity — translucent fill
+    ctx.fill()
+    ctx.strokeStyle = color + '99'   // ~60% opacity — visible but soft border
+    ctx.lineWidth   = 1.5
+    ctx.stroke()
+    ctx.restore()
+
+    // Type name at the membership-weighted centroid
+    ctx.save()
+    ctx.font = `bold ${dimensionLabelSize + 1}px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif`
+    ctx.fillStyle    = color
+    ctx.textAlign    = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText(type.name, sumX / totalWeight, sumY / totalWeight)
+    ctx.restore()
   }
 
   // ── Elements ──────────────────────────────────────────────────────────────────
@@ -314,8 +302,8 @@ export function drawCartesian(
   // When sizing by weight, draw heaviest first so lighter (smaller) dots sit on top.
   // When uniform size, preserve store order (no visual reason to sort).
   const sorted = config.sizeByWeight
-    ? [...shownElements].sort((a, b) => b.weight - a.weight)
-    : shownElements
+    ? [...elements].sort((a, b) => b.weight - a.weight)
+    : elements
 
   for (const el of sorted) {
     const xScore = scores[el.id]?.[xDim.id]
@@ -340,7 +328,7 @@ export function drawCartesian(
         ctx.stroke()
         ctx.setLineDash([])
       } else {
-        ctx.fillStyle = resolveElementColor(config.colorMode, el, types, scores, config.threshold)
+        ctx.fillStyle = resolveElementColor(config.colorMode, el, types, shown, scores, config.threshold)
         ctx.fill()
         ctx.strokeStyle = '#ffffff'
         ctx.lineWidth = 1.5

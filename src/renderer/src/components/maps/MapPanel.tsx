@@ -17,7 +17,7 @@ import { useAppStore, type ScoreEntry } from '../../store/appStore'
 import { usePrefsStore } from '../../store/prefsStore'
 import type { CartesianMapConfig, SemanticMapConfig, Dimension, Type, Element, ScoreMap } from '../../lib/types'
 import C2S from 'canvas2svg'
-import { drawCartesian, visibleElements, MARGIN, POLE_LABEL_HIT_SPAN, DOT_MIN_RADIUS, DOT_MAX_RADIUS, DOT_DEFAULT_RADIUS } from './cartesian/drawCartesian'
+import { drawCartesian, MARGIN, POLE_LABEL_HIT_SPAN, DOT_MIN_RADIUS, DOT_MAX_RADIUS, DOT_DEFAULT_RADIUS } from './cartesian/drawCartesian'
 import { drawSemantic, semDotRadius, SEM_MARGIN_H, SEM_MARGIN_V, SEM_DOT_MAX_R } from './semantic/drawSemantic'
 import { ElementDetailModal } from './ElementDetailModal'
 import { BulkEditModal } from './BulkEditModal'
@@ -247,8 +247,7 @@ function cartesianHitDot(
   if (config.marks === 'none') return null
 
   // Test lightest (topmost-drawn) elements first so stacked dots select correctly
-  const sorted = [...visibleElements(config, elements, types, scores)]
-    .sort((a, b) => a.weight - b.weight)
+  const sorted = [...elements].sort((a, b) => a.weight - b.weight)
 
   for (const el of sorted) {
     // Mirror drawCartesian: use 0.5 placeholder for any missing axis
@@ -338,7 +337,7 @@ function cartesianHitRect(
   const minY = Math.min(ry1, ry2), maxY = Math.max(ry1, ry2)
 
   const hitIds: string[] = []
-  for (const el of visibleElements(config, elements, types, scores)) {
+  for (const el of elements) {
     const { x: cx, y: cy } = cartesianProject(config, W, H,
       scores[el.id]?.[config.xDimensionId] ?? 0.5,
       scores[el.id]?.[config.yDimensionId] ?? 0.5)

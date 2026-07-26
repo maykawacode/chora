@@ -147,9 +147,11 @@ export function drawSemantic(
 
   for (const el of drawOrder) {
     const shapeIndex = markShapeIndex(config.marks, el)
-    // Semantic maps have no membership threshold of their own, so 0 admits
-    // every non-zero membership when coloring by type.
-    const color      = resolveElementColor(config.colorMode, el, types, scores, 0)
+    // No blobs on a semantic map, so nothing can claim an element's color ahead
+    // of the mode — hence the empty shown list. The threshold is 0 for the same
+    // reason: with no blob membership to agree with, every non-zero membership
+    // counts when coloring by collection.
+    const color      = resolveElementColor(config.colorMode, el, types, [], scores, 0)
     const dotR       = semDotRadius(config, el.weight)
     const points: Array<{ x: number; y: number }> = []
 

@@ -21,6 +21,7 @@
 
 import { useAppStore } from '../../store/appStore'
 import type { MapConfig, CartesianMapConfig, ColorMode, MarkMode } from '../../lib/types'
+import { memberCount } from './cartesian/drawCartesian'
 import styles from './MapSidebar.module.css'
 
 // Labels for the color mode picker. Declared alongside the control rather than
@@ -48,11 +49,17 @@ interface Props {
 }
 
 export function MapSidebar({ config, updateConfig, onExportSvg }: Props): React.JSX.Element {
-  const types = useAppStore(s => s.types)
+  const types    = useAppStore(s => s.types)
+  const elements = useAppStore(s => s.elements)
+  const scores   = useAppStore(s => s.scores)
 
   // Only cartesian maps carry types — a semantic map has no 2D space to
   // project a cluster into, so it gets Elements + Output only.
   const cartConfig = config.type === 'cartesian' ? config : null
+
+  // Drives the heading link, which offers whichever action is still available.
+  const allShown = types.length > 0 && cartConfig !== null &&
+    types.every(t => cartConfig.typeIds.includes(t.id))
 
   return (
     <div className={styles.sidebar}>
@@ -86,24 +93,30 @@ export function MapSidebar({ config, updateConfig, onExportSvg }: Props): React.
           />
         </section>
 
-        {/* ── Types ──────────────────────────────────────────────────────── */}
+        {/* ── Collections ────────────────────────────────────────────────── */}
         {cartConfig && (
           <section className={styles.section}>
-            <h3 className={styles.sectionTitle}>Collections</h3>
+            <h3 className={styles.sectionTitle}>
+              Collections
+              {types.length > 0 && (
+                <button
+                  className={styles.linkBtn}
+                  onClick={() => updateConfig({
+                    typeIds: allShown ? [] : types.map(t => t.id)
+                  })}
+                >
+                  {allShown ? 'None' : 'All'}
+                </button>
+              )}
+            </h3>
 
             {types.length === 0 ? (
               <p className={styles.empty}>No collections defined yet.</p>
             ) : (
               <>
-                <Check
-                  label="Show collection clusters"
-                  checked={cartConfig.showTypes}
-                  onChange={v => updateConfig({ showTypes: v })}
-                />
-
                 <label className={styles.slider}>
                   <span className={styles.sliderLabel}>
-                    Membership threshold
+                    Threshold
                     <span className={styles.sliderValue}>
                       {cartConfig.threshold.toFixed(2)}
                     </span>
@@ -118,46 +131,23 @@ export function MapSidebar({ config, updateConfig, onExportSvg }: Props): React.
                   />
                 </label>
 
-                <div className={styles.subhead}>
-                  Show collections
-                  {/* typeIds=[] means all types; the button clears back to that. */}
-                  {cartConfig.typeIds.length > 0 && (
-                    <button
-                      className={styles.linkBtn}
-                      onClick={() => updateConfig({ typeIds: [] })}
-                    >
-                      All
-                    </button>
-                  )}
-                </div>
-
                 {types.map(type => {
-                  const isVisible =
-                    cartConfig.typeIds.length === 0 || cartConfig.typeIds.includes(type.id)
+                  const shown = cartConfig.typeIds.includes(type.id)
                   return (
-                    <Check
+                    <CollectionRow
                       key={type.id}
-                      label={type.name || 'Untitled collection'}
-                      swatch={type.color}
-                      checked={isVisible}
-                      onChange={() => {
-                        const allIds  = types.map(t => t.id)
-                        const current = cartConfig.typeIds.length === 0 ? allIds : cartConfig.typeIds
-                        const next    = isVisible
-                          ? current.filter(id => id !== type.id)
-                          : [...current, type.id]
-                        // Normalize back to [] when everything is selected, so
-                        // "all types" has exactly one representation.
-                        updateConfig({ typeIds: next.length === allIds.length ? [] : next })
-                      }}
+                      name={type.name || 'Untitled collection'}
+                      color={type.color}
+                      count={memberCount(type, elements, scores, cartConfig.threshold)}
+                      shown={shown}
+                      onToggle={() => updateConfig({
+                        typeIds: shown
+                          ? cartConfig.typeIds.filter(id => id !== type.id)
+                          : [...cartConfig.typeIds, type.id]
+                      })}
                     />
                   )
                 })}
-
-                <p className={styles.hint}>
-                  An element hides only once every collection it belongs to is
-                  deselected. Elements belonging to no collection are always shown.
-                </p>
               </>
             )}
           </section>
@@ -175,26 +165,42 @@ export function MapSidebar({ config, updateConfig, onExportSvg }: Props): React.
   )
 }
 
-// ── Checkbox row ──────────────────────────────────────────────────────────────
+// ── Collection row ────────────────────────────────────────────────────────────
+//
+// One collection, and whether its blob is drawn. The swatch carries the state
+// on its own: solid when the blob is drawn, a hollow ring of the same color
+// when it isn't. That reads at a glance where a checkbox would need to be read,
+// and it echoes what the map itself draws — an outline holding a translucent
+// fill — so the control looks like a small picture of its result.
+//
+// The count is how many elements clear the threshold, which makes the slider
+// above legible: drag it and watch clusters gain and lose members.
 
-interface CheckProps {
-  label: string
-  checked: boolean
-  onChange: (value: boolean) => void
-  swatch?: string   // optional color chip, used for the per-type rows
+interface CollectionRowProps {
+  name: string
+  color: string
+  count: number
+  shown: boolean
+  onToggle: () => void
 }
 
-function Check({ label, checked, onChange, swatch }: CheckProps): React.JSX.Element {
+function CollectionRow({ name, color, count, shown, onToggle }: CollectionRowProps): React.JSX.Element {
   return (
-    <label className={styles.check}>
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={e => onChange(e.target.checked)}
+    <button
+      type="button"
+      className={styles.collection}
+      aria-pressed={shown}
+      onClick={onToggle}
+    >
+      <span
+        className={styles.collectionSwatch}
+        style={shown
+          ? { background: color, borderColor: color }
+          : { background: 'transparent', borderColor: color }}
       />
-      {swatch && <span className={styles.swatch} style={{ background: swatch }} />}
-      <span className={styles.checkLabel}>{label}</span>
-    </label>
+      <span className={styles.collectionName}>{name}</span>
+      <span className={styles.collectionCount}>{count}</span>
+    </button>
   )
 }
 

@@ -106,23 +106,23 @@ export interface BaseMapConfig {
   windowHeight: number
 }
 
-// A cartesian map plots elements in a 2D dimension space. When showTypes is on
-// it additionally draws each type as a translucent blob containing its member
-// elements — the map formerly known as the Type Projection map, now folded in
-// as an overlay rather than a separate map type.
+// A cartesian map plots every element in a 2D dimension space, and draws a
+// translucent blob around the members of each selected type — the map formerly
+// known as the Type Projection map, now folded in as an overlay rather than a
+// separate map type.
 //
-// typeIds filters which elements are drawn regardless of showTypes: an element
-// is hidden unless it qualifies for at least one selected type. This filter is
-// shared with hit-testing (see visibleElements in drawCartesian) so you can
-// never drag or lasso a dot you cannot see.
+// typeIds chooses which blobs are drawn and nothing else. It used to do double
+// duty, also hiding any element that qualified for no selected type, with an
+// empty list meaning "all types". Both of those are gone: every element is
+// always plotted, and an empty list now means no blobs at all. See readTypeIds
+// in parser.ts for how a file written under the old rule is migrated.
 export interface CartesianMapConfig extends BaseMapConfig {
   type: 'cartesian'
   xDimensionId: string
   yDimensionId: string
   xFlipped: boolean    // reverses poleA/poleB direction on that axis
   yFlipped: boolean
-  showTypes: boolean   // draw the type blob overlay and type name labels
-  typeIds: string[]    // types to display; empty = show all
+  typeIds: string[]    // types whose blob is drawn; empty = no blobs
   threshold: number    // min membership score for an element to count as a type member
 }
 

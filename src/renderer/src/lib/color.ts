@@ -113,23 +113,6 @@ export function blendTypeColors(
 }
 
 /**
- * The color of a type's member elements, blended by membership strength — the
- * transpose of blendTypeColors over the same membership matrix. Used for the
- * cartesian blob overlay when the map is colored by individual element.
- */
-export function blendMemberColors(
-  type: Type,
-  elements: Element[],
-  scores: ScoreMap,
-  threshold: number
-): string | null {
-  return mixColors(elements.map(el => ({
-    color:  el.color,
-    weight: membershipWeight(el, type, scores, threshold)
-  })))
-}
-
-/**
  * The type an element belongs to most strongly, or null if it has no scored
  * membership at all. A membership of exactly 0 does not count as belonging.
  */
