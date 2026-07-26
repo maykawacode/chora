@@ -33,8 +33,11 @@
   border-bottom: none;
 }
 
+/* The 10px above sits on the title rather than in .section's padding so the
+   space belongs to the heading and travels with it, and so the section's
+   bottom rule keeps its own spacing independent of this. */
 .sectionTitle {
-  margin: 0 0 6px;
+  margin: 10px 0 6px;
   font-size: 10px;
   font-weight: 700;
   color: #808040;
@@ -97,30 +100,74 @@
   cursor: pointer;
 }
 
-/* Select row — mirrors .slider's stacked label-over-control layout so the two
-   control shapes sit consistently in a section. */
-.choice {
-  display: block;
-  padding: 6px 0 2px;
-}
-
-.choiceLabel {
-  display: block;
-  font-size: 11px;
-  color: #555;
-  margin-bottom: 3px;
-}
-
-.choiceSelect {
+/* ── Setting rows ─────────────────────────────────────────────────────────────
+   A setting reads as a sentence — "Color: by type" — with the value itself as
+   the control. No label above it, no box drawn around it, no caret. Binary
+   settings flip on click and multi-option ones open a menu, but the two are
+   indistinguishable at rest by design — hover is the only affordance, and it
+   is the same on every row. */
+.setting {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
   width: 100%;
+  padding: 3px 0;
+  border: none;
+  background: none;
   font-family: inherit;
   font-size: 12px;
-  color: #222;
-  background: #fff;
-  border: 1px solid var(--control-border);
-  border-radius: 4px;
-  padding: 3px 4px;
+  text-align: left;
   cursor: pointer;
+}
+
+/* Fixed width so every value in a section starts at the same x. That column is
+   what lets four rows scan as a settings list rather than four ragged
+   sentences. Sized just past the longest name in the Elements section
+   ("Labels:", ~39px) — a longer name would push its own value out of the
+   column, so raise this if one is added. */
+.settingName {
+  flex: none;
+  min-width: 42px;
+  color: #555;
+}
+
+.settingValue {
+  color: #222;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.setting:hover .settingValue {
+  text-decoration: underline;
+}
+
+/* Menu variant: the text above is ours, and the real <select> lies invisibly
+   across the whole row. Clicking anywhere in the row opens the system menu —
+   which on macOS opens with the current option under the cursor — and keyboard
+   navigation, focus and screen-reader support all come along for free. */
+.settingMenu {
+  position: relative;
+}
+
+.settingSelect {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+/* The select holds focus but is invisible and so cannot show it; the row draws
+   the ring on its behalf. Buttons show their own. */
+.settingMenu:focus-within .settingValue,
+.setting:focus-visible .settingValue {
+  outline: 2px solid rgba(128, 128, 64, 0.5);
+  outline-offset: 2px;
+  border-radius: 2px;
 }
 
 .subhead {

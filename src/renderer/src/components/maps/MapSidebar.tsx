@@ -26,10 +26,13 @@ import styles from './MapSidebar.module.css'
 // Labels for the color mode picker. Declared alongside the control rather than
 // in types.ts: ColorMode is domain vocabulary, these are UI wording and are
 // free to change without touching the model.
+//
+// Phrased to complete the sentence the row starts — "Color: by type" — so they
+// are lowercase and read as continuations, not as standalone captions.
 const COLOR_MODE_OPTIONS: ReadonlyArray<{ value: ColorMode; label: string }> = [
-  { value: 'none',    label: 'No color' },
-  { value: 'element', label: 'Individual element color' },
-  { value: 'type',    label: 'Type color' }
+  { value: 'none',    label: 'none' },
+  { value: 'element', label: 'by element' },
+  { value: 'type',    label: 'by type' }
 ]
 
 interface Props {
@@ -51,23 +54,26 @@ export function MapSidebar({ config, updateConfig, onExportSvg }: Props): React.
         {/* ── Elements ───────────────────────────────────────────────────── */}
         <section className={styles.section}>
           <h3 className={styles.sectionTitle}>Elements</h3>
-          <Check
-            label="Show dots"
-            checked={config.showDots}
+          <Toggle
+            label="Dots"
+            value={config.showDots}
+            whenTrue="shown" whenFalse="hidden"
             onChange={v => updateConfig({ showDots: v })}
           />
-          <Check
-            label="Show labels"
-            checked={config.showLabels}
+          <Toggle
+            label="Labels"
+            value={config.showLabels}
+            whenTrue="shown" whenFalse="hidden"
             onChange={v => updateConfig({ showLabels: v })}
           />
-          <Check
-            label="Size dots by weight"
-            checked={config.sizeByWeight}
+          <Toggle
+            label="Size"
+            value={config.sizeByWeight}
+            whenTrue="by weight" whenFalse="default"
             onChange={v => updateConfig({ sizeByWeight: v })}
           />
           <Choice
-            label="Color by"
+            label="Color"
             value={config.colorMode}
             options={COLOR_MODE_OPTIONS}
             onChange={v => updateConfig({ colorMode: v })}
@@ -186,11 +192,42 @@ function Check({ label, checked, onChange, swatch }: CheckProps): React.JSX.Elem
   )
 }
 
-// ── Select row ────────────────────────────────────────────────────────────────
+// ── Setting rows ──────────────────────────────────────────────────────────────
 //
+// Both render one sentence — "Color: by type" — where the value is the control.
+// Toggle flips between two values on click; Choice opens a menu. They are
+// deliberately indistinguishable at rest: no caret, no box, nothing marking one
+// row as a different kind of thing from its neighbors. Every row in the section
+// is clickable, so the section teaches the interaction once rather than
+// annotating each line.
+
+interface ToggleProps {
+  label: string
+  value: boolean
+  whenTrue: string   // value text for the on state, e.g. "by weight"
+  whenFalse: string  // ...and the off state, e.g. "default"
+  onChange: (value: boolean) => void
+}
+
+function Toggle({ label, value, whenTrue, whenFalse, onChange }: ToggleProps): React.JSX.Element {
+  const shown = value ? whenTrue : whenFalse
+  return (
+    <button
+      type="button"
+      className={styles.setting}
+      // The visible text is two spans, which a screen reader would run together
+      // without the separator; say the whole sentence explicitly instead.
+      aria-label={`${label}: ${shown}`}
+      onClick={() => onChange(!value)}
+    >
+      <span className={styles.settingName}>{label}:</span>
+      <span className={styles.settingValue}>{shown}</span>
+    </button>
+  )
+}
+
 // Generic over the option type so the caller's union — ColorMode here — flows
 // through to onChange without a cast at the call site.
-
 interface ChoiceProps<T extends string> {
   label: string
   value: T
@@ -199,11 +236,16 @@ interface ChoiceProps<T extends string> {
 }
 
 function Choice<T extends string>({ label, value, options, onChange }: ChoiceProps<T>): React.JSX.Element {
+  const current = options.find(o => o.value === value)
   return (
-    <label className={styles.choice}>
-      <span className={styles.choiceLabel}>{label}</span>
+    <div className={`${styles.setting} ${styles.settingMenu}`}>
+      <span className={styles.settingName}>{label}:</span>
+      <span className={styles.settingValue}>{current?.label ?? value}</span>
+      {/* Laid transparently over the row above: the menu is the platform's, the
+          text is ours. See .settingSelect for why this beats styling a select. */}
       <select
-        className={styles.choiceSelect}
+        className={styles.settingSelect}
+        aria-label={label}
         value={value}
         onChange={e => onChange(e.target.value as T)}
       >
@@ -211,6 +253,6 @@ function Choice<T extends string>({ label, value, options, onChange }: ChoicePro
           <option key={o.value} value={o.value}>{o.label}</option>
         ))}
       </select>
-    </label>
+    </div>
   )
 }
