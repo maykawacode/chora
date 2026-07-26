@@ -1,29 +1,15 @@
-/* Shown/hidden by MapPanel — see .sidebarBtn in MapPanel.module.css. */
+/* Shown/hidden by MapPanel — see .sidebarBtn in MapPanel.module.css.
+   Shares --chrome-bg with the title bar so the two read as a single panel;
+   the left border is the only separation, and it divides chrome from canvas. */
 .sidebar {
   width: 208px;
   flex: 0 0 208px;
   display: flex;
   flex-direction: column;
-  background: #f5f3f0;
-  border-left: 1px solid #b0a898;
+  background: var(--chrome-bg);
+  border-left: 1px solid var(--chrome-rule);
   min-height: 0;
   user-select: none;
-}
-
-.header {
-  display: flex;
-  align-items: center;
-  padding: 8px 10px;
-  border-bottom: 1px solid #b0a898;
-  background: #e8e5e0;
-}
-
-.headerTitle {
-  font-size: 10px;
-  font-weight: 700;
-  color: #555;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
 }
 
 .scroll {
@@ -34,7 +20,7 @@
 
 .section {
   padding: 8px 10px 10px;
-  border-bottom: 1px solid #e0ddd8;
+  border-bottom: 1px solid var(--chrome-rule);
 }
 
 .section:last-child {
@@ -134,17 +120,19 @@
   text-decoration: underline;
 }
 
+/* Muted text sits on --chrome-bg, which is darker than the canvas — #999 would
+   fall below a readable contrast ratio there. */
 .hint {
   margin: 6px 0 0;
   font-size: 10px;
   line-height: 1.35;
-  color: #999;
+  color: #7b746a;
 }
 
 .empty {
   margin: 0;
   font-size: 11px;
-  color: #999;
+  color: #7b746a;
 }
 
 .actionBtn {
@@ -156,7 +144,7 @@
   text-align: left;
   color: #222;
   background: #fff;
-  border: 1px solid #b0a898;
+  border: 1px solid var(--control-border);
   border-radius: 4px;
   cursor: pointer;
 }

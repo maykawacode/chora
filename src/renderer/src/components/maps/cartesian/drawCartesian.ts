@@ -47,6 +47,58 @@ export function labelFont(size: number): string {
   return `${size}px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif`
 }
 
+// ── Pole label geometry ───────────────────────────────────────────────────────
+//
+// All four pole labels are placed by one rule: centered on the midpoint of
+// their plot edge, and centered within the MARGIN band between that edge and
+// the canvas edge. Only the anchor point and, on the vertical edges, a quarter
+// turn vary. That uniformity is the point — every label ends up the same
+// distance from the plot border, and because each one now runs parallel to its
+// own edge, none of them can grow inward and crowd the plot the way an
+// unrotated horizontal label did.
+
+// Distance from a plot edge out to the center line of its label. Half the
+// margin puts the text midway between plot border and canvas edge on all sides.
+const POLE_LABEL_OFFSET = MARGIN / 2
+
+// Quarter turns for the vertical pair. Canvas rotation is clockwise (y grows
+// downward), so TURN_CW points glyph tops to the right. The two turns are
+// opposites, which mirrors the pair: the left label reads upward with its
+// glyphs facing left, the right label reads downward with its glyphs facing
+// right, so each leans away from the plot toward its own canvas edge.
+const TURN_CW  =  Math.PI / 2
+const TURN_CCW = -Math.PI / 2
+
+/**
+ * Half-length of a pole label's clickable band, measured parallel to its plot
+ * edge. One value covers all four edges now that every label runs parallel to
+ * its own; exported so MapPanel's axis hit-testing stays matched to what the
+ * renderer actually draws.
+ */
+export const POLE_LABEL_HIT_SPAN = 50
+
+/**
+ * Draws a single pole label centered on (x, y), optionally turned a quarter
+ * turn. Center alignment on both axes is what makes rotation safe: the text
+ * pivots about its own middle, so a turned label occupies the same band as an
+ * unturned one and needs no per-edge compensation.
+ */
+function drawPoleLabel(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  rotation: number
+): void {
+  ctx.save()
+  ctx.translate(x, y)
+  ctx.rotate(rotation)
+  ctx.textAlign    = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.fillText(text, 0, 0)
+  ctx.restore()
+}
+
 // Maps element.shape string to the numeric index expected by drawShape().
 // Exported so drawSemantic can reuse it without duplicating the mapping.
 export const SHAPE_INDEX: Record<string, number> = { circle: 0, square: 1, triangle: 2, diamond: 3 }
@@ -189,26 +241,26 @@ export function drawCartesian(
 
   // ── Pole labels ───────────────────────────────────────────────────────────────
   //
-  // Labels are drawn in the MARGIN region outside the plot border.
-  // Flip flags swap which pole label appears on which end.
+  // Drawn in the MARGIN band outside the plot border, one per edge, all through
+  // drawPoleLabel so the spacing is identical on all four sides by construction
+  // rather than by four matching magic numbers. Flip flags swap which pole
+  // label appears on which end.
 
   ctx.font = labelFont(dimensionLabelSize)
   ctx.fillStyle = '#333'
-  ctx.textBaseline = 'middle'
 
   if (xDim) {
     const leftLabel  = config.xFlipped ? xDim.poleB : xDim.poleA
     const rightLabel = config.xFlipped ? xDim.poleA : xDim.poleB
-    ctx.textAlign = 'left';  ctx.fillText(leftLabel,  22,     midY)
-    ctx.textAlign = 'right'; ctx.fillText(rightLabel, W - 22, midY)
+    drawPoleLabel(ctx, leftLabel,  plotLeft  - POLE_LABEL_OFFSET, midY, TURN_CCW)
+    drawPoleLabel(ctx, rightLabel, plotRight + POLE_LABEL_OFFSET, midY, TURN_CW)
   }
 
   if (yDim) {
     const topLabel    = config.yFlipped ? yDim.poleA : yDim.poleB
     const bottomLabel = config.yFlipped ? yDim.poleB : yDim.poleA
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'top';    ctx.fillText(topLabel,    midX, 22)
-    ctx.textBaseline = 'bottom'; ctx.fillText(bottomLabel, midX, H - 22)
+    drawPoleLabel(ctx, topLabel,    midX, plotTop    - POLE_LABEL_OFFSET, 0)
+    drawPoleLabel(ctx, bottomLabel, midX, plotBottom + POLE_LABEL_OFFSET, 0)
   }
 
   if (!xDim || !yDim) return

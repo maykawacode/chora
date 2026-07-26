@@ -13,6 +13,11 @@
 // transient control surface, not part of the map, so it starts out of the way
 // every time a window opens. Everything it changes IS persisted, via the
 // caller's updateConfig.
+//
+// The sidebar carries no header of its own. It shares --chrome-bg with the
+// title bar so the two present as one panel, and the toggle that reveals it
+// already names it — a "Controls" strip would only restate that and cut the
+// shared surface in two. Section headings do the labelling from here down.
 
 import { useAppStore } from '../../store/appStore'
 import type { MapConfig, CartesianMapConfig } from '../../lib/types'
@@ -33,10 +38,6 @@ export function MapSidebar({ config, updateConfig, onExportSvg }: Props): React.
 
   return (
     <div className={styles.sidebar}>
-      <div className={styles.header}>
-        <span className={styles.headerTitle}>Controls</span>
-      </div>
-
       <div className={styles.scroll}>
         {/* ── Elements ───────────────────────────────────────────────────── */}
         <section className={styles.section}>

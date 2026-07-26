@@ -17,7 +17,7 @@ import { useAppStore } from '../../store/appStore'
 import { usePrefsStore } from '../../store/prefsStore'
 import type { CartesianMapConfig, SemanticMapConfig, Dimension, Type, Element, ScoreMap } from '../../lib/types'
 import C2S from 'canvas2svg'
-import { drawCartesian, visibleElements, MARGIN, DOT_MIN_RADIUS, DOT_MAX_RADIUS, DOT_DEFAULT_RADIUS } from './cartesian/drawCartesian'
+import { drawCartesian, visibleElements, MARGIN, POLE_LABEL_HIT_SPAN, DOT_MIN_RADIUS, DOT_MAX_RADIUS, DOT_DEFAULT_RADIUS } from './cartesian/drawCartesian'
 import { drawSemantic, semDotRadius, SEM_MARGIN_H, SEM_MARGIN_V, SEM_DOT_MAX_R } from './semantic/drawSemantic'
 import { ElementDetailModal } from './ElementDetailModal'
 import { BulkEditModal } from './BulkEditModal'
@@ -102,11 +102,15 @@ function cartesianHitEdge(x: number, y: number, W: number, H: number): Edge | nu
   if (Math.abs(y - midY) <= TOL && x >= pL && x <= pR) return x < midX ? 'left' : 'right'
   if (Math.abs(x - midX) <= TOL && y >= pT && y <= pB) return y < midY ? 'top' : 'bottom'
 
-  // Pole label areas
-  if (x < pL && Math.abs(y - midY) <= 18) return 'left'
-  if (x > pR && Math.abs(y - midY) <= 18) return 'right'
-  if (y < pT && Math.abs(x - midX) <= 50) return 'top'
-  if (y > pB && Math.abs(x - midX) <= 50) return 'bottom'
+  // Pole label areas. Every label runs parallel to its own plot edge, so all
+  // four bands are measured the same way — along that edge, out from its
+  // midpoint — and share one span. The vertical pair used to need a shorter
+  // span than the horizontal pair because its text ran crosswise; the quarter
+  // turn in drawPoleLabel removed that difference.
+  if (x < pL && Math.abs(y - midY) <= POLE_LABEL_HIT_SPAN) return 'left'
+  if (x > pR && Math.abs(y - midY) <= POLE_LABEL_HIT_SPAN) return 'right'
+  if (y < pT && Math.abs(x - midX) <= POLE_LABEL_HIT_SPAN) return 'top'
+  if (y > pB && Math.abs(x - midX) <= POLE_LABEL_HIT_SPAN) return 'bottom'
 
   return null
 }
@@ -817,39 +821,44 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
 
   return (
     <div className={windowed ? styles.panelWindowed : styles.panel}>
-      <div className={windowed ? styles.titleBarWindowed : styles.titleBar}>
-        {editingTitle ? (
-          <input
-            ref={titleInputRef}
-            className={styles.titleInput}
-            value={titleDraft}
-            onChange={e => setTitleDraft(e.target.value)}
-            onBlur={commitTitle}
-            onKeyDown={e => {
-              if (e.key === 'Enter')  { e.preventDefault(); commitTitle() }
-              if (e.key === 'Escape') { e.preventDefault(); cancelTitle() }
-            }}
-          />
-        ) : (
-          <div className={styles.titleGroup}>
-            <span
-              className={styles.title}
-              onDoubleClick={startEditingTitle}
-              title="Double-click to rename"
-            >
-              {config.title}
-            </span>
-            {windowed && filePath && (
-              <span className={styles.titleFileName}>
-                {filePath.split('/').pop()}
+      <div className={`${styles.titleBar} ${windowed ? styles.titleBarWindowed : ''}`}>
+        {/* The group is rendered unconditionally and only its naming element
+            swaps, so the unsaved badge keeps its place beside the name while
+            the title is being edited. */}
+        <div className={styles.titleGroup}>
+          {editingTitle ? (
+            <input
+              ref={titleInputRef}
+              className={styles.titleInput}
+              value={titleDraft}
+              onChange={e => setTitleDraft(e.target.value)}
+              onBlur={commitTitle}
+              onKeyDown={e => {
+                if (e.key === 'Enter')  { e.preventDefault(); commitTitle() }
+                if (e.key === 'Escape') { e.preventDefault(); cancelTitle() }
+              }}
+            />
+          ) : (
+            <>
+              <span
+                className={styles.title}
+                onDoubleClick={startEditingTitle}
+                title="Double-click to rename"
+              >
+                {config.title}
               </span>
-            )}
-          </div>
-        )}
+              {windowed && filePath && (
+                <span className={styles.titleFileName}>
+                  {filePath.split('/').pop()}
+                </span>
+              )}
+            </>
+          )}
+
+          {isDirty && <span className={styles.unsavedBadge}>Unsaved</span>}
+        </div>
 
         <div className={styles.titleBarActions}>
-          {isDirty && <span className={styles.unsavedBadge}>Unsaved</span>}
-
           {/* Close button only shown in embedded (non-windowed) mode */}
           {!windowed && (
             <button className={styles.closeBtn} onClick={onClose} title="Close map">✕</button>

@@ -1,3 +1,20 @@
+/* Chrome tokens — the non-canvas surfaces of a window: title bars, control
+   sidebars, and the rules between them. Title bar and map sidebar deliberately
+   share --chrome-bg so they read as one continuous panel wrapping the canvas;
+   keep them on the token rather than re-declaring the hex, so they can never
+   drift apart. Currently consumed by the map window chrome (MapPanel,
+   MapSidebar); other stylesheets still carry literal hexes.
+
+   One rule colour serves the whole chrome — the edge against the canvas is no
+   heavier than a divider between sections, so the panel reads as a single
+   surface rather than a set of boxed-in regions. Controls sitting ON that
+   surface are a separate concept and keep their own, darker border. */
+:root {
+  --chrome-bg: #e0ddd8;        /* title bar + control sidebar surface */
+  --chrome-rule: #d0ccc4;      /* every rule in the chrome: outer edges + section dividers */
+  --control-border: #b0a898;   /* buttons and inputs sitting on the chrome */
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
 }
