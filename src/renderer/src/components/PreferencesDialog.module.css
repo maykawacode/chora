@@ -101,6 +101,20 @@
   margin-left: auto;
 }
 
+/* Dropdown in a .row — pushed right to sit in the same column as .colorInput
+   and .sizeInput, so every value in the dialog lines up on one edge. */
+.selectInput {
+  padding: 2px 4px;
+  border: 1px solid #b0a898;
+  border-radius: 4px;
+  background: #fff;
+  font-size: 13px;
+  font-family: inherit;
+  color: #333;
+  margin-left: auto;
+  cursor: pointer;
+}
+
 .sizeUnit {
   font-size: 11px;
   color: #888;

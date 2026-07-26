@@ -9,6 +9,7 @@
 import { useState } from 'react'
 import { usePrefsStore } from '../store/prefsStore'
 import type { Preferences } from '../lib/preferences'
+import type { MarkMode } from '../lib/types'
 import styles from './PreferencesDialog.module.css'
 
 interface Props { onClose: () => void }
@@ -51,9 +52,16 @@ export function PreferencesDialog({ onClose }: Props): React.JSX.Element {
         <section className={styles.section}>
           <div className={styles.sectionTitle}>New Maps</div>
           <label className={styles.row}>
-            <input type="checkbox" checked={draft.defaultShowDots}
-              onChange={() => toggle('defaultShowDots')} />
-            <span>Show dots by default</span>
+            <span>Marks</span>
+            <select
+              className={styles.selectInput}
+              value={draft.defaultMarks}
+              onChange={e => setDraft(d => ({ ...d, defaultMarks: e.target.value as MarkMode }))}
+            >
+              <option value="none">none</option>
+              <option value="circle">circles</option>
+              <option value="element">by element</option>
+            </select>
           </label>
           <label className={styles.row}>
             <input type="checkbox" checked={draft.defaultShowLabels}

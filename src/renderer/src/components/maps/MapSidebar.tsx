@@ -20,7 +20,7 @@
 // shared surface in two. Section headings do the labelling from here down.
 
 import { useAppStore } from '../../store/appStore'
-import type { MapConfig, CartesianMapConfig, ColorMode } from '../../lib/types'
+import type { MapConfig, CartesianMapConfig, ColorMode, MarkMode } from '../../lib/types'
 import styles from './MapSidebar.module.css'
 
 // Labels for the color mode picker. Declared alongside the control rather than
@@ -33,6 +33,12 @@ const COLOR_MODE_OPTIONS: ReadonlyArray<{ value: ColorMode; label: string }> = [
   { value: 'none',    label: 'none' },
   { value: 'element', label: 'by element' },
   { value: 'type',    label: 'by type' }
+]
+
+const MARK_MODE_OPTIONS: ReadonlyArray<{ value: MarkMode; label: string }> = [
+  { value: 'none',    label: 'none' },
+  { value: 'circle',  label: 'circles' },
+  { value: 'element', label: 'by element' }
 ]
 
 interface Props {
@@ -54,11 +60,11 @@ export function MapSidebar({ config, updateConfig, onExportSvg }: Props): React.
         {/* ── Elements ───────────────────────────────────────────────────── */}
         <section className={styles.section}>
           <h3 className={styles.sectionTitle}>Elements</h3>
-          <Toggle
-            label="Dots"
-            value={config.showDots}
-            whenTrue="shown" whenFalse="hidden"
-            onChange={v => updateConfig({ showDots: v })}
+          <Choice
+            label="Marks"
+            value={config.marks}
+            options={MARK_MODE_OPTIONS}
+            onChange={v => updateConfig({ marks: v })}
           />
           <Toggle
             label="Labels"

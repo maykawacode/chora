@@ -76,6 +76,15 @@ export type MapType = 'cartesian' | 'semantic'
 // how files written before this change are migrated.
 export type ColorMode = 'none' | 'element' | 'type'
 
+// What mark, if any, is drawn at each element's position:
+//   'none'    — no marks; on a cartesian map only labels remain, and on a
+//               semantic map only the polylines
+//   'circle'  — every element drawn as a circle, whatever shape it carries
+//   'element' — each element's own shape attribute
+// Replaced the earlier showDots boolean; see readMarkMode in parser.ts for how
+// files written before this change are migrated.
+export type MarkMode = 'none' | 'circle' | 'element'
+
 // How the Type membership → Element color conversion derives a color:
 //   'dominant' — the color of the type the element belongs to most strongly
 //   'blend'    — all its type colors mixed by membership, matching what a map
@@ -88,7 +97,7 @@ export interface BaseMapConfig {
   type: MapType
   title: string        // user-editable; also used as the OS window title
   showLabels: boolean
-  showDots: boolean
+  marks: MarkMode       // what mark is drawn at each element's position
   sizeByWeight: boolean // true = dot radius scales with element weight; false = uniform default size
   colorMode: ColorMode  // what element color is drawn from
   windowX: number

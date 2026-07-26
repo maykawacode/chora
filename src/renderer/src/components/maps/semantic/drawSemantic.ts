@@ -11,10 +11,11 @@
 //   - Axes are evenly spaced vertically within the canvas
 
 import type { SemanticMapConfig, Element, Type, Dimension, ScoreMap } from '../../../lib/types'
-// SHAPE_INDEX, labelFont and LABEL_SIZE_DEFAULT are defined once in
-// drawCartesian and shared here so there is a single source of truth.
-import { drawShape, SHAPE_INDEX, labelFont, LABEL_SIZE_DEFAULT } from '../cartesian/drawCartesian'
+// labelFont and LABEL_SIZE_DEFAULT are defined once in drawCartesian and shared
+// here so there is a single source of truth for map typography.
+import { labelFont, LABEL_SIZE_DEFAULT } from '../cartesian/drawCartesian'
 import { resolveElementColor } from '../color'
+import { drawMark, markShapeIndex } from '../shape'
 
 // Horizontal margin — space reserved on each side for pole labels
 export const SEM_MARGIN_H = 96
@@ -145,7 +146,7 @@ export function drawSemantic(
     : els
 
   for (const el of drawOrder) {
-    const shapeIndex = SHAPE_INDEX[el.shape] ?? 0
+    const shapeIndex = markShapeIndex(config.marks, el)
     // Semantic maps have no membership threshold of their own, so 0 admits
     // every non-zero membership when coloring by type.
     const color      = resolveElementColor(config.colorMode, el, types, scores, 0)
@@ -169,13 +170,14 @@ export function drawSemantic(
     for (let p = 1; p < points.length; p++) ctx.lineTo(points[p].x, points[p].y)
     ctx.stroke()
 
-    // Score dots at each scored position
-    if (config.showDots) {
+    // Score marks at each scored position. The polyline above is drawn either
+    // way — marks off leaves the line, which is the map's real content.
+    if (shapeIndex !== null) {
       const isSelected = selectedElementIds.includes(el.id)
         || (el.id === selectedElementId && selectedElementIds.length === 0)
 
       for (const pt of points) {
-        drawShape(ctx, shapeIndex, pt.x, pt.y, dotR)
+        drawMark(ctx, shapeIndex, pt.x, pt.y, dotR)
         ctx.fillStyle = color
         ctx.fill()
         ctx.strokeStyle = '#ffffff'
@@ -183,7 +185,7 @@ export function drawSemantic(
         ctx.stroke()
 
         if (isSelected) {
-          drawShape(ctx, shapeIndex, pt.x, pt.y, dotR + 3)
+          drawMark(ctx, shapeIndex, pt.x, pt.y, dotR + 3)
           ctx.strokeStyle = '#e8c040'
           ctx.lineWidth = 2
           ctx.stroke()

@@ -155,7 +155,7 @@ function cartesianHitDot(
   types: Type[],
   scores: ScoreMap
 ): Pick<DragTarget, 'elementId' | 'xDimId' | 'yDimId'> | null {
-  if (!config.showDots) return null
+  if (config.marks === 'none') return null
 
   // Test lightest (topmost-drawn) elements first so stacked dots select correctly
   const sorted = [...visibleElements(config, elements, types, scores)]
@@ -186,7 +186,7 @@ function semanticHitDot(
   dimensions: Dimension[],
   scores: ScoreMap
 ): Pick<SemanticDragTarget, 'elementId' | 'dimId'> | null {
-  if (!config.showDots) return null
+  if (config.marks === 'none') return null
 
   const axisLeft  = SEM_MARGIN_H
   const axisRight = W - SEM_MARGIN_H

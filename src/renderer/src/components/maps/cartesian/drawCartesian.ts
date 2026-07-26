@@ -19,6 +19,7 @@
 import type { CartesianMapConfig, Element, Dimension, Type, ScoreMap } from '../../../lib/types'
 import { setBlobPath, BLOB_PADDING, type Pt } from '../blob'
 import { resolveElementColor, resolveTypeColor } from '../color'
+import { drawMark, markShapeIndex } from '../shape'
 
 // Space reserved on each side of the canvas for pole labels
 export const MARGIN = 58
@@ -93,44 +94,6 @@ function drawPoleLabel(
   ctx.textBaseline = 'middle'
   ctx.fillText(text, 0, 0)
   ctx.restore()
-}
-
-// Maps element.shape string to the numeric index expected by drawShape().
-// Exported so drawSemantic can reuse it without duplicating the mapping.
-export const SHAPE_INDEX: Record<string, number> = { circle: 0, square: 1, triangle: 2, diamond: 3 }
-
-// Shape cycle: circle → square → triangle → diamond, keyed to element index
-const SIN60 = Math.sin(Math.PI / 3)   // √3/2 ≈ 0.866
-const COS60 = Math.cos(Math.PI / 3)   // 0.5
-
-export function drawShape(ctx: CanvasRenderingContext2D, shapeIndex: number, cx: number, cy: number, r: number): void {
-  const s = r / Math.SQRT2   // half-side of circumscribed square
-  ctx.beginPath()
-  switch (shapeIndex % 4) {
-    case 0: // circle
-      ctx.arc(cx, cy, r, 0, Math.PI * 2)
-      break
-    case 1: { // square (axis-aligned, corners at circumradius r) — 15% larger than circle
-      const ss = s * 1.25
-      ctx.rect(cx - ss, cy - ss, ss * 2, ss * 2)
-      break
-    }
-    case 2: { // equilateral triangle, pointing up — 15% larger than other shapes
-      const tr = r * 1.28
-      ctx.moveTo(cx,               cy - tr)
-      ctx.lineTo(cx + tr * SIN60,  cy + tr * COS60)
-      ctx.lineTo(cx - tr * SIN60,  cy + tr * COS60)
-      ctx.closePath()
-      break
-    }
-    case 3: // diamond (square rotated 45°)
-      ctx.moveTo(cx,     cy - r)
-      ctx.lineTo(cx + r, cy)
-      ctx.lineTo(cx,     cy + r)
-      ctx.lineTo(cx - r, cy)
-      ctx.closePath()
-      break
-  }
 }
 
 /**
@@ -365,8 +328,9 @@ export function drawCartesian(
       ? DOT_MIN_RADIUS + (el.weight - 1) / 99 * (DOT_MAX_RADIUS - DOT_MIN_RADIUS)
       : DOT_DEFAULT_RADIUS
 
-    if (config.showDots) {
-      drawShape(ctx, SHAPE_INDEX[el.shape] ?? 0, cx, cy, r)
+    const shapeIndex = markShapeIndex(config.marks, el)
+    if (shapeIndex !== null) {
+      drawMark(ctx, shapeIndex, cx, cy, r)
       if (isPartial) {
         ctx.fillStyle = '#ffffff'
         ctx.fill()
@@ -384,13 +348,13 @@ export function drawCartesian(
       }
 
       if (el.id === selectedElementId && selectedElementIds.length === 0) {
-        drawShape(ctx, SHAPE_INDEX[el.shape] ?? 0, cx, cy, r + 3)
+        drawMark(ctx, shapeIndex, cx, cy, r + 3)
         ctx.strokeStyle = '#e8c040'
         ctx.lineWidth = 2
         ctx.stroke()
       }
       if (selectedElementIds.includes(el.id)) {
-        drawShape(ctx, SHAPE_INDEX[el.shape] ?? 0, cx, cy, r + 3)
+        drawMark(ctx, shapeIndex, cx, cy, r + 3)
         ctx.strokeStyle = '#e8c040'
         ctx.lineWidth = 2
         ctx.stroke()

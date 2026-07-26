@@ -10,9 +10,11 @@
 // saved data on load, so old preference files will pick up new defaults
 // automatically.
 
+import type { MarkMode } from './types'
+
 export interface Preferences {
   rememberWindowPositions: boolean  // restore each map window's position on open
-  defaultShowDots: boolean          // new maps start with dots visible
+  defaultMarks: MarkMode            // mark mode new maps start in
   defaultShowLabels: boolean        // new maps start with labels visible
   defaultElementColor: string       // hex color for newly created elements
   reopenLastFile: boolean           // automatically reopen the last saved file on startup
@@ -31,7 +33,9 @@ export interface Preferences {
 
 export const DEFAULT_PREFERENCES: Preferences = {
   rememberWindowPositions: true,
-  defaultShowDots: true,
+  // Circles rather than 'element': a new map should present every element
+  // alike, leaving shape free to be switched on later as a deliberate encoding.
+  defaultMarks: 'circle',
   defaultShowLabels: true,
   defaultElementColor: '#9d9d53',
   reopenLastFile: false,

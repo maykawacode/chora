@@ -11,8 +11,10 @@
 //               added sessionMeta, types[]
 //   within 4.0: map.showColors (boolean) → map.colorMode (enum) — see
 //               readColorMode; old files still load unchanged.
+//   within 4.0: map.showDots (boolean) → map.marks (enum) — see readMarkMode;
+//               old files still load unchanged.
 
-import type { AppState, ColorMode, Element, Type, Dimension, MapConfig, SessionMeta } from './types'
+import type { AppState, ColorMode, MarkMode, Element, Type, Dimension, MapConfig, SessionMeta } from './types'
 import { defaultCategories, defaultSessionMeta, parsePoles } from './types'
 
 const FORMAT_VERSION = '4.0'
@@ -31,6 +33,21 @@ const COLOR_MODES: ColorMode[] = ['none', 'element', 'type']
 function readColorMode(m: Record<string, unknown>): ColorMode {
   if (COLOR_MODES.includes(m.colorMode as ColorMode)) return m.colorMode as ColorMode
   return m.showColors === false ? 'none' : 'element'
+}
+
+const MARK_MODES: MarkMode[] = ['none', 'circle', 'element']
+
+/**
+ * Reads a map's mark mode, tolerating the showDots boolean it replaced.
+ *
+ * showDots=true drew each element's own shape, so it migrates to 'element'
+ * rather than to 'circle' — an old map opens looking exactly as it did, even
+ * one whose elements were given squares or triangles. New maps start at
+ * 'circle' instead; that default lives in preferences, not here.
+ */
+function readMarkMode(m: Record<string, unknown>): MarkMode {
+  if (MARK_MODES.includes(m.marks as MarkMode)) return m.marks as MarkMode
+  return m.showDots === false ? 'none' : 'element'
 }
 
 /**
@@ -124,7 +141,7 @@ export function deserializeSession(json: string): AppState {
     const base = {
       id:           requireString(m.id, 'map.id'),
       showLabels:   m.showLabels   !== false,
-      showDots:     m.showDots     !== false,
+      marks:        readMarkMode(m),
       sizeByWeight: m.sizeByWeight !== false,
       colorMode:    readColorMode(m),
       windowX:      typeof m.windowX      === 'number' ? m.windowX      : 100,

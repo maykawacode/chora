@@ -16,7 +16,7 @@ import { readFile, writeFile } from 'fs/promises'
 
 interface Preferences {
   rememberWindowPositions: boolean
-  defaultShowDots: boolean
+  defaultMarks: 'none' | 'circle' | 'element'  // mirrors MarkMode in the renderer's types.ts
   defaultShowLabels: boolean
   defaultElementColor: string
   reopenLastFile: boolean
@@ -34,7 +34,7 @@ interface Preferences {
 
 const DEFAULT: Preferences = {
   rememberWindowPositions: true,
-  defaultShowDots: true,
+  defaultMarks: 'circle',
   defaultShowLabels: true,
   defaultElementColor: '#9d9d53',
   reopenLastFile: false,
