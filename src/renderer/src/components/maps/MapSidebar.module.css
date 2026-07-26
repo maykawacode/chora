@@ -1,28 +1,4 @@
-/* Collapsed state — a thin tab clipped to the right edge of the canvas area. */
-.openTab {
-  position: absolute;
-  top: 8px;
-  right: 0;
-  z-index: 8;
-  width: 18px;
-  height: 34px;
-  border: 1px solid #b0a898;
-  border-right: none;
-  border-radius: 4px 0 0 4px;
-  background: #e8e5e0;
-  color: #555;
-  font-size: 13px;
-  line-height: 1;
-  font-family: inherit;
-  cursor: pointer;
-  padding: 0;
-}
-
-.openTab:hover {
-  background: #d8d5d0;
-  color: #222;
-}
-
+/* Shown/hidden by MapPanel — see .sidebarBtn in MapPanel.module.css. */
 .sidebar {
   width: 208px;
   flex: 0 0 208px;
@@ -37,8 +13,7 @@
 .header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 5px 4px 5px 10px;
+  padding: 8px 10px;
   border-bottom: 1px solid #b0a898;
   background: #e8e5e0;
 }
@@ -49,25 +24,6 @@
   color: #555;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-}
-
-.closeTab {
-  width: 20px;
-  height: 20px;
-  border: none;
-  background: transparent;
-  color: #666;
-  font-size: 14px;
-  line-height: 1;
-  font-family: inherit;
-  cursor: pointer;
-  border-radius: 3px;
-  padding: 0;
-}
-
-.closeTab:hover {
-  background: rgba(0, 0, 0, 0.08);
-  color: #222;
 }
 
 .scroll {

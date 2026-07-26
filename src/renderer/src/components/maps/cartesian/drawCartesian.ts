@@ -35,7 +35,7 @@ export const DOT_MAX_RADIUS = 38
 export const DOT_DEFAULT_RADIUS = DOT_MIN_RADIUS
 
 // Gap between dot edge and element name label
-const LABEL_OFFSET = 8
+const LABEL_OFFSET = 3
 
 // Default label size used when callers don't supply an explicit size.
 export const LABEL_SIZE_DEFAULT = 11
@@ -96,10 +96,19 @@ export function visibleTypes(config: CartesianMapConfig, types: Type[]): Type[] 
 /**
  * Returns the elements this map is currently showing.
  *
- * Deselecting a type hides its non-members: with a type filter active, an
- * element is only drawn if it qualifies for at least one selected type. This
- * applies whether or not the blob overlay itself is switched on, so types can
- * be used purely as an element filter.
+ * An element is hidden only when every type it belongs to has been deselected.
+ * Selection wins over deselection, so an element in both a selected and a
+ * deselected type stays on the map — one surviving type is enough.
+ *
+ * An element belonging to no type at all is never hidden: it has no membership
+ * that could be switched off, so it stays visible whatever the selection.
+ *
+ * Membership here means a score meeting config.threshold, so raising the
+ * threshold can strand an element by dropping it out of the type that was
+ * keeping it visible.
+ *
+ * This applies whether or not the blob overlay itself is switched on, so types
+ * can be used purely as an element filter.
  *
  * Exported because MapPanel's hit-testing, dragging and lasso selection must
  * apply exactly the same rule — otherwise you could grab a dot you can't see.
@@ -111,12 +120,16 @@ export function visibleElements(
   scores: ScoreMap
 ): Element[] {
   if (config.typeIds.length === 0) return elements
+
+  const isMember = (el: Element, t: Type): boolean => {
+    const m = scores[el.id]?.[t.id]
+    return m !== undefined && m >= config.threshold
+  }
+
   const shown = visibleTypes(config, types)
+
   return elements.filter(el =>
-    shown.some(t => {
-      const m = scores[el.id]?.[t.id]
-      return m !== undefined && m >= config.threshold
-    })
+    shown.some(t => isMember(el, t)) || !types.some(t => isMember(el, t))
   )
 }
 
@@ -216,6 +229,9 @@ export function drawCartesian(
   // an element whose membership score meets the threshold AND which has been
   // scored on both chosen axes (otherwise it can't be placed in 2D space).
   //
+  // Members are taken from shownElements, not the full list, so a blob never
+  // wraps around a dot the type filter has hidden.
+  //
   // The blob color is the membership-weighted average of member element colors,
   // and its label sits at the membership-weighted centroid, so the name lands on
   // the densest part of the cluster rather than the bounding box middle.
@@ -223,14 +239,14 @@ export function drawCartesian(
   if (config.showTypes) {
     for (const type of visibleTypes(config, types)) {
       const color = config.showColors
-        ? computeTypeColor(type, elements, scores, config.threshold)
+        ? computeTypeColor(type, shownElements, scores, config.threshold)
         : NEUTRAL_COLOR
 
       // Collect member positions along with their membership strength, which
       // doubles as the weight for the label centroid below.
       const pts: Pt[] = []
       let sumX = 0, sumY = 0, totalWeight = 0
-      for (const el of elements) {
+      for (const el of shownElements) {
         const membership = scores[el.id]?.[type.id]
         if (membership === undefined || membership < config.threshold) continue
         const xScore = scores[el.id]?.[xDim.id]

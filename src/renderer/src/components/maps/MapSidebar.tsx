@@ -8,11 +8,12 @@
 //              per-type show/hide                        (cartesian only)
 //   Output   — export
 //
-// Collapsed by default and never persisted: the sidebar is a transient control
-// surface, not part of the map, so it starts out of the way every time a window
-// opens. Everything it changes IS persisted, via the caller's updateConfig.
+// Visibility is owned by MapPanel, which drives it from the toggle button in
+// the title bar. Collapsed by default and never persisted: the sidebar is a
+// transient control surface, not part of the map, so it starts out of the way
+// every time a window opens. Everything it changes IS persisted, via the
+// caller's updateConfig.
 
-import { useState } from 'react'
 import { useAppStore } from '../../store/appStore'
 import type { MapConfig, CartesianMapConfig } from '../../lib/types'
 import styles from './MapSidebar.module.css'
@@ -25,37 +26,15 @@ interface Props {
 
 export function MapSidebar({ config, updateConfig, onExportSvg }: Props): React.JSX.Element {
   const types = useAppStore(s => s.types)
-  const [open, setOpen] = useState(false)
 
   // Only cartesian maps carry types — a semantic map has no 2D space to
   // project a cluster into, so it gets Elements + Output only.
   const cartConfig = config.type === 'cartesian' ? config : null
 
-  if (!open) {
-    return (
-      <button
-        className={styles.openTab}
-        onClick={() => setOpen(true)}
-        title="Show map controls"
-        aria-label="Show map controls"
-      >
-        ‹
-      </button>
-    )
-  }
-
   return (
     <div className={styles.sidebar}>
       <div className={styles.header}>
         <span className={styles.headerTitle}>Controls</span>
-        <button
-          className={styles.closeTab}
-          onClick={() => setOpen(false)}
-          title="Hide map controls"
-          aria-label="Hide map controls"
-        >
-          ›
-        </button>
       </div>
 
       <div className={styles.scroll}>
@@ -153,8 +132,8 @@ export function MapSidebar({ config, updateConfig, onExportSvg }: Props): React.
                 })}
 
                 <p className={styles.hint}>
-                  Deselecting a type also hides elements that don’t belong to any
-                  selected type.
+                  An element hides only once every type it belongs to is
+                  deselected. Elements belonging to no type are always shown.
                 </p>
               </>
             )}

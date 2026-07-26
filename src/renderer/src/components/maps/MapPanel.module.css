@@ -132,6 +132,31 @@
   color: #333;
 }
 
+/* Sidebar toggle — sits at the right end of the title bar, the conventional
+   spot for a "show/hide inspector" control. */
+.sidebarBtn {
+  width: 22px;
+  height: 20px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #777;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.sidebarBtn:hover {
+  background: rgba(0,0,0,0.1);
+  color: #333;
+}
+
+.sidebarBtnActive {
+  color: #808040;
+}
+
 .axisPicker {
   background: #fff;
   border: 1px solid #b0a898;
@@ -206,8 +231,7 @@
   padding: 4px 8px 2px;
 }
 
-/* Canvas + control sidebar sit side by side below the title bar. Positioned
-   so the sidebar's collapsed tab can anchor to the right edge. */
+/* Canvas + control sidebar sit side by side below the title bar. */
 .body {
   display: flex;
   flex: 1;

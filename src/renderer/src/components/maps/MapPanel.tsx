@@ -366,6 +366,9 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
   const [cursor,         setCursor]         = useState('default')
   const [editingTitle,   setEditingTitle]   = useState(false)
   const [titleDraft,     setTitleDraft]     = useState('')
+  // Sidebar visibility lives here, not in MapSidebar, because the toggle that
+  // drives it sits in the title bar. Deliberately not persisted.
+  const [sidebarOpen,    setSidebarOpen]    = useState(false)
   const titleInputRef = useRef<HTMLInputElement>(null)
 
   // Escape clears all selection
@@ -851,6 +854,24 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
           {!windowed && (
             <button className={styles.closeBtn} onClick={onClose} title="Close map">✕</button>
           )}
+
+          <button
+            className={`${styles.sidebarBtn} ${sidebarOpen ? styles.sidebarBtnActive : ''}`}
+            onClick={() => setSidebarOpen(o => !o)}
+            title={sidebarOpen ? 'Hide map controls' : 'Show map controls'}
+            aria-label={sidebarOpen ? 'Hide map controls' : 'Show map controls'}
+            aria-pressed={sidebarOpen}
+          >
+            {/* Standard sidebar glyph: a panel outline with the right pane filled */}
+            <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true">
+              <rect
+                x="1.5" y="2.5" width="13" height="11" rx="2"
+                fill="none" stroke="currentColor" strokeWidth="1.3"
+              />
+              <path d="M10 2.5v11" stroke="currentColor" strokeWidth="1.3" />
+              <path d="M10 3.5h3a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1h-3z" fill="currentColor" />
+            </svg>
+          </button>
         </div>
       </div>
 
@@ -968,11 +989,13 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
         )}
       </div>
 
-        <MapSidebar
-          config={config}
-          updateConfig={updateConfig}
-          onExportSvg={handleExportSvg}
-        />
+        {sidebarOpen && (
+          <MapSidebar
+            config={config}
+            updateConfig={updateConfig}
+            onExportSvg={handleExportSvg}
+          />
+        )}
       </div>
     </div>
   )
