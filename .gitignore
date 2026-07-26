@@ -3,3 +3,6 @@ out/
 dist/
 *.tsbuildinfo
 .DS_Store
+
+# Claude Code: shared project settings are tracked, personal overrides are not.
+.claude/settings.local.json
