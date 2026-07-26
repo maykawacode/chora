@@ -24,6 +24,13 @@ import { usePrefsStore } from './prefsStore'
 
 // ── Store interface ───────────────────────────────────────────────────────────
 
+/** One score write: element × (dimension or type) → value. */
+export interface ScoreEntry {
+  elementId: string
+  targetId:  string
+  value:     number
+}
+
 interface AppStore extends AppState {
   // Session metadata
   updateSessionMeta: (changes: Partial<SessionMeta>) => void
@@ -47,6 +54,7 @@ interface AppStore extends AppState {
 
   // Scores (covers both dimension scores and type membership scores)
   setScore:   (elementId: string, targetId: string, value: number) => void
+  setScores:  (entries: ScoreEntry[]) => void
   clearScore: (elementId: string, targetId: string) => void
 
   // Maps
@@ -290,6 +298,18 @@ export const useAppStore = create<AppStore>((set) => ({
     },
     isDirty: true
   })),
+
+  // Applies many score changes as one update. Dragging a multi-selection writes
+  // two scores per selected element on every mouse-move; done one at a time that
+  // is a store update — and so a re-render and a full state broadcast — per
+  // element per frame. Callers pass at least one entry.
+  setScores: (entries) => set((s) => {
+    const scores = { ...s.scores }
+    for (const { elementId, targetId, value } of entries) {
+      scores[elementId] = { ...scores[elementId], [targetId]: value }
+    }
+    return { scores, isDirty: true }
+  }),
 
   clearScore: (elementId, targetId) => set((s) => {
     const { [targetId]: _removed, ...rest } = s.scores[elementId] ?? {}

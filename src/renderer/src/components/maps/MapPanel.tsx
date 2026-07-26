@@ -13,7 +13,7 @@
 // functions (drawCartesian / drawSemantic) are pure canvas painters.
 
 import { useRef, useEffect, useCallback, useState } from 'react'
-import { useAppStore } from '../../store/appStore'
+import { useAppStore, type ScoreEntry } from '../../store/appStore'
 import { usePrefsStore } from '../../store/prefsStore'
 import type { CartesianMapConfig, SemanticMapConfig, Dimension, Type, Element, ScoreMap } from '../../lib/types'
 import C2S from 'canvas2svg'
@@ -41,6 +41,26 @@ interface SemanticPickerState {
   clickY: number
 }
 
+// ── Drag state ────────────────────────────────────────────────────────────────
+//
+// A drag moves the whole multi-selection when the grabbed dot belongs to it,
+// and just that dot otherwise. The group translates rigidly: every member keeps
+// its offset from the others, so a drag rearranges where a cluster sits without
+// rearranging the cluster.
+//
+// Start scores are captured once, at mouse-down, and every frame is computed as
+// an offset from them rather than from wherever the dots are now. Accumulating
+// frame to frame would let rounding drift the group apart, and would let a
+// clamped frame — one where the group is pressed against an edge — permanently
+// squash the spacing.
+
+/** One element a drag is moving, with the scores it started the gesture at. */
+interface DragMember {
+  id: string
+  x0: number
+  y0: number
+}
+
 // Active cartesian drag. startX/Y and lockedAxis are mutated in place during
 // the drag — they are NOT set by cartesianHitDot() (which only knows the hit
 // element) but are filled in by handleMouseDown() before storing in the ref.
@@ -48,16 +68,85 @@ interface DragTarget {
   elementId: string
   xDimId: string
   yDimId: string
+  members: DragMember[]   // everything this gesture moves, grabbed dot included
+  origin: DragMember      // the grabbed dot's start scores; deltas measure from here
   startX: number          // pointer position when drag started — used to pick lock axis
   startY: number
   lockedAxis: 'x' | 'y' | null  // set on first significant move while Shift is held
 }
 
+/** One element a semantic drag is moving, on the single axis being dragged. */
+interface SemDragMember {
+  id: string
+  s0: number
+}
+
 interface SemanticDragTarget {
   elementId: string
   dimId: string
+  members: SemDragMember[]
+  origin: SemDragMember
   startX: number
   startY: number
+}
+
+/**
+ * Shifts a delta as far as it can go without pushing any member outside 0–1.
+ *
+ * Clamping the group rather than each element is what keeps it rigid: clamp
+ * individually and the members still in range keep going while the ones at the
+ * edge stall, and the cluster deforms a little more every time it is dragged
+ * into a wall.
+ */
+function clampGroupDelta(starts: number[], delta: number): number {
+  let lo = -Infinity
+  let hi = Infinity
+  for (const s of starts) {
+    lo = Math.max(lo, -s)
+    hi = Math.min(hi, 1 - s)
+  }
+  return Math.min(hi, Math.max(lo, delta))
+}
+
+/**
+ * The scores an element starts a cartesian drag at.
+ *
+ * An axis with no score falls back to 0.5, which is exactly where
+ * drawCartesian plots it — so an unscored dot moves from where it appears
+ * instead of jumping. Dragging it does turn that placeholder into a real
+ * score, which is what a single-dot drag has always done.
+ */
+function cartesianDragStart(id: string, xDimId: string, yDimId: string, scores: ScoreMap): DragMember {
+  return {
+    id,
+    x0: scores[id]?.[xDimId] ?? 0.5,
+    y0: scores[id]?.[yDimId] ?? 0.5
+  }
+}
+
+/**
+ * The elements a drag gesture moves: the whole multi-selection when the grabbed
+ * element is part of it, otherwise the grabbed element alone.
+ */
+function dragGroupIds(draggedId: string, selectedIds: string[]): string[] {
+  return selectedIds.includes(draggedId) ? selectedIds : [draggedId]
+}
+
+/**
+ * The members of a semantic drag, on the one axis being dragged.
+ *
+ * Elements unscored on that axis are dropped: a semantic map draws no dot for
+ * them there, so there is nothing on screen to move. This is the opposite of
+ * the cartesian case only because the maps differ — there, an unscored element
+ * is still drawn, at the center.
+ */
+function semanticDragMembers(ids: string[], dimId: string, scores: ScoreMap): SemDragMember[] {
+  const members: SemDragMember[] = []
+  for (const id of ids) {
+    const s0 = scores[id]?.[dimId]
+    if (s0 !== undefined) members.push({ id, s0 })
+  }
+  return members
 }
 
 // ── Hit-test helpers ──────────────────────────────────────────────────────────
@@ -328,7 +417,7 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
   const updateMapConfig     = useAppStore(s => s.updateMapConfig)
   const updateElement       = useAppStore(s => s.updateElement)
   const bulkUpdateElements  = useAppStore(s => s.bulkUpdateElements)
-  const setScore            = useAppStore(s => s.setScore)
+  const setScores           = useAppStore(s => s.setScores)
 
   // Label sizes come from user preferences so they update live when the
   // Preferences dialog is saved (prefsStore notifies → component re-renders
@@ -500,7 +589,13 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
       const hit = cartesianHitDot(x, y, rect.width, rect.height, config, elements, types, scores)
       if (hit) {
         if (e.shiftKey) return  // defer to handleClick for toggle selection
-        draggingRef.current  = { ...hit, startX: x, startY: y, lockedAxis: null }
+        const groupIds = dragGroupIds(hit.elementId, useAppStore.getState().selectedElementIds)
+        draggingRef.current = {
+          ...hit,
+          members: groupIds.map(id => cartesianDragStart(id, hit.xDimId, hit.yDimId, scores)),
+          origin:  cartesianDragStart(hit.elementId, hit.xDimId, hit.yDimId, scores),
+          startX: x, startY: y, lockedAxis: null
+        }
         dragMovedRef.current = false
         setCursor('grabbing')
         selectElement(hit.elementId)
@@ -517,13 +612,30 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
           // Shift+mousedown on a dot: defer to handleClick for toggle
           return
         }
-        semDraggingRef.current  = { ...hit, startX: x, startY: y }
+        // semanticHitDot only ever returns a dot it drew, and it draws none for
+        // an unscored axis — so this is really an invariant, expressed as a
+        // guard rather than an assertion.
+        const s0 = scores[hit.elementId]?.[hit.dimId]
+        if (s0 === undefined) return
+
+        const selectedIds = useAppStore.getState().selectedElementIds
+        semDraggingRef.current = {
+          ...hit,
+          members: semanticDragMembers(dragGroupIds(hit.elementId, selectedIds), hit.dimId, scores),
+          origin:  { id: hit.elementId, s0 },
+          startX: x, startY: y
+        }
         semDragMovedRef.current = false
         setCursor('grabbing')
         selectElement(hit.elementId)
-        selectElements([hit.elementId])
         window.api?.broadcastSelection(hit.elementId)
-        window.api?.broadcastMultiSelection([hit.elementId])
+        // Grabbing a dot outside the current multi-selection replaces it, the
+        // way clicking one always has. Grabbing one inside it leaves it alone —
+        // collapsing here is what used to make a group un-draggable.
+        if (!selectedIds.includes(hit.elementId)) {
+          selectElements([hit.elementId])
+          window.api?.broadcastMultiSelection([hit.elementId])
+        }
         e.preventDefault()
         redraw()
       } else if (e.shiftKey) {
@@ -574,17 +686,31 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
       const cx = Math.max(plotLeft, Math.min(plotRight,  x))
       const cy = Math.max(plotTop,  Math.min(plotBottom, y))
 
+      // The grabbed dot follows the pointer; everything else in the group moves
+      // by the same delta. With one member that is just the pointer position,
+      // so a single-dot drag behaves exactly as it did.
+      const updates: ScoreEntry[] = []
+
       if (drag.lockedAxis !== 'y') {
         let xScore = (cx - plotLeft) / plotW
         if (cartCfg.xFlipped) xScore = 1 - xScore
-        setScore(drag.elementId, drag.xDimId, xScore)
-        window.api?.broadcastScore(drag.elementId, drag.xDimId, xScore)
+        const dx = clampGroupDelta(drag.members.map(m => m.x0), xScore - drag.origin.x0)
+        for (const m of drag.members) {
+          updates.push({ elementId: m.id, targetId: drag.xDimId, value: m.x0 + dx })
+        }
       }
       if (drag.lockedAxis !== 'x') {
         let yScore = 1 - (cy - plotTop) / plotH
         if (cartCfg.yFlipped) yScore = 1 - yScore
-        setScore(drag.elementId, drag.yDimId, yScore)
-        window.api?.broadcastScore(drag.elementId, drag.yDimId, yScore)
+        const dy = clampGroupDelta(drag.members.map(m => m.y0), yScore - drag.origin.y0)
+        for (const m of drag.members) {
+          updates.push({ elementId: m.id, targetId: drag.yDimId, value: m.y0 + dy })
+        }
+      }
+
+      if (updates.length > 0) {
+        setScores(updates)
+        for (const u of updates) window.api?.broadcastScore(u.elementId, u.targetId, u.value)
       }
 
       dragMovedRef.current = true
@@ -602,7 +728,7 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
         if (dx < 4 && dy < 4) { setCursor('grabbing'); return }
       }
 
-      const { elementId, dimId } = semDrag
+      const { dimId } = semDrag
       const semCfg    = config as SemanticMapConfig
       const axisLeft  = SEM_MARGIN_H
       const axisRight = W - SEM_MARGIN_H
@@ -610,8 +736,16 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
       const cx        = Math.max(axisLeft, Math.min(axisRight, x))
       let score       = (cx - axisLeft) / axisWidth
       if (semCfg.flippedDimensionIds.includes(dimId)) score = 1 - score
-      setScore(elementId, dimId, score)
-      window.api?.broadcastScore(elementId, dimId, score)
+
+      // Every member shares this axis and its flip state, so one delta in score
+      // space moves them all — no need to re-flip per element.
+      const ds = clampGroupDelta(semDrag.members.map(m => m.s0), score - semDrag.origin.s0)
+      const updates: ScoreEntry[] = semDrag.members.map(m => ({
+        elementId: m.id, targetId: dimId, value: m.s0 + ds
+      }))
+
+      setScores(updates)
+      for (const u of updates) window.api?.broadcastScore(u.elementId, u.targetId, u.value)
       semDragMovedRef.current = true
       setCursor('grabbing')
       return
