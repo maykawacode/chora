@@ -16,7 +16,7 @@ import { v4 as uuid } from 'uuid'
 import type {
   AppState, Element, Type, Dimension, DimensionCategories, SessionMeta,
   MapConfig, CartesianMapConfig, SemanticMapConfig,
-  ElementShape
+  ElementShape, ScoreMap
 } from '../lib/types'
 import { defaultCategories, defaultSessionMeta, parsePoles } from '../lib/types'
 import { usePrefsStore } from './prefsStore'
@@ -471,7 +471,11 @@ export const useAppStore = create<AppStore>((set) => ({
     const newScores = { ...s.scores }
     for (const el of s.elements) {
       const shapeIdx = SHAPE_SEQUENCE.indexOf(el.shape)
-      const elScores: Record<string, number> = { ...newScores[el.id] }
+      // Derived from ScoreMap rather than restated: a score is legitimately
+      // absent for an unscored pair, so the row type carries `| undefined` and
+      // a literal Record<string, number> here would contradict what it is
+      // written back into.
+      const elScores: ScoreMap[string] = { ...newScores[el.id] }
       s.types.forEach((t, i) => { elScores[t.id] = i % SHAPE_SEQUENCE.length === shapeIdx ? 1 : 0 })
       newScores[el.id] = elScores
     }
