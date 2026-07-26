@@ -27,12 +27,12 @@ import styles from './MapSidebar.module.css'
 // in types.ts: ColorMode is domain vocabulary, these are UI wording and are
 // free to change without touching the model.
 //
-// Phrased to complete the sentence the row starts — "Color: by type" — so they
-// are lowercase and read as continuations, not as standalone captions.
+// Phrased to complete the sentence the row starts — "Color: by collection" — so
+// they are lowercase and read as continuations, not as standalone captions.
 const COLOR_MODE_OPTIONS: ReadonlyArray<{ value: ColorMode; label: string }> = [
   { value: 'none',    label: 'none' },
   { value: 'element', label: 'by element' },
-  { value: 'type',    label: 'by type' }
+  { value: 'type',    label: 'by collection' }
 ]
 
 const MARK_MODE_OPTIONS: ReadonlyArray<{ value: MarkMode; label: string }> = [
@@ -89,14 +89,14 @@ export function MapSidebar({ config, updateConfig, onExportSvg }: Props): React.
         {/* ── Types ──────────────────────────────────────────────────────── */}
         {cartConfig && (
           <section className={styles.section}>
-            <h3 className={styles.sectionTitle}>Types</h3>
+            <h3 className={styles.sectionTitle}>Collections</h3>
 
             {types.length === 0 ? (
-              <p className={styles.empty}>No types defined yet.</p>
+              <p className={styles.empty}>No collections defined yet.</p>
             ) : (
               <>
                 <Check
-                  label="Show type clusters"
+                  label="Show collection clusters"
                   checked={cartConfig.showTypes}
                   onChange={v => updateConfig({ showTypes: v })}
                 />
@@ -119,7 +119,7 @@ export function MapSidebar({ config, updateConfig, onExportSvg }: Props): React.
                 </label>
 
                 <div className={styles.subhead}>
-                  Show types
+                  Show collections
                   {/* typeIds=[] means all types; the button clears back to that. */}
                   {cartConfig.typeIds.length > 0 && (
                     <button
@@ -137,7 +137,7 @@ export function MapSidebar({ config, updateConfig, onExportSvg }: Props): React.
                   return (
                     <Check
                       key={type.id}
-                      label={type.name || 'Untitled type'}
+                      label={type.name || 'Untitled collection'}
                       swatch={type.color}
                       checked={isVisible}
                       onChange={() => {
@@ -155,8 +155,8 @@ export function MapSidebar({ config, updateConfig, onExportSvg }: Props): React.
                 })}
 
                 <p className={styles.hint}>
-                  An element hides only once every type it belongs to is
-                  deselected. Elements belonging to no type are always shown.
+                  An element hides only once every collection it belongs to is
+                  deselected. Elements belonging to no collection are always shown.
                 </p>
               </>
             )}
@@ -200,7 +200,7 @@ function Check({ label, checked, onChange, swatch }: CheckProps): React.JSX.Elem
 
 // ── Setting rows ──────────────────────────────────────────────────────────────
 //
-// Both render one sentence — "Color: by type" — where the value is the control.
+// Both render one sentence — "Color: by collection" — where the value is the control.
 // Toggle flips between two values on click; Choice opens a menu. They are
 // deliberately indistinguishable at rest: no caret, no box, nothing marking one
 // row as a different kind of thing from its neighbors. Every row in the section

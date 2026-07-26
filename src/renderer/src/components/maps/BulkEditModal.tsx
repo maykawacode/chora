@@ -183,7 +183,7 @@ export function BulkEditModal({ elementIds, elements, onClose }: Props): React.J
         </div>
 
         <div className={styles.typesSection}>
-          <span className={styles.typesLabel}>Types</span>
+          <span className={styles.typesLabel}>Collections</span>
           {types.length > 0 && (
             <div className={styles.typeList}>
               {types.map(t => {
@@ -204,13 +204,13 @@ export function BulkEditModal({ elementIds, elements, onClose }: Props): React.J
             </div>
           )}
           {types.length === 0 && (
-            <span className={styles.typesEmpty}>No types — add one below</span>
+            <span className={styles.typesEmpty}>No collections — add one below</span>
           )}
           <div className={styles.newTypeRow}>
             <input
               className={styles.newTypeInput}
               value={newTypeName}
-              placeholder="New type…"
+              placeholder="New collection…"
               onChange={e => setNewTypeName(e.target.value)}
               onKeyDown={e => {
                 if (e.key === 'Escape') {

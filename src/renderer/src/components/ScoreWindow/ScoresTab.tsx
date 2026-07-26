@@ -100,7 +100,7 @@ export function ScoresTab(): React.JSX.Element {
                   if (selectedElId && selectedTypeId) setScore(selectedElId, selectedTypeId, v)
                 }}
               />
-            : <p className={styles.hint}>Add elements and types, then select both to score.</p>
+            : <p className={styles.hint}>Add elements and collections, then select both to score.</p>
         }
       </div>
 
@@ -149,7 +149,7 @@ export function ScoresTab(): React.JSX.Element {
               className={`${styles.panelToggleBtn} ${rightPanel === 'types' ? styles.panelToggleBtnActive : ''}`}
               onClick={() => setRightPanel('types')}
             >
-              Types ({types.length})
+              Collections ({types.length})
             </button>
           </div>
 

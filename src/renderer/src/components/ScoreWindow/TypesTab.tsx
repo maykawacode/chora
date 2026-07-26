@@ -104,16 +104,16 @@ export function TypesTab(): React.JSX.Element {
     <div className={styles.tab} ref={tabRef}>
       {/* ── List pane ── */}
       <div className={styles.listPane}>
-        <div className={styles.listHeader}>Types ({types.length})</div>
+        <div className={styles.listHeader}>Collections ({types.length})</div>
 
         {types.length === 0
-          ? <p className={styles.emptyHint}>Begin by entering a list of types.</p>
+          ? <p className={styles.emptyHint}>Begin by entering a list of collections.</p>
           : (
             <ul
               className={styles.list}
               tabIndex={0}
               onKeyDown={handleListKeyDown}
-              aria-label="Types"
+              aria-label="Collections"
             >
               {types.map(type => (
                 <li
@@ -132,7 +132,7 @@ export function TypesTab(): React.JSX.Element {
           <input
             ref={addInputRef}
             className={styles.addInput}
-            placeholder="New type…"
+            placeholder="New collection…"
             value={newName}
             onChange={e => setNewName(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') handleAdd() }}
@@ -141,7 +141,7 @@ export function TypesTab(): React.JSX.Element {
 
         {uncoloredCount > 0 && (
           <button type="button" className={styles.bulkBtn} onClick={assignPaletteToUncoloredTypes}>
-            Assign colors to {uncoloredCount} uncolored {uncoloredCount === 1 ? 'type' : 'types'}
+            Assign colors to {uncoloredCount} uncolored {uncoloredCount === 1 ? 'collection' : 'collections'}
           </button>
         )}
       </div>
@@ -188,7 +188,7 @@ export function TypesTab(): React.JSX.Element {
       {confirmType && (
         <div className={styles.confirmOverlay}>
           <div className={styles.confirmBox}>
-            <p>Delete <strong>{confirmType.name}</strong>?<br />All membership scores for this type will be lost.</p>
+            <p>Delete <strong>{confirmType.name}</strong>?<br />All membership scores for this collection will be lost.</p>
             <div className={styles.confirmButtons}>
               <button className={styles.confirmCancel} onClick={() => setConfirmDeleteId(null)}>Cancel</button>
               <button

@@ -34,7 +34,7 @@ export function ImportPreview({ fileName, result, onConfirm, onCancel }: Props):
           </div>
           {types.length > 0 && (
             <div className={styles.summaryRow}>
-              <span className={styles.summaryLabel}>Types</span>
+              <span className={styles.summaryLabel}>Collections</span>
               <span className={styles.summaryValue}>{types.length}</span>
             </div>
           )}

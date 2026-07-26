@@ -10,7 +10,20 @@ import { DimensionsTab } from './DimensionsTab'
 import { ScoresTab } from './ScoresTab'
 import { TypesTab } from './TypesTab'
 import { ConversionsTab } from './ConversionsTab'
+import type { AppState } from '../../lib/types'
 import styles from './ScoreWindow.module.css'
+
+// Tab labels are declared rather than derived from the tab key. 'types' is the
+// stored state and file-format name; the UI calls them Collections. Every other
+// label still matches its key, which is exactly why capitalizing the key used
+// to be enough — and exactly what would have hidden this one from a reader.
+const TAB_LABELS: Record<AppState['activeTab'], string> = {
+  elements:    'Elements',
+  types:       'Collections',
+  dimensions:  'Dimensions',
+  scores:      'Scores',
+  conversions: 'Conversions'
+}
 
 interface Props {
   onOpenStarterPicker: () => void
@@ -35,7 +48,7 @@ export function ScoreWindow({ onOpenStarterPicker }: Props): React.JSX.Element {
             className={`${styles.tab} ${activeTab === tab ? styles.tabActive : ''}`}
             onClick={() => setActiveTab(tab)}
           >
-            {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            {TAB_LABELS[tab]}
           </button>
         ))}
 
