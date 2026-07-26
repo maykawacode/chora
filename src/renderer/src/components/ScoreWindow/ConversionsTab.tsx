@@ -8,6 +8,7 @@
 import { useState } from 'react'
 import { useAppStore } from '../../store/appStore'
 import { usePrefsStore } from '../../store/prefsStore'
+import type { TypeColorMethod } from '../../lib/types'
 import styles from './ConversionsTab.module.css'
 
 type FromSource = 'dim-scores' | 'el-weight' | 'random' | 'type' | 'el-shape' | 'el-color'
@@ -39,7 +40,10 @@ const VALID_TO: Record<FromSource, ToTarget[]> = {
   'el-color':   ['el-shape'],
 }
 
-function buildSummary(from: FromSource | '', to: ToTarget | '', fromLabel: string, toLabel: string): string {
+function buildSummary(
+  from: FromSource | '', to: ToTarget | '', fromLabel: string, toLabel: string,
+  typeColorMethod: TypeColorMethod
+): string {
   if (!from || !to) return ''
   const fd = fromLabel || 'the chosen dimension'
   const td = toLabel   || 'the chosen dimension'
@@ -50,7 +54,9 @@ function buildSummary(from: FromSource | '', to: ToTarget | '', fromLabel: strin
   if (from === 'random'     && to === 'dim-scores') return `Assigns a random score to every element on ${td}.`
   if (from === 'random'     && to === 'el-weight')  return "Assigns a random weight (1–100) to every element."
   if (from === 'random'     && to === 'el-color')   return "Assigns a random color to every element."
-  if (from === 'type'       && to === 'el-color')   return "Sets each element's color from its dominant type's color. Elements with no type scores unchanged."
+  if (from === 'type'       && to === 'el-color')   return typeColorMethod === 'blend'
+    ? "Sets each element's color by mixing the colors of every type it belongs to, weighted by membership strength — the same blend a map colored by type draws. Elements with no type scores unchanged."
+    : "Sets each element's color from its dominant type's color. Elements with no type scores unchanged."
   if (from === 'type'       && to === 'el-shape')   return "Assigns shapes by type order: circle, square, triangle, diamond (cycling). Elements with no type scores unchanged."
   if (from === 'el-shape'   && to === 'el-color')   return "Sets each element's color by shape: circle→blue, square→red, triangle→green, diamond→purple."
   if (from === 'el-shape'   && to === 'type')       return "Sets type membership to 1.0 for each element's matched type, 0.0 for others. Matched by creation order: circle=1st, square=2nd, triangle=3rd, diamond=4th (cycling)."
@@ -87,6 +93,10 @@ export function ConversionsTab(): React.JSX.Element {
   const [colorHigh,   setColorHigh]   = useState(prefHigh)
   const [applied,     setApplied]     = useState(false)
 
+  // Blending matches what a map colored by type shows, so it is the default;
+  // 'dominant' stays available as the flatter, one-color-per-element result.
+  const [typeColorMethod, setTypeColorMethod] = useState<TypeColorMethod>('blend')
+
   const [spreadDimId, setSpreadDimId] = useState('')
   const [spreadApplied, setSpreadApplied] = useState(false)
   const spreadDim = spreadDimId ? dimensions.find(d => d.id === spreadDimId) ?? null : null
@@ -103,6 +113,7 @@ export function ConversionsTab(): React.JSX.Element {
     setFromDimId('')
     setToDimId('')
     setPoleFlipped(false)
+    setTypeColorMethod('blend')
     setApplied(false)
   }
 
@@ -110,6 +121,7 @@ export function ConversionsTab(): React.JSX.Element {
     setToTarget(val as ToTarget | '')
     setToDimId('')
     setPoleFlipped(false)
+    setTypeColorMethod('blend')
     setApplied(false)
   }
 
@@ -118,6 +130,9 @@ export function ConversionsTab(): React.JSX.Element {
   const showPole = (fromSource === 'dim-scores' && toTarget === 'el-weight') ||
                    (fromSource === 'el-weight'  && toTarget === 'dim-scores')
   const showColorPickers  = fromSource === 'dim-scores' && toTarget === 'el-color'
+  // Type → element color is the one pair with two defensible answers, so it is
+  // the one pair that asks. Every other conversion has a single meaning.
+  const showTypeColorMethod = fromSource === 'type' && toTarget === 'el-color' && types.length > 0
 
   const fromDim = fromDimId ? dimensions.find(d => d.id === fromDimId) ?? null : null
   const toDim   = toDimId   ? dimensions.find(d => d.id === toDimId)   ?? null : null
@@ -136,7 +151,7 @@ export function ConversionsTab(): React.JSX.Element {
     return true
   })()
 
-  const summary = buildSummary(fromSource, toTarget, fromDim?.label ?? '', toDim?.label ?? '')
+  const summary = buildSummary(fromSource, toTarget, fromDim?.label ?? '', toDim?.label ?? '', typeColorMethod)
 
   function handleApply(): void {
     if (!canApply) return
@@ -147,7 +162,7 @@ export function ConversionsTab(): React.JSX.Element {
     else if (fromSource === 'random'     && toTarget === 'dim-scores') randomizeScores(toDimId)
     else if (fromSource === 'random'     && toTarget === 'el-weight')  randomizeWeights()
     else if (fromSource === 'random'     && toTarget === 'el-color')   randomizeColors()
-    else if (fromSource === 'type'       && toTarget === 'el-color')   typeToElementColor()
+    else if (fromSource === 'type'       && toTarget === 'el-color')   typeToElementColor(typeColorMethod)
     else if (fromSource === 'type'       && toTarget === 'el-shape')   typeToElementShape()
     else if (fromSource === 'el-shape'   && toTarget === 'el-color')   shapeToColor()
     else if (fromSource === 'el-shape'   && toTarget === 'type')       shapeToType()
@@ -188,7 +203,7 @@ export function ConversionsTab(): React.JSX.Element {
 
         {fromSource === 'el-weight' && <p className={styles.descriptor}>Each element's weight value (1–100).</p>}
         {fromSource === 'random'    && <p className={styles.descriptor}>Random values, one per element.</p>}
-        {fromSource === 'type'      && <p className={styles.descriptor}>Each element's dominant type (highest membership score).</p>}
+        {fromSource === 'type'      && <p className={styles.descriptor}>Each element's type memberships (0–1 per type).</p>}
         {fromSource === 'el-shape'  && <p className={styles.descriptor}>Each element's current shape.</p>}
         {fromSource === 'el-color'  && <p className={styles.descriptor}>Each element's current color.</p>}
       </div>
@@ -270,6 +285,28 @@ export function ConversionsTab(): React.JSX.Element {
               <input type="color" className={styles.colorPicker} value={colorHigh}
                 onChange={e => { setColorHigh(e.target.value); setApplied(false) }} />
             </label>
+          </div>
+        )}
+
+        {showTypeColorMethod && (
+          <div className={styles.subControl}>
+            <div className={styles.subLabel}>Method</div>
+            <div className={styles.poleButtons}>
+              <button
+                type="button"
+                className={`${styles.poleBtn} ${typeColorMethod === 'blend' ? styles.poleBtnActive : ''}`}
+                onClick={() => { setTypeColorMethod('blend'); setApplied(false) }}
+              >
+                Blend all types
+              </button>
+              <button
+                type="button"
+                className={`${styles.poleBtn} ${typeColorMethod === 'dominant' ? styles.poleBtnActive : ''}`}
+                onClick={() => { setTypeColorMethod('dominant'); setApplied(false) }}
+              >
+                Dominant type
+              </button>
+            </div>
           </div>
         )}
 

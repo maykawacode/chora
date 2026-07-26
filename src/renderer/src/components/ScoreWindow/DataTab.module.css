@@ -185,6 +185,25 @@
   background: #d0cdc8;
 }
 
+/* Full-width action under the add row, for operations that act on the whole
+   list rather than one item. Same surface as .addBtn, sized to read as a
+   sentence instead of an icon. */
+.bulkBtn {
+  padding: 4px 8px;
+  border: 1px solid #b0a898;
+  border-radius: 4px;
+  background: #e0ddd8;
+  cursor: pointer;
+  font-size: 11px;
+  font-family: inherit;
+  color: #555;
+}
+
+.bulkBtn:hover {
+  background: #d0cdc8;
+  color: #333;
+}
+
 /* Drag handle between list and detail panes */
 .resizeHandle {
   width: 5px;

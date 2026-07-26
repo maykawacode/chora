@@ -48,7 +48,7 @@ export function ChooseDimensions({ onClose }: Props): React.JSX.Element {
       xFlipped: false,
       yFlipped: false,
       sizeByWeight: true,
-      showColors: true,
+      colorMode: 'element',
       // Type clusters start off — switch them on in the map's sidebar.
       showTypes: false,
       typeIds: [],
@@ -139,7 +139,7 @@ export function CreateSemanticMap({ onClose }: Props): React.JSX.Element {
       // Weight sizing is off by default here: semantic axes sit close together,
       // so uniform dots keep a fresh map readable.
       sizeByWeight: false,
-      showColors: true,
+      colorMode: 'element',
       showLabels: prefs.defaultShowLabels,
       showDots: prefs.defaultShowDots,
       windowX: 100,

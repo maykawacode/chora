@@ -20,8 +20,17 @@
 // shared surface in two. Section headings do the labelling from here down.
 
 import { useAppStore } from '../../store/appStore'
-import type { MapConfig, CartesianMapConfig } from '../../lib/types'
+import type { MapConfig, CartesianMapConfig, ColorMode } from '../../lib/types'
 import styles from './MapSidebar.module.css'
+
+// Labels for the color mode picker. Declared alongside the control rather than
+// in types.ts: ColorMode is domain vocabulary, these are UI wording and are
+// free to change without touching the model.
+const COLOR_MODE_OPTIONS: ReadonlyArray<{ value: ColorMode; label: string }> = [
+  { value: 'none',    label: 'No color' },
+  { value: 'element', label: 'Individual element color' },
+  { value: 'type',    label: 'Type color' }
+]
 
 interface Props {
   config: MapConfig
@@ -57,10 +66,11 @@ export function MapSidebar({ config, updateConfig, onExportSvg }: Props): React.
             checked={config.sizeByWeight}
             onChange={v => updateConfig({ sizeByWeight: v })}
           />
-          <Check
-            label="Show colors"
-            checked={config.showColors}
-            onChange={v => updateConfig({ showColors: v })}
+          <Choice
+            label="Color by"
+            value={config.colorMode}
+            options={COLOR_MODE_OPTIONS}
+            onChange={v => updateConfig({ colorMode: v })}
           />
         </section>
 
@@ -172,6 +182,35 @@ function Check({ label, checked, onChange, swatch }: CheckProps): React.JSX.Elem
       />
       {swatch && <span className={styles.swatch} style={{ background: swatch }} />}
       <span className={styles.checkLabel}>{label}</span>
+    </label>
+  )
+}
+
+// ── Select row ────────────────────────────────────────────────────────────────
+//
+// Generic over the option type so the caller's union — ColorMode here — flows
+// through to onChange without a cast at the call site.
+
+interface ChoiceProps<T extends string> {
+  label: string
+  value: T
+  options: ReadonlyArray<{ value: T; label: string }>
+  onChange: (value: T) => void
+}
+
+function Choice<T extends string>({ label, value, options, onChange }: ChoiceProps<T>): React.JSX.Element {
+  return (
+    <label className={styles.choice}>
+      <span className={styles.choiceLabel}>{label}</span>
+      <select
+        className={styles.choiceSelect}
+        value={value}
+        onChange={e => onChange(e.target.value as T)}
+      >
+        {options.map(o => (
+          <option key={o.value} value={o.value}>{o.label}</option>
+        ))}
+      </select>
     </label>
   )
 }

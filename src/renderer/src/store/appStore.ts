@@ -16,8 +16,9 @@ import { v4 as uuid } from 'uuid'
 import type {
   AppState, Element, Type, Dimension, DimensionCategories, SessionMeta,
   MapConfig, CartesianMapConfig, SemanticMapConfig,
-  ElementShape, ScoreMap
+  ElementShape, ScoreMap, TypeColorMethod
 } from '../lib/types'
+import { DEFAULT_TYPE_COLOR, paletteColor, blendTypeColors, dominantType } from '../lib/color'
 import { defaultCategories, defaultSessionMeta, parsePoles } from '../lib/types'
 import { usePrefsStore } from './prefsStore'
 
@@ -37,6 +38,7 @@ interface AppStore extends AppState {
   addType:    (name: string, id?: string) => string
   updateType: (id: string, changes: Partial<Type>) => void
   removeType: (id: string) => void
+  assignPaletteToUncoloredTypes: () => void
 
   // Dimensions
   addDimension:    (label: string, categories?: DimensionCategories) => void
@@ -62,7 +64,7 @@ interface AppStore extends AppState {
   spreadDimensionScores: (dimensionId: string) => void
   randomizeWeights:  () => void
   randomizeColors:   () => void
-  typeToElementColor: () => void
+  typeToElementColor: (method: TypeColorMethod) => void
   typeToElementShape: () => void
   shapeToColor:       () => void
   colorToShape:       () => void
@@ -198,11 +200,28 @@ export const useAppStore = create<AppStore>((set) => ({
 
   // ── Types ────────────────────────────────────────────────────────────────────
 
+  // New types take the next palette color rather than a shared default gray.
+  // A gray default made every type identical, so coloring a map by type looked
+  // broken and — worse — dragged multi-type blends toward gray.
   addType: (name, id) => {
     const newId = id ?? uuid()
-    set((s) => ({ types: [...s.types, { id: newId, name, definition: '', color: '#808080' }], isDirty: true }))
+    set((s) => ({
+      types: [...s.types, { id: newId, name, definition: '', color: paletteColor(s.types.length) }],
+      isDirty: true
+    }))
     return newId
   },
+
+  // Fills in palette colors for types still sitting on the legacy default gray,
+  // leaving any deliberately chosen color alone. Idempotent, and the only way
+  // to make type coloring useful on a session created before the palette
+  // existed without recoloring every type by hand.
+  assignPaletteToUncoloredTypes: () => set((s) => ({
+    types: s.types.map((t, i) =>
+      t.color === DEFAULT_TYPE_COLOR ? { ...t, color: paletteColor(i) } : t
+    ),
+    isDirty: true
+  })),
 
   updateType: (id, changes) => set((s) => ({
     types: s.types.map(t => t.id === id ? { ...t, ...changes } : t),
@@ -421,17 +440,28 @@ export const useAppStore = create<AppStore>((set) => ({
     isDirty: true
   })),
 
-  // Sets each element's color from the color of its dominant type (highest score).
-  // Elements with no type scores are left unchanged.
-  typeToElementColor: () => set((s) => ({
+  // Bakes type color into each element's own color attribute.
+  //
+  //   'dominant' — the color of the single type the element belongs to most
+  //   'blend'    — all its type colors mixed by membership strength, the same
+  //                blend a map colored by type computes live
+  //
+  // Elements belonging to no type keep the color they have: there is nothing
+  // to derive one from, and blanking them would destroy data the conversion
+  // was never asked about.
+  //
+  // Unlike the map, this uses a threshold of 0 — every non-zero membership
+  // counts. A conversion has no map to borrow a threshold from, so a heavily
+  // thresholded map can legitimately show a different color than this bakes in.
+  //
+  // This overwrites element colors irreversibly (the app has no undo), matching
+  // how the other → Element color conversions already behave.
+  typeToElementColor: (method) => set((s) => ({
     elements: s.elements.map(el => {
-      let bestScore = -1
-      let bestColor: string | null = null
-      for (const t of s.types) {
-        const score = s.scores[el.id]?.[t.id] ?? -1
-        if (score > bestScore) { bestScore = score; bestColor = t.color }
-      }
-      return bestColor !== null && bestScore >= 0 ? { ...el, color: bestColor } : el
+      const color = method === 'blend'
+        ? blendTypeColors(el, s.types, s.scores, 0)
+        : dominantType(el, s.types, s.scores)?.color ?? null
+      return color !== null ? { ...el, color } : el
     }),
     isDirty: true
   })),

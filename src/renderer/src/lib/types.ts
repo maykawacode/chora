@@ -67,6 +67,21 @@ export type ScoreMap = Record<string, Record<string, number | undefined>>
 
 export type MapType = 'cartesian' | 'semantic'
 
+// What drives element color on a map:
+//   'none'    — neutral gray throughout; the map reads as pure structure
+//   'element' — each element's own color attribute
+//   'type'    — the color of the type(s) it belongs to, blended by membership
+//               strength when it belongs to more than one
+// Replaced the earlier showColors boolean; see readColorMode in parser.ts for
+// how files written before this change are migrated.
+export type ColorMode = 'none' | 'element' | 'type'
+
+// How the Type membership → Element color conversion derives a color:
+//   'dominant' — the color of the type the element belongs to most strongly
+//   'blend'    — all its type colors mixed by membership, matching what a map
+//                colored by type draws live
+export type TypeColorMethod = 'dominant' | 'blend'
+
 // Settings every map has, all driven from the map window's sidebar.
 export interface BaseMapConfig {
   id: string
@@ -75,7 +90,7 @@ export interface BaseMapConfig {
   showLabels: boolean
   showDots: boolean
   sizeByWeight: boolean // true = dot radius scales with element weight; false = uniform default size
-  showColors: boolean   // false = draw everything in neutral gray instead of element colors
+  colorMode: ColorMode  // what element color is drawn from
   windowX: number
   windowY: number
   windowWidth: number

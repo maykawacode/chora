@@ -421,7 +421,7 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
       drawCartesian(ctx, cssW, cssH, config, elements, types, dimensions, scores,
         selectedElementId ?? undefined, elementLabelSize, dimensionLabelSize, selectedElementIds)
     } else {
-      drawSemantic(ctx, cssW, cssH, config, elements, dimensions, scores,
+      drawSemantic(ctx, cssW, cssH, config, elements, types, dimensions, scores,
         undefined, selectedElementId ?? undefined, elementLabelSize, dimensionLabelSize, selectedElementIds)
     }
     const svg = ctx.getSerializedSvg(true)
@@ -455,7 +455,7 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
       drawCartesian(ctx, cssW, cssH, config, elements, types, dimensions, scores,
         selectedElementId ?? undefined, elementLabelSize, dimensionLabelSize, selectedElementIds)
     } else {
-      drawSemantic(ctx, cssW, cssH, config, elements, dimensions, scores,
+      drawSemantic(ctx, cssW, cssH, config, elements, types, dimensions, scores,
         semDraggingRef.current?.elementId, selectedElementId ?? undefined,
         elementLabelSize, dimensionLabelSize, selectedElementIds)
     }

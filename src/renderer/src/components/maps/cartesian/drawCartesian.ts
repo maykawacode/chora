@@ -17,15 +17,11 @@
 // now a toggle (config.showTypes) rather than a separate map type.
 
 import type { CartesianMapConfig, Element, Dimension, Type, ScoreMap } from '../../../lib/types'
-import { setBlobPath, computeTypeColor, BLOB_PADDING, type Pt } from '../blob'
+import { setBlobPath, BLOB_PADDING, type Pt } from '../blob'
+import { resolveElementColor, resolveTypeColor } from '../color'
 
 // Space reserved on each side of the canvas for pole labels
 export const MARGIN = 58
-
-// Substituted for every element and type color when config.showColors is off,
-// so the map reads as pure structure. Mid-gray keeps both the white dot outline
-// and the dark label legible against it.
-export const NEUTRAL_COLOR = '#9a9a9a'
 
 // Dot radius range — weight 1 → DOT_MIN_RADIUS, weight 100 → DOT_MAX_RADIUS
 export const DOT_MIN_RADIUS = 6
@@ -290,9 +286,7 @@ export function drawCartesian(
 
   if (config.showTypes) {
     for (const type of visibleTypes(config, types)) {
-      const color = config.showColors
-        ? computeTypeColor(type, shownElements, scores, config.threshold)
-        : NEUTRAL_COLOR
+      const color = resolveTypeColor(config.colorMode, type, shownElements, scores, config.threshold)
 
       // Collect member positions along with their membership strength, which
       // doubles as the weight for the label centroid below.
@@ -382,7 +376,7 @@ export function drawCartesian(
         ctx.stroke()
         ctx.setLineDash([])
       } else {
-        ctx.fillStyle = config.showColors ? el.color : NEUTRAL_COLOR
+        ctx.fillStyle = resolveElementColor(config.colorMode, el, types, scores, config.threshold)
         ctx.fill()
         ctx.strokeStyle = '#ffffff'
         ctx.lineWidth = 1.5

@@ -9,11 +9,29 @@
 //   3.0 → 4.0: element.description → element.definition
 //               dimension.description → dimension.definition
 //               added sessionMeta, types[]
+//   within 4.0: map.showColors (boolean) → map.colorMode (enum) — see
+//               readColorMode; old files still load unchanged.
 
-import type { AppState, Element, Type, Dimension, MapConfig, SessionMeta } from './types'
+import type { AppState, ColorMode, Element, Type, Dimension, MapConfig, SessionMeta } from './types'
 import { defaultCategories, defaultSessionMeta, parsePoles } from './types'
 
 const FORMAT_VERSION = '4.0'
+
+const COLOR_MODES: ColorMode[] = ['none', 'element', 'type']
+
+/**
+ * Reads a map's color mode, tolerating the showColors boolean it replaced.
+ *
+ * Files written before the change carry only the boolean, where true (or a
+ * missing key) meant element colors and false meant neutral gray — so those two
+ * states map onto 'element' and 'none' with nothing lost. An unrecognized
+ * colorMode value falls through to 'element', matching how every other field
+ * here degrades to a safe default rather than throwing.
+ */
+function readColorMode(m: Record<string, unknown>): ColorMode {
+  if (COLOR_MODES.includes(m.colorMode as ColorMode)) return m.colorMode as ColorMode
+  return m.showColors === false ? 'none' : 'element'
+}
 
 /**
  * Serializes only the persistent parts of AppState to a JSON string.
@@ -108,9 +126,7 @@ export function deserializeSession(json: string): AppState {
       showLabels:   m.showLabels   !== false,
       showDots:     m.showDots     !== false,
       sizeByWeight: m.sizeByWeight !== false,
-      // showColors predates nothing — absent in every pre-merge file, so
-      // default it on to preserve how those maps already looked.
-      showColors:   m.showColors   !== false,
+      colorMode:    readColorMode(m),
       windowX:      typeof m.windowX      === 'number' ? m.windowX      : 100,
       windowY:      typeof m.windowY      === 'number' ? m.windowY      : 100,
       windowWidth:  typeof m.windowWidth  === 'number' ? m.windowWidth  : 600,

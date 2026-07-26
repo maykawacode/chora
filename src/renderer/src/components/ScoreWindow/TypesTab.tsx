@@ -9,6 +9,7 @@
 
 import { useRef, useState, useEffect, KeyboardEvent } from 'react'
 import { useAppStore } from '../../store/appStore'
+import { DEFAULT_TYPE_COLOR } from '../../lib/color'
 import styles from './DataTab.module.css'
 
 export function TypesTab(): React.JSX.Element {
@@ -19,6 +20,12 @@ export function TypesTab(): React.JSX.Element {
   const updateType = useAppStore(s => s.updateType)
   const removeType = useAppStore(s => s.removeType)
   const selectType = useAppStore(s => s.selectType)
+  const assignPaletteToUncoloredTypes = useAppStore(s => s.assignPaletteToUncoloredTypes)
+
+  // Types created before the palette existed all carry DEFAULT_TYPE_COLOR, which
+  // makes a map colored by type look like a map with color switched off. Offer
+  // the one-shot fix only while there is something to fix.
+  const uncoloredCount = types.filter(t => t.color === DEFAULT_TYPE_COLOR).length
 
   const selected = types.find(t => t.id === selectedId) ?? null
 
@@ -131,6 +138,12 @@ export function TypesTab(): React.JSX.Element {
             onKeyDown={e => { if (e.key === 'Enter') handleAdd() }}
           />
         </div>
+
+        {uncoloredCount > 0 && (
+          <button type="button" className={styles.bulkBtn} onClick={assignPaletteToUncoloredTypes}>
+            Assign colors to {uncoloredCount} uncolored {uncoloredCount === 1 ? 'type' : 'types'}
+          </button>
+        )}
       </div>
 
       {/* ── Resize handle ── */}
@@ -157,7 +170,7 @@ export function TypesTab(): React.JSX.Element {
           <input
             type="color"
             className={styles.colorInput}
-            value={selected?.color ?? '#808080'}
+            value={selected?.color ?? DEFAULT_TYPE_COLOR}
             disabled={!selected}
             onChange={e => selected && updateType(selected.id, { color: e.target.value })}
           />

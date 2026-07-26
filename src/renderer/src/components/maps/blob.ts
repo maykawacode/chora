@@ -5,7 +5,9 @@
 // they control color and opacity.
 //
 // Extracted from the former drawTypeProjection renderer so the interesting math
-// lives on its own rather than buried in a painter.
+// lives on its own rather than buried in a painter. Blob coloring used to live
+// here too, which made "pure geometry" only half true; it now sits with every
+// other color decision in ./color.ts.
 //
 // Blob shape pipeline (per type):
 //   1. Collect canvas-space positions of qualifying members
@@ -21,57 +23,12 @@
 //   2 members → rounded capsule (stadium) connecting the two points
 //   3+ members → full convex hull + spline pipeline
 
-import type { Element, Type, ScoreMap } from '../../lib/types'
-
 // How far (in canvas pixels) to push each hull vertex outward from the data
 // point cloud. Must be larger than DOT_MAX_RADIUS so the largest dots fit inside.
 export const BLOB_PADDING = 46
 
 // 2D point in canvas coordinates
 export type Pt = { x: number; y: number }
-
-// ── Color ─────────────────────────────────────────────────────────────────────
-
-const BLOB_FALLBACK = '#aaaaaa'
-
-// Parses a '#rrggbb' hex string into an [r, g, b] triple. Returns null if the
-// string doesn't match the expected format.
-function hexToRgb(hex: string): [number, number, number] | null {
-  const m = /^#([0-9a-fA-F]{6})$/.exec(hex)
-  if (!m) return null
-  const n = parseInt(m[1], 16)
-  return [(n >> 16) & 0xff, (n >> 8) & 0xff, n & 0xff]
-}
-
-function rgbToHex(r: number, g: number, b: number): string {
-  return '#' + [r, g, b].map(v => Math.round(v).toString(16).padStart(2, '0')).join('')
-}
-
-/**
- * Returns a single hex color that is the membership-weighted average of all
- * qualifying member element colors. Higher-membership elements pull the color
- * more strongly. Falls back to a neutral gray if no members have valid colors.
- */
-export function computeTypeColor(
-  type: Type,
-  elements: Element[],
-  scores: ScoreMap,
-  threshold: number
-): string {
-  let sumR = 0, sumG = 0, sumB = 0, totalWeight = 0
-  for (const el of elements) {
-    const membership = scores[el.id]?.[type.id]
-    if (membership === undefined || membership < threshold) continue
-    const rgb = hexToRgb(el.color)
-    if (!rgb) continue
-    sumR += rgb[0] * membership
-    sumG += rgb[1] * membership
-    sumB += rgb[2] * membership
-    totalWeight += membership
-  }
-  if (totalWeight === 0) return BLOB_FALLBACK
-  return rgbToHex(sumR / totalWeight, sumG / totalWeight, sumB / totalWeight)
-}
 
 // ── Convex hull — Jarvis march (gift wrapping) ────────────────────────────────
 //
