@@ -2,8 +2,14 @@
    Shares --chrome-bg with the title bar so the two read as a single panel;
    the left border is the only separation, and it divides chrome from canvas. */
 .sidebar {
-  width: 208px;
-  flex: 0 0 208px;
+  /* How far content sits from the panel's two vertical edges. Declared here so
+     every section shares one inset; the section dividers deliberately ignore it
+     and run full-bleed, which is what keeps them reading as panel rules rather
+     than underlines belonging to the content above them. */
+  --sidebar-inset: 25px;
+
+  width: 230px;
+  flex: 0 0 230px;
   display: flex;
   flex-direction: column;
   background: var(--chrome-bg);
@@ -19,7 +25,7 @@
 }
 
 .section {
-  padding: 8px 10px 10px;
+  padding: 8px var(--sidebar-inset) 10px;
   border-bottom: 1px solid var(--chrome-rule);
 }
 
