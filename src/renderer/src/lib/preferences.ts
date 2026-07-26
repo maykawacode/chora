@@ -20,6 +20,7 @@ export interface Preferences {
   lastFilePath: string | null       // path of the most recently saved file (auto-updated)
   elementLabelSize: number          // font size (px) for element name labels on maps
   dimensionLabelSize: number        // font size (px) for dimension pole labels on maps
+  dotDefaultSize: number            // radius (px) of element dots when a map is NOT sizing by weight
   dimColorLow: string               // hex color mapped to score 0 by the Dimension → Color transform
   dimColorHigh: string              // hex color mapped to score 1 by the Dimension → Color transform
   mainWindowX: number | null        // last known main window position (null = use OS default)
@@ -38,6 +39,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   lastFilePath: null,
   elementLabelSize: 11,
   dimensionLabelSize: 11,
+  dotDefaultSize: 6,        // matches the historic hardcoded radius
   dimColorLow: '#b04040',   // muted red — low end of the color ramp
   dimColorHigh: '#508050',  // muted green — high end of the color ramp
   mainWindowX: null,
