@@ -65,27 +65,41 @@ export type ScoreMap = Record<string, Record<string, number | undefined>>
 // session. Window geometry (x/y/width/height) is stored here so it can be
 // restored on next open when rememberWindowPositions is enabled.
 
-export type MapType = 'cartesian' | 'semantic' | 'typeprojection'
+export type MapType = 'cartesian' | 'semantic'
 
+// Settings every map has, all driven from the map window's sidebar.
 export interface BaseMapConfig {
   id: string
   type: MapType
   title: string        // user-editable; also used as the OS window title
   showLabels: boolean
   showDots: boolean
+  sizeByWeight: boolean // true = dot radius scales with element weight; false = uniform default size
+  showColors: boolean   // false = draw everything in neutral gray instead of element colors
   windowX: number
   windowY: number
   windowWidth: number
   windowHeight: number
 }
 
+// A cartesian map plots elements in a 2D dimension space. When showTypes is on
+// it additionally draws each type as a translucent blob containing its member
+// elements — the map formerly known as the Type Projection map, now folded in
+// as an overlay rather than a separate map type.
+//
+// typeIds filters which elements are drawn regardless of showTypes: an element
+// is hidden unless it qualifies for at least one selected type. This filter is
+// shared with hit-testing (see visibleElements in drawCartesian) so you can
+// never drag or lasso a dot you cannot see.
 export interface CartesianMapConfig extends BaseMapConfig {
   type: 'cartesian'
   xDimensionId: string
   yDimensionId: string
   xFlipped: boolean    // reverses poleA/poleB direction on that axis
   yFlipped: boolean
-  sizeByWeight: boolean // true = dot radius scales with element weight; false = uniform default size
+  showTypes: boolean   // draw the type blob overlay and type name labels
+  typeIds: string[]    // types to display; empty = show all
+  threshold: number    // min membership score for an element to count as a type member
 }
 
 export interface SemanticMapConfig extends BaseMapConfig {
@@ -95,24 +109,7 @@ export interface SemanticMapConfig extends BaseMapConfig {
   flippedDimensionIds: string[]  // subset of dimensionIds whose poles are reversed
 }
 
-// TypeProjectionMapConfig — projects types into a 2D dimension space.
-// Each type is drawn as a translucent halo centered on the prototype position —
-// the centroid of dimension scores for all elements with membership >= threshold.
-// Element dots are plotted by their own dimension scores (same as cartesian).
-// Dragging an element updates its dimension scores and halos recompute live.
-export interface TypeProjectionMapConfig extends BaseMapConfig {
-  type: 'typeprojection'
-  xDimensionId: string
-  yDimensionId: string
-  xFlipped: boolean
-  yFlipped: boolean
-  threshold: number      // min membership score for an element to contribute to a type's centroid
-  sizeByWeight: boolean
-  blobStyle: 'circle' | 'blob'  // 'circle' = single circle at centroid; 'blob' = convex hull spline
-  typeIds: string[]     // types to display; empty = show all
-}
-
-export type MapConfig = CartesianMapConfig | SemanticMapConfig | TypeProjectionMapConfig
+export type MapConfig = CartesianMapConfig | SemanticMapConfig
 
 // ── Application state ─────────────────────────────────────────────────────────
 //

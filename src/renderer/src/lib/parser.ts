@@ -97,60 +97,56 @@ export function deserializeSession(json: string): AppState {
   })
 
   // ── Maps ─────────────────────────────────────────────────────────────────
+  //
+  // 'typeprojection' was a separate map type through Phase 5. It is now a
+  // cartesian map with showTypes on — see the migration branch below. Files
+  // written by this version only ever contain 'cartesian' and 'semantic'.
   const maps: MapConfig[] = (raw.maps ?? []).map((m: Record<string, unknown>) => {
-    if (m.type === 'cartesian') {
+    // Settings shared by every map type, all sidebar-driven.
+    const base = {
+      id:           requireString(m.id, 'map.id'),
+      showLabels:   m.showLabels   !== false,
+      showDots:     m.showDots     !== false,
+      sizeByWeight: m.sizeByWeight !== false,
+      // showColors predates nothing — absent in every pre-merge file, so
+      // default it on to preserve how those maps already looked.
+      showColors:   m.showColors   !== false,
+      windowX:      typeof m.windowX      === 'number' ? m.windowX      : 100,
+      windowY:      typeof m.windowY      === 'number' ? m.windowY      : 100,
+      windowWidth:  typeof m.windowWidth  === 'number' ? m.windowWidth  : 600,
+      windowHeight: typeof m.windowHeight === 'number' ? m.windowHeight : 500
+    }
+
+    if (m.type === 'cartesian' || m.type === 'typeprojection') {
+      // A pre-merge type-projection map becomes a cartesian map with the type
+      // overlay already switched on, so it opens looking as it did before.
+      // blobStyle is dropped — the merged map always draws freeform blobs.
+      const wasTypeMap = m.type === 'typeprojection'
       return {
-        id:           requireString(m.id, 'map.id'),
+        ...base,
         type:         'cartesian' as const,
-        title:        typeof m.title       === 'string'  ? m.title       : 'Map',
-        showLabels:   m.showLabels  !== false,
-        showDots:     m.showDots    !== false,
-        windowX:      typeof m.windowX      === 'number' ? m.windowX      : 100,
-        windowY:      typeof m.windowY      === 'number' ? m.windowY      : 100,
-        windowWidth:  typeof m.windowWidth  === 'number' ? m.windowWidth  : 600,
-        windowHeight: typeof m.windowHeight === 'number' ? m.windowHeight : 500,
+        title:        typeof m.title === 'string' ? m.title : (wasTypeMap ? 'Type Map' : 'Map'),
         xDimensionId: typeof m.xDimensionId === 'string' ? m.xDimensionId : '',
         yDimensionId: typeof m.yDimensionId === 'string' ? m.yDimensionId : '',
-        xFlipped:     m.xFlipped    === true,
-        yFlipped:     m.yFlipped    === true,
-        sizeByWeight: m.sizeByWeight !== false
+        xFlipped:     m.xFlipped === true,
+        yFlipped:     m.yFlipped === true,
+        showTypes:    typeof m.showTypes === 'boolean' ? m.showTypes : wasTypeMap,
+        typeIds:      Array.isArray(m.typeIds) ? m.typeIds as string[] : [],
+        threshold:    typeof m.threshold === 'number' ? m.threshold : 0.5
       }
     }
     if (m.type === 'semantic') {
       return {
-        id:           requireString(m.id, 'map.id'),
+        ...base,
         type:         'semantic' as const,
-        title:        typeof m.title       === 'string'  ? m.title       : 'Semantic Map',
-        showLabels:   m.showLabels  !== false,
-        showDots:     m.showDots    !== false,
-        windowX:      typeof m.windowX      === 'number' ? m.windowX      : 100,
-        windowY:      typeof m.windowY      === 'number' ? m.windowY      : 100,
-        windowWidth:  typeof m.windowWidth  === 'number' ? m.windowWidth  : 600,
-        windowHeight: typeof m.windowHeight === 'number' ? m.windowHeight : 500,
+        title:        typeof m.title === 'string' ? m.title : 'Semantic Map',
+        // Semantic maps had no weight sizing before the merge, so default it
+        // OFF here rather than inheriting base's on-by-default — otherwise
+        // every existing semantic map would open with resized dots.
+        sizeByWeight: m.sizeByWeight === true,
         elementIds:          Array.isArray(m.elementIds)          ? m.elementIds          as string[] : [],
         dimensionIds:        Array.isArray(m.dimensionIds)        ? m.dimensionIds        as string[] : [],
         flippedDimensionIds: Array.isArray(m.flippedDimensionIds) ? m.flippedDimensionIds as string[] : []
-      }
-    }
-    if (m.type === 'typeprojection') {
-      return {
-        id:           requireString(m.id, 'map.id'),
-        type:         'typeprojection' as const,
-        title:        typeof m.title        === 'string'  ? m.title        : 'Type Map',
-        showLabels:   m.showLabels  !== false,
-        showDots:     m.showDots    !== false,
-        windowX:      typeof m.windowX      === 'number'  ? m.windowX      : 100,
-        windowY:      typeof m.windowY      === 'number'  ? m.windowY      : 100,
-        windowWidth:  typeof m.windowWidth  === 'number'  ? m.windowWidth  : 650,
-        windowHeight: typeof m.windowHeight === 'number'  ? m.windowHeight : 550,
-        xDimensionId: typeof m.xDimensionId === 'string'  ? m.xDimensionId : '',
-        yDimensionId: typeof m.yDimensionId === 'string'  ? m.yDimensionId : '',
-        xFlipped:     m.xFlipped     === true,
-        yFlipped:     m.yFlipped     === true,
-        threshold:    typeof m.threshold    === 'number'  ? m.threshold    : 0.5,
-        sizeByWeight: m.sizeByWeight !== false,
-        blobStyle:    m.blobStyle === 'blob' ? 'blob' : 'circle',
-        typeIds:      Array.isArray(m.typeIds) ? m.typeIds as string[] : []
       }
     }
     throw new Error(`Unknown map type: ${m.type}`)

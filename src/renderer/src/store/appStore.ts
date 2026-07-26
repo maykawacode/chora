@@ -15,7 +15,7 @@ import { create } from 'zustand'
 import { v4 as uuid } from 'uuid'
 import type {
   AppState, Element, Type, Dimension, DimensionCategories, SessionMeta,
-  MapConfig, CartesianMapConfig, SemanticMapConfig, TypeProjectionMapConfig,
+  MapConfig, CartesianMapConfig, SemanticMapConfig,
   ElementShape
 } from '../lib/types'
 import { defaultCategories, defaultSessionMeta, parsePoles } from '../lib/types'
@@ -49,7 +49,7 @@ interface AppStore extends AppState {
 
   // Maps
   addMap:          (config: MapConfig) => void
-  updateMapConfig: (id: string, changes: Partial<CartesianMapConfig> | Partial<SemanticMapConfig> | Partial<TypeProjectionMapConfig>) => void
+  updateMapConfig: (id: string, changes: Partial<CartesianMapConfig> | Partial<SemanticMapConfig>) => void
   removeMap:       (id: string) => void
 
   // Advanced transforms (see descriptions in implementation below)

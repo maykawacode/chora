@@ -9,11 +9,23 @@
 //   - Score 0.0 maps to the left/bottom edge of the plot area
 //   - Score 1.0 maps to the right/top edge
 //   - Y axis is inverted (canvas y grows downward, scores grow upward)
+//
+// Draw order: background → border → crosshair → pole labels → type blobs →
+// element dots → element labels. Blobs go under the dots so dots stay readable.
+//
+// This renderer absorbed the former Type Projection map: the type overlay is
+// now a toggle (config.showTypes) rather than a separate map type.
 
-import type { CartesianMapConfig, Element, Dimension, ScoreMap } from '../../../lib/types'
+import type { CartesianMapConfig, Element, Dimension, Type, ScoreMap } from '../../../lib/types'
+import { setBlobPath, computeTypeColor, BLOB_PADDING, type Pt } from '../blob'
 
 // Space reserved on each side of the canvas for pole labels
 export const MARGIN = 58
+
+// Substituted for every element and type color when config.showColors is off,
+// so the map reads as pure structure. Mid-gray keeps both the white dot outline
+// and the dark label legible against it.
+export const NEUTRAL_COLOR = '#9a9a9a'
 
 // Dot radius range — weight 1 → DOT_MIN_RADIUS, weight 100 → DOT_MAX_RADIUS
 export const DOT_MIN_RADIUS = 6
@@ -73,12 +85,48 @@ export function drawShape(ctx: CanvasRenderingContext2D, shapeIndex: number, cx:
   }
 }
 
+/**
+ * Returns the types this map is currently showing.
+ * An empty config.typeIds means "all types" rather than "none".
+ */
+export function visibleTypes(config: CartesianMapConfig, types: Type[]): Type[] {
+  return config.typeIds.length === 0 ? types : types.filter(t => config.typeIds.includes(t.id))
+}
+
+/**
+ * Returns the elements this map is currently showing.
+ *
+ * Deselecting a type hides its non-members: with a type filter active, an
+ * element is only drawn if it qualifies for at least one selected type. This
+ * applies whether or not the blob overlay itself is switched on, so types can
+ * be used purely as an element filter.
+ *
+ * Exported because MapPanel's hit-testing, dragging and lasso selection must
+ * apply exactly the same rule — otherwise you could grab a dot you can't see.
+ */
+export function visibleElements(
+  config: CartesianMapConfig,
+  elements: Element[],
+  types: Type[],
+  scores: ScoreMap
+): Element[] {
+  if (config.typeIds.length === 0) return elements
+  const shown = visibleTypes(config, types)
+  return elements.filter(el =>
+    shown.some(t => {
+      const m = scores[el.id]?.[t.id]
+      return m !== undefined && m >= config.threshold
+    })
+  )
+}
+
 export function drawCartesian(
   ctx: CanvasRenderingContext2D,
   W: number,
   H: number,
   config: CartesianMapConfig,
   elements: Element[],
+  types: Type[],
   dimensions: Dimension[],
   scores: ScoreMap,
   selectedElementId?: string,
@@ -150,19 +198,99 @@ export function drawCartesian(
     ctx.textBaseline = 'bottom'; ctx.fillText(bottomLabel, midX, H - 22)
   }
 
+  if (!xDim || !yDim) return
+
+  // Projects a 0–1 score pair into canvas coordinates, applying axis flips and
+  // the Y inversion. Used for both element dots and type blob members.
+  const project = (xScore: number, yScore: number): Pt => ({
+    x: plotLeft + (config.xFlipped ? 1 - xScore : xScore) * plotW,
+    y: plotTop  + (1 - (config.yFlipped ? 1 - yScore : yScore)) * plotH
+  })
+
+  const shownElements = visibleElements(config, elements, types, scores)
+
+  // ── Type blobs ────────────────────────────────────────────────────────────────
+  //
+  // Drawn before element dots so dots always render on top and stay readable.
+  // Each type becomes a freeform shape containing every qualifying member —
+  // an element whose membership score meets the threshold AND which has been
+  // scored on both chosen axes (otherwise it can't be placed in 2D space).
+  //
+  // The blob color is the membership-weighted average of member element colors,
+  // and its label sits at the membership-weighted centroid, so the name lands on
+  // the densest part of the cluster rather than the bounding box middle.
+
+  if (config.showTypes) {
+    for (const type of visibleTypes(config, types)) {
+      const color = config.showColors
+        ? computeTypeColor(type, elements, scores, config.threshold)
+        : NEUTRAL_COLOR
+
+      // Collect member positions along with their membership strength, which
+      // doubles as the weight for the label centroid below.
+      const pts: Pt[] = []
+      let sumX = 0, sumY = 0, totalWeight = 0
+      for (const el of elements) {
+        const membership = scores[el.id]?.[type.id]
+        if (membership === undefined || membership < config.threshold) continue
+        const xScore = scores[el.id]?.[xDim.id]
+        const yScore = scores[el.id]?.[yDim.id]
+        if (xScore === undefined || yScore === undefined) continue
+        const pt = project(xScore, yScore)
+        pts.push(pt)
+        sumX += pt.x * membership
+        sumY += pt.y * membership
+        totalWeight += membership
+      }
+
+      ctx.save()
+
+      if (pts.length === 0) {
+        // Ghost ring: the type exists but no members meet the threshold on both
+        // axes. Drawn faintly at canvas center as a placeholder so the type
+        // doesn't silently vanish from the map.
+        ctx.beginPath()
+        ctx.arc(midX, midY, BLOB_PADDING, 0, Math.PI * 2)
+        ctx.strokeStyle = color + '44'
+        ctx.lineWidth = 1
+        ctx.setLineDash([4, 4])
+        ctx.stroke()
+        ctx.setLineDash([])
+        ctx.restore()
+        continue
+      }
+
+      setBlobPath(ctx, pts)
+      ctx.fillStyle   = color + '22'   // ~13% opacity — translucent fill
+      ctx.fill()
+      ctx.strokeStyle = color + '99'   // ~60% opacity — visible but soft border
+      ctx.lineWidth   = 1.5
+      ctx.stroke()
+      ctx.restore()
+
+      // Type name at the membership-weighted centroid
+      ctx.save()
+      ctx.font = `bold ${dimensionLabelSize + 1}px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif`
+      ctx.fillStyle    = color
+      ctx.textAlign    = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText(type.name, sumX / totalWeight, sumY / totalWeight)
+      ctx.restore()
+    }
+  }
+
   // ── Elements ──────────────────────────────────────────────────────────────────
   //
-  // Only elements with scores on BOTH axes are drawn.
+  // Elements missing a score on either axis use 0.5 as a placeholder and are
+  // drawn with a dashed red ring to flag that their position isn't real.
   // When sizeByWeight=true: radius scales linearly with weight (DOT_MIN → DOT_MAX).
   // When sizeByWeight=false: all elements use DOT_DEFAULT_RADIUS uniformly.
-
-  if (!xDim || !yDim) return
 
   // When sizing by weight, draw heaviest first so lighter (smaller) dots sit on top.
   // When uniform size, preserve store order (no visual reason to sort).
   const sorted = config.sizeByWeight
-    ? [...elements].sort((a, b) => b.weight - a.weight)
-    : elements
+    ? [...shownElements].sort((a, b) => b.weight - a.weight)
+    : shownElements
 
   for (const el of sorted) {
     const xScore = scores[el.id]?.[xDim.id]
@@ -170,18 +298,10 @@ export function drawCartesian(
 
     // Unscored or partially scored: use 0.5 as placeholder for any missing axis
     const isPartial = xScore === undefined || yScore === undefined
-    const rawX = xScore ?? 0.5
-    const rawY = yScore ?? 0.5
-
-    // Apply flip: flipped score = 1 - raw score
-    const ex = config.xFlipped ? 1 - rawX : rawX
-    const ey = config.yFlipped ? 1 - rawY : rawY
-
-    const cx = plotLeft + ex * plotW
-    const cy = plotTop  + (1 - ey) * plotH   // invert Y — higher score = higher on canvas
+    const { x: cx, y: cy } = project(xScore ?? 0.5, yScore ?? 0.5)
     const r  = config.sizeByWeight
       ? DOT_MIN_RADIUS + (el.weight - 1) / 99 * (DOT_MAX_RADIUS - DOT_MIN_RADIUS)
-      : DOT_MIN_RADIUS
+      : DOT_DEFAULT_RADIUS
 
     if (config.showDots) {
       drawShape(ctx, SHAPE_INDEX[el.shape] ?? 0, cx, cy, r)
@@ -194,7 +314,7 @@ export function drawCartesian(
         ctx.stroke()
         ctx.setLineDash([])
       } else {
-        ctx.fillStyle = el.color
+        ctx.fillStyle = config.showColors ? el.color : NEUTRAL_COLOR
         ctx.fill()
         ctx.strokeStyle = '#ffffff'
         ctx.lineWidth = 1.5
@@ -216,11 +336,15 @@ export function drawCartesian(
     }
 
     if (config.showLabels) {
+      // Label offset is pinned to the DEFAULT dot radius, not the actual one.
+      // At default size the label sits just clear of the dot; as weight grows
+      // the dot expands past the label, which then reads as sitting on top of
+      // it. That keeps labels vertically aligned regardless of dot size.
       ctx.font = labelFont(elementLabelSize)
       ctx.fillStyle = isPartial ? '#cc0000' : '#222'
       ctx.textAlign = 'left'
       ctx.textBaseline = 'middle'
-      ctx.fillText(el.name, cx, cy)
+      ctx.fillText(el.name, cx + DOT_DEFAULT_RADIUS + LABEL_OFFSET, cy)
     }
   }
 }

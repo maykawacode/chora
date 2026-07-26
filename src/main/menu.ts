@@ -100,9 +100,10 @@ export function buildMenu(): void {
     {
       label: 'Maps',
       submenu: [
-        { label: 'New Cartesian Map…',         accelerator: 'CmdOrCtrl+D',       click: () => sendToRenderer('menu:create-cartesian') },
-        { label: 'New Semantic Map…',          accelerator: 'CmdOrCtrl+Shift+D', click: () => sendToRenderer('menu:create-semantic') },
-        { label: 'New Type Projection Map…',   accelerator: 'CmdOrCtrl+T',       click: () => sendToRenderer('menu:create-typeprojection') }
+        // Type projection is no longer its own map type — a cartesian map can
+        // show type clusters via the Types section of its sidebar.
+        { label: 'New Map…',          accelerator: 'CmdOrCtrl+D',       click: () => sendToRenderer('menu:create-cartesian') },
+        { label: 'New Semantic Map…', accelerator: 'CmdOrCtrl+Shift+D', click: () => sendToRenderer('menu:create-semantic') }
       ]
     },
 

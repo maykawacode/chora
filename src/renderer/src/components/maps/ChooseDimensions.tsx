@@ -5,12 +5,15 @@
 //
 // ChooseDimensions   — creates a Cartesian map; user picks exactly 2 dimensions
 // CreateSemanticMap  — creates a Semantic map; user picks any subset of dimensions
+//
+// There is no separate type-projection dialog: type clusters are a toggle in
+// the map's sidebar, so a cartesian map is the only 2D map you create.
 
 import { useState } from 'react'
 import { v4 as uuid } from 'uuid'
 import { useAppStore } from '../../store/appStore'
 import { usePrefsStore } from '../../store/prefsStore'
-import type { CartesianMapConfig, SemanticMapConfig, TypeProjectionMapConfig } from '../../lib/types'
+import type { CartesianMapConfig, SemanticMapConfig } from '../../lib/types'
 import styles from './ChooseDimensions.module.css'
 
 interface Props { onClose: () => void }
@@ -45,6 +48,11 @@ export function ChooseDimensions({ onClose }: Props): React.JSX.Element {
       xFlipped: false,
       yFlipped: false,
       sizeByWeight: true,
+      showColors: true,
+      // Type clusters start off — switch them on in the map's sidebar.
+      showTypes: false,
+      typeIds: [],
+      threshold: 0.5,
       showLabels: prefs.defaultShowLabels,
       showDots: prefs.defaultShowDots,
       windowX: 100,
@@ -100,154 +108,6 @@ export function ChooseDimensions({ onClose }: Props): React.JSX.Element {
   )
 }
 
-// ── Type Projection map dialog ────────────────────────────────────────────────
-//
-// User picks 2 dimensions for the X/Y axes plus an optional membership threshold.
-// Types are projected as halos centered on the centroid of member elements' scores.
-
-export function CreateTypeProjectionMap({ onClose }: Props): React.JSX.Element {
-  const dimensions = useAppStore(s => s.dimensions)
-  const types      = useAppStore(s => s.types)
-  const maps       = useAppStore(s => s.maps)
-  const addMap     = useAppStore(s => s.addMap)
-  const prefs      = usePrefsStore(s => s.prefs)
-
-  const [selected,      setSelected]      = useState<string[]>([])
-  const [threshold,     setThreshold]     = useState(0.5)
-  // Start with all types selected; empty array stored in config means "show all"
-  const [selectedTypes, setSelectedTypes] = useState<string[]>(() => types.map(t => t.id))
-
-  function toggle(id: string): void {
-    setSelected(prev => {
-      if (prev.includes(id)) return prev.filter(x => x !== id)
-      if (prev.length < 2)   return [...prev, id]
-      return [prev[1], id]
-    })
-  }
-
-  function toggleType(id: string): void {
-    setSelectedTypes(prev =>
-      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
-    )
-  }
-
-  function handleDraw(): void {
-    if (selected.length !== 2) return
-    const projCount = maps.filter(m => m.type === 'typeprojection').length
-    // Store [] when all types are selected — draw function treats [] as "show all"
-    const typeIds = selectedTypes.length === types.length ? [] : selectedTypes
-    const config: TypeProjectionMapConfig = {
-      id: uuid(),
-      type: 'typeprojection',
-      title: `Type Map ${projCount + 1}`,
-      xDimensionId: selected[0],
-      yDimensionId: selected[1],
-      xFlipped: false,
-      yFlipped: false,
-      threshold,
-      sizeByWeight: true,
-      blobStyle: 'circle',
-      typeIds,
-      showLabels: prefs.defaultShowLabels,
-      showDots: prefs.defaultShowDots,
-      windowX: 100,
-      windowY: 100,
-      windowWidth: 650,
-      windowHeight: 550
-    }
-    addMap(config)
-    onClose()
-  }
-
-  return (
-    <div className={styles.overlay} onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
-      <div className={styles.dialog}>
-        <h2 className={styles.title}>Type Projection Map</h2>
-        <p className={styles.subtitle}>
-          Select two dimensions for the axes. Types appear as halos at the centroid of their member elements
-          ({types.length} type{types.length !== 1 ? 's' : ''}).
-        </p>
-
-        {types.length === 0 && (
-          <p className={styles.warning}>No types defined yet. Add types first to see halos.</p>
-        )}
-
-        {dimensions.length < 2 && (
-          <p className={styles.warning}>You need at least two dimensions.</p>
-        )}
-
-        <ul className={styles.list}>
-          {dimensions.map((dim, i) => {
-            const selIdx = selected.indexOf(dim.id)
-            return (
-              <li
-                key={dim.id}
-                className={`${styles.item} ${selIdx !== -1 ? styles.selected : ''}`}
-                onClick={() => toggle(dim.id)}
-              >
-                {selIdx !== -1 && (
-                  <span className={styles.axisLabel}>{selIdx === 0 ? 'X' : 'Y'}</span>
-                )}
-                <span className={styles.dimLabel}>{dim.label || `Dimension ${i + 1}`}</span>
-              </li>
-            )
-          })}
-        </ul>
-
-        <div className={styles.thresholdRow}>
-          <label className={styles.thresholdLabel}>
-            Membership threshold: <strong>{threshold.toFixed(2)}</strong>
-          </label>
-          <input
-            type="range"
-            min="0.1"
-            max="0.9"
-            step="0.05"
-            value={threshold}
-            onChange={e => setThreshold(parseFloat(e.target.value))}
-            className={styles.thresholdSlider}
-          />
-          <span className={styles.thresholdHint}>
-            Elements must score ≥ {threshold.toFixed(2)} on a type to anchor its halo.
-          </span>
-        </div>
-
-        {types.length > 0 && (
-          <>
-            <p className={styles.sectionLabel}>Types to show</p>
-            <ul className={styles.list}>
-              {types.map(type => {
-                const isOn = selectedTypes.includes(type.id)
-                return (
-                  <li
-                    key={type.id}
-                    className={`${styles.item} ${isOn ? styles.selected : ''}`}
-                    onClick={() => toggleType(type.id)}
-                  >
-                    <span className={styles.axisLabel}>{isOn ? '✓' : ''}</span>
-                    <span className={styles.dimLabel}>{type.name}</span>
-                  </li>
-                )
-              })}
-            </ul>
-          </>
-        )}
-
-        <div className={styles.buttons}>
-          <button className={styles.btnCancel} onClick={onClose}>Cancel</button>
-          <button
-            className={styles.btnDraw}
-            disabled={selected.length !== 2}
-            onClick={handleDraw}
-          >
-            Draw Map
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 // ── Semantic map dialog ───────────────────────────────────────────────────────
 
 export function CreateSemanticMap({ onClose }: Props): React.JSX.Element {
@@ -276,6 +136,10 @@ export function CreateSemanticMap({ onClose }: Props): React.JSX.Element {
       elementIds: elements.map(e => e.id),
       dimensionIds: selectedIds,
       flippedDimensionIds: [],
+      // Weight sizing is off by default here: semantic axes sit close together,
+      // so uniform dots keep a fresh map readable.
+      sizeByWeight: false,
+      showColors: true,
       showLabels: prefs.defaultShowLabels,
       showDots: prefs.defaultShowDots,
       windowX: 100,

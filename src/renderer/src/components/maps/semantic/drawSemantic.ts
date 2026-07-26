@@ -11,9 +11,9 @@
 //   - Axes are evenly spaced vertically within the canvas
 
 import type { SemanticMapConfig, Element, Dimension, ScoreMap } from '../../../lib/types'
-// SHAPE_INDEX, labelFont, and LABEL_SIZE_DEFAULT are defined once in
-// drawCartesian and shared here so there is a single source of truth.
-import { drawShape, SHAPE_INDEX, labelFont, LABEL_SIZE_DEFAULT } from '../cartesian/drawCartesian'
+// SHAPE_INDEX, labelFont, LABEL_SIZE_DEFAULT and NEUTRAL_COLOR are defined once
+// in drawCartesian and shared here so there is a single source of truth.
+import { drawShape, SHAPE_INDEX, labelFont, LABEL_SIZE_DEFAULT, NEUTRAL_COLOR } from '../cartesian/drawCartesian'
 
 // Horizontal margin — space reserved on each side for pole labels
 export const SEM_MARGIN_H = 96
@@ -22,8 +22,24 @@ export const SEM_MARGIN_H = 96
 // Top margin is sized to fit 45° element labels above the topmost axis dots.
 export const SEM_MARGIN_V = 85
 
-// Radius of the score dot drawn at each element × dimension intersection
-export const SEM_DOT_R = 6
+// Radius of the score dot drawn at each element × dimension intersection,
+// and the ceiling when config.sizeByWeight scales dots by element weight.
+//
+// The weighted ceiling is deliberately far below the cartesian map's 38px:
+// semantic axes are stacked only ~110px apart in a default window, so full-size
+// dots would collide across neighbouring rows and bury the axis lines.
+export const SEM_DOT_R     = 6
+export const SEM_DOT_MAX_R = 18
+
+/**
+ * Radius of an element's dot, honouring the weight-sizing toggle.
+ * Exported so MapPanel's hit-testing matches what's actually painted.
+ */
+export function semDotRadius(config: SemanticMapConfig, weight: number): number {
+  return config.sizeByWeight
+    ? SEM_DOT_R + (weight - 1) / 99 * (SEM_DOT_MAX_R - SEM_DOT_R)
+    : SEM_DOT_R
+}
 
 // Gap between axis end and pole label text
 const LABEL_GAP = 6
@@ -120,8 +136,16 @@ export function drawSemantic(
   // color. Unscored dimensions create a gap — the polyline segment simply skips
   // that axis rather than connecting to an arbitrary midpoint.
 
-  for (const el of els) {
+  // Heaviest first when sizing by weight, so lighter (smaller) dots and their
+  // polylines stay visible on top — same ordering rule as the cartesian map.
+  const drawOrder = config.sizeByWeight
+    ? [...els].sort((a, b) => b.weight - a.weight)
+    : els
+
+  for (const el of drawOrder) {
     const shapeIndex = SHAPE_INDEX[el.shape] ?? 0
+    const color      = config.showColors ? el.color : NEUTRAL_COLOR
+    const dotR       = semDotRadius(config, el.weight)
     const points: Array<{ x: number; y: number }> = []
 
     for (let i = 0; i < dims.length; i++) {
@@ -134,7 +158,7 @@ export function drawSemantic(
     if (points.length === 0) continue   // element has no scores — nothing to draw
 
     // Polyline — 2x weight while this element is being dragged
-    ctx.strokeStyle = el.color
+    ctx.strokeStyle = color
     ctx.lineWidth = draggingElementId === el.id ? 4 : 2
     ctx.beginPath()
     ctx.moveTo(points[0].x, points[0].y)
@@ -143,22 +167,19 @@ export function drawSemantic(
 
     // Score dots at each scored position
     if (config.showDots) {
+      const isSelected = selectedElementIds.includes(el.id)
+        || (el.id === selectedElementId && selectedElementIds.length === 0)
+
       for (const pt of points) {
-        drawShape(ctx, shapeIndex, pt.x, pt.y, SEM_DOT_R)
-        ctx.fillStyle = el.color
+        drawShape(ctx, shapeIndex, pt.x, pt.y, dotR)
+        ctx.fillStyle = color
         ctx.fill()
         ctx.strokeStyle = '#ffffff'
         ctx.lineWidth = 1.5
         ctx.stroke()
 
-        if (el.id === selectedElementId && selectedElementIds.length === 0) {
-          drawShape(ctx, shapeIndex, pt.x, pt.y, SEM_DOT_R + 3)
-          ctx.strokeStyle = '#e8c040'
-          ctx.lineWidth = 2
-          ctx.stroke()
-        }
-        if (selectedElementIds.includes(el.id)) {
-          drawShape(ctx, shapeIndex, pt.x, pt.y, SEM_DOT_R + 3)
+        if (isSelected) {
+          drawShape(ctx, shapeIndex, pt.x, pt.y, dotR + 3)
           ctx.strokeStyle = '#e8c040'
           ctx.lineWidth = 2
           ctx.stroke()
@@ -184,7 +205,7 @@ export function drawSemantic(
       }
 
       ctx.save()
-      ctx.translate(top.x, top.y - SEM_DOT_R - 3)
+      ctx.translate(top.x, top.y - dotR - 3)
       ctx.rotate(-Math.PI / 4)
       ctx.fillStyle = '#222'
       ctx.textAlign = 'left'

@@ -16,7 +16,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useAppStore } from './store/appStore'
 import { usePrefsStore } from './store/prefsStore'
 import { ScoreWindow } from './components/ScoreWindow/ScoreWindow'
-import { ChooseDimensions, CreateSemanticMap, CreateTypeProjectionMap } from './components/maps/ChooseDimensions'
+import { ChooseDimensions, CreateSemanticMap } from './components/maps/ChooseDimensions'
 import { StarterListPicker } from './components/ScoreWindow/StarterListPicker'
 import { ImportPreview } from './components/ImportPreview'
 import { PreferencesDialog } from './components/PreferencesDialog'
@@ -50,14 +50,13 @@ export function App(): React.JSX.Element {
   const [showQuitConfirm,      setShowQuitConfirm]      = useState(false)
   const [showChooseDimensions,    setShowChooseDimensions]    = useState(false)
   const [showCreateSemantic,      setShowCreateSemantic]      = useState(false)
-  const [showTypeProjectionMap,   setShowTypeProjectionMap]   = useState(false)
   const [showStarterPicker,    setShowStarterPicker]    = useState(false)
   const [showPreferences,      setShowPreferences]      = useState(false)
   const [importPreview,        setImportPreview]        = useState<{ fileName: string; result: ImportResult } | null>(null)
 
   // True while any modal is open — used to bring the Score Window to the front
   // so it is not obscured by map BrowserWindows
-  const isModalOpen = showWelcome || showChooseDimensions || showCreateSemantic || showTypeProjectionMap ||
+  const isModalOpen = showWelcome || showChooseDimensions || showCreateSemantic ||
                       showStarterPicker || showPreferences || showQuitConfirm || importPreview !== null
 
   // ── suppressBroadcast ref ─────────────────────────────────────────────────────
@@ -223,7 +222,6 @@ export function App(): React.JSX.Element {
         case 'export-spreadsheet': await handleExport();          break
         case 'create-cartesian':      setShowChooseDimensions(true);    break
         case 'create-semantic':       setShowCreateSemantic(true);      break
-        case 'create-typeprojection': setShowTypeProjectionMap(true);   break
         case 'preferences':        setShowPreferences(true);      break
       }
     })
@@ -354,7 +352,6 @@ export function App(): React.JSX.Element {
       {showStarterPicker      && <StarterListPicker       onClose={() => setShowStarterPicker(false)} />}
       {showChooseDimensions   && <ChooseDimensions        onClose={() => setShowChooseDimensions(false)} />}
       {showCreateSemantic     && <CreateSemanticMap       onClose={() => setShowCreateSemantic(false)} />}
-      {showTypeProjectionMap  && <CreateTypeProjectionMap onClose={() => setShowTypeProjectionMap(false)} />}
       {showPreferences      && <PreferencesDialog    onClose={() => setShowPreferences(false)} />}
 
       {showQuitConfirm && (

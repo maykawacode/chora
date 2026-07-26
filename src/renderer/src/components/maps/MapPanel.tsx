@@ -15,13 +15,13 @@
 import { useRef, useEffect, useCallback, useState } from 'react'
 import { useAppStore } from '../../store/appStore'
 import { usePrefsStore } from '../../store/prefsStore'
-import type { CartesianMapConfig, SemanticMapConfig, TypeProjectionMapConfig, Dimension, ScoreMap } from '../../lib/types'
+import type { CartesianMapConfig, SemanticMapConfig, Dimension, Type, Element, ScoreMap } from '../../lib/types'
 import C2S from 'canvas2svg'
-import { drawCartesian, MARGIN, DOT_MIN_RADIUS, DOT_MAX_RADIUS } from './cartesian/drawCartesian'
-import { drawSemantic, SEM_MARGIN_H, SEM_MARGIN_V, SEM_DOT_R } from './semantic/drawSemantic'
-import { drawTypeProjection } from './typeProjection/drawTypeProjection'
+import { drawCartesian, visibleElements, MARGIN, DOT_MIN_RADIUS, DOT_MAX_RADIUS, DOT_DEFAULT_RADIUS } from './cartesian/drawCartesian'
+import { drawSemantic, semDotRadius, SEM_MARGIN_H, SEM_MARGIN_V, SEM_DOT_MAX_R } from './semantic/drawSemantic'
 import { ElementDetailModal } from './ElementDetailModal'
 import { BulkEditModal } from './BulkEditModal'
+import { MapSidebar } from './MapSidebar'
 import styles from './MapPanel.module.css'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -112,39 +112,57 @@ function cartesianHitEdge(x: number, y: number, W: number, H: number): Edge | nu
 }
 
 /**
+ * Radius of an element's dot — must mirror drawCartesian exactly so the hit
+ * area always matches what the user sees.
+ */
+function dotRadius(config: CartesianMapConfig, weight: number): number {
+  return config.sizeByWeight
+    ? DOT_MIN_RADIUS + (weight - 1) / 99 * (DOT_MAX_RADIUS - DOT_MIN_RADIUS)
+    : DOT_DEFAULT_RADIUS
+}
+
+/**
+ * Projects a 0–1 score pair into canvas coordinates for a cartesian map,
+ * applying axis flips and the Y inversion. Mirrors drawCartesian's `project`.
+ */
+function cartesianProject(
+  config: CartesianMapConfig, W: number, H: number, xScore: number, yScore: number
+): { x: number; y: number } {
+  const plotW = W - 2 * MARGIN
+  const plotH = H - 2 * MARGIN
+  return {
+    x: MARGIN + (config.xFlipped ? 1 - xScore : xScore) * plotW,
+    y: MARGIN + (1 - (config.yFlipped ? 1 - yScore : yScore)) * plotH
+  }
+}
+
+/**
  * Returns a partial DragTarget (no startX/Y/lockedAxis) for the cartesian dot
  * under the pointer, or null. The caller fills in the missing fields before
- * storing the result. Uses the same radius formula as drawCartesian so the
- * hit area always matches the visible dot size.
+ * storing the result.
+ *
+ * Only elements the map is actually drawing are hit-testable — a type filter
+ * that hides an element must also make it ungrabbable.
  */
 function cartesianHitDot(
   x: number, y: number, W: number, H: number,
   config: CartesianMapConfig,
-  elements: { id: string; weight: number }[],
+  elements: Element[],
+  types: Type[],
   scores: ScoreMap
 ): Pick<DragTarget, 'elementId' | 'xDimId' | 'yDimId'> | null {
   if (!config.showDots) return null
 
-  const plotLeft  = MARGIN, plotRight  = W - MARGIN
-  const plotTop   = MARGIN, plotBottom = H - MARGIN
-  const plotW = plotRight - plotLeft
-  const plotH = plotBottom - plotTop
-
   // Test lightest (topmost-drawn) elements first so stacked dots select correctly
-  const sorted = [...elements].sort((a, b) => a.weight - b.weight)
+  const sorted = [...visibleElements(config, elements, types, scores)]
+    .sort((a, b) => a.weight - b.weight)
+
   for (const el of sorted) {
-    const xScore = scores[el.id]?.[config.xDimensionId]
-    const yScore = scores[el.id]?.[config.yDimensionId]
-
     // Mirror drawCartesian: use 0.5 placeholder for any missing axis
-    const rawX = xScore ?? 0.5
-    const rawY = yScore ?? 0.5
-
-    const ex = config.xFlipped ? 1 - rawX : rawX
-    const ey = config.yFlipped ? 1 - rawY : rawY
-    const cx = plotLeft + ex * plotW
-    const cy = plotTop  + (1 - ey) * plotH
-    const r  = DOT_MIN_RADIUS + (el.weight - 1) / 99 * (DOT_MAX_RADIUS - DOT_MIN_RADIUS)
+    const { x: cx, y: cy } = cartesianProject(config, W, H,
+      scores[el.id]?.[config.xDimensionId] ?? 0.5,
+      scores[el.id]?.[config.yDimensionId] ?? 0.5)
+    const r = dotRadius(config, el.weight)
 
     // Use max(r, 8) so tiny dots still have a reasonable tap target
     if ((x - cx) ** 2 + (y - cy) ** 2 <= Math.max(r, 8) ** 2) {
@@ -160,7 +178,7 @@ function cartesianHitDot(
 function semanticHitDot(
   x: number, y: number, W: number, H: number,
   config: SemanticMapConfig,
-  elements: { id: string }[],
+  elements: Element[],
   dimensions: Dimension[],
   scores: ScoreMap
 ): Pick<SemanticDragTarget, 'elementId' | 'dimId'> | null {
@@ -174,23 +192,25 @@ function semanticHitDot(
     .map(id => dimensions.find(d => d.id === id))
     .filter((d): d is Dimension => d !== undefined)
 
-  const els = config.elementIds.length > 0
-    ? config.elementIds.map(id => elements.find(e => e.id === id)).filter((e): e is { id: string } => e !== undefined)
-    : elements
-
+  const els = semanticElements(config, elements)
   const ys  = semAxisYs(H, dims.length)
-  const HIT = Math.max(SEM_DOT_R, 8)   // minimum tap target radius
+
+  // Row pre-filter uses the largest dot any element could have, so a heavy
+  // (large) dot isn't skipped before its own radius is checked below.
+  const ROW_TOL = Math.max(SEM_DOT_MAX_R, 8)
 
   for (let i = 0; i < dims.length; i++) {
     const dim = dims[i]
     const ay  = ys[i]
-    if (Math.abs(y - ay) > HIT) continue
+    if (Math.abs(y - ay) > ROW_TOL) continue
     for (const el of els) {
       const raw = scores[el.id]?.[dim.id]
       if (raw === undefined) continue
       const score = config.flippedDimensionIds.includes(dim.id) ? 1 - raw : raw
       const dx = axisLeft + score * axisWidth
-      if ((x - dx) ** 2 + (y - ay) ** 2 <= HIT ** 2) {
+      // Min 8px so tiny dots still have a reasonable tap target
+      const hit = Math.max(semDotRadius(config, el.weight), 8)
+      if ((x - dx) ** 2 + (y - ay) ** 2 <= hit ** 2) {
         return { elementId: el.id, dimId: dim.id }
       }
     }
@@ -199,32 +219,36 @@ function semanticHitDot(
 }
 
 /**
- * Returns IDs of all elements whose cartesian dot center falls inside the
- * lasso rectangle defined by (rx1,ry1)→(rx2,ry2) in canvas coordinates.
+ * Resolves which elements a semantic map draws: its explicit ordered list if
+ * it has one, otherwise every element.
+ */
+function semanticElements(config: SemanticMapConfig, elements: Element[]): Element[] {
+  if (config.elementIds.length === 0) return elements
+  return config.elementIds
+    .map(id => elements.find(e => e.id === id))
+    .filter((e): e is Element => e !== undefined)
+}
+
+/**
+ * Returns IDs of all visible elements whose cartesian dot center falls inside
+ * the lasso rectangle defined by (rx1,ry1)→(rx2,ry2) in canvas coordinates.
  */
 function cartesianHitRect(
   rx1: number, ry1: number, rx2: number, ry2: number,
   W: number, H: number,
   config: CartesianMapConfig,
-  elements: { id: string }[],
+  elements: Element[],
+  types: Type[],
   scores: ScoreMap
 ): string[] {
   const minX = Math.min(rx1, rx2), maxX = Math.max(rx1, rx2)
   const minY = Math.min(ry1, ry2), maxY = Math.max(ry1, ry2)
 
-  const plotLeft = MARGIN, plotRight = W - MARGIN
-  const plotTop  = MARGIN, plotBottom = H - MARGIN
-  const plotW    = plotRight - plotLeft
-  const plotH    = plotBottom - plotTop
-
   const hitIds: string[] = []
-  for (const el of elements) {
-    const rawX = scores[el.id]?.[config.xDimensionId] ?? 0.5
-    const rawY = scores[el.id]?.[config.yDimensionId] ?? 0.5
-    const ex = config.xFlipped ? 1 - rawX : rawX
-    const ey = config.yFlipped ? 1 - rawY : rawY
-    const cx = plotLeft + ex * plotW
-    const cy = plotTop  + (1 - ey) * plotH
+  for (const el of visibleElements(config, elements, types, scores)) {
+    const { x: cx, y: cy } = cartesianProject(config, W, H,
+      scores[el.id]?.[config.xDimensionId] ?? 0.5,
+      scores[el.id]?.[config.yDimensionId] ?? 0.5)
     if (cx >= minX && cx <= maxX && cy >= minY && cy <= maxY) hitIds.push(el.id)
   }
   return hitIds
@@ -238,7 +262,7 @@ function semanticHitRect(
   rx1: number, ry1: number, rx2: number, ry2: number,
   W: number, H: number,
   config: SemanticMapConfig,
-  elements: { id: string }[],
+  elements: Element[],
   dimensions: Dimension[],
   scores: ScoreMap
 ): string[] {
@@ -255,10 +279,7 @@ function semanticHitRect(
     .map(id => dimensions.find(d => d.id === id))
     .filter((d): d is Dimension => d !== undefined)
 
-  const els = config.elementIds.length > 0
-    ? config.elementIds.map(id => elements.find(e => e.id === id)).filter((e): e is { id: string } => e !== undefined)
-    : elements
-
+  const els    = semanticElements(config, elements)
   const ys     = semAxisYs(H, dims.length)
   const hitIds = new Set<string>()
 
@@ -314,7 +335,7 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
   // Wraps updateMapConfig + IPC so changes made in either window stay in sync.
   // Map windows send broadcastMapConfig → main → Score Window's onMapConfig
   // listener → Score Window re-broadcasts full state to all maps.
-  function updateConfig(changes: Partial<CartesianMapConfig> | Partial<SemanticMapConfig> | Partial<TypeProjectionMapConfig>): void {
+  function updateConfig(changes: Partial<CartesianMapConfig> | Partial<SemanticMapConfig>): void {
     updateMapConfig(mapId, changes)
     window.api?.broadcastMapConfig(mapId, changes as Record<string, unknown>)
   }
@@ -345,21 +366,7 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
   const [cursor,         setCursor]         = useState('default')
   const [editingTitle,   setEditingTitle]   = useState(false)
   const [titleDraft,     setTitleDraft]     = useState('')
-  const [showMenu,       setShowMenu]       = useState(false)
   const titleInputRef = useRef<HTMLInputElement>(null)
-  const menuRef       = useRef<HTMLDivElement>(null)
-
-  // Close the dropdown when the user clicks outside it
-  useEffect(() => {
-    if (!showMenu) return
-    const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setShowMenu(false)
-      }
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [showMenu])
 
   // Escape clears all selection
   useEffect(() => {
@@ -393,17 +400,6 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
     setEditingTitle(false)
   }
 
-  function handleExportPng(): void {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const dataUrl = canvas.toDataURL('image/png')
-    const a = document.createElement('a')
-    a.href = dataUrl
-    a.download = `${config?.title ?? 'map'}.png`
-    a.click()
-    setShowMenu(false)
-  }
-
   function handleExportSvg(): void {
     const wrapper = wrapperRef.current
     if (!wrapper || !config) return
@@ -415,14 +411,11 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
     // don't throw; dashed lines simply render as solid in the SVG output
     ;(ctx as unknown as Record<string, unknown>).setLineDash = (): void => {}
     if (config.type === 'cartesian') {
-      drawCartesian(ctx, cssW, cssH, config as CartesianMapConfig, elements, dimensions, scores,
+      drawCartesian(ctx, cssW, cssH, config, elements, types, dimensions, scores,
         selectedElementId ?? undefined, elementLabelSize, dimensionLabelSize, selectedElementIds)
-    } else if (config.type === 'semantic') {
-      drawSemantic(ctx, cssW, cssH, config as SemanticMapConfig, elements, dimensions, scores,
+    } else {
+      drawSemantic(ctx, cssW, cssH, config, elements, dimensions, scores,
         undefined, selectedElementId ?? undefined, elementLabelSize, dimensionLabelSize, selectedElementIds)
-    } else if (config.type === 'typeprojection') {
-      drawTypeProjection(ctx, cssW, cssH, config as TypeProjectionMapConfig, elements, types, dimensions, scores,
-        selectedElementId ?? undefined, elementLabelSize, dimensionLabelSize, selectedElementIds)
     }
     const svg = ctx.getSerializedSvg(true)
     const blob = new Blob([svg], { type: 'image/svg+xml' })
@@ -432,7 +425,6 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
     a.download = `${config.title ?? 'map'}.svg`
     a.click()
     URL.revokeObjectURL(url)
-    setShowMenu(false)
   }
 
   // ── Canvas drawing ────────────────────────────────────────────────────────────
@@ -453,15 +445,12 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
     ctx.scale(window.devicePixelRatio, window.devicePixelRatio)
 
     if (config.type === 'cartesian') {
-      drawCartesian(ctx, cssW, cssH, config as CartesianMapConfig, elements, dimensions, scores,
+      drawCartesian(ctx, cssW, cssH, config, elements, types, dimensions, scores,
         selectedElementId ?? undefined, elementLabelSize, dimensionLabelSize, selectedElementIds)
-    } else if (config.type === 'semantic') {
-      drawSemantic(ctx, cssW, cssH, config as SemanticMapConfig, elements, dimensions, scores,
+    } else {
+      drawSemantic(ctx, cssW, cssH, config, elements, dimensions, scores,
         semDraggingRef.current?.elementId, selectedElementId ?? undefined,
         elementLabelSize, dimensionLabelSize, selectedElementIds)
-    } else if (config.type === 'typeprojection') {
-      drawTypeProjection(ctx, cssW, cssH, config as TypeProjectionMapConfig, elements, types, dimensions, scores,
-        selectedElementId ?? undefined, elementLabelSize, dimensionLabelSize, selectedElementIds)
     }
 
     // Lasso overlay — applies to all map types
@@ -500,9 +489,8 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
     const x = e.clientX - rect.left
     const y = e.clientY - rect.top
 
-    if (config.type === 'cartesian' || config.type === 'typeprojection') {
-      const cartCfg = config as CartesianMapConfig | TypeProjectionMapConfig
-      const hit = cartesianHitDot(x, y, rect.width, rect.height, cartCfg as CartesianMapConfig, elements, scores)
+    if (config.type === 'cartesian') {
+      const hit = cartesianHitDot(x, y, rect.width, rect.height, config, elements, types, scores)
       if (hit) {
         if (e.shiftKey) return  // defer to handleClick for toggle selection
         draggingRef.current  = { ...hit, startX: x, startY: y, lockedAxis: null }
@@ -515,8 +503,8 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
         lassoRef.current      = { x1: x, y1: y, x2: x, y2: y }
         lassoMovedRef.current = false
       }
-    } else if (config.type === 'semantic') {
-      const hit = semanticHitDot(x, y, rect.width, rect.height, config as SemanticMapConfig, elements, dimensions, scores)
+    } else {
+      const hit = semanticHitDot(x, y, rect.width, rect.height, config, elements, dimensions, scores)
       if (hit) {
         if (e.shiftKey) {
           // Shift+mousedown on a dot: defer to handleClick for toggle
@@ -550,9 +538,9 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
 
     // ── Active cartesian drag ─────────────────────────────────────────────────
 
-    if (draggingRef.current && (config.type === 'cartesian' || config.type === 'typeprojection')) {
+    if (draggingRef.current && config.type === 'cartesian') {
       const drag    = draggingRef.current
-      const cartCfg = config as CartesianMapConfig | TypeProjectionMapConfig
+      const cartCfg = config
 
       if (!dragMovedRef.current) {
         const dx = Math.abs(x - drag.startX), dy = Math.abs(y - drag.startY)
@@ -635,15 +623,15 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
 
     // ── Hover cursor ──────────────────────────────────────────────────────────
 
-    if (config.type === 'cartesian' || config.type === 'typeprojection') {
-      const hit = cartesianHitDot(x, y, W, H, config as CartesianMapConfig, elements, scores)
-      if (hit)                           { setCursor(e.shiftKey ? 'copy' : 'grab'); return }
+    if (config.type === 'cartesian') {
+      const hit = cartesianHitDot(x, y, W, H, config, elements, types, scores)
+      if (hit)                          { setCursor(e.shiftKey ? 'copy' : 'grab'); return }
       if (cartesianHitEdge(x, y, W, H)) { setCursor('pointer'); return }
       setCursor(e.shiftKey ? 'crosshair' : 'default')
-    } else if (config.type === 'semantic') {
-      const hit = semanticHitDot(x, y, W, H, config as SemanticMapConfig, elements, dimensions, scores)
+    } else {
+      const hit = semanticHitDot(x, y, W, H, config, elements, dimensions, scores)
       if (hit) { setCursor(e.shiftKey ? 'copy' : 'grab'); return }
-      if (semanticHitRow(y, H, (config as SemanticMapConfig).dimensionIds.length) >= 0) { setCursor('pointer'); return }
+      if (semanticHitRow(y, H, config.dimensionIds.length) >= 0) { setCursor('pointer'); return }
       setCursor(e.shiftKey ? 'crosshair' : 'default')
     }
   }
@@ -657,24 +645,16 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
           const { width, height } = wrapper.getBoundingClientRect()
           const { x1, y1, x2, y2 } = lassoRef.current
           const existing = useAppStore.getState().selectedElementIds
-          if (config.type === 'cartesian' || config.type === 'typeprojection') {
-            // For TypeProjection: mirror the visibility filter from drawTypeProjection —
-            // only elements qualifying for at least one visible type are selectable.
-            const projCfg = config as TypeProjectionMapConfig
-            const lassoElements = config.type === 'typeprojection' && projCfg.typeIds.length > 0
-              ? elements.filter(el =>
-                  types
-                    .filter(t => projCfg.typeIds.includes(t.id))
-                    .some(t => { const m = scores[el.id]?.[t.id]; return m !== undefined && m >= projCfg.threshold })
-                )
-              : elements
+          if (config.type === 'cartesian') {
+            // cartesianHitRect applies the type visibility filter itself, so a
+            // lasso can never pick up a dot that isn't on screen.
             const newIds = cartesianHitRect(x1, y1, x2, y2, width, height,
-              config as CartesianMapConfig, lassoElements, scores)
+              config, elements, types, scores)
             selectElements([...new Set([...existing, ...newIds])])
             window.api?.broadcastMultiSelection(useAppStore.getState().selectedElementIds)
-          } else if (config.type === 'semantic') {
+          } else {
             const newIds = semanticHitRect(x1, y1, x2, y2, width, height,
-              config as SemanticMapConfig, elements, dimensions, scores)
+              config, elements, dimensions, scores)
             selectElements([...new Set([...existing, ...newIds])])
             window.api?.broadcastMultiSelection(useAppStore.getState().selectedElementIds)
             selectElement(null)
@@ -740,11 +720,11 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
     const H = rect.height
 
     let hitId: string | null = null
-    if (config.type === 'cartesian' || config.type === 'typeprojection') {
-      const hit = cartesianHitDot(x, y, W, H, config as CartesianMapConfig, elements, scores)
+    if (config.type === 'cartesian') {
+      const hit = cartesianHitDot(x, y, W, H, config, elements, types, scores)
       if (hit) hitId = hit.elementId
-    } else if (config.type === 'semantic') {
-      const hit = semanticHitDot(x, y, W, H, config as SemanticMapConfig, elements, dimensions, scores)
+    } else {
+      const hit = semanticHitDot(x, y, W, H, config, elements, dimensions, scores)
       if (hit) hitId = hit.elementId
     }
 
@@ -775,8 +755,8 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
     const W = rect.width
     const H = rect.height
 
-    if (config.type === 'cartesian' || config.type === 'typeprojection') {
-      const dotHit = cartesianHitDot(x, y, W, H, config as CartesianMapConfig, elements, scores)
+    if (config.type === 'cartesian') {
+      const dotHit = cartesianHitDot(x, y, W, H, config, elements, types, scores)
       if (dotHit) {
         if (e.shiftKey) {
           toggleElementSelection(dotHit.elementId)
@@ -796,9 +776,9 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
       clearElementSelection()
       window.api?.broadcastSelection(null)
       window.api?.broadcastMultiSelection([])
-    } else if (config.type === 'semantic') {
+    } else {
       setAxisPicker(null)
-      const semCfg = config as SemanticMapConfig
+      const semCfg = config
       const hit = semanticHitDot(x, y, W, H, semCfg, elements, dimensions, scores)
       if (hit) {
         if (e.shiftKey) {
@@ -827,9 +807,10 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
 
   if (!config) return null
 
+  // The pickers below are each rendered behind a config.type guard, so these
+  // narrowing casts are only ever read for the matching map type.
   const cartConfig = config as CartesianMapConfig
   const semConfig  = config as SemanticMapConfig
-  const projConfig = config as TypeProjectionMapConfig
 
   return (
     <div className={windowed ? styles.panelWindowed : styles.panel}>
@@ -863,92 +844,8 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
           </div>
         )}
 
-        <div className={styles.titleBarActions} ref={menuRef}>
+        <div className={styles.titleBarActions}>
           {isDirty && <span className={styles.unsavedBadge}>Unsaved</span>}
-          <button
-            className={styles.menuBtn}
-            onClick={() => setShowMenu(v => !v)}
-            title="Map options"
-          >
-            ⋯
-          </button>
-
-          {showMenu && (
-            <div className={styles.menuDropdown}>
-              <div
-                className={styles.menuItem}
-                onClick={() => { updateConfig({ showDots: !config.showDots }); setShowMenu(false) }}
-              >
-                <span className={styles.menuCheck}>{config.showDots ? '✓' : ''}</span>
-                Show Dots
-              </div>
-              <div
-                className={styles.menuItem}
-                onClick={() => { updateConfig({ showLabels: !config.showLabels }); setShowMenu(false) }}
-              >
-                <span className={styles.menuCheck}>{config.showLabels ? '✓' : ''}</span>
-                Show Labels
-              </div>
-              {/* Size by weight — cartesian and typeprojection maps */}
-              {(config.type === 'cartesian' || config.type === 'typeprojection') && (
-                <div
-                  className={styles.menuItem}
-                  onClick={() => { updateConfig({ sizeByWeight: !(config as CartesianMapConfig).sizeByWeight }); setShowMenu(false) }}
-                >
-                  <span className={styles.menuCheck}>{(config as CartesianMapConfig).sizeByWeight ? '✓' : ''}</span>
-                  Size by Weight
-                </div>
-              )}
-              {/* Blob groups — typeprojection maps only */}
-              {config.type === 'typeprojection' && (
-                <div
-                  className={styles.menuItem}
-                  onClick={() => { updateConfig({ blobStyle: projConfig.blobStyle === 'blob' ? 'circle' : 'blob' }); setShowMenu(false) }}
-                >
-                  <span className={styles.menuCheck}>{projConfig.blobStyle === 'blob' ? '✓' : ''}</span>
-                  Blob Groups
-                </div>
-              )}
-              {/* Per-type visibility toggles — typeprojection maps with at least one type */}
-              {config.type === 'typeprojection' && types.length > 0 && (
-                <>
-                  <div className={styles.menuSeparator} />
-                  {types.map(type => {
-                    // typeIds=[] means all visible; otherwise check explicit list
-                    const isVisible = projConfig.typeIds.length === 0 || projConfig.typeIds.includes(type.id)
-                    return (
-                      <div
-                        key={type.id}
-                        className={styles.menuItem}
-                        onClick={() => {
-                          const allIds  = types.map(t => t.id)
-                          const current = projConfig.typeIds.length === 0 ? allIds : [...projConfig.typeIds]
-                          const next    = isVisible
-                            ? current.filter(id => id !== type.id)
-                            : [...current, type.id]
-                          // Normalize: if all types are now selected, store [] (show all)
-                          updateConfig({ typeIds: next.length === allIds.length ? [] : next })
-                          // Don't close menu — lets user toggle multiple types in one session
-                        }}
-                      >
-                        <span className={styles.menuCheck}>{isVisible ? '✓' : ''}</span>
-                        {type.name}
-                      </div>
-                    )
-                  })}
-                </>
-              )}
-              <div className={styles.menuSeparator} />
-              <div className={styles.menuItem} onClick={handleExportPng}>
-                <span className={styles.menuCheck} />
-                Export as PNG…
-              </div>
-              <div className={styles.menuItem} onClick={handleExportSvg}>
-                <span className={styles.menuCheck} />
-                Export as SVG…
-              </div>
-            </div>
-          )}
 
           {/* Close button only shown in embedded (non-windowed) mode */}
           {!windowed && (
@@ -957,6 +854,8 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
         </div>
       </div>
 
+      {/* Body — canvas on the left, collapsible control sidebar on the right */}
+      <div className={styles.body}>
       {/* Canvas wrapper — fills remaining space; ResizeObserver triggers redraws */}
       <div
         ref={wrapperRef}
@@ -1002,8 +901,8 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
           />
         )}
 
-        {/* Axis picker — shown when the user clicks a cartesian or typeprojection axis */}
-        {axisPicker && (config.type === 'cartesian' || config.type === 'typeprojection') && (
+        {/* Axis picker — shown when the user clicks a cartesian axis */}
+        {axisPicker && config.type === 'cartesian' && (
           <AxisPicker
             edge={axisPicker.edge}
             clickX={axisPicker.clickX}
@@ -1067,6 +966,13 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
             onClose={() => setSemanticPicker(null)}
           />
         )}
+      </div>
+
+        <MapSidebar
+          config={config}
+          updateConfig={updateConfig}
+          onExportSvg={handleExportSvg}
+        />
       </div>
     </div>
   )
