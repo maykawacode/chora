@@ -234,10 +234,11 @@
 }
 
 /* Detail pane (right side)
-   overflow-y is auto rather than hidden as a safety net: the collection list
-   below caps its own height, but a short window can still leave the fixed
-   160px description box with nowhere to go, and silently clipping an editor
-   the user is trying to type in is the worse failure. */
+   Bounded by the window, so it is the pane's height that decides how tall the
+   collection list is allowed to get. overflow-y is auto rather than hidden as
+   a last resort: once that list has shrunk to its floor there is nothing left
+   to give, and silently clipping an editor someone is typing into is the worse
+   failure. */
 .detailPane {
   width: 160px;
   flex-shrink: 0;
@@ -249,16 +250,27 @@
   overflow-y: auto;
 }
 
+/* Rows never squash. The collection list below is the one thing in the pane
+   that gives up space when the window gets short, so everything above it has
+   to hold its size or the shrink would come out of the wrong control. */
 .fieldRow {
   display: flex;
   align-items: center;
   gap: 6px;
+  flex-shrink: 0;
 }
 
+/* Fixed width so every control in the pane starts at the same x — Color,
+   Shape and Weight line up on their left edges instead of stepping in and out
+   with the length of the word beside them. 48px clears the longest of them
+   ("Weight"), and the same number does the job on the Collections and
+   Dimensions tabs, whose labels are all shorter still ("Pole A", "Pole B"). */
 .label {
   font-size: 12px;
   color: #555;
   white-space: nowrap;
+  min-width: 48px;
+  flex: none;
 }
 
 .shapePicker {
@@ -306,12 +318,20 @@
 
    Rows rather than a wrapping chip cloud because the cloud's height grew with
    the number of collections and pushed the weight field and description box out
-   of a pane that does not scroll. A capped, scrolling list costs a fixed amount
-   of vertical space no matter how many collections exist. */
+   of a pane that does not scroll.
+
+   The section takes its natural height — every collection visible, no scrollbar
+   — and is the only thing in the pane allowed to shrink. flex-basis auto with
+   shrink enabled is what makes the window the limit rather than a number
+   written here: the box is as tall as its contents until the pane runs out of
+   room, and only then does it give ground. min-height: 0 is required or a flex
+   item refuses to shrink below its content. */
 .collectionSection {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 7px;
+  flex: 0 1 auto;
+  min-height: 0;
 }
 
 .collectionHeader {
@@ -319,6 +339,17 @@
   align-items: baseline;
   justify-content: space-between;
   gap: 6px;
+}
+
+/* The heading is a heading, not a field label: it opts out of the fixed width
+   and the no-shrink rule so that "Collections — 3 selected" gives way to an
+   ellipsis rather than shouldering the All/None button off the end when the
+   pane is dragged narrow. */
+.collectionHeader .label {
+  min-width: 0;
+  flex: 0 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Says what a click will affect once a click affects more than one element.
@@ -347,10 +378,12 @@
   text-decoration: underline;
 }
 
-/* ~5 rows before it scrolls. The cap is the whole point of the control: past
-   this height the list scrolls internally instead of growing the pane. */
+/* Grows to fit every collection. It only scrolls once the window is too short
+   to show them all, and the floor stops that collapse at roughly three rows —
+   below which the list stops being a list and the pane should scroll instead. */
 .collectionList {
-  max-height: 110px;
+  flex: 0 1 auto;
+  min-height: 66px;
   overflow-y: auto;
   border: 1px solid #b0a898;
   border-radius: 4px;

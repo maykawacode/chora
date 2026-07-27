@@ -4,8 +4,9 @@
 // bottom, and keyboard navigation (↑ ↓ for selection, Delete/Backspace to
 // trigger delete).
 //
-// Right pane: detail editor for the selected element (name, color, shape,
-// collections, weight, description).
+// Right pane: detail editor for the selected element, ordered name, color,
+// shape, weight, definition, collections — the single-line fields first, as one
+// aligned column, then the two blocks that need room.
 //
 // Multi-selection:
 //   Shift-click and Cmd/Ctrl-click extend the selection, as do Shift+↑ ↓. The
@@ -352,11 +353,39 @@ export function ElementsTab(): React.JSX.Element {
             ))}
           </div>
         </div>
-        {/* Membership sits with color and shape because it behaves like them: a
-            binary attribute of the element, set right here, rather than a score
-            entered on a separate tab. It gets a section of its own rather than
-            a field row because it is the one control here that can act on more
-            than the anchor element. */}
+        <div className={styles.fieldRow}>
+          <label className={styles.label}>Weight</label>
+          <input
+            key={selected?.id ?? 'none'}
+            className={styles.weightInput}
+            type="number"
+            min={1}
+            max={100}
+            defaultValue={selected?.weight ?? 1}
+            disabled={!selected}
+            onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur() }}
+            onBlur={e => selected && updateElement(selected.id, {
+              weight: Math.max(1, Math.min(100, +e.target.value || 1))
+            })}
+          />
+        </div>
+        {/* The four single-line fields above stack without interruption so the
+            label gutter they share reads as one column and their controls line
+            up down the left. The two tall blocks follow, definition then
+            collections — putting either of them in the middle breaks that
+            column in half, which is what the earlier order did. */}
+        <textarea
+          className={styles.description}
+          placeholder="Definition…"
+          value={selected?.definition ?? ''}
+          disabled={!selected}
+          onChange={e => selected && updateElement(selected.id, { definition: e.target.value })}
+        />
+        {/* Membership goes last because it is the only control here that can
+            reach past the anchor element, and the only one that is a list
+            rather than a single value — the two things that make it the odd
+            one out among the fields above. It keeps a section of its own for
+            the same reason. */}
         <div className={styles.collectionSection}>
           <div className={styles.collectionHeader}>
             <span className={styles.label}>
@@ -420,29 +449,6 @@ export function ElementsTab(): React.JSX.Element {
             )
           }
         </div>
-        <div className={styles.fieldRow}>
-          <label className={styles.label}>Weight</label>
-          <input
-            key={selected?.id ?? 'none'}
-            className={styles.weightInput}
-            type="number"
-            min={1}
-            max={100}
-            defaultValue={selected?.weight ?? 1}
-            disabled={!selected}
-            onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur() }}
-            onBlur={e => selected && updateElement(selected.id, {
-              weight: Math.max(1, Math.min(100, +e.target.value || 1))
-            })}
-          />
-        </div>
-        <textarea
-          className={styles.description}
-          placeholder="Definition…"
-          value={selected?.definition ?? ''}
-          disabled={!selected}
-          onChange={e => selected && updateElement(selected.id, { definition: e.target.value })}
-        />
       </div>
 
       {/* ── Delete confirmation overlay ── */}
