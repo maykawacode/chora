@@ -1,11 +1,19 @@
 // ── MapSidebar ────────────────────────────────────────────────────────────────
 //
 // Collapsible control panel on the right edge of a map window. Replaces the
-// former ⋯ dropdown in the title bar, and serves every map type:
+// former ⋯ dropdown in the title bar, and is the same panel on every map type:
 //
-//   Elements    — dots, labels, weight sizing, colors    (all maps)
-//   Collections — blob overlay, per-collection show/hide (cartesian only)
+//   Elements    — dots, labels, weight sizing, colors
+//   Collections — which collections color their members
 //   Output      — export
+//
+// Collections was cartesian-only while the selection meant "draw this blob",
+// which a semantic map has no space for. It means "focus this map on these
+// collections" now, and each map type honours that the way its geometry allows:
+// a cartesian map draws the cluster as a blob and tints its members, a semantic
+// map narrows to the members and hides everything else. Same control, same
+// question asked of it — so no section is conditional and the panel reads
+// identically whichever map you opened it from.
 //
 // Visibility is owned by MapPanel, which drives it from the toggle button in
 // the title bar. Collapsed by default and never persisted: the sidebar is a
@@ -19,8 +27,8 @@
 // shared surface in two. Section headings do the labelling from here down.
 
 import { useAppStore } from '../../store/appStore'
-import type { MapConfig, CartesianMapConfig, ColorMode, MarkMode } from '../../lib/types'
-import { memberCount } from './cartesian/drawCartesian'
+import type { MapConfig, CartesianMapConfig, SemanticMapConfig, ColorMode, MarkMode } from '../../lib/types'
+import { memberCount } from './collections'
 import styles from './MapSidebar.module.css'
 
 // Labels for the color mode picker. Declared alongside the control rather than
@@ -43,7 +51,9 @@ const MARK_MODE_OPTIONS: ReadonlyArray<{ value: MarkMode; label: string }> = [
 
 interface Props {
   config: MapConfig
-  updateConfig: (changes: Partial<CartesianMapConfig>) => void
+  // Mirrors MapPanel's own updateConfig: every setting this panel writes is
+  // shared by both map types, so the union is never actually narrowed here.
+  updateConfig: (changes: Partial<CartesianMapConfig> | Partial<SemanticMapConfig>) => void
   onExportSvg: () => void
 }
 
@@ -51,13 +61,9 @@ export function MapSidebar({ config, updateConfig, onExportSvg }: Props): React.
   const collections = useAppStore(s => s.collections)
   const elements    = useAppStore(s => s.elements)
 
-  // Only cartesian maps draw blobs — a semantic map has no 2D space to
-  // project a cluster into, so it gets Elements + Output only.
-  const cartConfig = config.type === 'cartesian' ? config : null
-
   // Drives the heading link, which offers whichever action is still available.
-  const allShown = collections.length > 0 && cartConfig !== null &&
-    collections.every(c => cartConfig.shownCollectionIds.includes(c.id))
+  const allShown = collections.length > 0 &&
+    collections.every(c => config.shownCollectionIds.includes(c.id))
 
   return (
     <div className={styles.sidebar}>
@@ -92,45 +98,43 @@ export function MapSidebar({ config, updateConfig, onExportSvg }: Props): React.
         </section>
 
         {/* ── Collections ────────────────────────────────────────────────── */}
-        {cartConfig && (
-          <section className={styles.section}>
-            <h3 className={styles.sectionTitle}>
-              Collections
-              {collections.length > 0 && (
-                <button
-                  className={styles.linkBtn}
-                  onClick={() => updateConfig({
-                    shownCollectionIds: allShown ? [] : collections.map(c => c.id)
-                  })}
-                >
-                  {allShown ? 'None' : 'All'}
-                </button>
-              )}
-            </h3>
-
-            {collections.length === 0 ? (
-              <p className={styles.empty}>No collections defined yet.</p>
-            ) : (
-              collections.map(collection => {
-                const shown = cartConfig.shownCollectionIds.includes(collection.id)
-                return (
-                  <CollectionRow
-                    key={collection.id}
-                    name={collection.name || 'Untitled collection'}
-                    color={collection.color}
-                    count={memberCount(collection, elements)}
-                    shown={shown}
-                    onToggle={() => updateConfig({
-                      shownCollectionIds: shown
-                        ? cartConfig.shownCollectionIds.filter(id => id !== collection.id)
-                        : [...cartConfig.shownCollectionIds, collection.id]
-                    })}
-                  />
-                )
-              })
+        <section className={styles.section}>
+          <h3 className={styles.sectionTitle}>
+            Collections
+            {collections.length > 0 && (
+              <button
+                className={styles.linkBtn}
+                onClick={() => updateConfig({
+                  shownCollectionIds: allShown ? [] : collections.map(c => c.id)
+                })}
+              >
+                {allShown ? 'None' : 'All'}
+              </button>
             )}
-          </section>
-        )}
+          </h3>
+
+          {collections.length === 0 ? (
+            <p className={styles.empty}>No collections defined yet.</p>
+          ) : (
+            collections.map(collection => {
+              const shown = config.shownCollectionIds.includes(collection.id)
+              return (
+                <CollectionRow
+                  key={collection.id}
+                  name={collection.name || 'Untitled collection'}
+                  color={collection.color}
+                  count={memberCount(collection, elements)}
+                  shown={shown}
+                  onToggle={() => updateConfig({
+                    shownCollectionIds: shown
+                      ? config.shownCollectionIds.filter(id => id !== collection.id)
+                      : [...config.shownCollectionIds, collection.id]
+                  })}
+                />
+              )
+            })
+          )}
+        </section>
 
         {/* ── Output ─────────────────────────────────────────────────────── */}
         <section className={styles.section}>
@@ -146,15 +150,18 @@ export function MapSidebar({ config, updateConfig, onExportSvg }: Props): React.
 
 // ── Collection row ────────────────────────────────────────────────────────────
 //
-// One collection, and whether its blob is drawn. The swatch carries the state
-// on its own: solid when the blob is drawn, a hollow ring of the same color
-// when it isn't. That reads at a glance where a checkbox would need to be read,
-// and it echoes what the map itself draws — an outline holding a translucent
-// fill — so the control looks like a small picture of its result.
+// One collection, and whether this map is currently focused on it. The swatch
+// carries the state on its own: solid when the collection is selected, a hollow
+// ring of the same color when it isn't. That reads at a glance where a checkbox
+// would need to be read, and it echoes the cartesian blob — an outline holding
+// a translucent fill — so on that map the control looks like a small picture of
+// its result.
 //
-// The count is how many elements belong to the collection. It can exceed what
-// the blob visibly encloses: a member missing a score on either of the map's
-// axes has nowhere to sit, so it is counted but not drawn.
+// The count is how many elements belong to the collection, which is not always
+// how many the map ends up drawing: a cartesian member unscored on either axis
+// has nowhere to sit, and a semantic member unscored on every displayed
+// dimension draws no polyline at all. Both are counted here regardless — the
+// count describes the collection, not this map's view of it.
 
 interface CollectionRowProps {
   name: string

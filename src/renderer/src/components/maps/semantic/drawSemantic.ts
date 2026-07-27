@@ -15,6 +15,7 @@ import type { SemanticMapConfig, Element, Collection, Dimension, ScoreMap } from
 // here so there is a single source of truth for map typography.
 import { labelFont, LABEL_SIZE_DEFAULT } from '../cartesian/drawCartesian'
 import { resolveElementColor } from '../color'
+import { shownCollections } from '../collections'
 import { drawMark, markShapeIndex } from '../shape'
 
 // Horizontal margin — space reserved on each side for pole labels
@@ -43,6 +44,39 @@ export function semDotRadius(config: SemanticMapConfig, weight: number): number 
     : SEM_DOT_R
 }
 
+/**
+ * The elements this map draws, in draw order before any weight sorting.
+ *
+ * Two filters, applied in that order. First the map's own list: an explicit
+ * elementIds picks and orders them, an empty one means every element. Then the
+ * collection selection — with any collection selected, only its members are
+ * drawn, and with none selected nothing is hidden.
+ *
+ * This is mostly where a semantic map spends its collection selection. It has
+ * no 2D space to draw a cluster into, so it narrows to the cluster instead:
+ * choosing a collection is how you ask this map to be about that collection.
+ * The selection also colors, but only under colorMode 'none' — see the note
+ * where colors are resolved below.
+ *
+ * Exported because MapPanel hit-tests against exactly this list. Both must
+ * agree or the map would answer clicks with elements it never drew.
+ */
+export function semanticElements(
+  config: SemanticMapConfig,
+  elements: Element[],
+  collections: Collection[]
+): Element[] {
+  const listed = config.elementIds.length > 0
+    ? config.elementIds
+        .map(id => elements.find(e => e.id === id))
+        .filter((e): e is Element => e !== undefined)
+    : elements
+
+  const shown = shownCollections(config, collections)
+  if (shown.length === 0) return listed
+  return listed.filter(el => shown.some(c => el.collectionIds.includes(c.id)))
+}
+
 // Gap between axis end and pole label text
 const LABEL_GAP = 6
 
@@ -66,13 +100,7 @@ export function drawSemantic(
     .map(id => dimensions.find(d => d.id === id))
     .filter((d): d is Dimension => d !== undefined)
 
-  // If elementIds is populated, draw only those elements in that order;
-  // otherwise fall back to the full element list
-  const els = config.elementIds.length > 0
-    ? config.elementIds
-        .map(id => elements.find(e => e.id === id))
-        .filter((e): e is Element => e !== undefined)
-    : elements
+  const els = semanticElements(config, elements, collections)
 
   ctx.clearRect(0, 0, W, H)
 
@@ -132,6 +160,22 @@ export function drawSemantic(
     ctx.fillText(rightLabel, axisRight + LABEL_GAP, y)
   }
 
+  // A collection selection that matches nothing empties the map. The axes still
+  // stand, which on their own look like a map still loading rather than one
+  // showing an empty answer — so say which of the two it is. Only worth saying
+  // when a selection caused it: a session with no elements at all draws empty
+  // for a reason the user is not in the middle of doing something about.
+  if (els.length === 0 && config.shownCollectionIds.length > 0) {
+    ctx.fillStyle = '#999'
+    ctx.font = '13px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    // Above the first axis, in the band the 45° element labels would occupy —
+    // free by definition here, since there are no elements to label.
+    ctx.fillText('No elements in the selected collections.', W / 2, SEM_MARGIN_V / 2)
+    return
+  }
+
   // ── Draw element polylines ────────────────────────────────────────────────────
   //
   // For each element we collect the (x, y) canvas position for every dimension
@@ -145,11 +189,26 @@ export function drawSemantic(
     ? [...els].sort((a, b) => b.weight - a.weight)
     : els
 
+  // Which collections get to claim their members' color ahead of the mode. A
+  // cartesian map always passes its selection here; this map passes it only
+  // under 'none', and the asymmetry is the point.
+  //
+  // Under 'element' or 'collection' the claim would be self-defeating: this map
+  // spends its selection on hiding, so every element still drawn is a member of
+  // something selected, and the claim would take all of them at once — quietly
+  // disabling the mode the moment any collection was selected.
+  //
+  // Under 'none' there is no such cost. Neutral gray is the absence of a color
+  // rather than a color the user asked for, so filling it in with the color of
+  // the collection they just selected takes nothing away, and with two
+  // collections selected it is what tells the two groups apart.
+  const claiming = config.colorMode === 'none'
+    ? shownCollections(config, collections)
+    : []
+
   for (const el of drawOrder) {
     const shapeIndex = markShapeIndex(config.marks, el)
-    // No blobs on a semantic map, so nothing can claim an element's color ahead
-    // of the mode — hence the empty shown list.
-    const color      = resolveElementColor(config.colorMode, el, collections, [])
+    const color      = resolveElementColor(config.colorMode, el, collections, claiming)
     const dotR       = semDotRadius(config, el.weight)
     const points: Array<{ x: number; y: number }> = []
 

@@ -114,6 +114,21 @@ describe('4.0 → 5.0 membership migration', () => {
         }
       })
 
+      // The collection selection became a field of every map. A semantic map
+      // written before that has none, and must load with an empty one rather
+      // than undefined — the sidebar and painter both index into it — and
+      // specifically empty, since inventing a selection would recolor a map
+      // the user never asked to have recolored.
+      it('gives every semantic map an empty selection when the file predates it', () => {
+        const rawMaps = (raw.maps ?? []) as Array<Record<string, unknown>>
+        for (const map of state.maps) {
+          if (map.type !== 'semantic') continue
+          expect(Array.isArray(map.shownCollectionIds)).toBe(true)
+          const before = rawMaps.find(m => m.id === map.id)?.shownCollectionIds
+          if (before === undefined) expect(map.shownCollectionIds).toEqual([])
+        }
+      })
+
       it('round-trips through 5.0 without drift', () => {
         // The property that makes saving safe: reading a file we just wrote has
         // to be a no-op, or memberships would decay a little on every save.

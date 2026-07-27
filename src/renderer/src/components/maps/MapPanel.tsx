@@ -15,10 +15,10 @@
 import { useRef, useEffect, useCallback, useState } from 'react'
 import { useAppStore, type ScoreEntry } from '../../store/appStore'
 import { usePrefsStore } from '../../store/prefsStore'
-import type { CartesianMapConfig, SemanticMapConfig, Dimension, Element, ScoreMap } from '../../lib/types'
+import type { CartesianMapConfig, SemanticMapConfig, Collection, Dimension, Element, ScoreMap } from '../../lib/types'
 import C2S from 'canvas2svg'
 import { drawCartesian, MARGIN, POLE_LABEL_HIT_SPAN, DOT_MIN_RADIUS, DOT_MAX_RADIUS, DOT_DEFAULT_RADIUS } from './cartesian/drawCartesian'
-import { drawSemantic, semDotRadius, SEM_MARGIN_H, SEM_MARGIN_V, SEM_DOT_MAX_R } from './semantic/drawSemantic'
+import { drawSemantic, semanticElements, semDotRadius, SEM_MARGIN_H, SEM_MARGIN_V, SEM_DOT_MAX_R } from './semantic/drawSemantic'
 import { ElementDetailModal } from './ElementDetailModal'
 import { BulkEditModal } from './BulkEditModal'
 import { MapSidebar } from './MapSidebar'
@@ -135,14 +135,22 @@ function dragGroupIds(draggedId: string, selectedIds: string[]): string[] {
 /**
  * The members of a semantic drag, on the one axis being dragged.
  *
- * Elements unscored on that axis are dropped: a semantic map draws no dot for
- * them there, so there is nothing on screen to move. This is the opposite of
- * the cartesian case only because the maps differ — there, an unscored element
- * is still drawn, at the center.
+ * Two ways an id in the group is dropped, and both mean the same thing: there
+ * is no dot on screen to move. An element unscored on that axis has none drawn
+ * there, and one hidden by the map's collection filter has none drawn at all —
+ * a selection made while it was selected can leave it in selectedElementIds
+ * long after it left the map. Dragging it would edit scores the user cannot
+ * see moving.
+ *
+ * This is the opposite of the cartesian case only because the maps differ —
+ * there, every element is drawn and an unscored one sits at the center.
  */
-function semanticDragMembers(ids: string[], dimId: string, scores: ScoreMap): SemDragMember[] {
+function semanticDragMembers(
+  ids: string[], dimId: string, scores: ScoreMap, visible: Set<string>
+): SemDragMember[] {
   const members: SemDragMember[] = []
   for (const id of ids) {
+    if (!visible.has(id)) continue
     const s0 = scores[id]?.[dimId]
     if (s0 !== undefined) members.push({ id, s0 })
   }
@@ -271,6 +279,7 @@ function semanticHitDot(
   x: number, y: number, W: number, H: number,
   config: SemanticMapConfig,
   elements: Element[],
+  collections: Collection[],
   dimensions: Dimension[],
   scores: ScoreMap
 ): Pick<SemanticDragTarget, 'elementId' | 'dimId'> | null {
@@ -284,7 +293,7 @@ function semanticHitDot(
     .map(id => dimensions.find(d => d.id === id))
     .filter((d): d is Dimension => d !== undefined)
 
-  const els = semanticElements(config, elements)
+  const els = semanticElements(config, elements, collections)
   const ys  = semAxisYs(H, dims.length)
 
   // Row pre-filter uses the largest dot any element could have, so a heavy
@@ -308,17 +317,6 @@ function semanticHitDot(
     }
   }
   return null
-}
-
-/**
- * Resolves which elements a semantic map draws: its explicit ordered list if
- * it has one, otherwise every element.
- */
-function semanticElements(config: SemanticMapConfig, elements: Element[]): Element[] {
-  if (config.elementIds.length === 0) return elements
-  return config.elementIds
-    .map(id => elements.find(e => e.id === id))
-    .filter((e): e is Element => e !== undefined)
 }
 
 /**
@@ -354,6 +352,7 @@ function semanticHitRect(
   W: number, H: number,
   config: SemanticMapConfig,
   elements: Element[],
+  collections: Collection[],
   dimensions: Dimension[],
   scores: ScoreMap
 ): string[] {
@@ -370,7 +369,7 @@ function semanticHitRect(
     .map(id => dimensions.find(d => d.id === id))
     .filter((d): d is Dimension => d !== undefined)
 
-  const els    = semanticElements(config, elements)
+  const els    = semanticElements(config, elements, collections)
   const ys     = semAxisYs(H, dims.length)
   const hitIds = new Set<string>()
 
@@ -603,7 +602,7 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
         lassoMovedRef.current = false
       }
     } else {
-      const hit = semanticHitDot(x, y, rect.width, rect.height, config, elements, dimensions, scores)
+      const hit = semanticHitDot(x, y, rect.width, rect.height, config, elements, collections, dimensions, scores)
       if (hit) {
         if (e.shiftKey) {
           // Shift+mousedown on a dot: defer to handleClick for toggle
@@ -616,9 +615,14 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
         if (s0 === undefined) return
 
         const selectedIds = useAppStore.getState().selectedElementIds
+        const visibleIds  = new Set(
+          semanticElements(config, elements, collections).map(el => el.id)
+        )
         semDraggingRef.current = {
           ...hit,
-          members: semanticDragMembers(dragGroupIds(hit.elementId, selectedIds), hit.dimId, scores),
+          members: semanticDragMembers(
+            dragGroupIds(hit.elementId, selectedIds), hit.dimId, scores, visibleIds
+          ),
           origin:  { id: hit.elementId, s0 },
           startX: x, startY: y
         }
@@ -767,7 +771,7 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
       if (cartesianHitEdge(x, y, W, H)) { setCursor('pointer'); return }
       setCursor(e.shiftKey ? 'crosshair' : 'default')
     } else {
-      const hit = semanticHitDot(x, y, W, H, config, elements, dimensions, scores)
+      const hit = semanticHitDot(x, y, W, H, config, elements, collections, dimensions, scores)
       if (hit) { setCursor(e.shiftKey ? 'copy' : 'grab'); return }
       if (semanticHitRow(y, H, config.dimensionIds.length) >= 0) { setCursor('pointer'); return }
       setCursor(e.shiftKey ? 'crosshair' : 'default')
@@ -792,7 +796,7 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
             window.api?.broadcastMultiSelection(useAppStore.getState().selectedElementIds)
           } else {
             const newIds = semanticHitRect(x1, y1, x2, y2, width, height,
-              config, elements, dimensions, scores)
+              config, elements, collections, dimensions, scores)
             selectElements([...new Set([...existing, ...newIds])])
             window.api?.broadcastMultiSelection(useAppStore.getState().selectedElementIds)
             selectElement(null)
@@ -862,7 +866,7 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
       const hit = cartesianHitDot(x, y, W, H, config, elements, scores)
       if (hit) hitId = hit.elementId
     } else {
-      const hit = semanticHitDot(x, y, W, H, config, elements, dimensions, scores)
+      const hit = semanticHitDot(x, y, W, H, config, elements, collections, dimensions, scores)
       if (hit) hitId = hit.elementId
     }
 
@@ -917,7 +921,7 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
     } else {
       setAxisPicker(null)
       const semCfg = config
-      const hit = semanticHitDot(x, y, W, H, semCfg, elements, dimensions, scores)
+      const hit = semanticHitDot(x, y, W, H, semCfg, elements, collections, dimensions, scores)
       if (hit) {
         if (e.shiftKey) {
           toggleElementSelection(hit.elementId)

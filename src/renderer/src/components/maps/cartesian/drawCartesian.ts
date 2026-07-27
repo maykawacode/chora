@@ -22,6 +22,7 @@
 import type { CartesianMapConfig, Element, Dimension, Collection, ScoreMap } from '../../../lib/types'
 import { setBlobPath, BLOB_PADDING, type Pt } from '../blob'
 import { resolveElementColor } from '../color'
+import { shownCollections } from '../collections'
 import { drawMark, markShapeIndex } from '../shape'
 
 // Space reserved on each side of the canvas for pole labels
@@ -97,29 +98,6 @@ function drawPoleLabel(
   ctx.textBaseline = 'middle'
   ctx.fillText(text, 0, 0)
   ctx.restore()
-}
-
-/**
- * Returns the collections this map draws a blob for — exactly the ones selected
- * in the sidebar, so an empty selection draws none.
- *
- * Selecting a collection no longer filters which elements appear: every element
- * is always plotted, and this only governs the overlay.
- */
-export function shownCollections(config: CartesianMapConfig, collections: Collection[]): Collection[] {
-  return collections.filter(c => config.shownCollectionIds.includes(c.id))
-}
-
-/**
- * How many elements belong to a collection.
- *
- * Exported for the sidebar, which shows the count beside each collection. Note
- * this counts members, not what the blob encloses: an element missing a score
- * on either axis can't be placed in 2D space and so is left out of the shape
- * while still being counted here.
- */
-export function memberCount(collection: Collection, elements: Element[]): number {
-  return elements.filter(el => el.collectionIds.includes(collection.id)).length
 }
 
 export function drawCartesian(

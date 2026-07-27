@@ -21,6 +21,11 @@
 //               element.collectionIds — see liftMemberships. map.threshold is
 //               read and dropped; map.typeIds → map.shownCollectionIds;
 //               colorMode 'type' → 'collection'.
+//   within 5.0: map.shownCollectionIds became a field of every map, not just
+//               cartesian ones — a semantic map now colors the members of its
+//               selected collections. Additive: a file written before this has
+//               no such field on its semantic maps and loads with none
+//               selected, which draws exactly as it did.
 
 import type { AppState, ColorMode, MarkMode, Element, Collection, Dimension, MapConfig, SessionMeta } from './types'
 import { defaultCategories, defaultSessionMeta, parsePoles } from './types'
@@ -63,8 +68,8 @@ function readMarkMode(m: Record<string, unknown>): MarkMode {
 }
 
 /**
- * Reads which collections a cartesian map draws blobs for, reinterpreting the
- * older pairing of a showTypes flag with a typeIds element filter.
+ * Reads a cartesian map's collection selection, reinterpreting the older
+ * pairing of a showTypes flag with a typeIds element filter.
  *
  * The meaning of an empty list inverted, so this is the one migration here that
  * cannot simply leave a field alone: it used to mean "every type", and now means
@@ -77,6 +82,12 @@ function readMarkMode(m: Record<string, unknown>): MarkMode {
  *
  * `wasCollectionMap` covers pre-merge type-projection maps, which drew every
  * blob but predate showTypes and so never stored it.
+ *
+ * Cartesian only, deliberately, even though the field is shared now: the
+ * expansion branches turn an absent selection into every collection, which was
+ * right for a map whose overlay was on, and would be wrong for a semantic map
+ * that has no such history to reconstruct. The semantic branch reads the field
+ * plainly instead.
  */
 function readShownCollectionIds(
   m: Record<string, unknown>,
@@ -294,6 +305,12 @@ export function deserializeSession(json: string): AppState {
         // OFF here rather than inheriting base's on-by-default — otherwise
         // every existing semantic map would open with resized dots.
         sizeByWeight: m.sizeByWeight === true,
+        // Read plainly, not through readShownCollectionIds: no semantic map has
+        // ever written showTypes or typeIds, so there is no legacy pairing to
+        // reinterpret, and running one anyway could only invent a selection a
+        // file never had. Files predating the shared field get no selection,
+        // which is exactly how they used to draw.
+        shownCollectionIds:  Array.isArray(m.shownCollectionIds)  ? m.shownCollectionIds  as string[] : [],
         elementIds:          Array.isArray(m.elementIds)          ? m.elementIds          as string[] : [],
         dimensionIds:        Array.isArray(m.dimensionIds)        ? m.dimensionIds        as string[] : [],
         flippedDimensionIds: Array.isArray(m.flippedDimensionIds) ? m.flippedDimensionIds as string[] : []

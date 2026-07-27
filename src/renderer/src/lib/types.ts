@@ -97,6 +97,23 @@ export type ColorMode = 'none' | 'element' | 'collection'
 export type MarkMode = 'none' | 'circle' | 'element'
 
 // Settings every map has, all driven from the map window's sidebar.
+//
+// shownCollectionIds is the collections this map is focused on, and an empty
+// list means it is focused on nothing in particular — every element, no
+// emphasis. What "focused on" draws as is the map's own business, because the
+// two have different room to say it:
+//
+//   cartesian — draws each selected collection as a translucent blob and gives
+//               its members the collection's color. Everything stays plotted;
+//               the cluster is drawn around what is already there.
+//   semantic  — draws only the members and hides the rest. There is no 2D space
+//               to enclose a cluster in, so it narrows to the cluster instead.
+//               It claims colors too, but only under colorMode 'none', where
+//               there is no chosen color to overwrite — see drawSemantic.
+//
+// Named for what it selects rather than matching Element.collectionIds: one is
+// a per-map display choice, the other is the membership itself, and a shared
+// name would invite reading a map's selection as data about the elements.
 export interface BaseMapConfig {
   id: string
   type: MapType
@@ -105,6 +122,7 @@ export interface BaseMapConfig {
   marks: MarkMode       // what mark is drawn at each element's position
   sizeByWeight: boolean // true = dot radius scales with element weight; false = uniform default size
   colorMode: ColorMode  // what element color is drawn from
+  shownCollectionIds: string[] // collections this map is focused on; empty = none
   windowX: number
   windowY: number
   windowWidth: number
@@ -112,29 +130,27 @@ export interface BaseMapConfig {
 }
 
 // A cartesian map plots every element in a 2D dimension space, and draws a
-// translucent blob around the members of each selected collection — the map
-// formerly known as the Type Projection map, now folded in as an overlay
-// rather than a separate map type.
+// translucent blob around the members of each collection in the shared
+// shownCollectionIds — the map formerly known as the Type Projection map, now
+// folded in as an overlay rather than a separate map type.
 //
-// shownCollectionIds chooses which blobs are drawn and nothing else. It used to
-// do double duty, also hiding any element that qualified for no selected
-// collection, with an empty list meaning "all collections". Both of those are
-// gone: every element is always plotted, and an empty list now means no blobs
-// at all. See readShownCollectionIds in parser.ts for how a file written under
-// the old rule is migrated.
-//
-// Named for what it selects rather than matching Element.collectionIds: one is
-// a per-map display choice, the other is the membership itself, and a shared
-// name would invite reading a blob selection as data about the elements.
+// That selection used to hide any element qualifying for no selected
+// collection, with an empty list meaning "all collections". Both are gone:
+// every element is always plotted, and an empty list means no blobs at all.
+// See readShownCollectionIds in parser.ts for how a file written under the old
+// rule is migrated.
 export interface CartesianMapConfig extends BaseMapConfig {
   type: 'cartesian'
   xDimensionId: string
   yDimensionId: string
   xFlipped: boolean            // reverses poleA/poleB direction on that axis
   yFlipped: boolean
-  shownCollectionIds: string[] // collections whose blob is drawn; empty = no blobs
 }
 
+// A semantic map has no 2D space to project a cluster into, so it draws no
+// blobs; its shownCollectionIds filters instead, narrowing the map to the
+// members of the selected collections. See semanticElements in drawSemantic,
+// which resolves that against elementIds and is what MapPanel hit-tests too.
 export interface SemanticMapConfig extends BaseMapConfig {
   type: 'semantic'
   elementIds: string[]           // ordered list of elements to show

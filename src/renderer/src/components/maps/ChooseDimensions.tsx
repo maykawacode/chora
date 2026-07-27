@@ -49,7 +49,8 @@ export function ChooseDimensions({ onClose }: Props): React.JSX.Element {
       yFlipped: false,
       sizeByWeight: true,
       colorMode: 'element',
-      // No blobs to start — select collections in the map's sidebar to draw them.
+      // No blobs to start — select collections in the map's sidebar to draw
+      // them and color their members.
       shownCollectionIds: [],
       showLabels: prefs.defaultShowLabels,
       marks: prefs.defaultMarks,
@@ -138,6 +139,9 @@ export function CreateSemanticMap({ onClose }: Props): React.JSX.Element {
       // so uniform dots keep a fresh map readable.
       sizeByWeight: false,
       colorMode: 'element',
+      // No collection claiming any color to start — select them in the map's
+      // sidebar, same as on a cartesian map.
+      shownCollectionIds: [],
       showLabels: prefs.defaultShowLabels,
       marks: prefs.defaultMarks,
       windowX: 100,
