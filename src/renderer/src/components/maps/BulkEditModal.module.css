@@ -116,7 +116,7 @@
 
 .weightInput::placeholder { color: #aaa; font-style: italic; }
 
-.typesSection {
+.collectionsSection {
   margin: 8px 12px 0;
   border: 1px solid #b0a898;
   border-radius: 4px;
@@ -124,7 +124,7 @@
   overflow: hidden;
 }
 
-.typesLabel {
+.collectionsLabel {
   display: block;
   font-size: 10px;
   font-weight: 600;
@@ -136,7 +136,7 @@
   background: #f8f6f2;
 }
 
-.typesEmpty {
+.collectionsEmpty {
   display: block;
   font-size: 11px;
   color: #bbb;
@@ -144,12 +144,12 @@
   padding: 4px 8px;
 }
 
-.typeList {
+.collectionList {
   max-height: 108px;
   overflow-y: auto;
 }
 
-.typeRow {
+.collectionRow {
   display: flex;
   align-items: center;
   gap: 5px;
@@ -161,42 +161,42 @@
   min-height: 22px;
 }
 
-.typeRow:hover { background: #f0ede8; }
+.collectionRow:hover { background: #f0ede8; }
 
-.typeRowOn { color: #3a5018; }
+.collectionRowOn { color: #3a5018; }
 
-.typeDot {
+.collectionDot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
   flex-shrink: 0;
 }
 
-.typeName {
+.collectionName {
   flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.typeCheck {
+.collectionCheck {
   font-size: 11px;
   color: #708040;
   flex-shrink: 0;
 }
 
-.typeMixed {
+.collectionMixed {
   font-size: 12px;
   color: #aaa;
   flex-shrink: 0;
 }
 
-.newTypeRow {
+.newCollectionRow {
   display: flex;
   border-top: 1px solid #e8e5e0;
 }
 
-.newTypeInput {
+.newCollectionInput {
   flex: 1;
   padding: 3px 6px;
   border: none;
@@ -208,9 +208,9 @@
   outline: none;
 }
 
-.newTypeInput::placeholder { color: #bbb; font-style: italic; }
+.newCollectionInput::placeholder { color: #bbb; font-style: italic; }
 
-.addTypeBtn {
+.addCollectionBtn {
   padding: 3px 8px;
   border: none;
   background: transparent;
@@ -221,8 +221,8 @@
   cursor: pointer;
 }
 
-.addTypeBtn:hover { background: #f0ede8; }
-.addTypeBtn:disabled { color: #ccc; cursor: default; }
+.addCollectionBtn:hover { background: #f0ede8; }
+.addCollectionBtn:disabled { color: #ccc; cursor: default; }
 
 .footer {
   display: flex;

@@ -3,10 +3,9 @@
 // Collapsible control panel on the right edge of a map window. Replaces the
 // former ⋯ dropdown in the title bar, and serves every map type:
 //
-//   Elements — dots, labels, weight sizing, colors      (all maps)
-//   Types    — blob overlay, membership threshold,
-//              per-type show/hide                        (cartesian only)
-//   Output   — export
+//   Elements    — dots, labels, weight sizing, colors    (all maps)
+//   Collections — blob overlay, per-collection show/hide (cartesian only)
+//   Output      — export
 //
 // Visibility is owned by MapPanel, which drives it from the toggle button in
 // the title bar. Collapsed by default and never persisted: the sidebar is a
@@ -31,9 +30,9 @@ import styles from './MapSidebar.module.css'
 // Phrased to complete the sentence the row starts — "Color: by collection" — so
 // they are lowercase and read as continuations, not as standalone captions.
 const COLOR_MODE_OPTIONS: ReadonlyArray<{ value: ColorMode; label: string }> = [
-  { value: 'none',    label: 'none' },
-  { value: 'element', label: 'by element' },
-  { value: 'type',    label: 'by collection' }
+  { value: 'none',       label: 'none' },
+  { value: 'element',    label: 'by element' },
+  { value: 'collection', label: 'by collection' }
 ]
 
 const MARK_MODE_OPTIONS: ReadonlyArray<{ value: MarkMode; label: string }> = [
@@ -49,17 +48,16 @@ interface Props {
 }
 
 export function MapSidebar({ config, updateConfig, onExportSvg }: Props): React.JSX.Element {
-  const types    = useAppStore(s => s.types)
-  const elements = useAppStore(s => s.elements)
-  const scores   = useAppStore(s => s.scores)
+  const collections = useAppStore(s => s.collections)
+  const elements    = useAppStore(s => s.elements)
 
-  // Only cartesian maps carry types — a semantic map has no 2D space to
+  // Only cartesian maps draw blobs — a semantic map has no 2D space to
   // project a cluster into, so it gets Elements + Output only.
   const cartConfig = config.type === 'cartesian' ? config : null
 
   // Drives the heading link, which offers whichever action is still available.
-  const allShown = types.length > 0 && cartConfig !== null &&
-    types.every(t => cartConfig.typeIds.includes(t.id))
+  const allShown = collections.length > 0 && cartConfig !== null &&
+    collections.every(c => cartConfig.shownCollectionIds.includes(c.id))
 
   return (
     <div className={styles.sidebar}>
@@ -98,11 +96,11 @@ export function MapSidebar({ config, updateConfig, onExportSvg }: Props): React.
           <section className={styles.section}>
             <h3 className={styles.sectionTitle}>
               Collections
-              {types.length > 0 && (
+              {collections.length > 0 && (
                 <button
                   className={styles.linkBtn}
                   onClick={() => updateConfig({
-                    typeIds: allShown ? [] : types.map(t => t.id)
+                    shownCollectionIds: allShown ? [] : collections.map(c => c.id)
                   })}
                 >
                   {allShown ? 'None' : 'All'}
@@ -110,45 +108,26 @@ export function MapSidebar({ config, updateConfig, onExportSvg }: Props): React.
               )}
             </h3>
 
-            {types.length === 0 ? (
+            {collections.length === 0 ? (
               <p className={styles.empty}>No collections defined yet.</p>
             ) : (
-              <>
-                <label className={styles.slider}>
-                  <span className={styles.sliderLabel}>
-                    Threshold
-                    <span className={styles.sliderValue}>
-                      {cartConfig.threshold.toFixed(2)}
-                    </span>
-                  </span>
-                  <input
-                    type="range"
-                    min={0}
-                    max={1}
-                    step={0.05}
-                    value={cartConfig.threshold}
-                    onChange={e => updateConfig({ threshold: Number(e.target.value) })}
+              collections.map(collection => {
+                const shown = cartConfig.shownCollectionIds.includes(collection.id)
+                return (
+                  <CollectionRow
+                    key={collection.id}
+                    name={collection.name || 'Untitled collection'}
+                    color={collection.color}
+                    count={memberCount(collection, elements)}
+                    shown={shown}
+                    onToggle={() => updateConfig({
+                      shownCollectionIds: shown
+                        ? cartConfig.shownCollectionIds.filter(id => id !== collection.id)
+                        : [...cartConfig.shownCollectionIds, collection.id]
+                    })}
                   />
-                </label>
-
-                {types.map(type => {
-                  const shown = cartConfig.typeIds.includes(type.id)
-                  return (
-                    <CollectionRow
-                      key={type.id}
-                      name={type.name || 'Untitled collection'}
-                      color={type.color}
-                      count={memberCount(type, elements, scores, cartConfig.threshold)}
-                      shown={shown}
-                      onToggle={() => updateConfig({
-                        typeIds: shown
-                          ? cartConfig.typeIds.filter(id => id !== type.id)
-                          : [...cartConfig.typeIds, type.id]
-                      })}
-                    />
-                  )
-                })}
-              </>
+                )
+              })
             )}
           </section>
         )}
@@ -173,8 +152,9 @@ export function MapSidebar({ config, updateConfig, onExportSvg }: Props): React.
 // and it echoes what the map itself draws — an outline holding a translucent
 // fill — so the control looks like a small picture of its result.
 //
-// The count is how many elements clear the threshold, which makes the slider
-// above legible: drag it and watch clusters gain and lose members.
+// The count is how many elements belong to the collection. It can exceed what
+// the blob visibly encloses: a member missing a score on either of the map's
+// axes has nowhere to sit, so it is counted but not drawn.
 
 interface CollectionRowProps {
   name: string

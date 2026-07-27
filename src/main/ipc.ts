@@ -218,13 +218,13 @@ export function registerIpcHandlers(): void {
     }
   })
 
-  // New type created inline from a map window modal — relay to Score Window.
-  // Score Window adds the type with the same UUID so it matches the score
-  // entries that will arrive via the subsequent broadcastScore calls.
-  ipcMain.on('type:add', (event, id: string, name: string) => {
+  // New collection created inline from a map window modal — relay to Score
+  // Window. Score Window adds it under the same UUID so the memberships that
+  // arrive with the following element update refer to a collection it knows.
+  ipcMain.on('collection:add', (event, id: string, name: string) => {
     const scoreWin = getMainWindow()
     if (scoreWin && !scoreWin.isDestroyed() && scoreWin.webContents.id !== event.sender.id) {
-      scoreWin.webContents.send('type:add', id, name)
+      scoreWin.webContents.send('collection:add', id, name)
     }
   })
 

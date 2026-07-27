@@ -2,10 +2,10 @@
 //
 // These are the plain data structures shared across all windows via JSON.
 // All IDs are UUIDs (generated at creation, never changed).
-// Scores live separately from elements/dimensions/types so adding/removing any
-// of them doesn't corrupt the other — it just leaves orphaned keys that are ignored.
+// Scores live separately from elements/dimensions so adding/removing either
+// doesn't corrupt the other — it just leaves orphaned keys that are ignored.
 //
-// Canonical schema reference: Output/2026-06-17_dataset-schema_v1.md
+// Canonical schema reference: Output/2026-07-26_dataset-schema_v2.md
 
 export type ElementShape = 'circle' | 'square' | 'triangle' | 'diamond'
 
@@ -20,15 +20,22 @@ export interface SessionMeta {
 export interface Element {
   id: string
   name: string
-  definition: string   // what this element IS
-  weight: number       // 1–100; drives dot size on cartesian maps
-  color: string        // hex string, e.g. '#808000' (olive default)
-  shape: ElementShape  // plot symbol used on all maps
+  definition: string     // what this element IS
+  weight: number         // 1–100; drives dot size on cartesian maps
+  color: string          // hex string, e.g. '#808000' (olive default)
+  shape: ElementShape    // plot symbol used on all maps
+  collectionIds: string[]  // collections this element belongs to; see below
 }
 
-// A Type is a nominal membership category. Elements are scored against types
-// (via ScoreMap) to express degree of membership (0 = none, 1 = full).
-export interface Type {
+// A Collection is a nominal category. Membership is binary and lives on the
+// element, in the same breath as its color and shape: an element is in a
+// collection or it is not.
+//
+// It used to be a 0–1 score in the ScoreMap, which every map then compared
+// against its own threshold slider — so the same element could be a member on
+// one map and not on another, and no single place in the data could answer
+// whether it belonged. Storing the membership itself removes the question.
+export interface Collection {
   id:         string
   name:       string
   definition: string  // what defines membership in this category
@@ -54,9 +61,13 @@ export interface Dimension {
   categories: DimensionCategories  // used by the Starter Lists picker
 }
 
-// scores[elementId][typeOrDimensionId] = 0.0–1.0
-// A missing key means the element has not been scored on that type/dimension yet.
-// Type IDs and Dimension IDs are both UUIDs and never collide in this namespace.
+// scores[elementId][dimensionId] = 0.0–1.0
+// A missing key means the element has not been scored on that dimension yet.
+//
+// Dimension scores only. Collection membership shared this map until format
+// 5.0, which meant a key's meaning depended on which list its UUID turned up
+// in; membership now lives on Element.collectionIds and this map holds one
+// kind of thing again.
 export type ScoreMap = Record<string, Record<string, number | undefined>>
 
 // ── Map configuration types ───────────────────────────────────────────────────
@@ -68,13 +79,13 @@ export type ScoreMap = Record<string, Record<string, number | undefined>>
 export type MapType = 'cartesian' | 'semantic'
 
 // What drives element color on a map:
-//   'none'    — neutral gray throughout; the map reads as pure structure
-//   'element' — each element's own color attribute
-//   'type'    — the color of the type(s) it belongs to, blended by membership
-//               strength when it belongs to more than one
+//   'none'       — neutral gray throughout; the map reads as pure structure
+//   'element'    — each element's own color attribute
+//   'collection' — the color of the collection(s) it belongs to, mixed evenly
+//                  when it belongs to more than one
 // Replaced the earlier showColors boolean; see readColorMode in parser.ts for
 // how files written before this change are migrated.
-export type ColorMode = 'none' | 'element' | 'type'
+export type ColorMode = 'none' | 'element' | 'collection'
 
 // What mark, if any, is drawn at each element's position:
 //   'none'    — no marks; on a cartesian map only labels remain, and on a
@@ -84,12 +95,6 @@ export type ColorMode = 'none' | 'element' | 'type'
 // Replaced the earlier showDots boolean; see readMarkMode in parser.ts for how
 // files written before this change are migrated.
 export type MarkMode = 'none' | 'circle' | 'element'
-
-// How the Type membership → Element color conversion derives a color:
-//   'dominant' — the color of the type the element belongs to most strongly
-//   'blend'    — all its type colors mixed by membership, matching what a map
-//                colored by type draws live
-export type TypeColorMethod = 'dominant' | 'blend'
 
 // Settings every map has, all driven from the map window's sidebar.
 export interface BaseMapConfig {
@@ -107,23 +112,27 @@ export interface BaseMapConfig {
 }
 
 // A cartesian map plots every element in a 2D dimension space, and draws a
-// translucent blob around the members of each selected type — the map formerly
-// known as the Type Projection map, now folded in as an overlay rather than a
-// separate map type.
+// translucent blob around the members of each selected collection — the map
+// formerly known as the Type Projection map, now folded in as an overlay
+// rather than a separate map type.
 //
-// typeIds chooses which blobs are drawn and nothing else. It used to do double
-// duty, also hiding any element that qualified for no selected type, with an
-// empty list meaning "all types". Both of those are gone: every element is
-// always plotted, and an empty list now means no blobs at all. See readTypeIds
-// in parser.ts for how a file written under the old rule is migrated.
+// shownCollectionIds chooses which blobs are drawn and nothing else. It used to
+// do double duty, also hiding any element that qualified for no selected
+// collection, with an empty list meaning "all collections". Both of those are
+// gone: every element is always plotted, and an empty list now means no blobs
+// at all. See readShownCollectionIds in parser.ts for how a file written under
+// the old rule is migrated.
+//
+// Named for what it selects rather than matching Element.collectionIds: one is
+// a per-map display choice, the other is the membership itself, and a shared
+// name would invite reading a blob selection as data about the elements.
 export interface CartesianMapConfig extends BaseMapConfig {
   type: 'cartesian'
   xDimensionId: string
   yDimensionId: string
-  xFlipped: boolean    // reverses poleA/poleB direction on that axis
+  xFlipped: boolean            // reverses poleA/poleB direction on that axis
   yFlipped: boolean
-  typeIds: string[]    // types whose blob is drawn; empty = no blobs
-  threshold: number    // min membership score for an element to count as a type member
+  shownCollectionIds: string[] // collections whose blob is drawn; empty = no blobs
 }
 
 export interface SemanticMapConfig extends BaseMapConfig {
@@ -146,14 +155,14 @@ export interface AppState {
   isDirty: boolean                  // true = unsaved changes exist
   sessionMeta: SessionMeta
   elements: Element[]
-  types: Type[]
+  collections: Collection[]
   dimensions: Dimension[]
   scores: ScoreMap
   maps: MapConfig[]
   selectedElementId: string | null
   selectedDimensionId: string | null
-  selectedTypeId: string | null
-  activeTab: 'elements' | 'dimensions' | 'scores' | 'types' | 'conversions'
+  selectedCollectionId: string | null
+  activeTab: 'elements' | 'dimensions' | 'scores' | 'collections' | 'conversions'
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -173,26 +182,6 @@ export function defaultCategories(): DimensionCategories {
 /** Returns a SessionMeta with a fresh UUID and empty strings. */
 export function defaultSessionMeta(): SessionMeta {
   return { id: crypto.randomUUID(), name: '', definition: '' }
-}
-
-/**
- * Returns a display indicator showing how completely an element has been scored
- * against the available types.
- * '●' — all types scored
- * '◇' — the currently selected type is scored (but not all)
- * '–' — nothing scored yet (or no types exist)
- */
-export function typeScoreStatus(
-  element: Element,
-  types: Type[],
-  scores: ScoreMap,
-  activeTypeId: string | null
-): '–' | '◇' | '●' {
-  if (types.length === 0) return '–'
-  const elScores = scores[element.id] ?? {}
-  if (types.every(t => elScores[t.id] !== undefined)) return '●'
-  if (activeTypeId && elScores[activeTypeId] !== undefined) return '◇'
-  return '–'
 }
 
 /**

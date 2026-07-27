@@ -9,11 +9,15 @@
 // created automatically with defaults.
 //
 //   ##SESSION        — Name, Definition (key/value rows)
-//   ##ELEMENTS       — Name, Definition, Color, Weight, Shape
-//   ##TYPES          — Name, Definition
+//   ##ELEMENTS       — Name, Definition, Color, Weight, Shape, Collections
+//   ##COLLECTIONS    — Name, Definition, Color
 //   ##DIMENSIONS     — Label, Pole A, Pole B, Definition, Weight
-//   ##TYPE_SCORES    — element × type matrix (blank cell = unscored)
 //   ##DIMENSION_SCORES — element × dimension matrix (blank cell = unscored)
+//
+// LEGACY SECTIONS — files exported before membership became binary named the
+// collections section ##TYPES and carried a separate ##TYPE_SCORES matrix of
+// 0–1 values. Both are still read: ##TYPES is treated as ##COLLECTIONS, and a
+// score at or above MEMBERSHIP_CUTOFF is read as membership.
 //
 // SIMPLE FORMAT (no ##markers) — backward-compatible with existing files.
 // First row is headers (blank, then dimension labels). Optional second column
@@ -24,8 +28,10 @@
 //   ElementName  [def text]     score       score       ...
 
 import { v4 as uuid } from 'uuid'
-import type { Element, Dimension, ScoreMap, SessionMeta, Type } from './types'
+import type { Element, Dimension, ScoreMap, SessionMeta, Collection } from './types'
 import { defaultCategories, defaultSessionMeta, parsePoles } from './types'
+import { MEMBERSHIP_CUTOFF } from './parser'
+import { COLLECTION_SEPARATOR } from './exporter'
 
 // Strip surrounding double-quotes and unescape "" → " (standard TSV/CSV quoting).
 function stripQuotes(s: string): string {
@@ -41,7 +47,7 @@ function tc(raw: string | undefined): string {
 export interface ImportResult {
   sessionMeta: SessionMeta
   elements:    Element[]
-  types:       Type[]
+  collections: Collection[]
   dimensions:  Dimension[]
   scores:      ScoreMap
   /** Human-readable description of the scale detected, e.g. "1–7 (normalized to 0–1)". */
@@ -76,6 +82,41 @@ function parseFullSpreadsheet(text: string): ImportResult {
     sessionMeta.definition = defCol >= 0 ? tc(data[defCol]) : ''
   }
 
+  // ── Collections ────────────────────────────────────────────────────────────
+  // Parsed before elements so an element's Collections cell can be resolved
+  // against the declared set. ##TYPES is the pre-binary name for this section.
+  const collectionsByName = new Map<string, Collection>()
+
+  const collectionRows = sections['COLLECTIONS'] ?? sections['TYPES'] ?? []
+  if (collectionRows.length >= 2) {
+    const hdr = collectionRows[0].map(h => h.trim().toLowerCase())
+    const nameCol  = Math.max(0, hdr.indexOf('name'))
+    const defCol   = hdr.indexOf('definition')
+    const colorCol = hdr.indexOf('color')
+
+    for (const row of collectionRows.slice(1)) {
+      const name = tc(row[nameCol])
+      if (!name) continue
+      collectionsByName.set(name, {
+        id:         uuid(),
+        name,
+        definition: defCol   >= 0 ? tc(row[defCol])   : '',
+        color:      colorCol >= 0 ? tc(row[colorCol]) || '#808080' : '#808080'
+      })
+    }
+  }
+
+  // A collection named anywhere in the file. Created on demand so a spreadsheet
+  // can introduce one just by typing it in an element's Collections cell,
+  // without also having to add a ##COLLECTIONS row for it.
+  function ensureCollection(name: string): Collection {
+    const existing = collectionsByName.get(name)
+    if (existing) return existing
+    const created: Collection = { id: uuid(), name, definition: '', color: '#808080' }
+    collectionsByName.set(name, created)
+    return created
+  }
+
   // ── Elements ───────────────────────────────────────────────────────────────
   const elementsByName = new Map<string, Element>()
 
@@ -87,12 +128,14 @@ function parseFullSpreadsheet(text: string): ImportResult {
     const colorCol  = hdr.indexOf('color')
     const weightCol = hdr.indexOf('weight')
     const shapeCol  = hdr.indexOf('shape')
+    const collCol   = hdr.indexOf('collections')
 
     for (const row of elemRows.slice(1)) {
       const name = tc(row[nameCol])
       if (!name) continue
       const rawColor = tc(row[colorCol])
       const rawShape = tc(row[shapeCol])
+      const rawColls = collCol >= 0 ? tc(row[collCol]) : ''
       elementsByName.set(name, {
         id:         uuid(),
         name,
@@ -100,29 +143,12 @@ function parseFullSpreadsheet(text: string): ImportResult {
         color:      /^#[0-9a-fA-F]{6}$/.test(rawColor) ? rawColor : '#9d9d53',
         weight:     weightCol >= 0 ? Math.max(1, Math.min(100, parseInt(row[weightCol] ?? '') || 1)) : 1,
         shape:      (['circle', 'square', 'triangle', 'diamond'] as const).includes(rawShape as Element['shape'])
-                      ? rawShape as Element['shape'] : 'circle'
-      })
-    }
-  }
-
-  // ── Types ──────────────────────────────────────────────────────────────────
-  const typesByName = new Map<string, Type>()
-
-  const typeRows = sections['TYPES'] ?? []
-  if (typeRows.length >= 2) {
-    const hdr = typeRows[0].map(h => h.trim().toLowerCase())
-    const nameCol  = Math.max(0, hdr.indexOf('name'))
-    const defCol   = hdr.indexOf('definition')
-    const colorCol = hdr.indexOf('color')
-
-    for (const row of typeRows.slice(1)) {
-      const name = tc(row[nameCol])
-      if (!name) continue
-      typesByName.set(name, {
-        id:         uuid(),
-        name,
-        definition: defCol   >= 0 ? tc(row[defCol])   : '',
-        color:      colorCol >= 0 ? tc(row[colorCol]) || '#808080' : '#808080'
+                      ? rawShape as Element['shape'] : 'circle',
+        collectionIds: rawColls
+          .split(COLLECTION_SEPARATOR)
+          .map(n => n.trim())
+          .filter(n => n !== '')
+          .map(n => ensureCollection(n).id)
       })
     }
   }
@@ -159,42 +185,54 @@ function parseFullSpreadsheet(text: string): ImportResult {
 
   function ensureElement(name: string): Element {
     if (!elementsByName.has(name)) {
-      elementsByName.set(name, { id: uuid(), name, definition: '', color: '#9d9d53', weight: 1, shape: 'circle' })
+      elementsByName.set(name, {
+        id: uuid(), name, definition: '', color: '#9d9d53', weight: 1,
+        shape: 'circle', collectionIds: []
+      })
     }
     return elementsByName.get(name)!
   }
 
-  // ── Type scores ────────────────────────────────────────────────────────────
-  // When ##TYPES was present, columns are matched to types by position (N→N).
-  // Column headers are treated as human-readable labels only.
-  // When ##TYPES was absent, fall back to name-based find-or-create.
-  const typeScoreRows = sections['TYPE_SCORES'] ?? []
-  if (typeScoreRows.length >= 2) {
-    const colHeaders = typeScoreRows[0].slice(1).map(h => h.trim())
-    const typeList = [...typesByName.values()]
-    const usePositional = sections['TYPES'] !== undefined
+  // ── Legacy membership matrix ───────────────────────────────────────────────
+  // Files exported before membership became binary carry a ##TYPE_SCORES matrix
+  // of 0–1 values instead of a Collections column. A cell at or above
+  // MEMBERSHIP_CUTOFF is read as membership and everything below it is dropped,
+  // the same conversion applied to pre-5.0 .mtda files.
+  //
+  // Skipped entirely when the elements already declared their collections, so a
+  // hand-edited file that carries both is not overruled by the older section.
+  const legacyRows = sections['TYPE_SCORES'] ?? []
+  const declaredMembership = [...elementsByName.values()].some(el => el.collectionIds.length > 0)
 
-    const colTypes: (Type | null)[] = colHeaders.map((header, i) => {
+  if (legacyRows.length >= 2 && !declaredMembership) {
+    const colHeaders = legacyRows[0].slice(1).map(h => h.trim())
+    // With a ##TYPES section present, columns are matched to it by position and
+    // the headers are read as human-readable labels only; without one, the
+    // header names the collection.
+    const declared = [...collectionsByName.values()]
+    const usePositional = sections['TYPES'] !== undefined || sections['COLLECTIONS'] !== undefined
+
+    const colCollections: (Collection | null)[] = colHeaders.map((header, i) => {
       if (!header) return null
-      if (usePositional) return typeList[i] ?? null
-      if (!typesByName.has(header)) typesByName.set(header, { id: uuid(), name: header, definition: '', color: '#808080' })
-      return typesByName.get(header)!
+      return usePositional ? declared[i] ?? null : ensureCollection(header)
     })
 
-    for (const row of typeScoreRows.slice(1)) {
+    for (const row of legacyRows.slice(1)) {
       const elName = tc(row[0])
       if (!elName) continue
       const el = ensureElement(elName)
-      scores[el.id] = scores[el.id] ?? {}
 
       for (let j = 0; j < colHeaders.length; j++) {
-        const t = colTypes[j]
-        if (!t) continue
+        const collection = colCollections[j]
+        if (!collection) continue
         const cellVal = row[j + 1]?.trim()
         if (!cellVal) continue
         const v = parseFloat(cellVal)
-        if (isNaN(v)) warnings.push(`Type scores: "${elName}" × "${colHeaders[j]}": "${cellVal}" is not a number — skipped.`)
-        else scores[el.id][t.id] = Math.max(0, Math.min(1, v))
+        if (isNaN(v)) {
+          warnings.push(`Collection membership: "${elName}" × "${colHeaders[j]}": "${cellVal}" is not a number — skipped.`)
+        } else if (v >= MEMBERSHIP_CUTOFF && !el.collectionIds.includes(collection.id)) {
+          el.collectionIds.push(collection.id)
+        }
       }
     }
   }
@@ -245,7 +283,7 @@ function parseFullSpreadsheet(text: string): ImportResult {
   return {
     sessionMeta,
     elements:   [...elementsByName.values()],
-    types:      [...typesByName.values()],
+    collections: [...collectionsByName.values()],
     dimensions: [...dimensionsByName.values()],
     scores,
     scaleNote:  '0–1 (used as-is)',
@@ -330,7 +368,8 @@ function parseSimpleSpreadsheet(text: string): ImportResult {
   }
 
   const elements: Element[] = elementNames.map((name, i) => ({
-    id: uuid(), name, definition: elementDefinitions[i] ?? '', weight: 1, color: '#9d9d53', shape: 'circle' as const
+    id: uuid(), name, definition: elementDefinitions[i] ?? '', weight: 1,
+    color: '#9d9d53', shape: 'circle' as const, collectionIds: []
   }))
 
   const dimensions: Dimension[] = dimLabels.map(label => {
@@ -347,7 +386,7 @@ function parseSimpleSpreadsheet(text: string): ImportResult {
     }
   }
 
-  return { sessionMeta: defaultSessionMeta(), elements, types: [], dimensions, scores, scaleNote, warnings }
+  return { sessionMeta: defaultSessionMeta(), elements, collections: [], dimensions, scores, scaleNote, warnings }
 }
 
 // ── Section splitter ──────────────────────────────────────────────────────────

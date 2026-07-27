@@ -90,28 +90,6 @@
   margin: 0 0 4px;
 }
 
-.thresholdRow {
-  margin: 0 0 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.thresholdLabel {
-  font-size: 12px;
-  color: #444;
-}
-
-.thresholdSlider {
-  width: 100%;
-  accent-color: #708040;
-}
-
-.thresholdHint {
-  font-size: 11px;
-  color: #888;
-}
-
 .buttons {
   display: flex;
   justify-content: flex-end;

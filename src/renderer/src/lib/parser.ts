@@ -15,26 +15,35 @@
 //               old files still load unchanged.
 //   within 4.0: map.showTypes (boolean) + map.typeIds (element filter, empty =
 //               all) → map.typeIds alone (blob selection, empty = none) — see
-//               readTypeIds. This one genuinely reinterprets a saved field.
+//               readShownCollectionIds. Genuinely reinterprets a saved field.
+//   4.0 → 5.0: types[] → collections[], and membership stopped being a score.
+//               The 0–1 values under collection IDs in scores[] become
+//               element.collectionIds — see liftMemberships. map.threshold is
+//               read and dropped; map.typeIds → map.shownCollectionIds;
+//               colorMode 'type' → 'collection'.
 
-import type { AppState, ColorMode, MarkMode, Element, Type, Dimension, MapConfig, SessionMeta } from './types'
+import type { AppState, ColorMode, MarkMode, Element, Collection, Dimension, MapConfig, SessionMeta } from './types'
 import { defaultCategories, defaultSessionMeta, parsePoles } from './types'
 
-const FORMAT_VERSION = '4.0'
+const FORMAT_VERSION = '5.0'
 
-const COLOR_MODES: ColorMode[] = ['none', 'element', 'type']
+const SUPPORTED_VERSIONS = ['3.0', '4.0', FORMAT_VERSION]
+
+const COLOR_MODES: ColorMode[] = ['none', 'element', 'collection']
 
 /**
- * Reads a map's color mode, tolerating the showColors boolean it replaced.
+ * Reads a map's color mode, tolerating both older spellings.
  *
- * Files written before the change carry only the boolean, where true (or a
- * missing key) meant element colors and false meant neutral gray — so those two
- * states map onto 'element' and 'none' with nothing lost. An unrecognized
- * colorMode value falls through to 'element', matching how every other field
- * here degrades to a safe default rather than throwing.
+ * 'type' was this mode's name until collections were named collections, so it
+ * maps straight across. Older still are files carrying only a showColors
+ * boolean, where true (or a missing key) meant element colors and false meant
+ * neutral gray — those two states map onto 'element' and 'none' with nothing
+ * lost. An unrecognized value falls through to 'element', matching how every
+ * other field here degrades to a safe default rather than throwing.
  */
 function readColorMode(m: Record<string, unknown>): ColorMode {
   if (COLOR_MODES.includes(m.colorMode as ColorMode)) return m.colorMode as ColorMode
+  if (m.colorMode === 'type') return 'collection'
   return m.showColors === false ? 'none' : 'element'
 }
 
@@ -54,32 +63,96 @@ function readMarkMode(m: Record<string, unknown>): MarkMode {
 }
 
 /**
- * Reads which types a cartesian map draws blobs for, reinterpreting the older
- * pairing of a showTypes flag with a typeIds element filter.
+ * Reads which collections a cartesian map draws blobs for, reinterpreting the
+ * older pairing of a showTypes flag with a typeIds element filter.
  *
  * The meaning of an empty list inverted, so this is the one migration here that
  * cannot simply leave a field alone: it used to mean "every type", and now means
  * "no blobs". A map that was showing its overlay with no explicit selection is
- * expanded to the full type list, which is what it was drawing.
+ * expanded to the full collection list, which is what it was drawing.
  *
- * Types created after the file was saved are deliberately not picked up by that
- * expansion — under the new rule a type is drawn because it was chosen, and
+ * Collections created after the file was saved are deliberately not picked up by
+ * that expansion — under the new rule a blob is drawn because it was chosen, and
  * nothing chose those.
  *
- * `wasTypeMap` covers pre-merge type-projection maps, which drew every blob but
- * predate showTypes and so never stored it.
+ * `wasCollectionMap` covers pre-merge type-projection maps, which drew every
+ * blob but predate showTypes and so never stored it.
  */
-function readTypeIds(m: Record<string, unknown>, types: Type[], wasTypeMap: boolean): string[] {
-  const saved = Array.isArray(m.typeIds) ? m.typeIds as string[] : []
-  const expand = (): string[] => saved.length > 0 ? saved : types.map(t => t.id)
+function readShownCollectionIds(
+  m: Record<string, unknown>,
+  collections: Collection[],
+  wasCollectionMap: boolean
+): string[] {
+  const saved = Array.isArray(m.shownCollectionIds) ? m.shownCollectionIds as string[]
+              : Array.isArray(m.typeIds)            ? m.typeIds            as string[]
+              : []
+  const expand = (): string[] => saved.length > 0 ? saved : collections.map(c => c.id)
 
   if (typeof m.showTypes === 'boolean') return m.showTypes ? expand() : []
-  if (wasTypeMap) return expand()
+  if (wasCollectionMap) return expand()
 
   // No showTypes to reconcile and not a type-projection map: either already
   // written under the new rule, or old enough to predate blobs entirely — in
   // which case saved is empty and "no blobs" is right either way.
   return saved
+}
+
+// The membership score at or above which a legacy element counts as a member.
+// Every map shipped with its threshold slider defaulting to this value, so
+// converting at the same cutoff brings an old session's blobs back the shape
+// they were last seen in.
+//
+// Exported because the spreadsheet importer faces the same question when it
+// reads a legacy ##TYPE_SCORES matrix, and the two must answer it identically —
+// the same analysis exported as TSV and saved as .mtda has to come back the
+// same either way.
+export const MEMBERSHIP_CUTOFF = 0.5
+
+/**
+ * Moves pre-5.0 membership out of the score map and onto the elements.
+ *
+ * Through 4.0 a membership was a 0–1 score sharing the score map with dimension
+ * scores, and each map decided who counted by comparing it against its own
+ * threshold slider. Membership is binary now, so one cutoff replaces every
+ * slider, and the collection keys are stripped from the score map as they are
+ * lifted — leaving it holding dimension scores and nothing else.
+ *
+ * Score rows for elements that no longer exist are passed through untouched,
+ * matching how this format has always tolerated orphaned keys.
+ */
+function liftMemberships(
+  elements: Element[],
+  collections: Collection[],
+  scores: AppState['scores']
+): { elements: Element[]; scores: AppState['scores'] } {
+  const collectionIds = new Set(collections.map(c => c.id))
+  const lifted: AppState['scores'] = {}
+
+  const migrated = elements.map(el => {
+    const row = scores[el.id]
+    if (!row) return el
+
+    const dimensionScores: Record<string, number | undefined> = {}
+    for (const [key, value] of Object.entries(row)) {
+      if (!collectionIds.has(key)) dimensionScores[key] = value
+    }
+    lifted[el.id] = dimensionScores
+
+    // Built by walking `collections` rather than the score row so membership
+    // order matches the order collections are displayed in everywhere else.
+    return {
+      ...el,
+      collectionIds: collections
+        .filter(c => (row[c.id] ?? 0) >= MEMBERSHIP_CUTOFF)
+        .map(c => c.id)
+    }
+  })
+
+  for (const [elementId, row] of Object.entries(scores)) {
+    if (!(elementId in lifted)) lifted[elementId] = row
+  }
+
+  return { elements: migrated, scores: lifted }
 }
 
 /**
@@ -92,7 +165,7 @@ export function serializeSession(state: AppState): string {
     version: FORMAT_VERSION,
     sessionMeta: state.sessionMeta,
     elements: state.elements,
-    types: state.types,
+    collections: state.collections,
     dimensions: state.dimensions,
     scores: state.scores,
     maps: state.maps
@@ -101,8 +174,8 @@ export function serializeSession(state: AppState): string {
 
 /**
  * Parses a JSON string back into a fresh AppState.
- * Accepts version 3.0 (migrates description→definition, adds sessionMeta/types)
- * and version 4.0. Throws if the JSON is malformed or the version is unrecognized.
+ * Accepts versions 3.0, 4.0 and 5.0 — see the migration table at the top of
+ * this file. Throws if the JSON is malformed or the version is unrecognized.
  * All optional fields are filled with safe defaults to handle old files.
  */
 export function deserializeSession(json: string): AppState {
@@ -110,7 +183,7 @@ export function deserializeSession(json: string): AppState {
 
   if (!raw || typeof raw !== 'object') throw new Error('Invalid file format')
   const version = raw.version
-  if (version !== FORMAT_VERSION && version !== '3.0') {
+  if (!SUPPORTED_VERSIONS.includes(version)) {
     throw new Error(`Unsupported file version: ${version}`)
   }
 
@@ -123,6 +196,18 @@ export function deserializeSession(json: string): AppState {
       }
     : defaultSessionMeta()
 
+  // ── Collections (added in 4.0 as 'types', renamed in 5.0) ────────────────
+  // Read before elements: an element's memberships are validated against this
+  // list, whether they were stored on it or lifted out of the score map below.
+  const collections: Collection[] = (raw.collections ?? raw.types ?? []).map((c: Record<string, unknown>) => ({
+    id:         requireString(c.id, 'collection.id'),
+    name:       typeof c.name       === 'string' ? c.name       : '',
+    definition: typeof c.definition === 'string' ? c.definition : '',
+    color:      typeof c.color      === 'string' ? c.color      : '#808080'
+  }))
+
+  const knownCollectionIds = new Set(collections.map(c => c.id))
+
   // ── Elements ─────────────────────────────────────────────────────────────
   const elements: Element[] = (raw.elements ?? []).map((e: Record<string, unknown>) => ({
     id:         requireString(e.id, 'element.id'),
@@ -133,15 +218,16 @@ export function deserializeSession(json: string): AppState {
     weight:     typeof e.weight === 'number' ? e.weight : 1,
     color:      typeof e.color  === 'string' ? e.color  : '#9d9d53',
     shape:      (['circle', 'square', 'triangle', 'diamond'].includes(e.shape as string)
-                  ? e.shape : 'circle') as Element['shape']
-  }))
-
-  // ── Types (new in 4.0) ───────────────────────────────────────────────────
-  const types: Type[] = (raw.types ?? []).map((t: Record<string, unknown>) => ({
-    id:         requireString(t.id, 'type.id'),
-    name:       typeof t.name       === 'string' ? t.name       : '',
-    definition: typeof t.definition === 'string' ? t.definition : '',
-    color:      typeof t.color      === 'string' ? t.color      : '#808080'
+                  ? e.shape : 'circle') as Element['shape'],
+    // Present only in 5.0 files; pre-5.0 elements get theirs from
+    // liftMemberships below. IDs naming a collection that no longer exists are
+    // dropped rather than carried as invisible cruft — nothing renders them,
+    // and removeCollection prunes the same way.
+    collectionIds: Array.isArray(e.collectionIds)
+      ? (e.collectionIds as unknown[]).filter(
+          (id): id is string => typeof id === 'string' && knownCollectionIds.has(id)
+        )
+      : []
   }))
 
   // ── Dimensions ───────────────────────────────────────────────────────────
@@ -183,20 +269,20 @@ export function deserializeSession(json: string): AppState {
     }
 
     if (m.type === 'cartesian' || m.type === 'typeprojection') {
-      // A pre-merge type-projection map becomes a cartesian map with the type
-      // overlay already switched on, so it opens looking as it did before.
-      // blobStyle is dropped — the merged map always draws freeform blobs.
-      const wasTypeMap = m.type === 'typeprojection'
+      // A pre-merge type-projection map becomes a cartesian map with the
+      // collection overlay already switched on, so it opens looking as it did
+      // before. blobStyle is dropped — the merged map always draws freeform
+      // blobs — as is threshold, which no longer has anything to threshold.
+      const wasCollectionMap = m.type === 'typeprojection'
       return {
         ...base,
         type:         'cartesian' as const,
-        title:        typeof m.title === 'string' ? m.title : (wasTypeMap ? 'Type Map' : 'Map'),
+        title:        typeof m.title === 'string' ? m.title : (wasCollectionMap ? 'Collection Map' : 'Map'),
         xDimensionId: typeof m.xDimensionId === 'string' ? m.xDimensionId : '',
         yDimensionId: typeof m.yDimensionId === 'string' ? m.yDimensionId : '',
         xFlipped:     m.xFlipped === true,
         yFlipped:     m.yFlipped === true,
-        typeIds:      readTypeIds(m, types, wasTypeMap),
-        threshold:    typeof m.threshold === 'number' ? m.threshold : 0.5
+        shownCollectionIds: readShownCollectionIds(m, collections, wasCollectionMap)
       }
     }
     if (m.type === 'semantic') {
@@ -216,18 +302,26 @@ export function deserializeSession(json: string): AppState {
     throw new Error(`Unknown map type: ${m.type}`)
   })
 
+  // Pre-5.0 files carry membership as scores; 5.0 files already have it on the
+  // elements, where re-running the lift would find no collection keys to move
+  // and hand back empty memberships.
+  const rawScores = (raw.scores as AppState['scores']) ?? {}
+  const migrated = version === FORMAT_VERSION
+    ? { elements, scores: rawScores }
+    : liftMemberships(elements, collections, rawScores)
+
   return {
     filePath: null,           // always reset on open — caller sets it from the actual path
     isDirty: false,
     sessionMeta,
-    elements,
-    types,
+    elements: migrated.elements,
+    collections,
     dimensions,
-    scores: (raw.scores as AppState['scores']) ?? {},
+    scores: migrated.scores,
     maps,
     selectedElementId: null,
     selectedDimensionId: null,
-    selectedTypeId: null,
+    selectedCollectionId: null,
     activeTab: 'elements'
   }
 }

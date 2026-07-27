@@ -1,8 +1,8 @@
 // ── Application state store ───────────────────────────────────────────────────
 //
-// Single source of truth for all session data: elements, types, dimensions,
-// scores, and map configurations. Built with Zustand so any component can
-// subscribe to exactly the slice it needs without prop drilling.
+// Single source of truth for all session data: elements, collections,
+// dimensions, scores, and map configurations. Built with Zustand so any
+// component can subscribe to exactly the slice it needs without prop drilling.
 //
 // Architecture note:
 //   The Score Window (App.tsx) subscribes to this store and broadcasts the
@@ -14,17 +14,16 @@
 import { create } from 'zustand'
 import { v4 as uuid } from 'uuid'
 import type {
-  AppState, Element, Type, Dimension, DimensionCategories, SessionMeta,
-  MapConfig, CartesianMapConfig, SemanticMapConfig,
-  ElementShape, ScoreMap, TypeColorMethod
+  AppState, Element, Collection, Dimension, DimensionCategories, SessionMeta,
+  MapConfig, CartesianMapConfig, SemanticMapConfig, ElementShape
 } from '../lib/types'
-import { DEFAULT_TYPE_COLOR, paletteColor, blendTypeColors, dominantType } from '../lib/color'
+import { DEFAULT_COLLECTION_COLOR, paletteColor, mixCollectionColors } from '../lib/color'
 import { defaultCategories, defaultSessionMeta, parsePoles } from '../lib/types'
 import { usePrefsStore } from './prefsStore'
 
 // ── Store interface ───────────────────────────────────────────────────────────
 
-/** One score write: element × (dimension or type) → value. */
+/** One score write: element × dimension → value. */
 export interface ScoreEntry {
   elementId: string
   targetId:  string
@@ -41,18 +40,22 @@ interface AppStore extends AppState {
   updateElement:    (id: string, changes: Partial<Element>) => void
   removeElement:    (id: string) => void
 
-  // Types
-  addType:    (name: string, id?: string) => string
-  updateType: (id: string, changes: Partial<Type>) => void
-  removeType: (id: string) => void
-  assignPaletteToUncoloredTypes: () => void
+  // Collections
+  addCollection:    (name: string, id?: string) => string
+  updateCollection: (id: string, changes: Partial<Collection>) => void
+  removeCollection: (id: string) => void
+  assignPaletteToUncoloredCollections: () => void
+
+  // Membership — binary, and an attribute of the element like its color or shape
+  toggleElementCollection: (elementId: string, collectionId: string) => void
+  setElementsCollection:   (elementIds: string[], collectionId: string, member: boolean) => void
 
   // Dimensions
   addDimension:    (label: string, categories?: DimensionCategories) => void
   updateDimension: (id: string, changes: Partial<Dimension>) => void
   removeDimension: (id: string) => void
 
-  // Scores (covers both dimension scores and type membership scores)
+  // Scores (dimension scores; membership is not a score — see above)
   setScore:   (elementId: string, targetId: string, value: number) => void
   setScores:  (entries: ScoreEntry[]) => void
   clearScore: (elementId: string, targetId: string) => void
@@ -72,24 +75,23 @@ interface AppStore extends AppState {
   spreadDimensionScores: (dimensionId: string) => void
   randomizeWeights:  () => void
   randomizeColors:   () => void
-  typeToElementColor: (method: TypeColorMethod) => void
-  typeToElementShape: () => void
-  shapeToColor:       () => void
-  colorToShape:       () => void
-  shapeToType:        () => void
+  collectionToElementColor: () => void
+  collectionToElementShape: () => void
+  shapeToColor:             () => void
+  colorToShape:             () => void
+  shapeToCollection:        () => void
 
   // Score Window navigation
-  selectElement:   (id: string | null) => void
-  selectDimension: (id: string | null) => void
-  selectType:      (id: string | null) => void
-  setActiveTab:    (tab: AppState['activeTab']) => void
+  selectElement:    (id: string | null) => void
+  selectDimension:  (id: string | null) => void
+  selectCollection: (id: string | null) => void
+  setActiveTab:     (tab: AppState['activeTab']) => void
 
   // Multi-select (not persisted; synced across map windows via multiSelection:update IPC)
   selectedElementIds:     string[]
   selectElements:          (ids: string[]) => void
   toggleElementSelection:  (id: string) => void
   clearElementSelection:   () => void
-  bulkUpdateElements:      (ids: string[], changes: Partial<Element>) => void
 
   // Session lifecycle
   loadSession:  (state: AppState) => void
@@ -104,13 +106,13 @@ const emptyState: AppState = {
   isDirty: false,
   sessionMeta: defaultSessionMeta(),
   elements: [],
-  types: [],
+  collections: [],
   dimensions: [],
   scores: {},
   maps: [],
   selectedElementId: null,
   selectedDimensionId: null,
-  selectedTypeId: null,
+  selectedCollectionId: null,
   activeTab: 'elements'
 }
 
@@ -163,13 +165,17 @@ export const useAppStore = create<AppStore>((set) => ({
 
   addElement: (name, color) => set((s) => {
     const resolvedColor = color ?? usePrefsStore.getState().prefs.defaultElementColor
-    const el: Element = { id: uuid(), name, definition: '', weight: 1, color: resolvedColor, shape: 'circle' }
+    const el: Element = {
+      id: uuid(), name, definition: '', weight: 1,
+      color: resolvedColor, shape: 'circle', collectionIds: []
+    }
     return { elements: [...s.elements, el], isDirty: true }
   }),
 
   // Creates a copy of the element immediately after the original in the list.
   // The copy gets a new UUID, a " copy" name suffix, and all scores from the
-  // original so it starts positioned identically on every map.
+  // original so it starts positioned identically on every map. Its memberships
+  // ride along in the spread, so it also starts inside the same blobs.
   duplicateElement: (id) => set((s) => {
     const original = s.elements.find(e => e.id === id)
     if (!original) return s
@@ -206,51 +212,84 @@ export const useAppStore = create<AppStore>((set) => ({
     }
   }),
 
-  // ── Types ────────────────────────────────────────────────────────────────────
+  // ── Collections ──────────────────────────────────────────────────────────────
 
-  // New types take the next palette color rather than a shared default gray.
-  // A gray default made every type identical, so coloring a map by type looked
-  // broken and — worse — dragged multi-type blends toward gray.
-  addType: (name, id) => {
+  // New collections take the next palette color rather than a shared default
+  // gray. A gray default made every collection identical, so coloring a map by
+  // collection looked broken and — worse — dragged multi-collection mixes
+  // toward gray.
+  addCollection: (name, id) => {
     const newId = id ?? uuid()
     set((s) => ({
-      types: [...s.types, { id: newId, name, definition: '', color: paletteColor(s.types.length) }],
+      collections: [...s.collections, { id: newId, name, definition: '', color: paletteColor(s.collections.length) }],
       isDirty: true
     }))
     return newId
   },
 
-  // Fills in palette colors for types still sitting on the legacy default gray,
-  // leaving any deliberately chosen color alone. Idempotent, and the only way
-  // to make type coloring useful on a session created before the palette
-  // existed without recoloring every type by hand.
-  assignPaletteToUncoloredTypes: () => set((s) => ({
-    types: s.types.map((t, i) =>
-      t.color === DEFAULT_TYPE_COLOR ? { ...t, color: paletteColor(i) } : t
+  // Fills in palette colors for collections still sitting on the legacy default
+  // gray, leaving any deliberately chosen color alone. Idempotent, and the only
+  // way to make collection coloring useful on a session created before the
+  // palette existed without recoloring every collection by hand.
+  assignPaletteToUncoloredCollections: () => set((s) => ({
+    collections: s.collections.map((c, i) =>
+      c.color === DEFAULT_COLLECTION_COLOR ? { ...c, color: paletteColor(i) } : c
     ),
     isDirty: true
   })),
 
-  updateType: (id, changes) => set((s) => ({
-    types: s.types.map(t => t.id === id ? { ...t, ...changes } : t),
+  updateCollection: (id, changes) => set((s) => ({
+    collections: s.collections.map(c => c.id === id ? { ...c, ...changes } : c),
     isDirty: true
   })),
 
-  // Removes the type and prunes all type-membership scores from the ScoreMap.
-  removeType: (id) => set((s) => {
-    const remaining = s.types.filter(t => t.id !== id)
-    const scores: typeof s.scores = {}
-    for (const [elId, elScores] of Object.entries(s.scores)) {
-      const { [id]: _removed, ...rest } = elScores
-      scores[elId] = rest
-    }
-    return {
-      types: remaining,
-      scores,
-      selectedTypeId: s.selectedTypeId === id ? null : s.selectedTypeId,
-      isDirty: true
-    }
-  }),
+  // Removes the collection and drops it from every element that belonged to it,
+  // so no element is left pointing at a collection that no longer exists.
+  removeCollection: (id) => set((s) => ({
+    collections: s.collections.filter(c => c.id !== id),
+    elements: s.elements.map(el => el.collectionIds.includes(id)
+      ? { ...el, collectionIds: el.collectionIds.filter(cid => cid !== id) }
+      : el),
+    selectedCollectionId: s.selectedCollectionId === id ? null : s.selectedCollectionId,
+    isDirty: true
+  })),
+
+  // ── Membership ───────────────────────────────────────────────────────────────
+  //
+  // Both actions go through updateElement's shape rather than a score write:
+  // membership is an element attribute now, so assigning one is the same kind
+  // of edit as recoloring, and it rides the same element:update IPC to the
+  // other windows.
+
+  toggleElementCollection: (elementId, collectionId) => set((s) => ({
+    elements: s.elements.map(el => {
+      if (el.id !== elementId) return el
+      return {
+        ...el,
+        collectionIds: el.collectionIds.includes(collectionId)
+          ? el.collectionIds.filter(id => id !== collectionId)
+          : [...el.collectionIds, collectionId]
+      }
+    }),
+    isDirty: true
+  })),
+
+  // Drives every listed element to the same membership state, rather than
+  // flipping each independently — a mixed selection resolves to one answer.
+  setElementsCollection: (elementIds, collectionId, member) => set((s) => ({
+    elements: s.elements.map(el => {
+      if (!elementIds.includes(el.id)) return el
+      const has = el.collectionIds.includes(collectionId)
+      if (has === member) return el
+      return {
+        ...el,
+        collectionIds: member
+          ? [...el.collectionIds, collectionId]
+          : el.collectionIds.filter(id => id !== collectionId)
+      }
+    }),
+    isDirty: true
+  })),
 
   // ── Dimensions ──────────────────────────────────────────────────────────────
 
@@ -460,44 +499,38 @@ export const useAppStore = create<AppStore>((set) => ({
     isDirty: true
   })),
 
-  // Bakes type color into each element's own color attribute.
+  // Bakes collection color into each element's own color attribute: the even
+  // mix of every collection it belongs to, which is exactly what a map colored
+  // by collection draws live.
   //
-  //   'dominant' — the color of the single type the element belongs to most
-  //   'blend'    — all its type colors mixed by membership strength, the same
-  //                blend a map colored by type computes live
-  //
-  // Elements belonging to no type keep the color they have: there is nothing
-  // to derive one from, and blanking them would destroy data the conversion
-  // was never asked about.
-  //
-  // Unlike the map, this uses a threshold of 0 — every non-zero membership
-  // counts. A conversion has no map to borrow a threshold from, so a heavily
-  // thresholded map can legitimately show a different color than this bakes in.
+  // Elements belonging to no collection keep the color they have: there is
+  // nothing to derive one from, and blanking them would destroy data the
+  // conversion was never asked about.
   //
   // This overwrites element colors irreversibly (the app has no undo), matching
   // how the other → Element color conversions already behave.
-  typeToElementColor: (method) => set((s) => ({
+  collectionToElementColor: () => set((s) => ({
     elements: s.elements.map(el => {
-      const color = method === 'blend'
-        ? blendTypeColors(el, s.types, s.scores, 0)
-        : dominantType(el, s.types, s.scores)?.color ?? null
+      const color = mixCollectionColors(el, s.collections)
       return color !== null ? { ...el, color } : el
     }),
     isDirty: true
   })),
 
-  // Sets each element's shape from its dominant type, assigning shapes by type
-  // creation order (circle, square, triangle, diamond, cycling). Elements with
-  // no type scores are left unchanged.
-  typeToElementShape: () => set((s) => ({
+  // Sets each element's shape from the first collection it belongs to,
+  // assigning shapes by collection order (circle, square, triangle, diamond,
+  // cycling). Elements in no collection are left unchanged.
+  //
+  // "First" is the tie-break a multi-collection element needs and membership no
+  // longer supplies: with binary membership there is no strongest collection to
+  // prefer, so this takes the earliest in the session's own ordering — the same
+  // order the shape sequence is assigned in, which keeps the mapping readable.
+  collectionToElementShape: () => set((s) => ({
     elements: s.elements.map(el => {
-      let bestScore = -1
-      let bestShape: ElementShape | null = null
-      s.types.forEach((t, i) => {
-        const score = s.scores[el.id]?.[t.id] ?? -1
-        if (score > bestScore) { bestScore = score; bestShape = SHAPE_SEQUENCE[i % SHAPE_SEQUENCE.length] }
-      })
-      return bestShape !== null && bestScore >= 0 ? { ...el, shape: bestShape } : el
+      const index = s.collections.findIndex(c => el.collectionIds.includes(c.id))
+      return index === -1
+        ? el
+        : { ...el, shape: SHAPE_SEQUENCE[index % SHAPE_SEQUENCE.length] }
     }),
     isDirty: true
   })),
@@ -514,30 +547,33 @@ export const useAppStore = create<AppStore>((set) => ({
     isDirty: true
   })),
 
-  // Sets type membership scores based on each element's shape. Type assignment
-  // mirrors typeToElementShape: 1st type=circle, 2nd=square, 3rd=triangle,
-  // 4th=diamond (cycling). Sets 1.0 for the matched type, 0.0 for all others.
-  shapeToType: () => set((s) => {
-    const newScores = { ...s.scores }
-    for (const el of s.elements) {
+  // Sets membership from each element's shape, mirroring
+  // collectionToElementShape: 1st collection=circle, 2nd=square, 3rd=triangle,
+  // 4th=diamond (cycling).
+  //
+  // Membership is replaced outright rather than added to, so the result reads
+  // straight off the shapes with no residue from whatever was assigned before.
+  // With more than four collections a shape matches every fourth one, so an
+  // element can come out of this in several at once.
+  shapeToCollection: () => set((s) => ({
+    elements: s.elements.map(el => {
       const shapeIdx = SHAPE_SEQUENCE.indexOf(el.shape)
-      // Derived from ScoreMap rather than restated: a score is legitimately
-      // absent for an unscored pair, so the row type carries `| undefined` and
-      // a literal Record<string, number> here would contradict what it is
-      // written back into.
-      const elScores: ScoreMap[string] = { ...newScores[el.id] }
-      s.types.forEach((t, i) => { elScores[t.id] = i % SHAPE_SEQUENCE.length === shapeIdx ? 1 : 0 })
-      newScores[el.id] = elScores
-    }
-    return { scores: newScores, isDirty: true }
-  }),
+      return {
+        ...el,
+        collectionIds: s.collections
+          .filter((_, i) => i % SHAPE_SEQUENCE.length === shapeIdx)
+          .map(c => c.id)
+      }
+    }),
+    isDirty: true
+  })),
 
   // ── Navigation ───────────────────────────────────────────────────────────────
 
-  selectElement:   (id) => set({ selectedElementId: id }),
-  selectDimension: (id) => set({ selectedDimensionId: id }),
-  selectType:      (id) => set({ selectedTypeId: id }),
-  setActiveTab:    (tab) => set({ activeTab: tab }),
+  selectElement:    (id) => set({ selectedElementId: id }),
+  selectDimension:  (id) => set({ selectedDimensionId: id }),
+  selectCollection: (id) => set({ selectedCollectionId: id }),
+  setActiveTab:     (tab) => set({ activeTab: tab }),
 
   selectElements:         (ids) => set({ selectedElementIds: ids }),
   toggleElementSelection: (id) => set((s) => ({
@@ -546,10 +582,6 @@ export const useAppStore = create<AppStore>((set) => ({
       : [...s.selectedElementIds, id]
   })),
   clearElementSelection:  () => set({ selectedElementIds: [] }),
-  bulkUpdateElements:     (ids, changes) => set((s) => ({
-    elements: s.elements.map(e => ids.includes(e.id) ? { ...e, ...changes } : e),
-    isDirty: true
-  })),
 
   // ── Session lifecycle ────────────────────────────────────────────────────────
 

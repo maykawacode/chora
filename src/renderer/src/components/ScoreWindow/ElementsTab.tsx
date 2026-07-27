@@ -4,8 +4,8 @@
 // bottom, and keyboard navigation (↑ ↓ for selection, Delete/Backspace to
 // trigger delete).
 //
-// Right pane: detail editor for the selected element (name, color, weight,
-// description).
+// Right pane: detail editor for the selected element (name, color, shape,
+// collections, weight, description).
 //
 // Delete behavior:
 //   - If confirmDeleteElement pref is ON → shows an inline confirmation overlay
@@ -28,12 +28,14 @@ const SHAPE_SYMBOL: Record<ElementShape, string> = {
 
 export function ElementsTab(): React.JSX.Element {
   const elements         = useAppStore(s => s.elements)
+  const collections      = useAppStore(s => s.collections)
   const selectedId       = useAppStore(s => s.selectedElementId)
   const addElement       = useAppStore(s => s.addElement)
   const duplicateElement = useAppStore(s => s.duplicateElement)
   const updateElement    = useAppStore(s => s.updateElement)
   const removeElement    = useAppStore(s => s.removeElement)
   const selectElement    = useAppStore(s => s.selectElement)
+  const toggleCollection = useAppStore(s => s.toggleElementCollection)
   const prefs            = usePrefsStore(s => s.prefs)
 
   const selected    = elements.find(e => e.id === selectedId) ?? null
@@ -236,6 +238,42 @@ export function ElementsTab(): React.JSX.Element {
               </button>
             ))}
           </div>
+        </div>
+        {/* Membership sits with color and shape because it now behaves like
+            them: a binary attribute of the element, set right here, rather than
+            a score entered on a separate tab. */}
+        <div className={`${styles.fieldRow} ${styles.fieldRowTop}`}>
+          <label className={styles.label}>Collections</label>
+          {collections.length === 0
+            ? <span className={styles.fieldHint}>None defined — add some on the Collections tab.</span>
+            : (
+              <div className={styles.collectionPicker}>
+                {collections.map(collection => {
+                  const member = selected?.collectionIds.includes(collection.id) ?? false
+                  return (
+                    <button
+                      key={collection.id}
+                      type="button"
+                      className={`${styles.collectionChip} ${member ? styles.collectionChipOn : ''}`}
+                      disabled={!selected}
+                      aria-pressed={member}
+                      onClick={() => selected && toggleCollection(selected.id, collection.id)}
+                    >
+                      <span
+                        className={styles.collectionSwatch}
+                        style={member
+                          ? { background: collection.color, borderColor: collection.color }
+                          : { background: 'transparent', borderColor: collection.color }}
+                      />
+                      <span className={styles.collectionChipName}>
+                        {collection.name || 'Untitled collection'}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+            )
+          }
         </div>
         <div className={styles.fieldRow}>
           <label className={styles.label}>Weight</label>

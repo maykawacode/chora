@@ -10,7 +10,7 @@
 //   - Score 1.0 maps to the right end
 //   - Axes are evenly spaced vertically within the canvas
 
-import type { SemanticMapConfig, Element, Type, Dimension, ScoreMap } from '../../../lib/types'
+import type { SemanticMapConfig, Element, Collection, Dimension, ScoreMap } from '../../../lib/types'
 // labelFont and LABEL_SIZE_DEFAULT are defined once in drawCartesian and shared
 // here so there is a single source of truth for map typography.
 import { labelFont, LABEL_SIZE_DEFAULT } from '../cartesian/drawCartesian'
@@ -52,7 +52,7 @@ export function drawSemantic(
   H: number,
   config: SemanticMapConfig,
   elements: Element[],
-  types: Type[],
+  collections: Collection[],
   dimensions: Dimension[],
   scores: ScoreMap,
   draggingElementId?: string,
@@ -148,10 +148,8 @@ export function drawSemantic(
   for (const el of drawOrder) {
     const shapeIndex = markShapeIndex(config.marks, el)
     // No blobs on a semantic map, so nothing can claim an element's color ahead
-    // of the mode — hence the empty shown list. The threshold is 0 for the same
-    // reason: with no blob membership to agree with, every non-zero membership
-    // counts when coloring by collection.
-    const color      = resolveElementColor(config.colorMode, el, types, [], scores, 0)
+    // of the mode — hence the empty shown list.
+    const color      = resolveElementColor(config.colorMode, el, collections, [])
     const dotR       = semDotRadius(config, el.weight)
     const points: Array<{ x: number; y: number }> = []
 

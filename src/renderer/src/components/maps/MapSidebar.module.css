@@ -88,8 +88,8 @@
   white-space: nowrap;
 }
 
-/* Tabular figures so the counts form a column instead of shifting as the
-   threshold slider changes them. */
+/* Tabular figures so the counts form a column instead of shifting in width as
+   members are assigned and unassigned. */
 .collectionCount {
   flex: none;
   font-size: 11px;
@@ -107,33 +107,8 @@
   border-radius: 2px;
 }
 
-.slider {
-  display: block;
-  padding: 6px 0 2px;
-}
-
-.sliderLabel {
-  display: flex;
-  justify-content: space-between;
-  font-size: 11px;
-  color: #555;
-  margin-bottom: 2px;
-}
-
-.sliderValue {
-  font-variant-numeric: tabular-nums;
-  color: #222;
-  font-weight: 600;
-}
-
-.slider input {
-  width: 100%;
-  margin: 0;
-  cursor: pointer;
-}
-
 /* ── Setting rows ─────────────────────────────────────────────────────────────
-   A setting reads as a sentence — "Color: by type" — with the value itself as
+   A setting reads as a sentence — "Color: by collection" — with the value itself as
    the control. No label above it, no box drawn around it, no caret. Binary
    settings flip on click and multi-option ones open a menu, but the two are
    indistinguishable at rest by design — hover is the only affordance, and it

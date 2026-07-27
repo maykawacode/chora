@@ -146,12 +146,12 @@ export function App(): React.JSX.Element {
       window.api.broadcastState(JSON.stringify({ isDirty: s.isDirty, filePath: s.filePath, session: serializeSession(s), selectedElementId: s.selectedElementId }))
     })
 
-    // New type created inline from a map window modal. Suppress re-broadcast —
-    // the subsequent onElementUpdate will push the full state (with the new type
-    // and its scores) once the modal closes.
-    const removeTypeAdd = window.api.onTypeAdd((id, name) => {
+    // New collection created inline from a map window modal. Suppress
+    // re-broadcast — the subsequent onElementUpdate pushes the full state, with
+    // the new collection and the memberships naming it, once the modal closes.
+    const removeCollectionAdd = window.api.onCollectionAdd((id, name) => {
       suppressBroadcast.current = true
-      useAppStore.getState().addType(name, id)
+      useAppStore.getState().addCollection(name, id)
       suppressBroadcast.current = false
     })
 
@@ -164,7 +164,7 @@ export function App(): React.JSX.Element {
       }
     })
 
-    return () => { removeScore(); removeConfig(); removeMapClosed(); removeElementUpdate(); removeTypeAdd(); removeQuitRequested() }
+    return () => { removeScore(); removeConfig(); removeMapClosed(); removeElementUpdate(); removeCollectionAdd(); removeQuitRequested() }
   }, [])
 
   // ── Selection sync ────────────────────────────────────────────────────────────
@@ -332,16 +332,16 @@ export function App(): React.JSX.Element {
           result={importPreview.result}
           onCancel={() => setImportPreview(null)}
           onConfirm={() => {
-            const { sessionMeta, elements, types, dimensions, scores } = importPreview.result
+            const { sessionMeta, elements, collections, dimensions, scores } = importPreview.result
             loadSession({
               filePath: null, isDirty: true,
-              sessionMeta, elements, types, dimensions, scores, maps: [],
+              sessionMeta, elements, collections, dimensions, scores, maps: [],
               // Selection defaults to none — consistent with the rest of the app.
               // Previously auto-selected the first element/dimension, which
               // contradicted the "selection is driven by map dot clicks" model.
               selectedElementId:   null,
               selectedDimensionId: null,
-              selectedTypeId:      null,
+              selectedCollectionId: null,
               activeTab: 'elements'
             })
             setImportPreview(null)

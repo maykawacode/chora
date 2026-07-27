@@ -50,8 +50,7 @@ export function ChooseDimensions({ onClose }: Props): React.JSX.Element {
       sizeByWeight: true,
       colorMode: 'element',
       // No blobs to start — select collections in the map's sidebar to draw them.
-      typeIds: [],
-      threshold: 0.5,
+      shownCollectionIds: [],
       showLabels: prefs.defaultShowLabels,
       marks: prefs.defaultMarks,
       windowX: 100,

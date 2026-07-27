@@ -15,7 +15,7 @@
 import { useRef, useEffect, useCallback, useState } from 'react'
 import { useAppStore, type ScoreEntry } from '../../store/appStore'
 import { usePrefsStore } from '../../store/prefsStore'
-import type { CartesianMapConfig, SemanticMapConfig, Dimension, Type, Element, ScoreMap } from '../../lib/types'
+import type { CartesianMapConfig, SemanticMapConfig, Dimension, Element, ScoreMap } from '../../lib/types'
 import C2S from 'canvas2svg'
 import { drawCartesian, MARGIN, POLE_LABEL_HIT_SPAN, DOT_MIN_RADIUS, DOT_MAX_RADIUS, DOT_DEFAULT_RADIUS } from './cartesian/drawCartesian'
 import { drawSemantic, semDotRadius, SEM_MARGIN_H, SEM_MARGIN_V, SEM_DOT_MAX_R } from './semantic/drawSemantic'
@@ -234,14 +234,14 @@ function cartesianProject(
  * under the pointer, or null. The caller fills in the missing fields before
  * storing the result.
  *
- * Only elements the map is actually drawing are hit-testable — a type filter
- * that hides an element must also make it ungrabbable.
+ * Every element is hit-testable, because every element is drawn. This used to
+ * take the collection list too, back when selecting collections hid the
+ * elements that qualified for none and hidden dots had to be ungrabbable.
  */
 function cartesianHitDot(
   x: number, y: number, W: number, H: number,
   config: CartesianMapConfig,
   elements: Element[],
-  types: Type[],
   scores: ScoreMap
 ): Pick<DragTarget, 'elementId' | 'xDimId' | 'yDimId'> | null {
   if (config.marks === 'none') return null
@@ -330,7 +330,6 @@ function cartesianHitRect(
   W: number, H: number,
   config: CartesianMapConfig,
   elements: Element[],
-  types: Type[],
   scores: ScoreMap
 ): string[] {
   const minX = Math.min(rx1, rx2), maxX = Math.max(rx1, rx2)
@@ -403,7 +402,7 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
   const config              = useAppStore(s => s.maps.find(m => m.id === mapId))
   const filePath            = useAppStore(s => s.filePath)
   const elements            = useAppStore(s => s.elements)
-  const types               = useAppStore(s => s.types)
+  const collections         = useAppStore(s => s.collections)
   const dimensions          = useAppStore(s => s.dimensions)
   const scores              = useAppStore(s => s.scores)
   const isDirty             = useAppStore(s => s.isDirty)
@@ -415,7 +414,6 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
   const clearElementSelection  = useAppStore(s => s.clearElementSelection)
   const updateMapConfig     = useAppStore(s => s.updateMapConfig)
   const updateElement       = useAppStore(s => s.updateElement)
-  const bulkUpdateElements  = useAppStore(s => s.bulkUpdateElements)
   const setScores           = useAppStore(s => s.setScores)
 
   // Label sizes come from user preferences so they update live when the
@@ -506,10 +504,10 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
     // don't throw; dashed lines simply render as solid in the SVG output
     ;(ctx as unknown as Record<string, unknown>).setLineDash = (): void => {}
     if (config.type === 'cartesian') {
-      drawCartesian(ctx, cssW, cssH, config, elements, types, dimensions, scores,
+      drawCartesian(ctx, cssW, cssH, config, elements, collections, dimensions, scores,
         selectedElementId ?? undefined, elementLabelSize, dimensionLabelSize, selectedElementIds)
     } else {
-      drawSemantic(ctx, cssW, cssH, config, elements, types, dimensions, scores,
+      drawSemantic(ctx, cssW, cssH, config, elements, collections, dimensions, scores,
         undefined, selectedElementId ?? undefined, elementLabelSize, dimensionLabelSize, selectedElementIds)
     }
     const svg = ctx.getSerializedSvg(true)
@@ -540,10 +538,10 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
     ctx.scale(window.devicePixelRatio, window.devicePixelRatio)
 
     if (config.type === 'cartesian') {
-      drawCartesian(ctx, cssW, cssH, config, elements, types, dimensions, scores,
+      drawCartesian(ctx, cssW, cssH, config, elements, collections, dimensions, scores,
         selectedElementId ?? undefined, elementLabelSize, dimensionLabelSize, selectedElementIds)
     } else {
-      drawSemantic(ctx, cssW, cssH, config, elements, types, dimensions, scores,
+      drawSemantic(ctx, cssW, cssH, config, elements, collections, dimensions, scores,
         semDraggingRef.current?.elementId, selectedElementId ?? undefined,
         elementLabelSize, dimensionLabelSize, selectedElementIds)
     }
@@ -560,7 +558,7 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
     }
   // selectedElementId, selectedElementIds, elementLabelSize, dimensionLabelSize must all be deps:
   // any of them changing should immediately repaint the canvas.
-  }, [config, elements, types, dimensions, scores, selectedElementId, selectedElementIds, elementLabelSize, dimensionLabelSize])
+  }, [config, elements, collections, dimensions, scores, selectedElementId, selectedElementIds, elementLabelSize, dimensionLabelSize])
 
   // Redraw whenever any input data changes
   useEffect(() => { redraw() }, [redraw])
@@ -585,7 +583,7 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
     const y = e.clientY - rect.top
 
     if (config.type === 'cartesian') {
-      const hit = cartesianHitDot(x, y, rect.width, rect.height, config, elements, types, scores)
+      const hit = cartesianHitDot(x, y, rect.width, rect.height, config, elements, scores)
       if (hit) {
         if (e.shiftKey) return  // defer to handleClick for toggle selection
         const groupIds = dragGroupIds(hit.elementId, useAppStore.getState().selectedElementIds)
@@ -764,7 +762,7 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
     // ── Hover cursor ──────────────────────────────────────────────────────────
 
     if (config.type === 'cartesian') {
-      const hit = cartesianHitDot(x, y, W, H, config, elements, types, scores)
+      const hit = cartesianHitDot(x, y, W, H, config, elements, scores)
       if (hit)                          { setCursor(e.shiftKey ? 'copy' : 'grab'); return }
       if (cartesianHitEdge(x, y, W, H)) { setCursor('pointer'); return }
       setCursor(e.shiftKey ? 'crosshair' : 'default')
@@ -789,7 +787,7 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
             // cartesianHitRect applies the type visibility filter itself, so a
             // lasso can never pick up a dot that isn't on screen.
             const newIds = cartesianHitRect(x1, y1, x2, y2, width, height,
-              config, elements, types, scores)
+              config, elements, scores)
             selectElements([...new Set([...existing, ...newIds])])
             window.api?.broadcastMultiSelection(useAppStore.getState().selectedElementIds)
           } else {
@@ -861,7 +859,7 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
 
     let hitId: string | null = null
     if (config.type === 'cartesian') {
-      const hit = cartesianHitDot(x, y, W, H, config, elements, types, scores)
+      const hit = cartesianHitDot(x, y, W, H, config, elements, scores)
       if (hit) hitId = hit.elementId
     } else {
       const hit = semanticHitDot(x, y, W, H, config, elements, dimensions, scores)
@@ -896,7 +894,7 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
     const H = rect.height
 
     if (config.type === 'cartesian') {
-      const dotHit = cartesianHitDot(x, y, W, H, config, elements, types, scores)
+      const dotHit = cartesianHitDot(x, y, W, H, config, elements, scores)
       if (dotHit) {
         if (e.shiftKey) {
           toggleElementSelection(dotHit.elementId)
@@ -1054,9 +1052,14 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
             elements={elements}
             onClose={(changes) => {
               if (changes) {
-                bulkUpdateElements(selectedElementIds, changes)
+                // Membership resolves per element, so each one gets its own
+                // payload; the shared fields are identical across them.
                 for (const id of selectedElementIds) {
-                  window.api?.broadcastElement(id, changes as Record<string, unknown>)
+                  const forElement = changes.collectionIds
+                    ? { ...changes.fields, collectionIds: changes.collectionIds[id] }
+                    : changes.fields
+                  updateElement(id, forElement)
+                  window.api?.broadcastElement(id, forElement as Record<string, unknown>)
                 }
               }
               setBulkModal(false)

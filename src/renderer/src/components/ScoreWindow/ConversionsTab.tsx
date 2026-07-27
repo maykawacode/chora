@@ -8,17 +8,16 @@
 import { useState } from 'react'
 import { useAppStore } from '../../store/appStore'
 import { usePrefsStore } from '../../store/prefsStore'
-import type { TypeColorMethod } from '../../lib/types'
 import styles from './ConversionsTab.module.css'
 
-type FromSource = 'dim-scores' | 'el-weight' | 'random' | 'type' | 'el-shape' | 'el-color'
-type ToTarget   = 'el-weight'  | 'el-color'  | 'dim-scores' | 'el-shape' | 'type'
+type FromSource = 'dim-scores' | 'el-weight' | 'random' | 'collection' | 'el-shape' | 'el-color'
+type ToTarget   = 'el-weight'  | 'el-color'  | 'dim-scores' | 'el-shape' | 'collection'
 
 const FROM_LABELS: Record<FromSource, string> = {
   'dim-scores': 'Dimension scores',
   'el-weight':  'Element weight',
   'random':     'Random values',
-  'type':       'Collection membership',
+  'collection': 'Collection membership',
   'el-shape':   'Element shape',
   'el-color':   'Element color',
 }
@@ -28,21 +27,20 @@ const TO_LABELS: Record<ToTarget, string> = {
   'el-color':   'Element color',
   'dim-scores': 'Dimension scores',
   'el-shape':   'Element shape',
-  'type':       'Collection membership',
+  'collection': 'Collection membership',
 }
 
 const VALID_TO: Record<FromSource, ToTarget[]> = {
   'dim-scores': ['el-weight', 'el-color', 'dim-scores'],
   'el-weight':  ['dim-scores'],
   'random':     ['dim-scores', 'el-weight', 'el-color'],
-  'type':       ['el-color', 'el-shape'],
-  'el-shape':   ['el-color', 'type'],
+  'collection': ['el-color', 'el-shape'],
+  'el-shape':   ['el-color', 'collection'],
   'el-color':   ['el-shape'],
 }
 
 function buildSummary(
-  from: FromSource | '', to: ToTarget | '', fromLabel: string, toLabel: string,
-  typeColorMethod: TypeColorMethod
+  from: FromSource | '', to: ToTarget | '', fromLabel: string, toLabel: string
 ): string {
   if (!from || !to) return ''
   const fd = fromLabel || 'the chosen dimension'
@@ -54,19 +52,17 @@ function buildSummary(
   if (from === 'random'     && to === 'dim-scores') return `Assigns a random score to every element on ${td}.`
   if (from === 'random'     && to === 'el-weight')  return "Assigns a random weight (1–100) to every element."
   if (from === 'random'     && to === 'el-color')   return "Assigns a random color to every element."
-  if (from === 'type'       && to === 'el-color')   return typeColorMethod === 'blend'
-    ? "Sets each element's color by mixing the colors of every collection it belongs to, weighted by membership strength — the same blend a map colored by collection draws. Elements with no collection scores unchanged."
-    : "Sets each element's color from its dominant collection's color. Elements with no collection scores unchanged."
-  if (from === 'type'       && to === 'el-shape')   return "Assigns shapes by collection order: circle, square, triangle, diamond (cycling). Elements with no collection scores unchanged."
+  if (from === 'collection' && to === 'el-color')   return "Sets each element's color by mixing the colors of every collection it belongs to — the same mix a map colored by collection draws. Elements in no collection unchanged."
+  if (from === 'collection' && to === 'el-shape')   return "Assigns shapes by collection order: circle, square, triangle, diamond (cycling). Elements in no collection unchanged."
   if (from === 'el-shape'   && to === 'el-color')   return "Sets each element's color by shape: circle→blue, square→red, triangle→green, diamond→purple."
-  if (from === 'el-shape'   && to === 'type')       return "Sets collection membership to 1.0 for each element's matched collection, 0.0 for others. Matched by creation order: circle=1st, square=2nd, triangle=3rd, diamond=4th (cycling)."
+  if (from === 'el-shape'   && to === 'collection') return "Puts each element in its matched collection and no other, replacing its current memberships. Matched by creation order: circle=1st, square=2nd, triangle=3rd, diamond=4th (cycling)."
   if (from === 'el-color'   && to === 'el-shape')   return "Sets each element's shape by hue: red→circle, yellow-green→square, blue→triangle, purple→diamond."
   return ''
 }
 
 export function ConversionsTab(): React.JSX.Element {
   const dimensions         = useAppStore(s => s.dimensions)
-  const types              = useAppStore(s => s.types)
+  const collections        = useAppStore(s => s.collections)
   const scores             = useAppStore(s => s.scores)
   const dimensionToWeight  = useAppStore(s => s.dimensionToWeight)
   const weightToDimension  = useAppStore(s => s.weightToDimension)
@@ -75,11 +71,11 @@ export function ConversionsTab(): React.JSX.Element {
   const randomizeScores    = useAppStore(s => s.randomizeScores)
   const randomizeWeights   = useAppStore(s => s.randomizeWeights)
   const randomizeColors    = useAppStore(s => s.randomizeColors)
-  const typeToElementColor = useAppStore(s => s.typeToElementColor)
-  const typeToElementShape = useAppStore(s => s.typeToElementShape)
+  const collectionToElementColor = useAppStore(s => s.collectionToElementColor)
+  const collectionToElementShape = useAppStore(s => s.collectionToElementShape)
   const shapeToColor       = useAppStore(s => s.shapeToColor)
   const colorToShape       = useAppStore(s => s.colorToShape)
-  const shapeToType        = useAppStore(s => s.shapeToType)
+  const shapeToCollection  = useAppStore(s => s.shapeToCollection)
   const spreadDimensionScores = useAppStore(s => s.spreadDimensionScores)
 
   const { dimColorLow: prefLow, dimColorHigh: prefHigh } = usePrefsStore(s => s.prefs)
@@ -92,10 +88,6 @@ export function ConversionsTab(): React.JSX.Element {
   const [colorLow,    setColorLow]    = useState(prefLow)
   const [colorHigh,   setColorHigh]   = useState(prefHigh)
   const [applied,     setApplied]     = useState(false)
-
-  // Blending matches what a map colored by type shows, so it is the default;
-  // 'dominant' stays available as the flatter, one-color-per-element result.
-  const [typeColorMethod, setTypeColorMethod] = useState<TypeColorMethod>('blend')
 
   const [spreadDimId, setSpreadDimId] = useState('')
   const [spreadApplied, setSpreadApplied] = useState(false)
@@ -113,7 +105,6 @@ export function ConversionsTab(): React.JSX.Element {
     setFromDimId('')
     setToDimId('')
     setPoleFlipped(false)
-    setTypeColorMethod('blend')
     setApplied(false)
   }
 
@@ -121,7 +112,6 @@ export function ConversionsTab(): React.JSX.Element {
     setToTarget(val as ToTarget | '')
     setToDimId('')
     setPoleFlipped(false)
-    setTypeColorMethod('blend')
     setApplied(false)
   }
 
@@ -130,9 +120,6 @@ export function ConversionsTab(): React.JSX.Element {
   const showPole = (fromSource === 'dim-scores' && toTarget === 'el-weight') ||
                    (fromSource === 'el-weight'  && toTarget === 'dim-scores')
   const showColorPickers  = fromSource === 'dim-scores' && toTarget === 'el-color'
-  // Type → element color is the one pair with two defensible answers, so it is
-  // the one pair that asks. Every other conversion has a single meaning.
-  const showTypeColorMethod = fromSource === 'type' && toTarget === 'el-color' && types.length > 0
 
   const fromDim = fromDimId ? dimensions.find(d => d.id === fromDimId) ?? null : null
   const toDim   = toDimId   ? dimensions.find(d => d.id === toDimId)   ?? null : null
@@ -147,11 +134,11 @@ export function ConversionsTab(): React.JSX.Element {
     if (fromSource === 'dim-scores' && !fromDimId) return false
     if (toTarget   === 'dim-scores' && !toDimId)   return false
     if (fromSource === 'dim-scores' && toTarget === 'dim-scores' && fromDimId === toDimId) return false
-    if ((fromSource === 'type' || toTarget === 'type') && types.length === 0) return false
+    if ((fromSource === 'collection' || toTarget === 'collection') && collections.length === 0) return false
     return true
   })()
 
-  const summary = buildSummary(fromSource, toTarget, fromDim?.label ?? '', toDim?.label ?? '', typeColorMethod)
+  const summary = buildSummary(fromSource, toTarget, fromDim?.label ?? '', toDim?.label ?? '')
 
   function handleApply(): void {
     if (!canApply) return
@@ -162,10 +149,10 @@ export function ConversionsTab(): React.JSX.Element {
     else if (fromSource === 'random'     && toTarget === 'dim-scores') randomizeScores(toDimId)
     else if (fromSource === 'random'     && toTarget === 'el-weight')  randomizeWeights()
     else if (fromSource === 'random'     && toTarget === 'el-color')   randomizeColors()
-    else if (fromSource === 'type'       && toTarget === 'el-color')   typeToElementColor(typeColorMethod)
-    else if (fromSource === 'type'       && toTarget === 'el-shape')   typeToElementShape()
+    else if (fromSource === 'collection' && toTarget === 'el-color')   collectionToElementColor()
+    else if (fromSource === 'collection' && toTarget === 'el-shape')   collectionToElementShape()
     else if (fromSource === 'el-shape'   && toTarget === 'el-color')   shapeToColor()
-    else if (fromSource === 'el-shape'   && toTarget === 'type')       shapeToType()
+    else if (fromSource === 'el-shape'   && toTarget === 'collection') shapeToCollection()
     else if (fromSource === 'el-color'   && toTarget === 'el-shape')   colorToShape()
     setApplied(true)
   }
@@ -203,7 +190,7 @@ export function ConversionsTab(): React.JSX.Element {
 
         {fromSource === 'el-weight' && <p className={styles.descriptor}>Each element's weight value (1–100).</p>}
         {fromSource === 'random'    && <p className={styles.descriptor}>Random values, one per element.</p>}
-        {fromSource === 'type'      && <p className={styles.descriptor}>Each element's collection memberships (0–1 per collection).</p>}
+        {fromSource === 'collection' && <p className={styles.descriptor}>The collections each element belongs to.</p>}
         {fromSource === 'el-shape'  && <p className={styles.descriptor}>Each element's current shape.</p>}
         {fromSource === 'el-color'  && <p className={styles.descriptor}>Each element's current color.</p>}
       </div>
@@ -288,32 +275,10 @@ export function ConversionsTab(): React.JSX.Element {
           </div>
         )}
 
-        {showTypeColorMethod && (
-          <div className={styles.subControl}>
-            <div className={styles.subLabel}>Method</div>
-            <div className={styles.poleButtons}>
-              <button
-                type="button"
-                className={`${styles.poleBtn} ${typeColorMethod === 'blend' ? styles.poleBtnActive : ''}`}
-                onClick={() => { setTypeColorMethod('blend'); setApplied(false) }}
-              >
-                Blend all collections
-              </button>
-              <button
-                type="button"
-                className={`${styles.poleBtn} ${typeColorMethod === 'dominant' ? styles.poleBtnActive : ''}`}
-                onClick={() => { setTypeColorMethod('dominant'); setApplied(false) }}
-              >
-                Dominant collection
-              </button>
-            </div>
-          </div>
-        )}
-
-        {fromSource === 'type' && toTarget === 'el-color' && types.length === 0 && (
+        {fromSource === 'collection' && toTarget === 'el-color' && collections.length === 0 && (
           <p className={styles.hint}>No collections defined.</p>
         )}
-        {fromSource === 'el-shape' && toTarget === 'type' && types.length === 0 && (
+        {fromSource === 'el-shape' && toTarget === 'collection' && collections.length === 0 && (
           <p className={styles.hint}>No collections defined.</p>
         )}
         {fromSource === 'el-shape' && toTarget === 'el-color' && (
@@ -322,10 +287,10 @@ export function ConversionsTab(): React.JSX.Element {
         {fromSource === 'el-color' && toTarget === 'el-shape' && (
           <p className={styles.descriptor}>By hue: red → circle · yellow-green → square · blue → triangle · purple → diamond</p>
         )}
-        {fromSource === 'type' && toTarget === 'el-shape' && types.length > 0 && (
+        {fromSource === 'collection' && toTarget === 'el-shape' && collections.length > 0 && (
           <p className={styles.descriptor}>Collection order → shape: 1st circle · 2nd square · 3rd triangle · 4th diamond (cycling)</p>
         )}
-        {fromSource === 'el-shape' && toTarget === 'type' && types.length > 0 && (
+        {fromSource === 'el-shape' && toTarget === 'collection' && collections.length > 0 && (
           <p className={styles.descriptor}>Matched by creation order: circle=1st collection · square=2nd · triangle=3rd · diamond=4th (cycling)</p>
         )}
       </div>

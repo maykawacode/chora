@@ -2,8 +2,8 @@
 //
 // Pure color arithmetic, shared by the map renderers and by the store's data
 // conversions. It lives in lib/ rather than beside the painters because both
-// layers need the same blend: a map colored by type computes it every frame,
-// and the Type membership → Element color conversion bakes it into the data.
+// layers need the same mix: a map colored by collection computes it every
+// frame, and the Collection → Element color conversion bakes it into the data.
 // Two implementations would be free to drift, and the whole point is that the
 // baked result matches what the map showed.
 //
@@ -11,20 +11,21 @@
 // with the painters in components/maps/color.ts. This module only answers
 // "what color is this", and says null when there isn't one.
 
-import type { Element, Type, ScoreMap } from './types'
+import type { Element, Collection } from './types'
 
-// ── Type palette ──────────────────────────────────────────────────────────────
+// ── Collection palette ────────────────────────────────────────────────────────
 
-// The color every type was created with before the palette existed. Still the
-// fallback for a type carrying no color at all, and the marker for "the user
-// has not chosen a color yet" — see assignPaletteToUncoloredTypes in the store.
-export const DEFAULT_TYPE_COLOR = '#808080'
+// The color every collection was created with before the palette existed. Still
+// the fallback for a collection carrying no color at all, and the marker for
+// "the user has not chosen a color yet" — see
+// assignPaletteToUncoloredCollections in the store.
+export const DEFAULT_COLLECTION_COLOR = '#808080'
 
-// Assigned round-robin as types are created, so a new session has visually
-// distinct types without anyone opening a color picker. Mid-saturation tones
-// matching the existing shape palette: they stay legible under the blob
+// Assigned round-robin as collections are created, so a new session has visually
+// distinct collections without anyone opening a color picker. Mid-saturation
+// tones matching the existing shape palette: they stay legible under the blob
 // overlay's ~13% fill and behind white-outlined dots.
-export const TYPE_PALETTE: readonly string[] = [
+export const COLLECTION_PALETTE: readonly string[] = [
   '#4080c0', // blue
   '#c04040', // red
   '#40a040', // green
@@ -35,9 +36,9 @@ export const TYPE_PALETTE: readonly string[] = [
   '#808040'  // olive
 ]
 
-/** Palette color for the nth type created, cycling once the palette runs out. */
+/** Palette color for the nth collection created, cycling once it runs out. */
 export function paletteColor(index: number): string {
-  return TYPE_PALETTE[index % TYPE_PALETTE.length]
+  return COLLECTION_PALETTE[index % COLLECTION_PALETTE.length]
 }
 
 // ── Hex arithmetic ────────────────────────────────────────────────────────────
@@ -77,51 +78,25 @@ export function mixColors(parts: Array<{ color: string; weight: number }>): stri
   return rgbToHex(r / total, g / total, b / total)
 }
 
-// ── Membership blends ─────────────────────────────────────────────────────────
+// ── Membership mixes ──────────────────────────────────────────────────────────
 
 /**
- * How strongly an element belongs to a type, or 0 if it doesn't qualify.
+ * The color of the collection(s) an element belongs to, or null when it belongs
+ * to none.
  *
- * `threshold` is what keeps map color honest: on a cartesian map it is the same
- * value that decides which blob an element is drawn inside, so a dot is never
- * tinted by a type it isn't shown as part of. Callers with no threshold of
- * their own — semantic maps, and the conversion — pass 0, which admits every
- * non-zero membership.
- */
-function membershipWeight(el: Element, type: Type, scores: ScoreMap, threshold: number): number {
-  const m = scores[el.id]?.[type.id]
-  return m !== undefined && m >= threshold ? m : 0
-}
-
-/**
- * The color of the type(s) an element belongs to, blended by membership
- * strength, or null when it qualifies for none.
+ * Every collection an element is in contributes equally, because membership is
+ * binary — there is no "belongs 0.9 to this one" left to lean the mix with. An
+ * element in two collections lands exactly halfway between their colors.
  *
- * An element leaning 0.9 into one type and 0.1 into another lands near the
- * first type's color rather than halfway between the two.
+ * `collections` is the set allowed to contribute, not necessarily every
+ * collection in the session: a cartesian map passes only the ones drawn as
+ * blobs, so a dot is tinted by a collection precisely when it is drawn inside
+ * it.
  */
-export function blendTypeColors(
-  el: Element,
-  types: Type[],
-  scores: ScoreMap,
-  threshold: number
-): string | null {
-  return mixColors(types.map(t => ({
-    color:  t.color,
-    weight: membershipWeight(el, t, scores, threshold)
-  })))
-}
-
-/**
- * The type an element belongs to most strongly, or null if it has no scored
- * membership at all. A membership of exactly 0 does not count as belonging.
- */
-export function dominantType(el: Element, types: Type[], scores: ScoreMap): Type | null {
-  let best: Type | null = null
-  let bestScore = 0
-  for (const t of types) {
-    const score = scores[el.id]?.[t.id]
-    if (score !== undefined && score > bestScore) { bestScore = score; best = t }
-  }
-  return best
+export function mixCollectionColors(el: Element, collections: Collection[]): string | null {
+  return mixColors(
+    collections
+      .filter(c => el.collectionIds.includes(c.id))
+      .map(c => ({ color: c.color, weight: 1 }))
+  )
 }

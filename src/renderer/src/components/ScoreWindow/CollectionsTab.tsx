@@ -1,33 +1,38 @@
-// ── TypesTab ───────────────────────────────────────────────────────────────────
+// ── CollectionsTab ───────────────────────────────────────────────────────────────────
 //
-// Left pane: scrollable list of types with keyboard navigation.
-// Right pane: detail editor (Name, Definition).
+// Left pane: scrollable list of collections with keyboard navigation.
+// Right pane: detail editor (Name, Color, Definition).
+//
+// Membership is not edited here — it belongs to the element, and is set on the
+// Elements tab alongside color and shape. This tab defines what a collection
+// IS; the Elements tab says who is in it.
 //
 // Delete behavior:
-//   - If the type has any membership scores → confirmation overlay (data loss warning)
+//   - If any element belongs to the collection → confirmation overlay
 //   - Otherwise → deletes immediately
 
 import { useRef, useState, useEffect, KeyboardEvent } from 'react'
 import { useAppStore } from '../../store/appStore'
-import { DEFAULT_TYPE_COLOR } from '../../lib/color'
+import { DEFAULT_COLLECTION_COLOR } from '../../lib/color'
 import styles from './DataTab.module.css'
 
-export function TypesTab(): React.JSX.Element {
-  const types      = useAppStore(s => s.types)
-  const selectedId = useAppStore(s => s.selectedTypeId)
-  const scoreMap   = useAppStore(s => s.scores)
-  const addType    = useAppStore(s => s.addType)
-  const updateType = useAppStore(s => s.updateType)
-  const removeType = useAppStore(s => s.removeType)
-  const selectType = useAppStore(s => s.selectType)
-  const assignPaletteToUncoloredTypes = useAppStore(s => s.assignPaletteToUncoloredTypes)
+export function CollectionsTab(): React.JSX.Element {
+  const collections = useAppStore(s => s.collections)
+  const elements    = useAppStore(s => s.elements)
+  const selectedId  = useAppStore(s => s.selectedCollectionId)
+  const addCollection    = useAppStore(s => s.addCollection)
+  const updateCollection = useAppStore(s => s.updateCollection)
+  const removeCollection = useAppStore(s => s.removeCollection)
+  const selectCollection = useAppStore(s => s.selectCollection)
+  const assignPaletteToUncoloredCollections = useAppStore(s => s.assignPaletteToUncoloredCollections)
 
-  // Types created before the palette existed all carry DEFAULT_TYPE_COLOR, which
-  // makes a map colored by type look like a map with color switched off. Offer
-  // the one-shot fix only while there is something to fix.
-  const uncoloredCount = types.filter(t => t.color === DEFAULT_TYPE_COLOR).length
+  // Collections created before the palette existed all carry
+  // DEFAULT_COLLECTION_COLOR, which makes a map colored by collection look like
+  // a map with color switched off. Offer the one-shot fix only while there is
+  // something to fix.
+  const uncoloredCount = collections.filter(c => c.color === DEFAULT_COLLECTION_COLOR).length
 
-  const selected = types.find(t => t.id === selectedId) ?? null
+  const selected = collections.find(c => c.id === selectedId) ?? null
 
   const [newName,         setNewName]         = useState('')
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
@@ -75,38 +80,46 @@ export function TypesTab(): React.JSX.Element {
   function handleAdd(): void {
     const name = newName.trim()
     if (!name) return
-    addType(name)
+    addCollection(name)
     setNewName('')
     addInputRef.current?.focus()
   }
 
+  // Deleting a collection drops it from every member's collectionIds, so warn
+  // whenever anyone is in it. Membership is the only thing lost — nothing else
+  // in the file points at a collection.
   function requestDelete(id: string): void {
-    const hasScores = Object.values(scoreMap).some(el => el[id] !== undefined)
-    if (hasScores) setConfirmDeleteId(id)
-    else removeType(id)
+    const hasMembers = elements.some(el => el.collectionIds.includes(id))
+    if (hasMembers) setConfirmDeleteId(id)
+    else removeCollection(id)
   }
 
   function handleListKeyDown(e: KeyboardEvent<HTMLUListElement>): void {
-    if (!selectedId || types.length === 0) return
-    const idx = types.findIndex(t => t.id === selectedId)
-    if (e.key === 'ArrowDown' && idx < types.length - 1) {
-      selectType(types[idx + 1].id); e.preventDefault()
+    if (!selectedId || collections.length === 0) return
+    const idx = collections.findIndex(c => c.id === selectedId)
+    if (e.key === 'ArrowDown' && idx < collections.length - 1) {
+      selectCollection(collections[idx + 1].id); e.preventDefault()
     } else if (e.key === 'ArrowUp' && idx > 0) {
-      selectType(types[idx - 1].id); e.preventDefault()
+      selectCollection(collections[idx - 1].id); e.preventDefault()
     } else if (e.key === 'Backspace' || e.key === 'Delete') {
       requestDelete(selectedId)
     }
   }
 
-  const confirmType = confirmDeleteId ? types.find(t => t.id === confirmDeleteId) : null
+  const confirmCollection = confirmDeleteId
+    ? collections.find(c => c.id === confirmDeleteId)
+    : null
+  const confirmMemberCount = confirmDeleteId
+    ? elements.filter(el => el.collectionIds.includes(confirmDeleteId)).length
+    : 0
 
   return (
     <div className={styles.tab} ref={tabRef}>
       {/* ── List pane ── */}
       <div className={styles.listPane}>
-        <div className={styles.listHeader}>Collections ({types.length})</div>
+        <div className={styles.listHeader}>Collections ({collections.length})</div>
 
-        {types.length === 0
+        {collections.length === 0
           ? <p className={styles.emptyHint}>Begin by entering a list of collections.</p>
           : (
             <ul
@@ -115,13 +128,20 @@ export function TypesTab(): React.JSX.Element {
               onKeyDown={handleListKeyDown}
               aria-label="Collections"
             >
-              {types.map(type => (
+              {collections.map(collection => (
                 <li
-                  key={type.id}
-                  className={`${styles.listItem} ${type.id === selectedId ? styles.selected : ''}`}
-                  onClick={() => selectType(type.id)}
+                  key={collection.id}
+                  className={`${styles.listItem} ${collection.id === selectedId ? styles.selected : ''}`}
+                  onClick={() => selectCollection(collection.id)}
                 >
-                  <span className={styles.name}>{type.name}</span>
+                  {/* The swatch is the same picture the map sidebar and the
+                      element chips draw, so a collection is recognizable by
+                      color in all three places. */}
+                  <span
+                    className={styles.collectionSwatch}
+                    style={{ background: collection.color, borderColor: collection.color }}
+                  />
+                  <span className={styles.name}>{collection.name}</span>
                 </li>
               ))}
             </ul>
@@ -140,7 +160,7 @@ export function TypesTab(): React.JSX.Element {
         </div>
 
         {uncoloredCount > 0 && (
-          <button type="button" className={styles.bulkBtn} onClick={assignPaletteToUncoloredTypes}>
+          <button type="button" className={styles.bulkBtn} onClick={assignPaletteToUncoloredCollections}>
             Assign colors to {uncoloredCount} uncolored {uncoloredCount === 1 ? 'collection' : 'collections'}
           </button>
         )}
@@ -161,7 +181,7 @@ export function TypesTab(): React.JSX.Element {
             onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Tab') e.currentTarget.blur() }}
             onBlur={e => {
               const v = e.target.value.trim()
-              if (selected && v && v !== selected.name) updateType(selected.id, { name: v })
+              if (selected && v && v !== selected.name) updateCollection(selected.id, { name: v })
             }}
           />
         </div>
@@ -170,9 +190,9 @@ export function TypesTab(): React.JSX.Element {
           <input
             type="color"
             className={styles.colorInput}
-            value={selected?.color ?? DEFAULT_TYPE_COLOR}
+            value={selected?.color ?? DEFAULT_COLLECTION_COLOR}
             disabled={!selected}
-            onChange={e => selected && updateType(selected.id, { color: e.target.value })}
+            onChange={e => selected && updateCollection(selected.id, { color: e.target.value })}
           />
         </div>
         <textarea
@@ -180,20 +200,24 @@ export function TypesTab(): React.JSX.Element {
           placeholder="Definition…"
           value={selected?.definition ?? ''}
           disabled={!selected}
-          onChange={e => selected && updateType(selected.id, { definition: e.target.value })}
+          onChange={e => selected && updateCollection(selected.id, { definition: e.target.value })}
         />
       </div>
 
       {/* ── Delete confirmation overlay ── */}
-      {confirmType && (
+      {confirmCollection && (
         <div className={styles.confirmOverlay}>
           <div className={styles.confirmBox}>
-            <p>Delete <strong>{confirmType.name}</strong>?<br />All membership scores for this collection will be lost.</p>
+            <p>
+              Delete <strong>{confirmCollection.name}</strong>?<br />
+              It will be removed from {confirmMemberCount}{' '}
+              {confirmMemberCount === 1 ? 'element' : 'elements'}.
+            </p>
             <div className={styles.confirmButtons}>
               <button className={styles.confirmCancel} onClick={() => setConfirmDeleteId(null)}>Cancel</button>
               <button
                 className={styles.confirmDelete}
-                onClick={() => { removeType(confirmDeleteId!); setConfirmDeleteId(null) }}
+                onClick={() => { removeCollection(confirmDeleteId!); setConfirmDeleteId(null) }}
               >
                 Delete
               </button>

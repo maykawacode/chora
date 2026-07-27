@@ -278,6 +278,87 @@
   color: #fff;
 }
 
+/* ── Collection chips ─────────────────────────────────────────────────────────
+   One chip per collection, toggling whether the selected element belongs to it.
+   Membership is binary, so a chip is simply on or off — the same edit as
+   picking a shape, and it sits in the same column of the detail pane.
+
+   The swatch carries the collection's color the way the map sidebar's does:
+   solid when the element is a member, a hollow ring of that color when it
+   isn't. Same picture, same meaning, in both windows. */
+.collectionPicker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.collectionChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  padding: 2px 7px 2px 5px;
+  border: 1px solid #b0a898;
+  border-radius: 11px;
+  background: #e8e5e0;
+  cursor: pointer;
+  font-size: 11px;
+  font-family: inherit;
+  line-height: 1.5;
+  color: #444;
+}
+
+.collectionChip:hover:not(:disabled) {
+  background: #d8d5d0;
+}
+
+.collectionChip:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* Deliberately quieter than .shapeBtnActive, which fills solid olive. A shape
+   picker has exactly one active button; several chips can be lit at once, and
+   a row of solid fills would read as a block of color rather than a set of
+   memberships. The swatch is doing the work — this only frames it. */
+.collectionChipOn {
+  background: #f3f1ec;
+  border-color: #808040;
+  color: #222;
+}
+
+.collectionSwatch {
+  width: 9px;
+  height: 9px;
+  flex: none;
+  border-radius: 50%;
+  border: 1.5px solid;
+}
+
+.collectionChipName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Chips wrap to as many rows as they need, so this row's label aligns to the
+   top rather than floating in the middle of a tall block. */
+.fieldRowTop {
+  align-items: flex-start;
+}
+
+.fieldRowTop .label {
+  padding-top: 3px;
+}
+
+.fieldHint {
+  font-size: 11px;
+  color: #888;
+  font-style: italic;
+}
+
 .colorInput {
   width: 36px;
   height: 22px;

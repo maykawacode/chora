@@ -93,9 +93,9 @@ contextBridge.exposeInMainWorld('api', {
   // Element property change from the right-click detail modal in a map window
   broadcastElement: (elementId: string, changes: Record<string, unknown>): void =>
                       ipcRenderer.send('element:update', elementId, changes),
-  // New type created inline from a map window modal
-  broadcastNewType: (id: string, name: string): void =>
-                      ipcRenderer.send('type:add', id, name),
+  // New collection created inline from a map window modal
+  broadcastNewCollection: (id: string, name: string): void =>
+                            ipcRenderer.send('collection:add', id, name),
   // Selection change from a map window dot click (or deselect on empty click)
   broadcastSelection: (elementId: string | null): void =>
                         ipcRenderer.send('selection:update', elementId),
@@ -152,11 +152,11 @@ contextBridge.exposeInMainWorld('api', {
     return () => ipcRenderer.removeListener('element:update', handler)
   },
 
-  // New type created inline from a map window modal
-  onTypeAdd: (cb: (id: string, name: string) => void): (() => void) => {
+  // New collection created inline from a map window modal
+  onCollectionAdd: (cb: (id: string, name: string) => void): (() => void) => {
     const handler = (_: IpcRendererEvent, id: string, name: string): void => cb(id, name)
-    ipcRenderer.on('type:add', handler)
-    return () => ipcRenderer.removeListener('type:add', handler)
+    ipcRenderer.on('collection:add', handler)
+    return () => ipcRenderer.removeListener('collection:add', handler)
   },
 
   // Selection change relayed from a map window — Score Window listens for this

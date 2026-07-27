@@ -100,8 +100,8 @@ export function buildMenu(): void {
     {
       label: 'Maps',
       submenu: [
-        // Type projection is no longer its own map type — a cartesian map can
-        // show type clusters via the Types section of its sidebar.
+        // Collection projection is no longer its own kind of map — a cartesian
+        // map draws collection blobs from the Collections section of its sidebar.
         { label: 'New Map…',          accelerator: 'CmdOrCtrl+D',       click: () => sendToRenderer('menu:create-cartesian') },
         { label: 'New Semantic Map…', accelerator: 'CmdOrCtrl+Shift+D', click: () => sendToRenderer('menu:create-semantic') }
       ]

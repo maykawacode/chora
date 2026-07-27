@@ -48,11 +48,6 @@
   font-weight: 500;
 }
 
-.poleLabelCenter {
-  flex: 1;
-  text-align: center;
-}
-
 .sliderTrack {
   position: relative;
   height: 28px;
@@ -169,38 +164,4 @@
 
 .selected .indicator {
   color: #fff;
-}
-
-/* ── Right-panel toggle header ── */
-
-.panelToggleRow {
-  display: flex;
-  gap: 2px;
-  margin-bottom: 4px;
-}
-
-.panelToggleBtn {
-  all: unset;
-  flex: 1;
-  font-size: 11px;
-  font-weight: 600;
-  color: #999;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  padding: 2px 4px;
-  border-bottom: 2px solid #ddd;
-  text-align: center;
-  cursor: pointer;
-  border-radius: 2px 2px 0 0;
-  box-sizing: border-box;
-}
-
-.panelToggleBtn:hover {
-  color: #555;
-  border-bottom-color: #aaa;
-}
-
-.panelToggleBtnActive {
-  color: #333;
-  border-bottom-color: #808040;
 }

@@ -19,7 +19,7 @@ interface Props {
 }
 
 export function ImportPreview({ fileName, result, onConfirm, onCancel }: Props): React.JSX.Element {
-  const { elements, types, dimensions, scaleNote, warnings } = result
+  const { elements, collections, dimensions, scaleNote, warnings } = result
 
   return (
     <div className={styles.overlay} onClick={e => { if (e.target === e.currentTarget) onCancel() }}>
@@ -32,10 +32,10 @@ export function ImportPreview({ fileName, result, onConfirm, onCancel }: Props):
             <span className={styles.summaryLabel}>Elements</span>
             <span className={styles.summaryValue}>{elements.length}</span>
           </div>
-          {types.length > 0 && (
+          {collections.length > 0 && (
             <div className={styles.summaryRow}>
               <span className={styles.summaryLabel}>Collections</span>
-              <span className={styles.summaryValue}>{types.length}</span>
+              <span className={styles.summaryValue}>{collections.length}</span>
             </div>
           )}
           <div className={styles.summaryRow}>

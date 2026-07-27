@@ -10,14 +10,16 @@
 //   - Score 1.0 maps to the right/top edge
 //   - Y axis is inverted (canvas y grows downward, scores grow upward)
 //
-// Draw order: background → border → crosshair → pole labels → type blobs →
-// element dots → element labels. Blobs go under the dots so dots stay readable.
+// Draw order: background → border → crosshair → pole labels → collection blobs
+// → element dots → element labels. Blobs go under the dots so dots stay
+// readable.
 //
-// This renderer absorbed the former Type Projection map: the type overlay is
-// now per-type (config.typeIds) rather than a separate map type. Selecting a
-// type draws its blob; it has no effect on which elements are plotted.
+// This renderer absorbed the former Type Projection map: the overlay is now
+// per-collection (config.shownCollectionIds) rather than a separate map type.
+// Selecting a collection draws its blob; it has no effect on which elements are
+// plotted.
 
-import type { CartesianMapConfig, Element, Dimension, Type, ScoreMap } from '../../../lib/types'
+import type { CartesianMapConfig, Element, Dimension, Collection, ScoreMap } from '../../../lib/types'
 import { setBlobPath, BLOB_PADDING, type Pt } from '../blob'
 import { resolveElementColor } from '../color'
 import { drawMark, markShapeIndex } from '../shape'
@@ -98,33 +100,26 @@ function drawPoleLabel(
 }
 
 /**
- * Returns the types this map draws a blob for — exactly the ones selected in
- * the sidebar, so an empty selection draws none.
+ * Returns the collections this map draws a blob for — exactly the ones selected
+ * in the sidebar, so an empty selection draws none.
  *
- * Selecting a type no longer filters which elements appear: every element is
- * always plotted, and this only governs the overlay.
+ * Selecting a collection no longer filters which elements appear: every element
+ * is always plotted, and this only governs the overlay.
  */
-export function shownTypes(config: CartesianMapConfig, types: Type[]): Type[] {
-  return types.filter(t => config.typeIds.includes(t.id))
+export function shownCollections(config: CartesianMapConfig, collections: Collection[]): Collection[] {
+  return collections.filter(c => config.shownCollectionIds.includes(c.id))
 }
 
 /**
- * How many elements a type's blob would enclose — its members clearing the
- * map's threshold.
+ * How many elements belong to a collection.
  *
- * Exported for the sidebar, which shows the count beside each collection so the
- * threshold slider's effect is visible while dragging it.
+ * Exported for the sidebar, which shows the count beside each collection. Note
+ * this counts members, not what the blob encloses: an element missing a score
+ * on either axis can't be placed in 2D space and so is left out of the shape
+ * while still being counted here.
  */
-export function memberCount(
-  type: Type,
-  elements: Element[],
-  scores: ScoreMap,
-  threshold: number
-): number {
-  return elements.filter(el => {
-    const m = scores[el.id]?.[type.id]
-    return m !== undefined && m >= threshold
-  }).length
+export function memberCount(collection: Collection, elements: Element[]): number {
+  return elements.filter(el => el.collectionIds.includes(collection.id)).length
 }
 
 export function drawCartesian(
@@ -133,7 +128,7 @@ export function drawCartesian(
   H: number,
   config: CartesianMapConfig,
   elements: Element[],
-  types: Type[],
+  collections: Collection[],
   dimensions: Dimension[],
   scores: ScoreMap,
   selectedElementId?: string,
@@ -208,61 +203,59 @@ export function drawCartesian(
   if (!xDim || !yDim) return
 
   // Projects a 0–1 score pair into canvas coordinates, applying axis flips and
-  // the Y inversion. Used for both element dots and type blob members.
+  // the Y inversion. Used for both element dots and blob members.
   const project = (xScore: number, yScore: number): Pt => ({
     x: plotLeft + (config.xFlipped ? 1 - xScore : xScore) * plotW,
     y: plotTop  + (1 - (config.yFlipped ? 1 - yScore : yScore)) * plotH
   })
 
-  // ── Type blobs ────────────────────────────────────────────────────────────────
+  // ── Collection blobs ──────────────────────────────────────────────────────────
   //
   // Drawn before element dots so dots always render on top and stay readable.
-  // Each selected type becomes a freeform shape containing every qualifying
-  // member — an element whose membership score meets the threshold AND which
-  // has been scored on both chosen axes (otherwise it can't be placed in 2D
-  // space).
+  // Each selected collection becomes a freeform shape containing every member
+  // that can be placed — an element belonging to the collection AND scored on
+  // both chosen axes (otherwise it has no position in 2D space).
   //
-  // Members are taken from the full element list: selecting a type draws its
-  // blob and nothing more, so there is no hidden dot for a blob to wrap around.
+  // Members are taken from the full element list: selecting a collection draws
+  // its blob and nothing more, so there is no hidden dot for a blob to wrap
+  // around.
   //
-  // A blob is drawn in its own type's color, always — the element color mode
-  // has no say, so switching elements to neutral gray leaves the collections
-  // readable rather than flattening the whole map into one tone. That color also
-  // matches the swatch beside the collection in the sidebar.
+  // A blob is drawn in its own collection's color, always — the element color
+  // mode has no say, so switching elements to neutral gray leaves the
+  // collections readable rather than flattening the whole map into one tone.
+  // That color also matches the swatch beside the collection in the sidebar.
   //
-  // The label sits at the membership-weighted centroid, so the name lands on the
-  // densest part of the cluster rather than the bounding box middle.
+  // The label sits at the centroid of the members. It used to be weighted by
+  // membership strength to pull the name toward the densest part of the
+  // cluster; with binary membership every member counts the same, so the plain
+  // mean is the whole of it.
   //
   // Computed once and reused by the element pass below, which colors dots by
   // whichever of these blobs they fall inside.
-  const shown = shownTypes(config, types)
+  const shown = shownCollections(config, collections)
 
-  for (const type of shown) {
-    const color = type.color
+  for (const collection of shown) {
+    const color = collection.color
 
-    // Collect member positions along with their membership strength, which
-    // doubles as the weight for the label centroid below.
     const pts: Pt[] = []
-    let sumX = 0, sumY = 0, totalWeight = 0
+    let sumX = 0, sumY = 0
     for (const el of elements) {
-      const membership = scores[el.id]?.[type.id]
-      if (membership === undefined || membership < config.threshold) continue
+      if (!el.collectionIds.includes(collection.id)) continue
       const xScore = scores[el.id]?.[xDim.id]
       const yScore = scores[el.id]?.[yDim.id]
       if (xScore === undefined || yScore === undefined) continue
       const pt = project(xScore, yScore)
       pts.push(pt)
-      sumX += pt.x * membership
-      sumY += pt.y * membership
-      totalWeight += membership
+      sumX += pt.x
+      sumY += pt.y
     }
 
     ctx.save()
 
     if (pts.length === 0) {
-      // Ghost ring: the type exists but no members meet the threshold on both
-      // axes. Drawn faintly at canvas center as a placeholder so the type
-      // doesn't silently vanish from the map.
+      // Ghost ring: the collection exists but none of its members are scored on
+      // both axes. Drawn faintly at canvas center as a placeholder so the
+      // collection doesn't silently vanish from the map.
       ctx.beginPath()
       ctx.arc(midX, midY, BLOB_PADDING, 0, Math.PI * 2)
       ctx.strokeStyle = color + '44'
@@ -282,13 +275,13 @@ export function drawCartesian(
     ctx.stroke()
     ctx.restore()
 
-    // Type name at the membership-weighted centroid
+    // Collection name at the centroid of its placed members
     ctx.save()
     ctx.font = `bold ${dimensionLabelSize + 1}px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif`
     ctx.fillStyle    = color
     ctx.textAlign    = 'center'
     ctx.textBaseline = 'middle'
-    ctx.fillText(type.name, sumX / totalWeight, sumY / totalWeight)
+    ctx.fillText(collection.name, sumX / pts.length, sumY / pts.length)
     ctx.restore()
   }
 
@@ -328,7 +321,7 @@ export function drawCartesian(
         ctx.stroke()
         ctx.setLineDash([])
       } else {
-        ctx.fillStyle = resolveElementColor(config.colorMode, el, types, shown, scores, config.threshold)
+        ctx.fillStyle = resolveElementColor(config.colorMode, el, collections, shown)
         ctx.fill()
         ctx.strokeStyle = '#ffffff'
         ctx.lineWidth = 1.5
