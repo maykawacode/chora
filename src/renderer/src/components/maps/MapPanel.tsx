@@ -460,18 +460,34 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
   const [sidebarOpen,    setSidebarOpen]    = useState(false)
   const titleInputRef = useRef<HTMLInputElement>(null)
 
-  // Escape clears all selection
+  /**
+   * Drops every kind of selection — the transient single highlight and the
+   * multi-selection — here and in every other window.
+   *
+   * Both broadcasts are required, and a half-clear is worse than none. A map
+   * window doesn't own the selection: the Score Window does, and it answers any
+   * selection message by pushing full state back to every map. Broadcasting the
+   * single clear alone triggers that push while the Score Window still holds
+   * the old multi-selection, so the ids we just cleared locally arrive back
+   * milliseconds later and the dots re-light — which reads as the click having
+   * done nothing at all.
+   */
+  const deselectAll = useCallback(() => {
+    selectElement(null)
+    clearElementSelection()
+    window.api?.broadcastSelection(null)
+    window.api?.broadcastMultiSelection([])
+  }, [selectElement, clearElementSelection])
+
+  // Escape clears all selection, on every map type, wherever focus sits in the
+  // map window.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        clearElementSelection()
-        selectElement(null)
-        window.api?.broadcastSelection(null)
-      }
+      if (e.key === 'Escape') deselectAll()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [clearElementSelection, selectElement])
+  }, [deselectAll])
 
   // ── Title editing ─────────────────────────────────────────────────────────────
 
@@ -914,10 +930,7 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
         return
       }
       setAxisPicker(null)
-      selectElement(null)
-      clearElementSelection()
-      window.api?.broadcastSelection(null)
-      window.api?.broadcastMultiSelection([])
+      deselectAll()
     } else {
       setAxisPicker(null)
       const semCfg = config
@@ -937,10 +950,10 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
       if (rowIdx >= 0) {
         setSemanticPicker({ dimIndex: rowIdx, dimId: dims[rowIdx].id, clickX: x, clickY: y })
       } else {
+        // Open space: no dot, no axis row. Same as the cartesian case — the
+        // click means "never mind", so the whole selection goes.
         setSemanticPicker(null)
-        selectElement(null)
-        window.api?.broadcastSelection(null)
-        clearElementSelection()
+        deselectAll()
       }
     }
   }
