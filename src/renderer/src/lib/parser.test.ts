@@ -7,6 +7,17 @@
 //
 // If Data/ is empty or missing the suite skips rather than fails — it is the
 // author's working folder, not a committed fixture set.
+//
+// Because it is the working folder, it fills up with 5.0 files as soon as the
+// app can write them — every save lands one there. So the version each file
+// declares decides what is being asserted, rather than every file being treated
+// as a 4.0 waiting to be migrated:
+//
+//   4.0 — memberships must be derived from the score map at the 0.5 threshold
+//   5.0 — already migrated; memberships must survive a re-read untouched
+//
+// Both cases share everything else, including the invariant that matters most
+// (no collection ever appears as a key in the score map).
 
 import { describe, it, expect } from 'vitest'
 import { readdirSync, readFileSync, existsSync } from 'node:fs'
@@ -26,11 +37,17 @@ describe('4.0 → 5.0 membership migration', () => {
   }
 
   for (const file of sessionFiles) {
-    describe(file, () => {
+    const rawVersion = (JSON.parse(readFileSync(resolve(DATA_DIR, file), 'utf8')).version ?? '4.0') as string
+
+    // Version is in the describe title so the report says which contract each
+    // file was held to. A 4.0-only assertion quietly not running is otherwise
+    // indistinguishable from one that ran and passed.
+    describe(`${file} (${rawVersion})`, () => {
       const json = readFileSync(resolve(DATA_DIR, file), 'utf8')
       const raw = JSON.parse(json)
       const state = deserializeSession(json)
 
+      const isLegacy = rawVersion !== '5.0'
       const collectionIds = new Set(state.collections.map(c => c.id))
 
       it('parses', () => {
@@ -53,10 +70,11 @@ describe('4.0 → 5.0 membership migration', () => {
         }
       })
 
-      it('carries over exactly the memberships that scored >= 0.5', () => {
-        // Recomputed straight off the raw JSON rather than trusting the
-        // parser's own bookkeeping, so a bug in liftMemberships cannot also
-        // supply the expectation it is checked against.
+      // Both expectations below are recomputed straight off the raw JSON rather
+      // than trusting the parser's own bookkeeping, so a bug in the migration
+      // cannot also supply the expectation it is checked against.
+
+      it.runIf(isLegacy)('carries over exactly the memberships that scored >= 0.5', () => {
         const rawCollections = (raw.collections ?? raw.types ?? []) as Array<{ id: string }>
         for (const el of state.elements) {
           const row = (raw.scores?.[el.id] ?? {}) as Record<string, number>
@@ -64,6 +82,18 @@ describe('4.0 → 5.0 membership migration', () => {
             .filter(c => (row[c.id] ?? 0) >= 0.5)
             .map(c => c.id)
           expect(el.collectionIds).toEqual(expected)
+        }
+      })
+
+      // The 5.0 counterpart. Re-reading an already-migrated file must not touch
+      // membership at all — running the 0.5 lift a second time would find an
+      // empty score map and silently strip every element back to no
+      // collections, which is precisely the bug this guards.
+      it.runIf(!isLegacy)('leaves an already-migrated file\'s memberships alone', () => {
+        const rawElements = (raw.elements ?? []) as Array<{ id: string; collectionIds?: string[] }>
+        for (const el of state.elements) {
+          const before = rawElements.find(e => e.id === el.id)?.collectionIds ?? []
+          expect(el.collectionIds).toEqual(before)
         }
       })
 
