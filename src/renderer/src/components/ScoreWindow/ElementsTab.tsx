@@ -7,9 +7,17 @@
 // Right pane: detail editor for the selected element (name, color, shape,
 // collections, weight, description).
 //
+// Multi-selection:
+//   Shift-click and Cmd/Ctrl-click extend the selection, as do Shift+↑ ↓. The
+//   list writes to the same selectedElementIds the map windows use for lasso
+//   selection, so a selection made here lights up on every open map — and a
+//   lasso drawn on a map arrives here ready to be assigned to a collection.
+//   Only the collection rows act on the whole selection; the rest of the detail
+//   pane edits the anchor element, which is the one drawn in full amber.
+//
 // Delete behavior:
-//   - If confirmDeleteElement pref is ON → shows an inline confirmation overlay
-//   - Otherwise → deletes immediately
+//   - Multi-selection → always confirms, whatever the pref says
+//   - Single element → confirmation overlay only if confirmDeleteElement is ON
 //   - There is no delete button in the UI; the keyboard is the only trigger.
 
 import { useRef, useState, useEffect, KeyboardEvent } from 'react'
@@ -26,16 +34,24 @@ const SHAPE_SYMBOL: Record<ElementShape, string> = {
   diamond:  '◆'
 }
 
+// How many of a target set belong to a collection, expressed as the three
+// states a membership control can be in. "mixed" only ever arises for a
+// multi-selection; a single element is simply in or out.
+type Membership = 'all' | 'none' | 'mixed'
+
 export function ElementsTab(): React.JSX.Element {
   const elements         = useAppStore(s => s.elements)
   const collections      = useAppStore(s => s.collections)
   const selectedId       = useAppStore(s => s.selectedElementId)
+  const selectedIds      = useAppStore(s => s.selectedElementIds)
   const addElement       = useAppStore(s => s.addElement)
   const duplicateElement = useAppStore(s => s.duplicateElement)
   const updateElement    = useAppStore(s => s.updateElement)
   const removeElement    = useAppStore(s => s.removeElement)
   const selectElement    = useAppStore(s => s.selectElement)
-  const toggleCollection = useAppStore(s => s.toggleElementCollection)
+  const selectElements   = useAppStore(s => s.selectElements)
+  const clearSelection   = useAppStore(s => s.clearElementSelection)
+  const setCollection    = useAppStore(s => s.setElementsCollection)
   const prefs            = usePrefsStore(s => s.prefs)
 
   const selected    = elements.find(e => e.id === selectedId) ?? null
@@ -51,8 +67,29 @@ export function ElementsTab(): React.JSX.Element {
     ? [...elements].sort((a, b) => a.name.localeCompare(b.name))
     : elements
 
+  // What a collection row acts on. Falls back to the anchor so the control
+  // behaves identically whether or not a multi-selection is active.
+  const targetIds = selectedIds.length > 0
+    ? selectedIds
+    : (selectedId ? [selectedId] : [])
+
+  const byId = new Map(elements.map(el => [el.id, el]))
+
+  function membership(collectionId: string): Membership {
+    if (targetIds.length === 0) return 'none'
+    let n = 0
+    for (const id of targetIds) {
+      if (byId.get(id)?.collectionIds.includes(collectionId)) n++
+    }
+    return n === 0 ? 'none' : n === targetIds.length ? 'all' : 'mixed'
+  }
+
+  // Drives the header link, which offers whichever action is still available.
+  const allOn = collections.length > 0 && targetIds.length > 0 &&
+    collections.every(c => membership(c.id) === 'all')
+
   const [newName,   setNewName]   = useState('')
-  const [confirmId, setConfirmId] = useState<string | null>(null)
+  const [confirmIds, setConfirmIds] = useState<string[]>([])
   const [detailWidth, setDetailWidth] = useState(160)
   const addInputRef = useRef<HTMLInputElement>(null)
   const dragRef     = useRef<{ startX: number; startWidth: number } | null>(null)
@@ -60,8 +97,8 @@ export function ElementsTab(): React.JSX.Element {
 
   // Bring Score Window to front when the delete confirmation overlay opens
   useEffect(() => {
-    if (confirmId !== null) window.api.setModalOpen(true)
-  }, [confirmId])
+    if (confirmIds.length > 0) window.api.setModalOpen(true)
+  }, [confirmIds])
 
   // Set detail pane to 50% of the tab container width on first render
   useEffect(() => {
@@ -115,13 +152,55 @@ export function ElementsTab(): React.JSX.Element {
     if (e.key === 'Enter') handleAdd()
   }
 
-  // Route a delete request through the confirmation preference
-  function requestDelete(id: string): void {
-    if (prefs.confirmDeleteElement) {
-      setConfirmId(id)  // show the confirmation overlay
+  // Route a delete request through the confirmation preference.
+  // A multi-element delete always confirms: the pref exists to spare the user a
+  // prompt for one element, not to drop a dozen of them without a word.
+  function requestDelete(ids: string[]): void {
+    if (ids.length === 0) return
+    if (ids.length > 1 || prefs.confirmDeleteElement) {
+      setConfirmIds(ids)  // show the confirmation overlay
     } else {
-      removeElement(id)
+      removeElement(ids[0])
     }
+  }
+
+  // Whatever a click or arrow key would delete: the whole multi-selection when
+  // there is one, otherwise just the anchor.
+  function deletionTargets(): string[] {
+    return selectedIds.length > 1 ? selectedIds : (selectedId ? [selectedId] : [])
+  }
+
+  // ── Selection ────────────────────────────────────────────────────────────────
+  //
+  // Both handlers keep selectedElementId pointing at a row that is actually
+  // highlighted, so the detail pane is never editing something invisible.
+
+  function handleRowClick(e: React.MouseEvent, id: string): void {
+    // Shift extends from the anchor over the visible order, and leaves the
+    // anchor where it is so the same range can be redrawn from it.
+    if (e.shiftKey && selectedId) {
+      const a = displayElements.findIndex(el => el.id === selectedId)
+      const b = displayElements.findIndex(el => el.id === id)
+      if (a >= 0 && b >= 0) {
+        const [lo, hi] = a < b ? [a, b] : [b, a]
+        selectElements(displayElements.slice(lo, hi + 1).map(el => el.id))
+        return
+      }
+    }
+
+    // Cmd/Ctrl grows a selection out of whatever is already highlighted; if
+    // nothing is, the current single selection becomes its first member.
+    if (e.metaKey || e.ctrlKey) {
+      const base = selectedIds.length > 0 ? selectedIds : (selectedId ? [selectedId] : [])
+      const next = base.includes(id) ? base.filter(x => x !== id) : [...base, id]
+      selectElements(next)
+      if (next.includes(id)) selectElement(id)
+      else if (next.length > 0) selectElement(next[next.length - 1])
+      return
+    }
+
+    clearSelection()
+    selectElement(id)
   }
 
   function handleListKeyDown(e: KeyboardEvent<HTMLUListElement>): void {
@@ -129,18 +208,41 @@ export function ElementsTab(): React.JSX.Element {
     // Use displayElements so ↑ ↓ navigate the visible order, not the store order
     const idx = displayElements.findIndex(el => el.id === selectedId)
 
-    if (e.key === 'ArrowDown' && idx < displayElements.length - 1) {
-      selectElement(displayElements[idx + 1].id)
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      const next = e.key === 'ArrowDown' ? idx + 1 : idx - 1
+      if (next < 0 || next >= displayElements.length) return
       e.preventDefault()
-    } else if (e.key === 'ArrowUp' && idx > 0) {
-      selectElement(displayElements[idx - 1].id)
-      e.preventDefault()
+      const targetId = displayElements[next].id
+
+      if (e.shiftKey) {
+        const base = selectedIds.length > 0 ? selectedIds : [selectedId]
+        // Stepping onto an already-highlighted row means the user reversed
+        // direction: shrink by dropping the row being left, rather than grow.
+        selectElements(base.includes(targetId)
+          ? base.filter(x => x !== selectedId)
+          : [...base, targetId])
+      } else {
+        clearSelection()
+      }
+      selectElement(targetId)
     } else if (e.key === 'Backspace' || e.key === 'Delete') {
-      requestDelete(selectedId)
+      requestDelete(deletionTargets())
     }
   }
 
-  const confirmElement = elements.find(e => e.id === confirmId) ?? null
+  // ── Membership ───────────────────────────────────────────────────────────────
+  //
+  // A mixed selection resolves to one answer rather than each element flipping
+  // independently: the first click brings everyone in, the next takes everyone
+  // out. Flipping individually would make the row's own state unreadable.
+  function toggleMembership(collectionId: string): void {
+    if (targetIds.length === 0) return
+    setCollection(targetIds, collectionId, membership(collectionId) !== 'all')
+  }
+
+  const confirmElements = confirmIds
+    .map(id => elements.find(e => e.id === id))
+    .filter((e): e is NonNullable<typeof e> => e != null)
 
   // ── Render ────────────────────────────────────────────────────────────────────
 
@@ -166,17 +268,28 @@ export function ElementsTab(): React.JSX.Element {
               tabIndex={0}
               onKeyDown={handleListKeyDown}
               aria-label="Elements"
+              role="listbox"
+              aria-multiselectable
             >
-              {displayElements.map(el => (
-                <li
-                  key={el.id}
-                  className={`${styles.listItem} ${el.id === selectedId ? styles.selected : ''}`}
-                  onClick={() => selectElement(el.id)}
-                >
-                  <span className={styles.shapeIcon} style={{ color: el.color }}>{SHAPE_SYMBOL[el.shape]}</span>
-                  <span className={styles.name}>{el.name}</span>
-                </li>
-              ))}
+              {displayElements.map(el => {
+                const inGroup = selectedIds.includes(el.id)
+                return (
+                  <li
+                    key={el.id}
+                    className={[
+                      styles.listItem,
+                      inGroup ? styles.multiSelected : '',
+                      el.id === selectedId ? styles.selected : ''
+                    ].filter(Boolean).join(' ')}
+                    role="option"
+                    aria-selected={inGroup || el.id === selectedId}
+                    onClick={e => handleRowClick(e, el.id)}
+                  >
+                    <span className={styles.shapeIcon} style={{ color: el.color }}>{SHAPE_SYMBOL[el.shape]}</span>
+                    <span className={styles.name}>{el.name}</span>
+                  </li>
+                )
+              })}
             </ul>
           )
         }
@@ -239,34 +352,66 @@ export function ElementsTab(): React.JSX.Element {
             ))}
           </div>
         </div>
-        {/* Membership sits with color and shape because it now behaves like
-            them: a binary attribute of the element, set right here, rather than
-            a score entered on a separate tab. */}
-        <div className={`${styles.fieldRow} ${styles.fieldRowTop}`}>
-          <label className={styles.label}>Collections</label>
+        {/* Membership sits with color and shape because it behaves like them: a
+            binary attribute of the element, set right here, rather than a score
+            entered on a separate tab. It gets a section of its own rather than
+            a field row because it is the one control here that can act on more
+            than the anchor element. */}
+        <div className={styles.collectionSection}>
+          <div className={styles.collectionHeader}>
+            <span className={styles.label}>
+              Collections
+              {targetIds.length > 1 && (
+                <span className={styles.targetCount}>{targetIds.length} selected</span>
+              )}
+            </span>
+            {collections.length > 0 && targetIds.length > 0 && (
+              <button
+                type="button"
+                className={styles.linkBtn}
+                onClick={() => {
+                  for (const c of collections) setCollection(targetIds, c.id, !allOn)
+                }}
+              >
+                {allOn ? 'None' : 'All'}
+              </button>
+            )}
+          </div>
+
           {collections.length === 0
             ? <span className={styles.fieldHint}>None defined — add some on the Collections tab.</span>
             : (
-              <div className={styles.collectionPicker}>
+              <div className={styles.collectionList}>
                 {collections.map(collection => {
-                  const member = selected?.collectionIds.includes(collection.id) ?? false
+                  const state = membership(collection.id)
+                  const c     = collection.color
+                  // Solid when everyone selected is a member, a hollow ring of
+                  // the collection's color when nobody is, half-filled when the
+                  // selection is split. The map sidebar draws the first two the
+                  // same way, deliberately.
+                  const swatch = state === 'all'
+                    ? { background: c, borderColor: c }
+                    : state === 'none'
+                      ? { background: 'transparent', borderColor: c }
+                      : { background: `linear-gradient(90deg, ${c} 0 50%, transparent 50% 100%)`, borderColor: c }
                   return (
                     <button
                       key={collection.id}
                       type="button"
-                      className={`${styles.collectionChip} ${member ? styles.collectionChipOn : ''}`}
-                      disabled={!selected}
-                      aria-pressed={member}
-                      onClick={() => selected && toggleCollection(selected.id, collection.id)}
+                      className={styles.collectionRow}
+                      disabled={targetIds.length === 0}
+                      aria-pressed={state === 'all'}
+                      aria-label={`${collection.name || 'Untitled collection'} — ${state === 'mixed' ? 'some selected elements' : state === 'all' ? 'all selected elements' : 'no selected elements'}`}
+                      onClick={() => toggleMembership(collection.id)}
                     >
-                      <span
-                        className={styles.collectionSwatch}
-                        style={member
-                          ? { background: collection.color, borderColor: collection.color }
-                          : { background: 'transparent', borderColor: collection.color }}
-                      />
-                      <span className={styles.collectionChipName}>
+                      <span className={styles.collectionSwatch} style={swatch} />
+                      <span className={styles.collectionRowName}>
                         {collection.name || 'Untitled collection'}
+                      </span>
+                      {/* Total members across the whole session, not just the
+                          selection — the same number the map sidebar shows. */}
+                      <span className={styles.collectionRowCount}>
+                        {elements.filter(el => el.collectionIds.includes(collection.id)).length}
                       </span>
                     </button>
                   )
@@ -301,15 +446,22 @@ export function ElementsTab(): React.JSX.Element {
       </div>
 
       {/* ── Delete confirmation overlay ── */}
-      {confirmElement && (
+      {confirmElements.length > 0 && (
         <div className={styles.confirmOverlay}>
           <div className={styles.confirmBox}>
-            <p>Delete <strong>{confirmElement.name}</strong>? This will remove all its scores.</p>
+            {confirmElements.length === 1
+              ? <p>Delete <strong>{confirmElements[0].name}</strong>? This will remove all its scores.</p>
+              : <p>Delete <strong>{confirmElements.length} elements</strong>? This will remove all their scores.</p>
+            }
             <div className={styles.confirmButtons}>
-              <button className={styles.confirmCancel} onClick={() => setConfirmId(null)}>Cancel</button>
+              <button className={styles.confirmCancel} onClick={() => setConfirmIds([])}>Cancel</button>
               <button
                 className={styles.confirmDelete}
-                onClick={() => { removeElement(confirmElement.id); setConfirmId(null) }}
+                onClick={() => {
+                  for (const el of confirmElements) removeElement(el.id)
+                  clearSelection()
+                  setConfirmIds([])
+                }}
               >
                 Delete
               </button>
