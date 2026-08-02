@@ -72,12 +72,15 @@ export function ElementDetailModal({ elementId, onClose }: Props): React.JSX.Ele
   handleCloseRef.current = () => {
     if (!element) { onClose(null); return }
     const parsedWeight = Math.max(1, Math.min(100, +weight || 1))
+    const validCollectionIds = new Set(collections.map(collection => collection.id))
+    const validMembership = memberOf.filter(id => validCollectionIds.has(id))
+    const currentMembership = element.collectionIds.filter(id => validCollectionIds.has(id))
     const changes: Partial<Element> = {}
     if (color        !== element.color)      changes.color      = color
     if (shape        !== element.shape)      changes.shape      = shape
     if (parsedWeight !== element.weight)     changes.weight     = parsedWeight
     if (definition   !== element.definition) changes.definition = definition
-    if (!sameMembership(memberOf, element.collectionIds)) changes.collectionIds = memberOf
+    if (!sameMembership(validMembership, currentMembership)) changes.collectionIds = validMembership
     onClose(Object.keys(changes).length > 0 ? changes : null)
   }
 

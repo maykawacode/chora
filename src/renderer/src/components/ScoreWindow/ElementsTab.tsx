@@ -23,6 +23,7 @@
 
 import { useRef, useState, useEffect, KeyboardEvent } from 'react'
 import { useAppStore } from '../../store/appStore'
+import { history, SCORE_HISTORY_OWNER } from '../../store/history'
 import { usePrefsStore } from '../../store/prefsStore'
 import { ELEMENT_SHAPES } from '../../lib/types'
 import type { ElementShape } from '../../lib/types'
@@ -116,7 +117,10 @@ export function ElementsTab(): React.JSX.Element {
     const handler = (e: globalThis.KeyboardEvent): void => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'd' && selectedId) {
         e.preventDefault()   // prevent browser "add to bookmarks" default
-        duplicateElement(selectedId)
+        // The shortcut is intentionally active inside detail fields. Split it
+        // from any focus-to-blur edit so Duplicate remains its own Undo step.
+        history.end(SCORE_HISTORY_OWNER)
+        history.run(SCORE_HISTORY_OWNER, () => duplicateElement(selectedId))
       }
     }
     document.addEventListener('keydown', handler)
@@ -334,7 +338,12 @@ export function ElementsTab(): React.JSX.Element {
             className={styles.colorInput}
             value={selected?.color ?? '#9d9d53'}
             disabled={!selected}
-            onChange={e => selected && updateElement(selected.id, { color: e.target.value })}
+            onFocus={() => history.begin(SCORE_HISTORY_OWNER)}
+            onBlur={() => history.end(SCORE_HISTORY_OWNER)}
+            onChange={e => {
+              history.begin(SCORE_HISTORY_OWNER)
+              if (selected) updateElement(selected.id, { color: e.target.value })
+            }}
           />
         </div>
         <div className={styles.fieldRow}>
@@ -379,7 +388,12 @@ export function ElementsTab(): React.JSX.Element {
           placeholder="Definition…"
           value={selected?.definition ?? ''}
           disabled={!selected}
-          onChange={e => selected && updateElement(selected.id, { definition: e.target.value })}
+          onFocus={() => history.begin(SCORE_HISTORY_OWNER)}
+          onBlur={() => history.end(SCORE_HISTORY_OWNER)}
+          onChange={e => {
+            history.begin(SCORE_HISTORY_OWNER)
+            if (selected) updateElement(selected.id, { definition: e.target.value })
+          }}
         />
         {/* Membership goes last because it is the only control here that can
             reach past the anchor element, and the only one that is a list
@@ -399,7 +413,9 @@ export function ElementsTab(): React.JSX.Element {
                 type="button"
                 className={styles.linkBtn}
                 onClick={() => {
-                  for (const c of collections) setCollection(targetIds, c.id, !allOn)
+                  history.run(SCORE_HISTORY_OWNER, () => {
+                    for (const c of collections) setCollection(targetIds, c.id, !allOn)
+                  })
                 }}
               >
                 {allOn ? 'None' : 'All'}
@@ -464,7 +480,9 @@ export function ElementsTab(): React.JSX.Element {
               <button
                 className={styles.confirmDelete}
                 onClick={() => {
-                  for (const el of confirmElements) removeElement(el.id)
+                  history.run(SCORE_HISTORY_OWNER, () => {
+                    for (const el of confirmElements) removeElement(el.id)
+                  })
                   clearSelection()
                   setConfirmIds([])
                 }}

@@ -13,6 +13,7 @@
 
 import { useRef, useState, useEffect, KeyboardEvent } from 'react'
 import { useAppStore } from '../../store/appStore'
+import { history, SCORE_HISTORY_OWNER } from '../../store/history'
 import styles from './DataTab.module.css'
 
 interface Props { onOpenStarterPicker: () => void }
@@ -221,7 +222,12 @@ export function DimensionsTab({ onOpenStarterPicker }: Props): React.JSX.Element
           placeholder="Definition…"
           value={selected?.definition ?? ''}
           disabled={!selected}
-          onChange={e => selected && updateDimension(selected.id, { definition: e.target.value })}
+          onFocus={() => history.begin(SCORE_HISTORY_OWNER)}
+          onBlur={() => history.end(SCORE_HISTORY_OWNER)}
+          onChange={e => {
+            history.begin(SCORE_HISTORY_OWNER)
+            if (selected) updateDimension(selected.id, { definition: e.target.value })
+          }}
         />
       </div>
 

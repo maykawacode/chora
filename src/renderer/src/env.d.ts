@@ -30,10 +30,17 @@ interface Window {
 
     // Map window management
     openMap:      (mapId: string, stateJson: string) => void
+    closeMap:     (mapId: string) => void
     closeAllMaps: () => void
     signalReady:  () => void    // map renderer calls this after mounting IPC listeners
     setModalOpen: (open: boolean) => void
     focusMainWindow: () => Promise<void>
+
+    // Application history
+    historyBegin: () => void
+    historyEnd:   () => void
+    onHistoryTransaction: (cb: (ownerId: number, phase: 'begin' | 'end') => void) => () => void
+    setHistoryAvailability: (canUndo: boolean, canRedo: boolean) => void
 
     // Preferences
     getPrefsSync:         () => Record<string, unknown>

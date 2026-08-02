@@ -440,6 +440,7 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
   const dragMovedRef    = useRef(false)
   const semDraggingRef  = useRef<SemanticDragTarget | null>(null)
   const semDragMovedRef = useRef(false)
+  const historyOpenRef  = useRef(false)
 
   // Lasso (rubber-band multi-select) — semantic maps only. Mutated in place
   // during mouse-move so the canvas overlay always reflects the current rect.
@@ -459,6 +460,34 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
   // drives it sits in the title bar. Deliberately not persisted.
   const [sidebarOpen,    setSidebarOpen]    = useState(false)
   const titleInputRef = useRef<HTMLInputElement>(null)
+
+  // Map windows do not own history. They bracket gestures over IPC so the
+  // authoritative Score Window captures one snapshot around every score drag or
+  // compound edit, regardless of how many fine-grained updates it receives.
+  const beginHistory = useCallback((): void => {
+    historyOpenRef.current = true
+    // Repeated begin messages from the same owner are deliberately harmless.
+    // Reasserting before each drag write lets a gesture resume cleanly if Undo,
+    // Redo, or Save finalized its Score-side transaction while the pointer was
+    // still down.
+    window.api.historyBegin()
+  }, [])
+
+  const finishHistory = useCallback((): void => {
+    if (!historyOpenRef.current) return
+    historyOpenRef.current = false
+    window.api.historyEnd()
+  }, [])
+
+  // A gesture can end without a canvas mouseup when the window loses focus or
+  // closes. Always close the remote transaction so it cannot absorb a later edit.
+  useEffect(() => {
+    window.addEventListener('blur', finishHistory)
+    return () => {
+      window.removeEventListener('blur', finishHistory)
+      finishHistory()
+    }
+  }, [finishHistory])
 
   /**
    * Drops every kind of selection — the transient single highlight and the
@@ -726,6 +755,7 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
       }
 
       if (updates.length > 0) {
+        beginHistory()
         setScores(updates)
         for (const u of updates) window.api?.broadcastScore(u.elementId, u.targetId, u.value)
       }
@@ -761,6 +791,7 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
         elementId: m.id, targetId: dimId, value: m.s0 + ds
       }))
 
+      beginHistory()
       setScores(updates)
       for (const u of updates) window.api?.broadcastScore(u.elementId, u.targetId, u.value)
       semDragMovedRef.current = true
@@ -795,6 +826,8 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
   }
 
   function handleMouseUp(): void {
+    finishHistory()
+
     // Commit lasso if active
     if (lassoRef.current) {
       if (lassoMovedRef.current) {
@@ -840,6 +873,8 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
   }
 
   function handleMouseLeave(): void {
+    finishHistory()
+
     // Cancel lasso if active
     if (lassoRef.current) {
       lassoRef.current      = null
@@ -864,6 +899,7 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
 
   function handleContextMenu(e: React.MouseEvent<HTMLDivElement>): void {
     e.preventDefault()
+    finishHistory()
     // Modal intercepts mouseup so the canvas would never see it — clear drag
     // state here so it can't leak through after the modal closes.
     draggingRef.current    = null
@@ -1071,12 +1107,17 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
               if (changes) {
                 // Membership resolves per element, so each one gets its own
                 // payload; the shared fields are identical across them.
-                for (const id of selectedElementIds) {
-                  const forElement = changes.collectionIds
-                    ? { ...changes.fields, collectionIds: changes.collectionIds[id] }
-                    : changes.fields
-                  updateElement(id, forElement)
-                  window.api?.broadcastElement(id, forElement as Record<string, unknown>)
+                beginHistory()
+                try {
+                  for (const id of selectedElementIds) {
+                    const forElement = changes.collectionIds
+                      ? { ...changes.fields, collectionIds: changes.collectionIds[id] }
+                      : changes.fields
+                    updateElement(id, forElement)
+                    window.api?.broadcastElement(id, forElement as Record<string, unknown>)
+                  }
+                } finally {
+                  finishHistory()
                 }
               }
               setBulkModal(false)

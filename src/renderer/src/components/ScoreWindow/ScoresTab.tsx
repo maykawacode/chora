@@ -10,8 +10,9 @@
 // is binary now and is set on the Elements tab beside color and shape, so this
 // tab has one job and needs no toggle to say which one it is doing.
 
-import { useRef, useCallback, KeyboardEvent } from 'react'
+import { useRef, useCallback, useEffect, KeyboardEvent } from 'react'
 import { useAppStore } from '../../store/appStore'
+import { history, SCORE_HISTORY_OWNER } from '../../store/history'
 import { scoreStatus } from '../../lib/types'
 import styles from './ScoresTab.module.css'
 
@@ -146,6 +147,21 @@ interface DimSliderProps {
 
 function ScoreSlider({ elementName, poleA, poleB, score, onScore }: DimSliderProps): React.JSX.Element {
   const trackRef = useRef<HTMLDivElement>(null)
+  const historyOpenRef = useRef(false)
+  const removeDragListenersRef = useRef<(() => void) | null>(null)
+  const suppressTrackClickRef = useRef(false)
+
+  const endDragHistory = useCallback((): void => {
+    if (!historyOpenRef.current) return
+    historyOpenRef.current = false
+    history.end(SCORE_HISTORY_OWNER)
+  }, [])
+
+  useEffect(() => () => {
+    removeDragListenersRef.current?.()
+    removeDragListenersRef.current = null
+    endDragHistory()
+  }, [endDragHistory])
 
   const getValueFromEvent = useCallback((clientX: number): number => {
     const rect = trackRef.current?.getBoundingClientRect()
@@ -154,19 +170,61 @@ function ScoreSlider({ elementName, poleA, poleB, score, onScore }: DimSliderPro
   }, [])
 
   function handleTrackClick(e: React.MouseEvent<HTMLDivElement>): void {
+    // A dot drag ends at mouseup, immediately before the browser dispatches its
+    // click. Do not let that trailing click become a second score/history entry.
+    if (suppressTrackClickRef.current ||
+        (e.target as HTMLElement).closest('[data-score-slider-dot]')) {
+      suppressTrackClickRef.current = false
+      return
+    }
     onScore(getValueFromEvent(e.clientX))
   }
 
   function handleDotMouseDown(e: React.MouseEvent): void {
     e.preventDefault()
     e.stopPropagation()
-    function onMove(ev: MouseEvent): void { onScore(getValueFromEvent(ev.clientX)) }
-    function onUp(): void {
+
+    let wroteScore = false
+
+    function removeListeners(): void {
       window.removeEventListener('mousemove', onMove)
       window.removeEventListener('mouseup', onUp)
+      window.removeEventListener('blur', onBlur)
+      if (removeDragListenersRef.current === removeListeners) {
+        removeDragListenersRef.current = null
+      }
     }
+
+    function finishDrag(): void {
+      removeListeners()
+      if (wroteScore) {
+        suppressTrackClickRef.current = true
+        // If this mouseup does not generate a click, do not suppress the user's
+        // next deliberate track click.
+        window.setTimeout(() => { suppressTrackClickRef.current = false }, 0)
+      }
+      endDragHistory()
+    }
+
+    function onMove(ev: MouseEvent): void {
+      // Reassert the idempotent boundary on every write. A menu Undo, Redo, or
+      // Save can finalize history while the pointer is still down; the next
+      // move must then open a fresh transaction instead of recording each
+      // remaining mousemove as its own action.
+      history.begin(SCORE_HISTORY_OWNER)
+      historyOpenRef.current = true
+      wroteScore = true
+      onScore(getValueFromEvent(ev.clientX))
+    }
+
+    function onUp(): void { finishDrag() }
+    function onBlur(): void { finishDrag() }
+
+    removeDragListenersRef.current?.()
+    removeDragListenersRef.current = removeListeners
     window.addEventListener('mousemove', onMove)
     window.addEventListener('mouseup', onUp)
+    window.addEventListener('blur', onBlur)
   }
 
   const pct = score !== null ? score * 100 : null
@@ -186,6 +244,7 @@ function ScoreSlider({ elementName, poleA, poleB, score, onScore }: DimSliderPro
         {pct !== null && (
           <div
             className={styles.sliderDot}
+            data-score-slider-dot
             style={{ left: `${pct}%` }}
             onMouseDown={handleDotMouseDown}
           />

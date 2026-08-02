@@ -34,6 +34,7 @@ contextBridge.exposeInMainWorld('api', {
 
   onMenuAction: (cb: (action: string) => void): (() => void) => {
     const actions = [
+      'menu:undo', 'menu:redo',
       'menu:new', 'menu:open', 'menu:save', 'menu:save-as',
       'menu:import-spreadsheet', 'menu:export-spreadsheet',
       'menu:create-cartesian', 'menu:create-semantic',
@@ -50,6 +51,7 @@ contextBridge.exposeInMainWorld('api', {
   // ── Map window management ─────────────────────────────────────────────────────
 
   openMap:      (mapId: string, stateJson: string): void => ipcRenderer.send('map:open', mapId, stateJson),
+  closeMap:     (mapId: string): void                    => ipcRenderer.send('map:close', mapId),
   closeAllMaps: (): void                                  => ipcRenderer.send('map:closeAll'),
   // Signal to main that this renderer has mounted its IPC listeners and is
   // ready to receive 'map:init'. See windowManager.ts for why this is needed.
@@ -58,6 +60,23 @@ contextBridge.exposeInMainWorld('api', {
   setModalOpen: (open: boolean): void                     => ipcRenderer.send('modal:open', open),
   // Awaitable — bring the Score Window to front before showing a native dialog
   focusMainWindow: (): Promise<void>                      => ipcRenderer.invoke('window:focus-main'),
+
+  // ── Application history ───────────────────────────────────────────────────────
+
+  // Map renderers bracket continuous/compound edits; main injects the owning
+  // webContents ID before relaying each boundary to the authoritative Score.
+  historyBegin: (): void => ipcRenderer.send('history:transaction', 'begin'),
+  historyEnd:   (): void => ipcRenderer.send('history:transaction', 'end'),
+  onHistoryTransaction: (
+    cb: (ownerId: number, phase: 'begin' | 'end') => void
+  ): (() => void) => {
+    const handler = (_: IpcRendererEvent, ownerId: number, phase: 'begin' | 'end'): void =>
+      cb(ownerId, phase)
+    ipcRenderer.on('history:transaction', handler)
+    return () => ipcRenderer.removeListener('history:transaction', handler)
+  },
+  setHistoryAvailability: (canUndo: boolean, canRedo: boolean): void =>
+    ipcRenderer.send('history:availability', canUndo, canRedo),
 
   // ── Preferences ───────────────────────────────────────────────────────────────
 

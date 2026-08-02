@@ -9,6 +9,7 @@
 
 import { useState } from 'react'
 import { useAppStore } from '../../store/appStore'
+import { history, SCORE_HISTORY_OWNER } from '../../store/history'
 import { STARTER_DIMENSIONS, CATEGORIES } from '../../lib/starterDimensions'
 import type { CategoryKey } from '../../lib/starterDimensions'
 import type { DimensionCategories } from '../../lib/types'
@@ -42,11 +43,13 @@ export function StarterListPicker({ onClose }: Props): React.JSX.Element {
 
   // Only add dimensions that are checked AND not already in the session
   function handleAdd(): void {
-    for (const sd of STARTER_DIMENSIONS) {
-      if (checked.has(sd.label) && !existingLabels.has(sd.label)) {
-        addDimension(sd.label, sd.categories)
+    history.run(SCORE_HISTORY_OWNER, () => {
+      for (const sd of STARTER_DIMENSIONS) {
+        if (checked.has(sd.label) && !existingLabels.has(sd.label)) {
+          addDimension(sd.label, sd.categories)
+        }
       }
-    }
+    })
     onClose()
   }
 

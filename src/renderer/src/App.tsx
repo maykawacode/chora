@@ -15,6 +15,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAppStore } from './store/appStore'
 import { usePrefsStore } from './store/prefsStore'
+import { history } from './store/history'
 import { ScoreWindow } from './components/ScoreWindow/ScoreWindow'
 import { ChooseDimensions, CreateSemanticMap } from './components/maps/ChooseDimensions'
 import { StarterListPicker } from './components/ScoreWindow/StarterListPicker'
@@ -29,11 +30,23 @@ import type { CartesianMapConfig, SemanticMapConfig, Element } from './lib/types
 import type { Preferences } from './lib/preferences'
 import styles from './App.module.css'
 
+type StoreState = ReturnType<typeof useAppStore.getState>
+
+/** One canonical payload shape for every Score Window → map state push. */
+function encodeStateEnvelope(state: StoreState): string {
+  return JSON.stringify({
+    isDirty: state.isDirty,
+    filePath: state.filePath,
+    session: serializeSession(state),
+    selectedElementId: state.selectedElementId,
+    selectedElementIds: state.selectedElementIds
+  })
+}
+
 export function App(): React.JSX.Element {
   const filePath      = useAppStore(s => s.filePath)
   const isDirty       = useAppStore(s => s.isDirty)
   const loadSession   = useAppStore(s => s.loadSession)
-  const markClean     = useAppStore(s => s.markClean)
   const resetToEmpty  = useAppStore(s => s.resetToEmpty)
   const selectElement  = useAppStore(s => s.selectElement)
   const selectElements = useAppStore(s => s.selectElements)
@@ -69,6 +82,16 @@ export function App(): React.JSX.Element {
 
   const suppressBroadcast = useRef(false)
 
+  /** Fine-grained map updates must not echo a full state payload to their sender. */
+  function withoutStateBroadcast<T>(fn: () => T): T {
+    suppressBroadcast.current = true
+    try {
+      return fn()
+    } finally {
+      suppressBroadcast.current = false
+    }
+  }
+
   // ── Auto-reopen last file ─────────────────────────────────────────────────────
   //
   // Preferences are already loaded into the store before React mounts (see
@@ -80,8 +103,10 @@ export function App(): React.JSX.Element {
       window.api.readFile(prefs.lastFilePath)
         .then(json => {
           const state = deserializeSession(json)
-          loadSession({ ...state, filePath: prefs.lastFilePath! })
-          markClean(prefs.lastFilePath!)
+          history.replaceDocument(() => {
+            loadSession({ ...state, filePath: prefs.lastFilePath!, isDirty: false })
+            selectElements([])
+          })
           window.api.restoreMainWindowBounds()
         })
         .catch(() => { /* file has moved or been deleted — silently ignore */ })
@@ -94,18 +119,31 @@ export function App(): React.JSX.Element {
   // runs outside of React's render cycle — necessary for fine-grained IPC.
 
   useEffect(() => {
-    return useAppStore.subscribe((state, prevState) => {
+    return useAppStore.subscribe((_state, prevState) => {
+      // A history no-op can correct isDirty in a nested store update. Always
+      // encode the live store so this listener never broadcasts the stale outer
+      // notification after that correction.
+      const liveState = useAppStore.getState()
+
       // Open a new BrowserWindow for any map that just appeared in the session
       const prevIds = new Set(prevState.maps.map(m => m.id))
-      for (const map of state.maps) {
+      for (const map of liveState.maps) {
         if (!prevIds.has(map.id)) {
-          window.api.openMap(map.id, JSON.stringify({ isDirty: state.isDirty, filePath: state.filePath, session: serializeSession(state), selectedElementId: state.selectedElementId, selectedElementIds: state.selectedElementIds }))
+          window.api.openMap(map.id, encodeStateEnvelope(liveState))
         }
+      }
+
+      // Close a BrowserWindow for any map removed by Undo, Redo, Import, or
+      // another state replacement. User-initiated closes are already gone, so
+      // closeMap is intentionally a harmless no-op in that case.
+      const nextIds = new Set(liveState.maps.map(m => m.id))
+      for (const map of prevState.maps) {
+        if (!nextIds.has(map.id)) window.api.closeMap(map.id)
       }
 
       // Broadcast full state to all open map windows (unless we're mid-IPC-receive)
       if (!suppressBroadcast.current) {
-        window.api.broadcastState(JSON.stringify({ isDirty: state.isDirty, filePath: state.filePath, session: serializeSession(state), selectedElementId: state.selectedElementId, selectedElementIds: state.selectedElementIds }))
+        window.api.broadcastState(encodeStateEnvelope(liveState))
       }
     })
   }, [])
@@ -113,16 +151,24 @@ export function App(): React.JSX.Element {
   // ── IPC listeners from map windows ───────────────────────────────────────────
 
   useEffect(() => {
+    const removeHistoryTransaction = window.api.onHistoryTransaction((ownerId, phase) => {
+      if (phase === 'begin') history.begin(ownerId)
+      else history.end(ownerId)
+    })
+
     // Fine-grained score from a map window drag — apply without re-broadcasting
     const removeScore = window.api.onScore((elementId, dimensionId, value) => {
-      suppressBroadcast.current = true
-      useAppStore.getState().setScore(elementId, dimensionId, value)
-      suppressBroadcast.current = false
+      const state = useAppStore.getState()
+      if (!state.elements.some(element => element.id === elementId)) return
+      if (!state.dimensions.some(dimension => dimension.id === dimensionId)) return
+      withoutStateBroadcast(() => state.setScore(elementId, dimensionId, value))
     })
 
     // Map config change (axis swap, flip, title rename) from a map window
     const removeConfig = window.api.onMapConfig((mapId, changes) => {
-      useAppStore.getState().updateMapConfig(
+      const state = useAppStore.getState()
+      if (!state.maps.some(map => map.id === mapId)) return
+      state.updateMapConfig(
         mapId,
         changes as Partial<CartesianMapConfig> | Partial<SemanticMapConfig>
       )
@@ -130,29 +176,29 @@ export function App(): React.JSX.Element {
 
     // Map window closed by the user — remove its config from the session
     const removeMapClosed = window.api.onMapClosed((mapId) => {
-      suppressBroadcast.current = true
-      useAppStore.getState().removeMap(mapId)
-      suppressBroadcast.current = false
+      const state = useAppStore.getState()
+      if (state.maps.some(map => map.id === mapId)) state.removeMap(mapId)
     })
 
     // Element property change from a map window's right-click modal.
     // Suppress the Zustand subscription during the update so the subscription
     // doesn't broadcast, then explicitly push the fresh state to all map windows.
     const removeElementUpdate = window.api.onElementUpdate((elementId, changes) => {
-      suppressBroadcast.current = true
-      useAppStore.getState().updateElement(elementId, changes as Partial<Element>)
-      suppressBroadcast.current = false
+      const before = useAppStore.getState()
+      if (!before.elements.some(element => element.id === elementId)) return
+      withoutStateBroadcast(() => before.updateElement(elementId, changes as Partial<Element>))
       const s = useAppStore.getState()
-      window.api.broadcastState(JSON.stringify({ isDirty: s.isDirty, filePath: s.filePath, session: serializeSession(s), selectedElementId: s.selectedElementId }))
+      window.api.broadcastState(encodeStateEnvelope(s))
     })
 
-    // New collection created inline from a map window modal. Suppress
-    // re-broadcast — the subsequent onElementUpdate pushes the full state, with
-    // the new collection and the memberships naming it, once the modal closes.
+    // New collection created inline from a map window modal. It persists at the
+    // moment the user clicks Add, so broadcast it immediately even if the modal
+    // is later cancelled and no element update follows.
     const removeCollectionAdd = window.api.onCollectionAdd((id, name) => {
-      suppressBroadcast.current = true
-      useAppStore.getState().addCollection(name, id)
-      suppressBroadcast.current = false
+      const before = useAppStore.getState()
+      if (before.collections.some(collection => collection.id === id)) return
+      withoutStateBroadcast(() => before.addCollection(name, id))
+      window.api.broadcastState(encodeStateEnvelope(useAppStore.getState()))
     })
 
     // Quit requested — show confirm dialog if dirty, otherwise let it proceed
@@ -164,8 +210,21 @@ export function App(): React.JSX.Element {
       }
     })
 
-    return () => { removeScore(); removeConfig(); removeMapClosed(); removeElementUpdate(); removeCollectionAdd(); removeQuitRequested() }
+    return () => {
+      removeHistoryTransaction()
+      removeScore()
+      removeConfig()
+      removeMapClosed()
+      removeElementUpdate()
+      removeCollectionAdd()
+      removeQuitRequested()
+    }
   }, [])
+
+  // Keep native menu availability synchronized with the authoritative history.
+  useEffect(() => history.onAvailability(({ canUndo, canRedo }) => {
+    window.api.setHistoryAvailability(canUndo, canRedo)
+  }), [])
 
   // ── Selection sync ────────────────────────────────────────────────────────────
   //
@@ -214,6 +273,8 @@ export function App(): React.JSX.Element {
   useEffect(() => {
     return window.api.onMenuAction(async (action) => {
       switch (action) {
+        case 'undo':               history.undo();               break
+        case 'redo':               history.redo();               break
         case 'new':                await handleNew();             break
         case 'open':               await handleOpen();            break
         case 'save':               await handleSave(false);       break
@@ -231,8 +292,7 @@ export function App(): React.JSX.Element {
 
   async function handleNew(): Promise<void> {
     if (isDirty && !await confirmDiscard()) return
-    window.api.closeAllMaps()
-    resetToEmpty()
+    history.replaceDocument(() => resetToEmpty())
     window.api.restoreMainWindowBounds()
   }
 
@@ -243,9 +303,10 @@ export function App(): React.JSX.Element {
     try {
       const json  = await window.api.readFile(path)
       const state = deserializeSession(json)
-      window.api.closeAllMaps()
-      loadSession({ ...state, filePath: path })
-      markClean(path)
+      history.replaceDocument(() => {
+        loadSession({ ...state, filePath: path, isDirty: false })
+        selectElements([])
+      })
       window.api.restoreMainWindowBounds()
       // The Zustand subscriber above detects new maps and opens a window for each
       return true
@@ -257,10 +318,15 @@ export function App(): React.JSX.Element {
   }
 
   async function handleSave(forceDialog: boolean): Promise<void> {
+    // Dialog and geometry IPC happen before captureSave() can issue its guarded
+    // token. Remember which document initiated the operation so New, Open, or
+    // Import cannot make this Save write their replacement to the old path.
+    const startingGeneration = history.generation
     let path = useAppStore.getState().filePath
     if (!path || forceDialog) {
       path = await window.api.showSaveDialog()
       if (!path) return
+      if (history.generation !== startingGeneration) return
     }
 
     const currentPrefs = usePrefsStore.getState().prefs
@@ -269,19 +335,21 @@ export function App(): React.JSX.Element {
     // is saved to the file and can be restored on next open
     if (currentPrefs.rememberWindowPositions) {
       const positions = await window.api.getMapWindowPositions()
-      suppressBroadcast.current = true
-      for (const [mapId, pos] of Object.entries(positions)) {
-        useAppStore.getState().updateMapConfig(mapId, {
-          windowX: pos.x, windowY: pos.y,
-          windowWidth: pos.width, windowHeight: pos.height
-        })
-      }
-      suppressBroadcast.current = false
+      if (history.generation !== startingGeneration) return
+      history.suspend(() => withoutStateBroadcast(() => {
+        for (const [mapId, pos] of Object.entries(positions)) {
+          useAppStore.getState().updateMapConfig(mapId, {
+            windowX: pos.x, windowY: pos.y,
+            windowWidth: pos.width, windowHeight: pos.height
+          })
+        }
+      }))
     }
 
-    const json = serializeSession(useAppStore.getState())
-    await window.api.writeFile(path, json)
-    markClean(path)
+    if (history.generation !== startingGeneration) return
+    const saveToken = history.captureSave()
+    await window.api.writeFile(path, saveToken.frame.session)
+    if (!history.markSaved(saveToken, path)) return
 
     // Record this as the last-used file path for the auto-reopen preference
     const newPrefs: Preferences = { ...currentPrefs, lastFilePath: path }
@@ -333,16 +401,19 @@ export function App(): React.JSX.Element {
           onCancel={() => setImportPreview(null)}
           onConfirm={() => {
             const { sessionMeta, elements, collections, dimensions, scores } = importPreview.result
-            loadSession({
-              filePath: null, isDirty: true,
-              sessionMeta, elements, collections, dimensions, scores, maps: [],
-              // Selection defaults to none — consistent with the rest of the app.
-              // Previously auto-selected the first element/dimension, which
-              // contradicted the "selection is driven by map dot clicks" model.
-              selectedElementId:   null,
-              selectedDimensionId: null,
-              selectedCollectionId: null,
-              activeTab: 'elements'
+            history.replaceUndoable(() => {
+              loadSession({
+                filePath: null, isDirty: true,
+                sessionMeta, elements, collections, dimensions, scores, maps: [],
+                // Selection defaults to none — consistent with the rest of the app.
+                // Previously auto-selected the first element/dimension, which
+                // contradicted the "selection is driven by map dot clicks" model.
+                selectedElementId:   null,
+                selectedDimensionId: null,
+                selectedCollectionId: null,
+                activeTab: 'elements'
+              })
+              selectElements([])
             })
             setImportPreview(null)
           }}

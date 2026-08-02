@@ -14,13 +14,16 @@ import { readFile, writeFile } from 'fs/promises'
 import { getMainWindow, setQuitConfirmed } from './index'
 import {
   openMapWindow,
+  closeMapWindowSilent,
   closeAllMapWindowsSilent,
   handleMapReady,
+  isManagedMapWebContents,
   getMapWindowPositions,
   broadcastToMaps,
   broadcastToAllExcept
 } from './windowManager'
 import { loadPreferences, savePreferences, getCachedPreferences } from './prefs'
+import { setHistoryAvailability } from './menu'
 
 export function registerIpcHandlers(): void {
 
@@ -80,6 +83,15 @@ export function registerIpcHandlers(): void {
 
   ipcMain.on('map:open', (_event, mapId: string, stateJson: string) => {
     openMapWindow(mapId, stateJson)
+  })
+
+  // Score Window state restoration removed one map. Close only that window and
+  // suppress the normal map:closed echo, since the config is already gone.
+  ipcMain.on('map:close', (event, mapId: string) => {
+    const scoreWin = getMainWindow()
+    if (scoreWin && !scoreWin.isDestroyed() && scoreWin.webContents.id === event.sender.id) {
+      closeMapWindowSilent(mapId)
+    }
   })
 
   ipcMain.on('map:closeAll', () => {
@@ -161,6 +173,25 @@ export function registerIpcHandlers(): void {
   // The Score Window owns the authoritative app state (Zustand store).
   // Map windows receive state via broadcasts and send back only fine-grained
   // score updates or map config changes to avoid expensive full-state diffs.
+
+  // Map renderers delimit continuous or compound writes. Main supplies the
+  // unspoofable webContents owner ID and relays the boundary to Score only.
+  ipcMain.on('history:transaction', (event, phase: 'begin' | 'end') => {
+    if (phase !== 'begin' && phase !== 'end') return
+    if (!isManagedMapWebContents(event.sender.id)) return
+    const scoreWin = getMainWindow()
+    if (scoreWin && !scoreWin.isDestroyed() && scoreWin.webContents.id !== event.sender.id) {
+      scoreWin.webContents.send('history:transaction', event.sender.id, phase)
+    }
+  })
+
+  // Only the authoritative Score renderer may drive native menu availability.
+  ipcMain.on('history:availability', (event, canUndo: boolean, canRedo: boolean) => {
+    const scoreWin = getMainWindow()
+    if (!scoreWin || scoreWin.isDestroyed() || scoreWin.webContents.id !== event.sender.id) return
+    if (typeof canUndo !== 'boolean' || typeof canRedo !== 'boolean') return
+    setHistoryAvailability(canUndo, canRedo)
+  })
 
   // Fine-grained score from a drag gesture — relay to all other windows
   ipcMain.on('score:update', (event, elementId: string, dimensionId: string, value: number) => {

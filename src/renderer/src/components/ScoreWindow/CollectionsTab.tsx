@@ -13,6 +13,7 @@
 
 import { useRef, useState, useEffect, KeyboardEvent } from 'react'
 import { useAppStore } from '../../store/appStore'
+import { history, SCORE_HISTORY_OWNER } from '../../store/history'
 import { DEFAULT_COLLECTION_COLOR } from '../../lib/color'
 import styles from './DataTab.module.css'
 
@@ -192,7 +193,12 @@ export function CollectionsTab(): React.JSX.Element {
             className={styles.colorInput}
             value={selected?.color ?? DEFAULT_COLLECTION_COLOR}
             disabled={!selected}
-            onChange={e => selected && updateCollection(selected.id, { color: e.target.value })}
+            onFocus={() => history.begin(SCORE_HISTORY_OWNER)}
+            onBlur={() => history.end(SCORE_HISTORY_OWNER)}
+            onChange={e => {
+              history.begin(SCORE_HISTORY_OWNER)
+              if (selected) updateCollection(selected.id, { color: e.target.value })
+            }}
           />
         </div>
         <textarea
@@ -200,7 +206,12 @@ export function CollectionsTab(): React.JSX.Element {
           placeholder="Definition…"
           value={selected?.definition ?? ''}
           disabled={!selected}
-          onChange={e => selected && updateCollection(selected.id, { definition: e.target.value })}
+          onFocus={() => history.begin(SCORE_HISTORY_OWNER)}
+          onBlur={() => history.end(SCORE_HISTORY_OWNER)}
+          onChange={e => {
+            history.begin(SCORE_HISTORY_OWNER)
+            if (selected) updateCollection(selected.id, { definition: e.target.value })
+          }}
         />
       </div>
 

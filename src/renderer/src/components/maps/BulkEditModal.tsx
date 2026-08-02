@@ -98,10 +98,12 @@ export function BulkEditModal({ elementIds, elements, onClose }: Props): React.J
     const parsed = parseInt(weight, 10)
     if (!isNaN(parsed) && parsed >= 1 && parsed <= 100) fields.weight = parsed
 
+    const validCollectionIds = new Set(collections.map(collection => collection.id))
     const touched = Object.entries(membership)
+      .filter(([collectionId]) => validCollectionIds.has(collectionId))
     const collectionIds = touched.length > 0
       ? Object.fromEntries(selected.map(el => {
-          const ids = new Set(el.collectionIds)
+          const ids = new Set(el.collectionIds.filter(id => validCollectionIds.has(id)))
           for (const [collectionId, member] of touched) {
             if (member) ids.add(collectionId)
             else ids.delete(collectionId)

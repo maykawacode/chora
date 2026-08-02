@@ -21,9 +21,11 @@ import { getCachedPreferences } from './prefs'
 // Active map windows, keyed by the map ID (UUID from MapConfig)
 const mapWindows = new Map<string, BrowserWindow>()
 
-// Map IDs that were closed programmatically (e.g. File → New) — these should
-// NOT send a 'map:closed' notification back to the Score Window
-const silentCloseIds = new Set<string>()
+// Windows closed because authoritative Score state removed their map must not
+// echo a 'map:closed' notification. Track the BrowserWindow identity rather
+// than only the map ID: Undo can remove and Redo can recreate the same ID
+// before an older window's closed event is delivered.
+const silentCloseWindows = new WeakSet<BrowserWindow>()
 
 // Pending init data for windows that have shown but whose renderer is not
 // yet ready to receive 'map:init'. Keyed by webContents ID (integer).
@@ -35,6 +37,13 @@ let scoreWindow: BrowserWindow | null = null
 /** Called by index.ts immediately after the Score Window is created. */
 export function setScoreWindow(win: BrowserWindow): void {
   scoreWindow = win
+}
+
+/** Ends any transaction owned by a map renderer that is going away. */
+function endMapHistoryTransaction(webContentsId: number): void {
+  if (scoreWindow && !scoreWindow.isDestroyed()) {
+    scoreWindow.webContents.send('history:transaction', webContentsId, 'end')
+  }
 }
 
 /**
@@ -93,15 +102,24 @@ export function openMapWindow(mapId: string, stateJson: string): void {
   // regardless of whether map:ready arrives before or after ready-to-show.
   pendingInits.set(wcId, { win, mapId, stateJson })
 
+  // A renderer can disappear without completing its mouseup/blur cleanup. End
+  // its transaction while the BrowserWindow is still present so history cannot
+  // remain stuck open. A later 'closed' fallback is deliberately harmless.
+  win.webContents.on('render-process-gone', () => {
+    endMapHistoryTransaction(wcId)
+  })
+
   win.on('closed', () => {
-    mapWindows.delete(mapId)
+    // Never let a stale close event delete a replacement for the same map ID.
+    if (mapWindows.get(mapId) === win) mapWindows.delete(mapId)
     pendingInits.delete(wcId)
+    // Finish a leaked drag/bulk transaction before recording the map removal.
+    endMapHistoryTransaction(wcId)
     // Only notify Score Window if the close was user-initiated (not programmatic)
     // Guard isDestroyed() in case Score Window closed first during quit.
-    if (!silentCloseIds.has(mapId) && scoreWindow && !scoreWindow.isDestroyed()) {
+    if (!silentCloseWindows.has(win) && scoreWindow && !scoreWindow.isDestroyed()) {
       scoreWindow.webContents.send('map:closed', mapId)
     }
-    silentCloseIds.delete(mapId)
   })
 
   const mapUrl = is.dev && process.env['ELECTRON_RENDERER_URL']
@@ -131,15 +149,44 @@ export function handleMapReady(webContentsId: number): void {
 }
 
 /**
+ * Closes one map window without echoing map:closed to the Score Window.
+ * Used when authoritative state restoration removes a map configuration.
+ */
+export function closeMapWindowSilent(mapId: string): void {
+  const win = mapWindows.get(mapId)
+  if (!win) return
+  if (win.isDestroyed()) {
+    if (mapWindows.get(mapId) === win) mapWindows.delete(mapId)
+    return
+  }
+  silentCloseWindows.add(win)
+  // This is an authoritative state restoration, not a user cancellation point.
+  // Destroy synchronously so an immediate Redo can create the same map window
+  // instead of finding a still-closing instance and losing the reopen request.
+  win.destroy()
+}
+
+/**
  * Closes all open map windows without sending 'map:closed' notifications.
- * Used by File → New and File → Open so the Score Window can reset cleanly.
+ * Document changes normally reconcile map IDs individually; this remains the
+ * explicit bulk-close path for callers that need to tear every map window down.
  */
 export function closeAllMapWindowsSilent(): void {
   for (const [mapId, win] of mapWindows.entries()) {
-    silentCloseIds.add(mapId)
-    if (!win.isDestroyed()) win.close()
+    silentCloseWindows.add(win)
+    if (!win.isDestroyed()) win.destroy()
+    if (mapWindows.get(mapId) === win) mapWindows.delete(mapId)
   }
-  mapWindows.clear()
+}
+
+/** True only while the ID belongs to a live map BrowserWindow we manage. */
+export function isManagedMapWebContents(webContentsId: number): boolean {
+  for (const win of mapWindows.values()) {
+    if (!win.isDestroyed() && !win.webContents.isDestroyed() && win.webContents.id === webContentsId) {
+      return true
+    }
+  }
+  return false
 }
 
 /**

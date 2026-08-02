@@ -11,6 +11,8 @@ import { Menu, MenuItem, MenuItemConstructorOptions, BrowserWindow, app } from '
 
 let _mainWindow: BrowserWindow | null = null
 let _closeWindowItem: MenuItem | null = null
+let _undoItem: MenuItem | null = null
+let _redoItem: MenuItem | null = null
 
 /** Called by index.ts right after the Score Window is created. */
 export function setMainWindowForMenu(win: BrowserWindow): void {
@@ -20,6 +22,12 @@ export function setMainWindowForMenu(win: BrowserWindow): void {
 /** Enable or disable the Close Window menu item based on which window has focus. */
 export function setCloseWindowEnabled(enabled: boolean): void {
   if (_closeWindowItem) _closeWindowItem.enabled = enabled
+}
+
+/** Keep application Undo/Redo in sync with the authoritative Score history. */
+export function setHistoryAvailability(canUndo: boolean, canRedo: boolean): void {
+  if (_undoItem) _undoItem.enabled = canUndo
+  if (_redoItem) _redoItem.enabled = canRedo
 }
 
 function findMenuItemByLabel(menu: Menu, label: string): MenuItem | null {
@@ -87,8 +95,18 @@ export function buildMenu(): void {
     {
       label: 'Edit',
       submenu: [
-        { role: 'undo' as const },
-        { role: 'redo' as const },
+        {
+          label: 'Undo',
+          accelerator: 'CmdOrCtrl+Z',
+          enabled: false,
+          click: () => sendToRenderer('menu:undo')
+        },
+        {
+          label: 'Redo',
+          accelerator: 'CmdOrCtrl+Shift+Z',
+          enabled: false,
+          click: () => sendToRenderer('menu:redo')
+        },
         { type: 'separator' as const },
         { role: 'cut' as const },
         { role: 'copy' as const },
@@ -133,5 +151,7 @@ export function buildMenu(): void {
 
   const menu = Menu.buildFromTemplate(template)
   Menu.setApplicationMenu(menu)
+  _undoItem = findMenuItemByLabel(menu, 'Undo')
+  _redoItem = findMenuItemByLabel(menu, 'Redo')
   _closeWindowItem = findMenuItemByLabel(menu, 'Close Window')
 }
