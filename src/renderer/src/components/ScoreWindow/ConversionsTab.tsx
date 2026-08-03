@@ -1,11 +1,10 @@
-// ── ConversionsTab ─────────────────────────────────────────────────────────────
+// ── TransformDataDialog ────────────────────────────────────────────────────────
 //
-// Data-conversion operations presented as a FROM → TO pipeline.
-// User picks a source kind and a destination kind from dropdowns; contextual
-// controls (dimension pickers, pole toggle, color pickers) appear only when
-// relevant. All mutations delegate to store actions.
+// App-owned modal for global data transformations. The editor keeps the existing
+// FROM → TO pipeline and delegates every mutation to the store; the wrapper owns
+// only dismissal and focus behavior.
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useAppStore } from '../../store/appStore'
 import { usePrefsStore } from '../../store/prefsStore'
 import styles from './ConversionsTab.module.css'
@@ -60,7 +59,103 @@ function buildSummary(
   return ''
 }
 
-export function ConversionsTab(): React.JSX.Element {
+interface DialogProps {
+  onClose: () => void
+}
+
+export function TransformDataDialog({ onClose }: DialogProps): React.JSX.Element {
+  const dialogRef = useRef<HTMLElement>(null)
+
+  useEffect(() => {
+    const previousFocus = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null
+    const focusFrame = window.requestAnimationFrame(() => {
+      dialogRef.current
+        ?.querySelector<HTMLElement>('[data-transform-source]')
+        ?.focus()
+    })
+
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        onClose()
+        return
+      }
+      if (event.key !== 'Tab' || !dialogRef.current) return
+
+      const focusable = Array.from(dialogRef.current.querySelectorAll<HTMLElement>(
+        'button:not(:disabled), select:not(:disabled), input:not(:disabled), textarea:not(:disabled), [href], [tabindex]:not([tabindex="-1"])'
+      )).filter(element => element.offsetParent !== null)
+
+      if (focusable.length === 0) {
+        event.preventDefault()
+        return
+      }
+
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      const active = document.activeElement
+      if (!dialogRef.current.contains(active) || !focusable.includes(active as HTMLElement)) {
+        event.preventDefault()
+        const wrapTarget = event.shiftKey ? last : first
+        wrapTarget.focus()
+      } else if (event.shiftKey && active === first) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault()
+        first.focus()
+      }
+    }
+    window.addEventListener('keydown', onKeyDown, true)
+    return () => {
+      window.cancelAnimationFrame(focusFrame)
+      window.removeEventListener('keydown', onKeyDown, true)
+      previousFocus?.focus()
+    }
+  }, [onClose])
+
+  return (
+    <div
+      className={styles.overlay}
+      onClick={event => { if (event.target === event.currentTarget) onClose() }}
+    >
+      <section
+        ref={dialogRef}
+        className={styles.dialog}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="transform-data-title"
+      >
+        <header className={styles.dialogHeader}>
+          <div>
+            <h2 id="transform-data-title" className={styles.dialogTitle}>Transform Data</h2>
+            <p className={styles.dialogSubtitle}>Review one change at a time. Apply closes this dialog; the change can be undone.</p>
+          </div>
+          <button
+            type="button"
+            className={styles.closeButton}
+            onClick={onClose}
+          >
+            Close
+          </button>
+        </header>
+
+        <div className={styles.dialogBody}>
+          <TransformDataEditor onApplied={onClose} />
+        </div>
+      </section>
+    </div>
+  )
+}
+
+interface EditorProps {
+  onApplied: () => void
+}
+
+function TransformDataEditor({ onApplied }: EditorProps): React.JSX.Element {
   const dimensions         = useAppStore(s => s.dimensions)
   const collections        = useAppStore(s => s.collections)
   const scores             = useAppStore(s => s.scores)
@@ -87,16 +182,14 @@ export function ConversionsTab(): React.JSX.Element {
   const [poleFlipped, setPoleFlipped] = useState(false)
   const [colorLow,    setColorLow]    = useState(prefLow)
   const [colorHigh,   setColorHigh]   = useState(prefHigh)
-  const [applied,     setApplied]     = useState(false)
 
   const [spreadDimId, setSpreadDimId] = useState('')
-  const [spreadApplied, setSpreadApplied] = useState(false)
   const spreadDim = spreadDimId ? dimensions.find(d => d.id === spreadDimId) ?? null : null
 
   function handleSpreadApply(): void {
-    if (!spreadDimId) return
-    spreadDimensionScores(spreadDimId)
-    setSpreadApplied(true)
+    if (!spreadDim) return
+    spreadDimensionScores(spreadDim.id)
+    onApplied()
   }
 
   function handleFromChange(val: string): void {
@@ -105,14 +198,12 @@ export function ConversionsTab(): React.JSX.Element {
     setFromDimId('')
     setToDimId('')
     setPoleFlipped(false)
-    setApplied(false)
   }
 
   function handleToChange(val: string): void {
     setToTarget(val as ToTarget | '')
     setToDimId('')
     setPoleFlipped(false)
-    setApplied(false)
   }
 
   const showFromDimPicker = fromSource === 'dim-scores'
@@ -131,8 +222,8 @@ export function ConversionsTab(): React.JSX.Element {
 
   const canApply = (() => {
     if (!fromSource || !toTarget) return false
-    if (fromSource === 'dim-scores' && !fromDimId) return false
-    if (toTarget   === 'dim-scores' && !toDimId)   return false
+    if (fromSource === 'dim-scores' && !fromDim) return false
+    if (toTarget   === 'dim-scores' && !toDim)   return false
     if (fromSource === 'dim-scores' && toTarget === 'dim-scores' && fromDimId === toDimId) return false
     if ((fromSource === 'collection' || toTarget === 'collection') && collections.length === 0) return false
     return true
@@ -154,17 +245,24 @@ export function ConversionsTab(): React.JSX.Element {
     else if (fromSource === 'el-shape'   && toTarget === 'el-color')   shapeToColor()
     else if (fromSource === 'el-shape'   && toTarget === 'collection') shapeToCollection()
     else if (fromSource === 'el-color'   && toTarget === 'el-shape')   colorToShape()
-    setApplied(true)
+    else return
+    onApplied()
   }
 
   return (
-    <div className={styles.tab}>
+    <div className={styles.editor}>
 
       {/* ── FROM ────────────────────────────────────────────────────────────── */}
       <div className={styles.section}>
         <div className={styles.sectionLabel}>From</div>
 
-        <select className={styles.select} value={fromSource} onChange={e => handleFromChange(e.target.value)}>
+        <select
+          className={styles.select}
+          value={fromSource}
+          onChange={e => handleFromChange(e.target.value)}
+          aria-label="Source"
+          data-transform-source
+        >
           <option value="">Choose source…</option>
           {(Object.keys(FROM_LABELS) as FromSource[]).map(k => (
             <option key={k} value={k}>{FROM_LABELS[k]}</option>
@@ -177,7 +275,12 @@ export function ConversionsTab(): React.JSX.Element {
             {dimensions.length === 0
               ? <p className={styles.hint}>No dimensions defined.</p>
               : (
-                <select className={styles.select} value={fromDimId} onChange={e => { const v = e.target.value; setFromDimId(v); if (v === toDimId) setToDimId(''); setApplied(false) }}>
+                <select
+                  className={styles.select}
+                  value={fromDimId}
+                  onChange={e => { const v = e.target.value; setFromDimId(v); if (v === toDimId) setToDimId('') }}
+                  aria-label="Source dimension"
+                >
                   <option value="">Choose dimension…</option>
                   {dimensions.map((d, i) => (
                     <option key={d.id} value={d.id}>{d.label || `Dimension ${i + 1}`}</option>
@@ -207,6 +310,7 @@ export function ConversionsTab(): React.JSX.Element {
           value={toTarget}
           disabled={!fromSource}
           onChange={e => handleToChange(e.target.value)}
+          aria-label="Destination"
         >
           {!fromSource
             ? <option value="">Choose a source first…</option>
@@ -225,7 +329,12 @@ export function ConversionsTab(): React.JSX.Element {
             {dimensions.length === 0
               ? <p className={styles.hint}>No dimensions defined.</p>
               : (
-                <select className={styles.select} value={toDimId} onChange={e => { setToDimId(e.target.value); setApplied(false) }}>
+                <select
+                  className={styles.select}
+                  value={toDimId}
+                  onChange={e => setToDimId(e.target.value)}
+                  aria-label="Destination dimension"
+                >
                   <option value="">Choose dimension…</option>
                   {dimensions
                     .filter(d => !(fromSource === 'dim-scores' && d.id === fromDimId))
@@ -241,18 +350,20 @@ export function ConversionsTab(): React.JSX.Element {
         {showPole && poleDim && (
           <div className={styles.subControl}>
             <div className={styles.subLabel}>High end</div>
-            <div className={styles.poleButtons}>
+            <div className={styles.poleButtons} role="group" aria-label="High end">
               <button
                 type="button"
                 className={`${styles.poleBtn} ${poleFlipped ? styles.poleBtnActive : ''}`}
-                onClick={() => { setPoleFlipped(true); setApplied(false) }}
+                onClick={() => setPoleFlipped(true)}
+                aria-pressed={poleFlipped}
               >
                 {poleDim.poleA || 'Pole A'}
               </button>
               <button
                 type="button"
                 className={`${styles.poleBtn} ${!poleFlipped ? styles.poleBtnActive : ''}`}
-                onClick={() => { setPoleFlipped(false); setApplied(false) }}
+                onClick={() => setPoleFlipped(false)}
+                aria-pressed={!poleFlipped}
               >
                 {poleDim.poleB || 'Pole B'}
               </button>
@@ -265,12 +376,12 @@ export function ConversionsTab(): React.JSX.Element {
             <label className={styles.colorField}>
               <span className={styles.subLabel}>Low (score 0)</span>
               <input type="color" className={styles.colorPicker} value={colorLow}
-                onChange={e => { setColorLow(e.target.value); setApplied(false) }} />
+                onChange={e => setColorLow(e.target.value)} />
             </label>
             <label className={styles.colorField}>
               <span className={styles.subLabel}>High (score 1)</span>
               <input type="color" className={styles.colorPicker} value={colorHigh}
-                onChange={e => { setColorHigh(e.target.value); setApplied(false) }} />
+                onChange={e => setColorHigh(e.target.value)} />
             </label>
           </div>
         )}
@@ -305,11 +416,10 @@ export function ConversionsTab(): React.JSX.Element {
             </p>
           )}
           <button
-            className={applied ? styles.applyBtnDone : hasExistingScores ? styles.applyBtnOverwrite : styles.applyBtn}
-            disabled={applied}
+            className={hasExistingScores ? styles.applyBtnOverwrite : styles.applyBtn}
             onClick={handleApply}
           >
-            {applied ? 'Applied' : hasExistingScores ? 'Overwrite & Randomize' : 'Apply Conversion'}
+            {hasExistingScores ? 'Overwrite & Randomize' : 'Apply Transform'}
           </button>
         </div>
       )}
@@ -321,7 +431,8 @@ export function ConversionsTab(): React.JSX.Element {
         <select
           className={styles.select}
           value={spreadDimId}
-          onChange={e => { setSpreadDimId(e.target.value); setSpreadApplied(false) }}
+          onChange={e => setSpreadDimId(e.target.value)}
+          aria-label="Dimension to spread"
         >
           <option value="">Choose dimension…</option>
           {dimensions.map((d, i) => (
@@ -336,11 +447,10 @@ export function ConversionsTab(): React.JSX.Element {
               highest becomes .95, preserving relative spacing. Unscored elements unchanged.
             </p>
             <button
-              className={spreadApplied ? styles.applyBtnDone : styles.applyBtn}
-              disabled={spreadApplied}
+              className={styles.applyBtn}
               onClick={handleSpreadApply}
             >
-              {spreadApplied ? 'Applied' : 'Apply Spread'}
+              Apply Spread
             </button>
           </div>
         )}

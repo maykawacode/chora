@@ -1,7 +1,7 @@
 // ── ScoreWindow ───────────────────────────────────────────────────────────────
 //
 // Top-level shell of the main application window. Renders the tab bar and
-// delegates to one of five tab components based on the active tab in the store.
+// delegates to one of four tab components based on the active tab in the store.
 // The onOpenStarterPicker prop bubbles up to App.tsx which owns the modal state.
 
 import { useAppStore } from '../../store/appStore'
@@ -9,7 +9,6 @@ import { ElementsTab } from './ElementsTab'
 import { DimensionsTab } from './DimensionsTab'
 import { ScoresTab } from './ScoresTab'
 import { CollectionsTab } from './CollectionsTab'
-import { ConversionsTab } from './ConversionsTab'
 import type { AppState } from '../../lib/types'
 import styles from './ScoreWindow.module.css'
 
@@ -21,8 +20,7 @@ const TAB_LABELS: Record<AppState['activeTab'], string> = {
   elements:    'Elements',
   collections: 'Collections',
   dimensions:  'Dimensions',
-  scores:      'Scores',
-  conversions: 'Conversions'
+  scores:      'Scores'
 }
 
 interface Props {
@@ -42,7 +40,7 @@ export function ScoreWindow({ onOpenStarterPicker }: Props): React.JSX.Element {
       <div className={styles.tabBar}>
         <span className={styles.windowTitle}>{fileName}</span>
 
-        {(['elements', 'collections', 'dimensions', 'scores', 'conversions'] as const).map(tab => (
+        {(['elements', 'collections', 'dimensions', 'scores'] as const).map(tab => (
           <button
             key={tab}
             className={`${styles.tab} ${activeTab === tab ? styles.tabActive : ''}`}
@@ -62,7 +60,6 @@ export function ScoreWindow({ onOpenStarterPicker }: Props): React.JSX.Element {
         {activeTab === 'collections' && <CollectionsTab />}
         {activeTab === 'dimensions'  && <DimensionsTab onOpenStarterPicker={onOpenStarterPicker} />}
         {activeTab === 'scores'      && <ScoresTab />}
-        {activeTab === 'conversions' && <ConversionsTab />}
       </div>
     </div>
   )

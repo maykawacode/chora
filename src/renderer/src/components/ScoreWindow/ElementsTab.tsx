@@ -367,8 +367,11 @@ export function ElementsTab(): React.JSX.Element {
         </div>
         <div className={styles.fieldRow}>
           <label className={styles.label}>Weight</label>
+          {/* Batch transforms and map edits can change weight without changing
+              selection. Include the live value so this uncontrolled field
+              cannot display—or later write back—a stale pre-transform value. */}
           <input
-            key={selected?.id ?? 'none'}
+            key={`weight-${selected?.id ?? 'none'}-${selected?.weight ?? 1}`}
             className={styles.weightInput}
             type="number"
             min={1}

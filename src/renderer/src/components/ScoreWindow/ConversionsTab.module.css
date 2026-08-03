@@ -1,4 +1,80 @@
-.tab {
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 16px;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.dialog {
+  width: min(440px, 100%);
+  height: min(680px, 100%);
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #f0ede8;
+  border: 1px solid #888;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+  font-size: 13px;
+}
+
+.dialogHeader {
+  flex: none;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid #c8c4bc;
+  -webkit-app-region: drag;
+  user-select: none;
+}
+
+.dialogTitle {
+  margin: 0 0 3px;
+  color: #222;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.dialogSubtitle {
+  margin: 0;
+  color: #666;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.closeButton {
+  flex: none;
+  -webkit-app-region: no-drag;
+  padding: 4px 10px;
+  border: 1px solid #b0a898;
+  border-radius: 4px;
+  background: #e0ddd8;
+  color: #444;
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.closeButton:hover {
+  background: #d0cdc8;
+}
+
+.dialogBody {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  -webkit-app-region: no-drag;
+}
+
+.editor {
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -200,19 +276,6 @@
 
 .applyBtn:hover {
   background: #607030;
-}
-
-.applyBtnDone {
-  padding: 7px 16px;
-  border: 1px solid #b0a898;
-  border-radius: 5px;
-  background: #d8d5d0;
-  color: #999;
-  font-size: 13px;
-  font-family: inherit;
-  font-weight: 500;
-  cursor: default;
-  align-self: flex-end;
 }
 
 .applyBtnOverwrite {
