@@ -15,6 +15,7 @@ import { useRef, useState, useEffect, KeyboardEvent } from 'react'
 import { useAppStore } from '../../store/appStore'
 import { history, SCORE_HISTORY_OWNER } from '../../store/history'
 import { DEFAULT_COLLECTION_COLOR } from '../../lib/color'
+import { useResizableSplitPane } from './useResizableSplitPane'
 import styles from './DataTab.module.css'
 
 export function CollectionsTab(): React.JSX.Element {
@@ -37,17 +38,8 @@ export function CollectionsTab(): React.JSX.Element {
 
   const [newName,         setNewName]         = useState('')
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
-  const [detailWidth,     setDetailWidth]     = useState(160)
   const addInputRef = useRef<HTMLInputElement>(null)
-  const dragRef     = useRef<{ startX: number; startWidth: number } | null>(null)
-  const tabRef      = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (tabRef.current) {
-      const w = tabRef.current.getBoundingClientRect().width
-      if (w > 0) setDetailWidth(Math.round(w / 2))
-    }
-  }, [])
+  const splitPane = useResizableSplitPane()
 
   useEffect(() => {
     if (confirmDeleteId !== null) window.api.setModalOpen(true)
@@ -61,22 +53,6 @@ export function CollectionsTab(): React.JSX.Element {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [confirmDeleteId])
-
-  function onHandleMouseDown(e: React.MouseEvent): void {
-    dragRef.current = { startX: e.clientX, startWidth: detailWidth }
-    const onMove = (ev: MouseEvent): void => {
-      if (!dragRef.current) return
-      const delta = dragRef.current.startX - ev.clientX
-      setDetailWidth(Math.max(120, Math.min(400, dragRef.current.startWidth + delta)))
-    }
-    const onUp = (): void => {
-      dragRef.current = null
-      document.removeEventListener('mousemove', onMove)
-      document.removeEventListener('mouseup', onUp)
-    }
-    document.addEventListener('mousemove', onMove)
-    document.addEventListener('mouseup', onUp)
-  }
 
   function handleAdd(): void {
     const name = newName.trim()
@@ -115,9 +91,9 @@ export function CollectionsTab(): React.JSX.Element {
     : 0
 
   return (
-    <div className={styles.tab} ref={tabRef}>
+    <div className={styles.tab} ref={splitPane.containerRef} style={splitPane.containerStyle}>
       {/* ── List pane ── */}
-      <div className={styles.listPane}>
+      <div className={styles.listPane} style={splitPane.leftPaneStyle}>
         <div className={styles.listHeader}>Collections ({collections.length})</div>
 
         {collections.length === 0
@@ -168,10 +144,10 @@ export function CollectionsTab(): React.JSX.Element {
       </div>
 
       {/* ── Resize handle ── */}
-      <div className={styles.resizeHandle} onMouseDown={onHandleMouseDown} />
+      <div className={styles.resizeHandle} style={splitPane.dividerStyle} {...splitPane.dividerProps} />
 
       {/* ── Detail pane ── */}
-      <div className={styles.detailPane} style={{ width: detailWidth }}>
+      <div className={styles.detailPane} style={splitPane.rightPaneStyle}>
         <div className={styles.fieldRow}>
           <label className={styles.label}>Name</label>
           <input

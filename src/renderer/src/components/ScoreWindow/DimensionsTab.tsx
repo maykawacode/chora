@@ -14,9 +14,55 @@
 import { useRef, useState, useEffect, KeyboardEvent } from 'react'
 import { useAppStore } from '../../store/appStore'
 import { history, SCORE_HISTORY_OWNER } from '../../store/history'
+import { useResizableSplitPane } from './useResizableSplitPane'
 import styles from './DataTab.module.css'
 
 interface Props { onOpenStarterPicker: () => void }
+
+interface DimensionListLabelProps {
+  poleA: string
+  poleB: string
+}
+
+function DimensionListLabel({ poleA, poleB }: DimensionListLabelProps): React.JSX.Element {
+  const containerRef = useRef<HTMLSpanElement>(null)
+  const measureRef = useRef<HTMLSpanElement>(null)
+  const [isWrapped, setIsWrapped] = useState(false)
+  const displayLabel = `${poleA} - ${poleB}`
+
+  useEffect(() => {
+    const container = containerRef.current
+    const measure = measureRef.current
+    if (!container || !measure) return
+
+    const updateWrapping = (): void => {
+      setIsWrapped(measure.scrollWidth > container.clientWidth)
+    }
+    updateWrapping()
+
+    const observer = new ResizeObserver(updateWrapping)
+    observer.observe(container)
+    observer.observe(measure)
+    return () => observer.disconnect()
+  }, [displayLabel])
+
+  return (
+    <span
+      ref={containerRef}
+      className={`${styles.name} ${styles.dimensionName} ${isWrapped ? styles.dimensionNameWrapped : ''}`}
+      aria-label={displayLabel}
+    >
+      <span ref={measureRef} className={styles.dimensionMeasure} aria-hidden="true">{displayLabel}</span>
+      {isWrapped
+        ? <>
+            <span className={styles.dimensionPole}>{poleA} -</span>
+            <span className={`${styles.dimensionPole} ${styles.dimensionPoleB}`}>{poleB}</span>
+          </>
+        : displayLabel
+      }
+    </span>
+  )
+}
 
 export function DimensionsTab({ onOpenStarterPicker }: Props): React.JSX.Element {
   const dimensions      = useAppStore(s => s.dimensions)
@@ -30,33 +76,8 @@ export function DimensionsTab({ onOpenStarterPicker }: Props): React.JSX.Element
   const selected = dimensions.find(d => d.id === selectedId) ?? null
   const [newLabel,       setNewLabel]       = useState('')
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
-  const [detailWidth, setDetailWidth] = useState(160)
   const addInputRef = useRef<HTMLInputElement>(null)
-  const dragRef = useRef<{ startX: number; startWidth: number } | null>(null)
-  const tabRef  = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (tabRef.current) {
-      const w = tabRef.current.getBoundingClientRect().width
-      if (w > 0) setDetailWidth(Math.round(w / 2))
-    }
-  }, [])
-
-  function onHandleMouseDown(e: React.MouseEvent): void {
-    dragRef.current = { startX: e.clientX, startWidth: detailWidth }
-    const onMove = (ev: MouseEvent) => {
-      if (!dragRef.current) return
-      const delta = dragRef.current.startX - ev.clientX
-      setDetailWidth(Math.max(120, Math.min(320, dragRef.current.startWidth + delta)))
-    }
-    const onUp = () => {
-      dragRef.current = null
-      document.removeEventListener('mousemove', onMove)
-      document.removeEventListener('mouseup', onUp)
-    }
-    document.addEventListener('mousemove', onMove)
-    document.addEventListener('mouseup', onUp)
-  }
+  const splitPane = useResizableSplitPane()
 
   // Bring Score Window to front when the delete confirmation overlay opens
   useEffect(() => {
@@ -121,9 +142,9 @@ export function DimensionsTab({ onOpenStarterPicker }: Props): React.JSX.Element
   // ── Render ────────────────────────────────────────────────────────────────────
 
   return (
-    <div className={styles.tab} ref={tabRef}>
+    <div className={styles.tab} ref={splitPane.containerRef} style={splitPane.containerStyle}>
       {/* ── List pane ── */}
-      <div className={styles.listPane}>
+      <div className={styles.listPane} style={splitPane.leftPaneStyle}>
         <div className={styles.listHeader}>Dimensions ({dimensions.length})</div>
 
         {dimensions.length === 0
@@ -141,7 +162,7 @@ export function DimensionsTab({ onOpenStarterPicker }: Props): React.JSX.Element
                   className={`${styles.listItem} ${dim.id === selectedId ? styles.selected : ''}`}
                   onClick={() => selectDimension(dim.id)}
                 >
-                  <span className={styles.name}>{dim.label}</span>
+                  <DimensionListLabel poleA={dim.poleA} poleB={dim.poleB} />
                 </li>
               ))}
             </ul>
@@ -168,10 +189,10 @@ export function DimensionsTab({ onOpenStarterPicker }: Props): React.JSX.Element
       </div>
 
       {/* ── Resize handle ── */}
-      <div className={styles.resizeHandle} onMouseDown={onHandleMouseDown} />
+      <div className={styles.resizeHandle} style={splitPane.dividerStyle} {...splitPane.dividerProps} />
 
       {/* ── Detail pane ── */}
-      <div className={styles.detailPane} style={{ width: detailWidth }}>
+      <div className={styles.detailPane} style={splitPane.rightPaneStyle}>
         <div className={styles.fieldRow}>
           <label className={styles.label}>Pole A</label>
           {/* key forces input reset when selection changes */}

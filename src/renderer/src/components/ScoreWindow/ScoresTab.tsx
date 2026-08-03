@@ -11,6 +11,7 @@ import { useRef, useCallback, useEffect, KeyboardEvent } from 'react'
 import { useAppStore } from '../../store/appStore'
 import { history, SCORE_HISTORY_OWNER } from '../../store/history'
 import { scoreStatus } from '../../lib/types'
+import { useResizableSplitPane } from './useResizableSplitPane'
 import styles from './ScoresTab.module.css'
 
 type Membership = 'all' | 'none' | 'mixed'
@@ -30,6 +31,8 @@ export function AssessTab(): React.JSX.Element {
   const setScore        = useAppStore(s => s.setScore)
   const setCollection   = useAppStore(s => s.setElementsCollection)
   const setActiveTab    = useAppStore(s => s.setActiveTab)
+
+  const splitPane = useResizableSplitPane()
 
   const selectedEl  = elements.find(e => e.id === selectedElId)    ?? null
   const selectedDim = dimensions.find(d => d.id === selectedDimId) ?? null
@@ -182,8 +185,8 @@ export function AssessTab(): React.JSX.Element {
         )}
       </section>
 
-      <div className={styles.workspace}>
-        <section className={`${styles.section} ${styles.elementsSection}`}>
+      <div className={styles.workspace} ref={splitPane.containerRef} style={splitPane.containerStyle}>
+        <section className={`${styles.section} ${styles.elementsSection}`} style={splitPane.leftPaneStyle}>
           <h3 className={styles.sectionTitle}>
             <span>Elements</span>
             <span className={styles.sectionCount}>{elements.length}</span>
@@ -239,7 +242,9 @@ export function AssessTab(): React.JSX.Element {
           )}
         </section>
 
-        <div className={styles.controlRail}>
+        <div className={styles.resizeHandle} style={splitPane.dividerStyle} {...splitPane.dividerProps} />
+
+        <div className={styles.controlRail} style={splitPane.rightPaneStyle}>
           <section className={`${styles.section} ${styles.dimensionsSection}`}>
             <h3 className={styles.sectionTitle}>Dimensions</h3>
             {dimensions.length === 0 ? (

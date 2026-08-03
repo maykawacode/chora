@@ -27,6 +27,7 @@ import { history, SCORE_HISTORY_OWNER } from '../../store/history'
 import { usePrefsStore } from '../../store/prefsStore'
 import { ELEMENT_SHAPES } from '../../lib/types'
 import type { ElementShape } from '../../lib/types'
+import { useResizableSplitPane } from './useResizableSplitPane'
 import styles from './DataTab.module.css'
 
 const SHAPE_SYMBOL: Record<ElementShape, string> = {
@@ -92,23 +93,13 @@ export function ElementsTab(): React.JSX.Element {
 
   const [newName,   setNewName]   = useState('')
   const [confirmIds, setConfirmIds] = useState<string[]>([])
-  const [detailWidth, setDetailWidth] = useState(160)
   const addInputRef = useRef<HTMLInputElement>(null)
-  const dragRef     = useRef<{ startX: number; startWidth: number } | null>(null)
-  const tabRef      = useRef<HTMLDivElement>(null)
+  const splitPane = useResizableSplitPane()
 
   // Bring Score Window to front when the delete confirmation overlay opens
   useEffect(() => {
     if (confirmIds.length > 0) window.api.setModalOpen(true)
   }, [confirmIds])
-
-  // Set detail pane to 50% of the tab container width on first render
-  useEffect(() => {
-    if (tabRef.current) {
-      const w = tabRef.current.getBoundingClientRect().width
-      if (w > 0) setDetailWidth(Math.round(w / 2))
-    }
-  }, [])
 
   // Cmd+D (Mac) / Ctrl+D (Windows/Linux) duplicates the selected element.
   // Registered at document level so it fires even when a detail field has
@@ -129,22 +120,6 @@ export function ElementsTab(): React.JSX.Element {
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
   }, [selectedId, duplicateElement])
-
-  function onHandleMouseDown(e: React.MouseEvent): void {
-    dragRef.current = { startX: e.clientX, startWidth: detailWidth }
-    const onMove = (ev: MouseEvent) => {
-      if (!dragRef.current) return
-      const delta = dragRef.current.startX - ev.clientX
-      setDetailWidth(Math.max(120, Math.min(320, dragRef.current.startWidth + delta)))
-    }
-    const onUp = () => {
-      dragRef.current = null
-      document.removeEventListener('mousemove', onMove)
-      document.removeEventListener('mouseup', onUp)
-    }
-    document.addEventListener('mousemove', onMove)
-    document.addEventListener('mouseup', onUp)
-  }
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
 
@@ -255,9 +230,9 @@ export function ElementsTab(): React.JSX.Element {
   // ── Render ────────────────────────────────────────────────────────────────────
 
   return (
-    <div className={styles.tab} ref={tabRef}>
+    <div className={styles.tab} ref={splitPane.containerRef} style={splitPane.containerStyle}>
       {/* ── List pane ── */}
-      <div className={styles.listPane}>
+      <div className={styles.listPane} style={splitPane.leftPaneStyle}>
         {/* Header doubles as a sort toggle — click cycles creation order ↔ A–Z */}
         <button
           className={styles.listHeaderBtn}
@@ -315,10 +290,10 @@ export function ElementsTab(): React.JSX.Element {
       </div>
 
       {/* ── Resize handle ── */}
-      <div className={styles.resizeHandle} onMouseDown={onHandleMouseDown} />
+      <div className={styles.resizeHandle} style={splitPane.dividerStyle} {...splitPane.dividerProps} />
 
       {/* ── Detail pane ── */}
-      <div className={styles.detailPane} style={{ width: detailWidth }}>
+      <div className={styles.detailPane} style={splitPane.rightPaneStyle}>
         <div className={styles.fieldRow}>
           <label className={styles.label}>Name</label>
           {/* key forces input reset when selection changes, avoiding stale defaultValue */}

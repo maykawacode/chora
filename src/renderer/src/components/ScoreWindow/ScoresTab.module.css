@@ -29,6 +29,7 @@
   color: #808040;
   text-transform: uppercase;
   letter-spacing: 0.06em;
+  overflow-wrap: anywhere;
 }
 
 .sectionCount {
@@ -55,20 +56,29 @@
 
 .elementsSection {
   display: flex;
-  flex: 1 1 50%;
+  flex: 1 1 auto;
   flex-direction: column;
-  min-width: 0;
   border-bottom: none;
+}
+
+.resizeHandle {
+  width: 5px;
+  flex: none;
+  border-left: 1px solid var(--control-border);
+  background: transparent;
+  cursor: col-resize;
+}
+
+.resizeHandle:hover {
+  border-color: #808040;
 }
 
 .controlRail {
   display: flex;
-  flex: 1 1 50%;
+  flex: none;
   flex-direction: column;
-  min-width: 0;
   min-height: 0;
   overflow: hidden;
-  border-left: 2px solid var(--control-border);
 }
 
 .dimensionsSection,
@@ -139,9 +149,10 @@
 .rowName {
   flex: 1;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow: visible;
+  overflow-wrap: anywhere;
+  text-overflow: unset;
+  white-space: normal;
 }
 
 .linkBtn {
@@ -192,7 +203,8 @@
   font-size: 9px;
   font-weight: 600;
   letter-spacing: 0.02em;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .collectionList {
@@ -204,6 +216,7 @@
 .collectionRow {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
   width: 100%;
   padding: 3px 0;
@@ -325,47 +338,12 @@
   cursor: grabbing;
 }
 
-/* The application window can be resized to 300px. Below this breakpoint the
-   two-column workspace becomes one scrollable column and each potentially long
-   list receives its own cap, so no section can consume the entire window. */
+/* Tighten the score area at narrow window widths while preserving the same
+   resizable two-column workspace used at normal sizes. */
 @media (max-width: 420px) {
-  .tab {
-    overflow-y: auto;
-  }
-
   .scoreSection {
     min-height: 132px;
     padding-right: 18px;
     padding-left: 18px;
-  }
-
-  .workspace {
-    display: block;
-    flex: none;
-    overflow: visible;
-  }
-
-  .elementsSection {
-    display: block;
-    border-bottom: 1px solid var(--chrome-rule);
-  }
-
-  .controlRail {
-    display: block;
-    width: auto;
-    max-width: none;
-    overflow: visible;
-    border-left: none;
-  }
-
-  .dimensionsSection,
-  .collectionsSection {
-    display: block;
-    min-height: 0;
-  }
-
-  .list,
-  .collectionList {
-    max-height: 116px;
   }
 }

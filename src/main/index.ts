@@ -25,7 +25,7 @@ function createWindow(): void {
   mainWindow = new BrowserWindow({
     width:  prefs.rememberWindowPositions ? prefs.mainWindowWidth  : 530,
     height: prefs.rememberWindowPositions ? prefs.mainWindowHeight : 800,
-    minWidth: 300,
+    minWidth: 400,
     minHeight: 500,
     show: false,
     closable: false,

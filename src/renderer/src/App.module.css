@@ -11,6 +11,22 @@
   font-size: 13px;
 }
 
+/* Main-window fields keep the same neutral border while focused. Focus rings
+   are also suppressed on buttons below; other keyboard targets are unchanged. */
+.root input:focus,
+.root textarea:focus,
+.root select:focus {
+  outline: none;
+  border-color: #b0a898;
+  box-shadow: none;
+}
+
+.root button:focus,
+.root button:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
 /* ── Quit confirmation dialog ──────────────────────────────────────────────── */
 
 .quitOverlay {

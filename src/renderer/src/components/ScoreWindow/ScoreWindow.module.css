@@ -11,6 +11,8 @@
 .tabBar {
   display: flex;
   flex-shrink: 0;
+  min-width: 0;
+  overflow: hidden;
   position: relative;
   border-bottom: 1px solid #b0a898;
   background: #e0ddd8;
@@ -114,6 +116,8 @@
 }
 
 .tab {
+  flex: 1 1 0;
+  min-width: 0;
   padding: 5px 16px;
   border: 1px solid #b0a898;
   border-bottom: none;
@@ -123,6 +127,9 @@
   border-radius: 4px 4px 0 0;
   font-size: 13px;
   font-family: inherit;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   -webkit-app-region: no-drag;
 }
 
@@ -149,7 +156,16 @@
   flex-direction: column;
 }
 
-/* Keep all five workflow tabs visible at the application's 300px minimum
+/* Tab controls intentionally keep the same appearance when focus arrives by
+   mouse or keyboard. This covers native fields plus custom focusable lists,
+   rows, links, and sliders used by the individual workspaces. */
+.tabContent :focus,
+.tabContent :focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Keep all five workflow tabs visible near the application's 400px minimum
    width. The default spacing remains unchanged at normal window sizes. */
 @media (max-width: 420px) {
   .tabBar {
@@ -159,7 +175,9 @@
   }
 
   .tab {
-    padding: 5px 7px;
-    font-size: 11px;
+    flex: 1;
+    min-width: 0;
+    padding: 5px 2px;
+    font-size: 10px;
   }
 }
