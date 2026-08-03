@@ -47,8 +47,9 @@ export function ScoreWindow({ onOpenStarterPicker }: Props): React.JSX.Element {
             key={tab}
             className={[
               styles.tab,
+              tab === 'scores' || tab === 'conversions' ? styles.tabTool : '',
               activeTab === tab ? styles.tabActive : '',
-              activeTab === tab && tab === 'scores' ? styles.tabActiveAssess : ''
+              activeTab === tab && (tab === 'scores' || tab === 'conversions') ? styles.tabActiveTool : ''
             ].filter(Boolean).join(' ')}
             onClick={() => setActiveTab(tab)}
             aria-pressed={activeTab === tab}

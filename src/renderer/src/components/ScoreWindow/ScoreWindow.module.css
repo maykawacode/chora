@@ -139,15 +139,25 @@
   background: #c8c5c0;
 }
 
+.tabTool {
+  background: #68685a;
+  color: #fff;
+}
+
+.tabTool:hover {
+  background: #59594d;
+}
+
 .tabActive {
   background: #f0ede8;
   color: #000;
   font-weight: 500;
 }
 
-.tabActiveAssess,
-.tabActiveAssess:hover {
-  background: var(--chrome-bg);
+.tabActiveTool,
+.tabActiveTool:hover {
+  background: #4e4e43;
+  color: #fff;
 }
 
 .tabContent {

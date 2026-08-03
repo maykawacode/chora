@@ -90,6 +90,10 @@ export function useResizableSplitPane(): ResizableSplitPane {
       // shares in CSS Grid; when their sibling hits its 200px minimum, that can
       // leave unused space instead of filling the container.
       gridTemplateColumns: `minmax(${PANE_MIN_WIDTH}px, ${dividerRatio * GRID_FRACTION_SCALE}fr) 0 minmax(${PANE_MIN_WIDTH}px, ${(1 - dividerRatio) * GRID_FRACTION_SCALE}fr)`,
+      // A shrinkable grid row is required for descendant lists to become
+      // scroll containers. The default auto row otherwise follows their
+      // min-content height and can grow beyond the visible tab workspace.
+      gridTemplateRows: 'minmax(0, 1fr)',
       width: '100%',
       maxWidth: '100%',
       minWidth: 0
