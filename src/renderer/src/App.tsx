@@ -43,6 +43,15 @@ function encodeStateEnvelope(state: StoreState): string {
   })
 }
 
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error)
+}
+
+/** An error must remain visible even if its bring-to-front request also fails. */
+async function focusMainSafely(): Promise<void> {
+  try { await window.api.focusMainWindow() } catch { /* alert in the caller */ }
+}
+
 export function App(): React.JSX.Element {
   const filePath      = useAppStore(s => s.filePath)
   const isDirty       = useAppStore(s => s.isDirty)
@@ -81,6 +90,10 @@ export function App(): React.JSX.Element {
   // to false after prevents the broadcast from firing.
 
   const suppressBroadcast = useRef(false)
+  // A second Save must never race an older temp-file rename. Callers share the
+  // one in-flight result; after it settles, a later request can capture a fresh
+  // frame if changes remain.
+  const saveInFlight = useRef<Promise<boolean> | null>(null)
 
   /** Fine-grained map updates must not echo a full state payload to their sender. */
   function withoutStateBroadcast<T>(fn: () => T): T {
@@ -109,7 +122,14 @@ export function App(): React.JSX.Element {
           })
           window.api.restoreMainWindowBounds()
         })
-        .catch(() => { /* file has moved or been deleted — silently ignore */ })
+        .catch(async (error: unknown) => {
+          // Auto-reopen initially suppresses Welcome, so a failed read or parse
+          // must restore a recovery path instead of leaving an unexplained
+          // empty window.
+          await focusMainSafely()
+          alert(`Could not reopen the last file:\n${errorMessage(error)}`)
+          setShowWelcome(true)
+        })
     }
   }, [])  // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -311,50 +331,90 @@ export function App(): React.JSX.Element {
       // The Zustand subscriber above detects new maps and opens a window for each
       return true
     } catch (e) {
-      await window.api.focusMainWindow()
-      alert(`Could not open file:\n${(e as Error).message}`)
+      await focusMainSafely()
+      alert(`Could not open file:\n${errorMessage(e)}`)
       return false
     }
   }
 
-  async function handleSave(forceDialog: boolean): Promise<void> {
+  async function handleSave(forceDialog: boolean): Promise<boolean> {
+    const pending = saveInFlight.current
+    if (pending) return pending
+
+    const operation = saveOnce(forceDialog)
+    saveInFlight.current = operation
+    try {
+      return await operation
+    } finally {
+      if (saveInFlight.current === operation) saveInFlight.current = null
+    }
+  }
+
+  async function saveOnce(forceDialog: boolean): Promise<boolean> {
     // Dialog and geometry IPC happen before captureSave() can issue its guarded
     // token. Remember which document initiated the operation so New, Open, or
     // Import cannot make this Save write their replacement to the old path.
     const startingGeneration = history.generation
     let path = useAppStore.getState().filePath
-    if (!path || forceDialog) {
-      path = await window.api.showSaveDialog()
-      if (!path) return
-      if (history.generation !== startingGeneration) return
+    try {
+      if (!path || forceDialog) {
+        path = await window.api.showSaveDialog()
+        if (!path) return false
+        if (history.generation !== startingGeneration) return false
+      }
+
+      const currentPrefs = usePrefsStore.getState().prefs
+
+      // Capture current map window positions before serializing, so geometry
+      // is saved to the file and can be restored on next open.
+      if (currentPrefs.rememberWindowPositions) {
+        const positions = await window.api.getMapWindowPositions()
+        if (history.generation !== startingGeneration) return false
+        history.suspend(() => withoutStateBroadcast(() => {
+          for (const [mapId, pos] of Object.entries(positions)) {
+            useAppStore.getState().updateMapConfig(mapId, {
+              windowX: pos.x, windowY: pos.y,
+              windowWidth: pos.width, windowHeight: pos.height
+            })
+          }
+        }))
+      }
+
+      if (history.generation !== startingGeneration) return false
+      const saveToken = history.captureSave()
+      await window.api.writeFile(path, saveToken.frame.session)
+
+      // New/Open/Import may replace the document while the asynchronous write is
+      // in flight. The old snapshot reached disk, but it must not clean or rename
+      // the replacement document.
+      if (!history.markSaved(saveToken, path)) {
+        await focusMainSafely()
+        alert('The session changed before the save completed. Please save again.')
+        return false
+      }
+
+      // Record this as the last-used file path for the auto-reopen preference.
+      const newPrefs: Preferences = { ...currentPrefs, lastFilePath: path }
+      usePrefsStore.getState().setPrefs(newPrefs)
+      window.api.savePreferences(newPrefs as unknown as Record<string, unknown>)
+
+      // Fine-grained map edits can arrive while the write is in flight. The file
+      // is valid, but those newer changes remain dirty and Save & Quit must wait
+      // for another save rather than discarding them.
+      if (useAppStore.getState().isDirty) {
+        await focusMainSafely()
+        alert('The session changed while it was being saved. Recent changes are still unsaved.')
+        return false
+      }
+
+      return true
+    } catch (e) {
+      // markSaved() is deliberately after the awaited write, so this path leaves
+      // the document unclean and does not adopt a proposed Save As path.
+      await focusMainSafely()
+      alert(`Could not save file:\n${errorMessage(e)}`)
+      return false
     }
-
-    const currentPrefs = usePrefsStore.getState().prefs
-
-    // Capture current map window positions before serializing, so geometry
-    // is saved to the file and can be restored on next open
-    if (currentPrefs.rememberWindowPositions) {
-      const positions = await window.api.getMapWindowPositions()
-      if (history.generation !== startingGeneration) return
-      history.suspend(() => withoutStateBroadcast(() => {
-        for (const [mapId, pos] of Object.entries(positions)) {
-          useAppStore.getState().updateMapConfig(mapId, {
-            windowX: pos.x, windowY: pos.y,
-            windowWidth: pos.width, windowHeight: pos.height
-          })
-        }
-      }))
-    }
-
-    if (history.generation !== startingGeneration) return
-    const saveToken = history.captureSave()
-    await window.api.writeFile(path, saveToken.frame.session)
-    if (!history.markSaved(saveToken, path)) return
-
-    // Record this as the last-used file path for the auto-reopen preference
-    const newPrefs: Preferences = { ...currentPrefs, lastFilePath: path }
-    usePrefsStore.getState().setPrefs(newPrefs)
-    window.api.savePreferences(newPrefs as unknown as Record<string, unknown>)
   }
 
   async function handleImport(): Promise<void> {
@@ -366,8 +426,8 @@ export function App(): React.JSX.Element {
       const fileName = path.split('/').pop() ?? path
       setImportPreview({ fileName, result })
     } catch (e) {
-      await window.api.focusMainWindow()
-      alert(`Could not parse file:\n${(e as Error).message}`)
+      await focusMainSafely()
+      alert(`Could not parse file:\n${errorMessage(e)}`)
     }
   }
 
@@ -378,8 +438,8 @@ export function App(): React.JSX.Element {
       const tsv = exportSpreadsheet(useAppStore.getState())
       await window.api.writeFile(path, tsv)
     } catch (e) {
-      await window.api.focusMainWindow()
-      alert(`Could not export file:\n${(e as Error).message}`)
+      await focusMainSafely()
+      alert(`Could not export file:\n${errorMessage(e)}`)
     }
   }
 
@@ -434,8 +494,7 @@ export function App(): React.JSX.Element {
               <button className={styles.quitCancel} onClick={() => setShowQuitConfirm(false)}>Cancel</button>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button className={styles.quitSave} onClick={async () => {
-                  await handleSave(false)
-                  if (!useAppStore.getState().isDirty) window.api.confirmQuit()
+                  if (await handleSave(false)) window.api.confirmQuit()
                 }}>Save & Quit</button>
                 <button className={styles.quitConfirm} onClick={() => window.api.confirmQuit()}>Quit Without Saving</button>
               </div>

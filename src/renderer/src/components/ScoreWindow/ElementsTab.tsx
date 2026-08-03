@@ -115,7 +115,10 @@ export function ElementsTab(): React.JSX.Element {
   // focus, not just when the list itself is focused.
   useEffect(() => {
     const handler = (e: globalThis.KeyboardEvent): void => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'd' && selectedId) {
+      // Match the unmodified application shortcut exactly. In particular,
+      // Cmd/Ctrl+Shift+D belongs to New Semantic Map and must not also create
+      // a duplicate in this renderer-level handler.
+      if (e.metaKey !== e.ctrlKey && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'd' && selectedId) {
         e.preventDefault()   // prevent browser "add to bookmarks" default
         // The shortcut is intentionally active inside detail fields. Split it
         // from any focus-to-blur edit so Duplicate remains its own Undo step.

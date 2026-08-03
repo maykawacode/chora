@@ -120,7 +120,9 @@ export function buildMenu(): void {
       submenu: [
         // Collection projection is no longer its own kind of map — a cartesian
         // map draws collection blobs from the Collections section of its sidebar.
-        { label: 'New Map…',          accelerator: 'CmdOrCtrl+D',       click: () => sendToRenderer('menu:create-cartesian') },
+        // Plain Cmd/Ctrl+M is the standard Minimize shortcut. Shift keeps the
+        // map mnemonic without colliding with that Window-menu command.
+        { label: 'New Map…',          accelerator: 'CmdOrCtrl+Shift+M', click: () => sendToRenderer('menu:create-cartesian') },
         { label: 'New Semantic Map…', accelerator: 'CmdOrCtrl+Shift+D', click: () => sendToRenderer('menu:create-semantic') }
       ]
     },

@@ -10,7 +10,7 @@
 // ipcMain.on()     — renderer uses send(), fire-and-forget
 
 import { ipcMain, dialog, app } from 'electron'
-import { readFile, writeFile } from 'fs/promises'
+import { readFile } from 'fs/promises'
 import { getMainWindow, setQuitConfirmed } from './index'
 import {
   openMapWindow,
@@ -24,6 +24,7 @@ import {
 } from './windowManager'
 import { loadPreferences, savePreferences, getCachedPreferences } from './prefs'
 import { setHistoryAvailability } from './menu'
+import { writeFileAtomically } from './atomicWrite'
 
 export function registerIpcHandlers(): void {
 
@@ -76,7 +77,7 @@ export function registerIpcHandlers(): void {
   })
 
   ipcMain.handle('file:write', async (_event, filePath: string, data: string) => {
-    await writeFile(filePath, data, 'utf-8')
+    await writeFileAtomically(filePath, data)
   })
 
   // ── Map window lifecycle ──────────────────────────────────────────────────────
