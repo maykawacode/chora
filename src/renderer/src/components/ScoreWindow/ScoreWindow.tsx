@@ -2,25 +2,25 @@
 //
 // Top-level shell of the main application window. Renders the tab bar and
 // delegates to one of four tab components based on the active tab in the store.
-// The onOpenStarterPicker prop bubbles up to App.tsx which owns the modal state.
+// Dialog callbacks bubble up to App.tsx, which owns all modal state. The
+// internal `scores` key remains unchanged even though its user-facing label is
+// Assess, avoiding unrelated runtime state and type churn.
 
 import { useAppStore } from '../../store/appStore'
 import { ElementsTab } from './ElementsTab'
 import { DimensionsTab } from './DimensionsTab'
-import { ScoresTab } from './ScoresTab'
+import { AssessTab } from './ScoresTab'
 import { CollectionsTab } from './CollectionsTab'
 import type { AppState } from '../../lib/types'
 import styles from './ScoreWindow.module.css'
 
-// Labels are spelled out rather than derived by capitalizing the tab key. Every
-// one happens to match its key today, so deriving them would work — right up
-// until a tab needs two words, at which point the derivation quietly produces
-// the wrong label instead of a compile error.
+// Keep runtime keys decoupled from presentation labels. In particular, the
+// long-standing `scores` key now presents the broader Assess workspace.
 const TAB_LABELS: Record<AppState['activeTab'], string> = {
   elements:    'Elements',
   collections: 'Collections',
   dimensions:  'Dimensions',
-  scores:      'Scores'
+  scores:      'Assess'
 }
 
 interface Props {
@@ -40,11 +40,16 @@ export function ScoreWindow({ onOpenStarterPicker }: Props): React.JSX.Element {
       <div className={styles.tabBar}>
         <span className={styles.windowTitle}>{fileName}</span>
 
-        {(['elements', 'collections', 'dimensions', 'scores'] as const).map(tab => (
+        {(['elements', 'dimensions', 'collections', 'scores'] as const).map(tab => (
           <button
             key={tab}
-            className={`${styles.tab} ${activeTab === tab ? styles.tabActive : ''}`}
+            className={[
+              styles.tab,
+              activeTab === tab ? styles.tabActive : '',
+              activeTab === tab && tab === 'scores' ? styles.tabActiveAssess : ''
+            ].filter(Boolean).join(' ')}
             onClick={() => setActiveTab(tab)}
+            aria-pressed={activeTab === tab}
           >
             {TAB_LABELS[tab]}
           </button>
@@ -59,7 +64,7 @@ export function ScoreWindow({ onOpenStarterPicker }: Props): React.JSX.Element {
         {activeTab === 'elements'    && <ElementsTab />}
         {activeTab === 'collections' && <CollectionsTab />}
         {activeTab === 'dimensions'  && <DimensionsTab onOpenStarterPicker={onOpenStarterPicker} />}
-        {activeTab === 'scores'      && <ScoresTab />}
+        {activeTab === 'scores'      && <AssessTab />}
       </div>
     </div>
   )

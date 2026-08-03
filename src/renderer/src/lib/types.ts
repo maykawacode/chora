@@ -220,7 +220,7 @@ export function parsePoles(label: string): { poleA: string; poleB: string } {
  *
  * '●' — all dimensions scored
  * '◇' — the currently selected dimension is scored (but not all)
- * '–' — nothing scored yet (or no dimensions exist)
+ * '–' — not fully scored and the active dimension is unscored or absent
  */
 export function scoreStatus(
   element: Element,

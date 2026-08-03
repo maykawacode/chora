@@ -136,10 +136,30 @@
   font-weight: 500;
 }
 
+.tabActiveAssess,
+.tabActiveAssess:hover {
+  background: var(--chrome-bg);
+}
+
 .tabContent {
   flex: 1;
   min-height: 0;
   overflow: hidden;
   display: flex;
   flex-direction: column;
+}
+
+/* Keep all four workflow tabs visible at the application's 300px minimum
+   width. The default spacing remains unchanged at normal window sizes. */
+@media (max-width: 420px) {
+  .tabBar {
+    gap: 1px;
+    padding-right: 4px;
+    padding-left: 4px;
+  }
+
+  .tab {
+    padding: 5px 7px;
+    font-size: 11px;
+  }
 }

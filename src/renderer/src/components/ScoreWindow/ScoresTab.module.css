@@ -4,62 +4,299 @@
   flex: 1;
   min-height: 0;
   overflow: hidden;
+  background: var(--chrome-bg);
+  color: #222;
 }
 
-/* ── Slider area ─────────────────────────────────────────────────────────── */
+/* Assess deliberately borrows the Map sidebar's visual grammar without
+   borrowing its component or fixed width. The full-bleed rules, quiet olive
+   headings, flat rows, and white action buttons make the two control surfaces
+   feel related while their behavior remains independent. */
+.section {
+  padding: 8px 16px 10px;
+  border-bottom: 1px solid var(--chrome-rule);
+  min-width: 0;
+}
 
-.sliderArea {
-  background: #fff;
-  border-bottom: 1px solid #b0a898;
-  padding: 12px 12.5%;
-  min-height: 110px;
+.sectionTitle {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 6px 0;
+  font-size: 10px;
+  font-weight: 700;
+  color: #808040;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.sectionCount {
+  flex: none;
+  color: #7b746a;
+  font-variant-numeric: tabular-nums;
+}
+
+.scoreSection {
   display: flex;
   align-items: center;
+  flex: none;
+  min-height: 132px;
+  padding-right: 12.5%;
+  padding-left: 12.5%;
 }
 
-.hint {
-  color: #888;
-  font-size: 12px;
-  font-style: italic;
-  margin: 0;
+.workspace {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
+
+.elementsSection {
+  display: flex;
+  flex: 1 1 50%;
+  flex-direction: column;
+  min-width: 0;
+  border-bottom: none;
+}
+
+.controlRail {
+  display: flex;
+  flex: 1 1 50%;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border-left: 2px solid var(--control-border);
+}
+
+.dimensionsSection,
+.collectionsSection {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.collectionsSection {
+  border-bottom: none;
+}
+
+.list {
+  flex: 1;
+  min-height: 0;
+  margin: 0 -4px;
+  padding: 0 4px;
+  overflow-y: auto;
+  outline: none;
+  list-style: none;
+}
+
+.list:focus-visible {
+  outline: 2px solid rgba(128, 128, 64, 0.5);
+  outline-offset: 1px;
+  border-radius: 2px;
+}
+
+.listItem {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 24px;
+  margin: 0 -4px;
+  padding: 3px 8px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.listItem:hover {
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.multiSelected {
+  background: rgba(200, 160, 80, 0.25);
+}
+
+.selected,
+.selected:hover {
+  background: #c8a050;
+  color: #fff;
+}
+
+.indicator {
+  width: 12px;
+  flex: none;
+  color: #6f6a61;
+  font-size: 11px;
+  text-align: center;
+}
+
+.selected .indicator {
+  color: #fff;
+}
+
+.rowName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.linkBtn {
+  flex: none;
+  padding: 0;
+  border: none;
+  background: none;
+  color: #808040;
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.linkBtn:hover {
+  text-decoration: underline;
+}
+
+.linkBtn:focus-visible,
+.collectionRow:focus-visible {
+  outline: 2px solid rgba(128, 128, 64, 0.5);
+  outline-offset: 2px;
+}
+
+.guidance {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 2px 0 0;
+  color: #7b746a;
+  font-size: 11px;
+}
+
+.empty {
+  color: #7b746a;
+  margin: 2px 0 0;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.targetCount {
+  margin-left: 6px;
+  color: #7b746a;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.collectionList {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.collectionRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 3px 0;
+  border: none;
+  background: none;
+  color: #222;
+  font-family: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.collectionRow:hover:not(:disabled) .rowName {
+  text-decoration: underline;
+}
+
+.collectionRow:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.collectionSwatch {
+  width: 12px;
+  height: 12px;
+  flex: none;
+  border: 1.5px solid;
+  border-radius: 3px;
+}
+
+.collectionCount {
+  flex: none;
+  color: #7b746a;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Score slider ─────────────────────────────────────────────────────────── */
 
 .slider {
   width: 100%;
+  transform: translateY(5px);
 }
 
 .sliderElementName {
+  margin-bottom: 3px;
+  overflow: hidden;
+  color: #222;
   font-size: 14px;
   font-weight: 700;
-  color: #111;
-  margin-bottom: 6px;
   text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .sliderPoles {
   display: flex;
   justify-content: space-between;
+  gap: 12px;
   margin-bottom: -1px;
 }
 
 .poleLabel {
+  min-width: 0;
+  overflow: hidden;
+  color: #222;
   font-size: 12px;
-  color: #111;
   font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.poleLabel:last-child {
+  text-align: right;
 }
 
 .sliderTrack {
   position: relative;
-  height: 28px;
-  cursor: pointer;
   display: flex;
   align-items: center;
+  height: 28px;
+  cursor: pointer;
+}
+
+.sliderTrack:focus-visible {
+  outline: 2px solid rgba(128, 128, 64, 0.55);
+  outline-offset: 3px;
+  border-radius: 2px;
 }
 
 .sliderLine {
   position: absolute;
-  left: 0;
   right: 0;
+  left: 0;
   height: 1px;
   background: #666;
 }
@@ -74,94 +311,61 @@
 
 .sliderDot {
   position: absolute;
+  z-index: 1;
   width: 16px;
   height: 16px;
+  border: 2px solid #a88010;
   border-radius: 50%;
   background: #e8c020;
-  border: 2px solid #a88010;
-  transform: translateX(-50%);
   cursor: grab;
-  z-index: 1;
+  transform: translateX(-50%);
 }
 
 .sliderDot:active {
   cursor: grabbing;
 }
 
-.sliderHint {
-  font-size: 11px;
-  color: #888;
-  text-align: center;
-  margin: 4px 0 0;
-  font-style: italic;
-}
+/* The application window can be resized to 300px. Below this breakpoint the
+   two-column workspace becomes one scrollable column and each potentially long
+   list receives its own cap, so no section can consume the entire window. */
+@media (max-width: 420px) {
+  .tab {
+    overflow-y: auto;
+  }
 
-/* ── Bottom lists ─────────────────────────────────────────────────────────── */
+  .scoreSection {
+    min-height: 132px;
+    padding-right: 18px;
+    padding-left: 18px;
+  }
 
-.listsRow {
-  display: flex;
-  flex: 1;
-  overflow: hidden;
-}
+  .workspace {
+    display: block;
+    flex: none;
+    overflow: visible;
+  }
 
-.listPanel {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  padding: 6px;
-}
+  .elementsSection {
+    display: block;
+    border-bottom: 1px solid var(--chrome-rule);
+  }
 
-.listHeader {
-  font-size: 11px;
-  font-weight: 600;
-  color: #555;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  padding: 2px 4px;
-  border-bottom: 2px solid;
-  margin-bottom: 4px;
-}
+  .controlRail {
+    display: block;
+    width: auto;
+    max-width: none;
+    overflow: visible;
+    border-left: none;
+  }
 
-.list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  flex: 1;
-  overflow-y: auto;
-  outline: none;
-  border: 1px solid;
-  border-radius: 4px;
-  background: #fff;
-}
+  .dimensionsSection,
+  .collectionsSection {
+    display: block;
+    min-height: 0;
+  }
 
-.listItem {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 8px;
-  cursor: pointer;
-  min-height: 22px;
-  font-size: 12px;
-}
-
-.listItem:hover {
-  background: #f0ede8;
-}
-
-.selected {
-  background: #c8a050 !important;
-  color: #fff;
-}
-
-.indicator {
-  font-size: 11px;
-  width: 12px;
-  text-align: center;
-  flex-shrink: 0;
-  color: #666;
-}
-
-.selected .indicator {
-  color: #fff;
+  .list,
+  .collectionList {
+    max-height: 116px;
+  }
 }
