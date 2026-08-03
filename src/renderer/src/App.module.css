@@ -4,6 +4,8 @@
 
 .root {
   display: flex;
+  width: 100%;
+  min-width: 0;
   height: 100vh;
   overflow: hidden;
   background: #f0ede8;

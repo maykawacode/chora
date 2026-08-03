@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import type { CSSProperties, PointerEventHandler, RefObject } from 'react'
 
 const PANE_MIN_WIDTH = 200
 const DIVIDER_HIT_WIDTH = 5
+const GRID_FRACTION_SCALE = 1000
 
 interface DividerProps {
   onPointerDown: PointerEventHandler<HTMLDivElement>
@@ -20,45 +21,23 @@ interface ResizableSplitPane {
   dividerProps: DividerProps
 }
 
-function clampDividerPosition(desiredLeftWidth: number, containerWidth: number): number {
-  const maximum = Math.max(PANE_MIN_WIDTH, containerWidth - PANE_MIN_WIDTH)
-  return Math.max(PANE_MIN_WIDTH, Math.min(maximum, desiredLeftWidth))
+function clampDividerRatio(desiredRatio: number, containerWidth: number): number {
+  if (containerWidth <= PANE_MIN_WIDTH * 2) return 0.5
+  const minimum = PANE_MIN_WIDTH / containerWidth
+  return Math.max(minimum, Math.min(1 - minimum, desiredRatio))
 }
 
 /**
  * One symmetric resize model for every two-column workspace in the Score
- * Window. The divider position explicitly sizes both panes, so their contents
- * cannot influence either clamp. Its proportion is preserved when the window
- * resizes, making both panes scale with their container. The divider overlays
- * the pane boundary rather than consuming layout width.
+ * Window. React stores only the divider ratio; CSS Grid owns the pane widths
+ * and responds to window resizing without an observer or pixel synchronization.
  */
 export function useResizableSplitPane(): ResizableSplitPane {
   const containerRef = useRef<HTMLDivElement>(null)
   const activePointerId = useRef<number | null>(null)
   const lastClientX = useRef<number | null>(null)
-  const leftWidthRef = useRef<number | null>(null)
   const dividerRatioRef = useRef(0.5)
-  const [leftWidth, setLeftWidth] = useState<number | null>(null)
-
-  useEffect(() => {
-    const container = containerRef.current
-    if (!container) return
-
-    const fitToContainer = (): void => {
-      const width = container.clientWidth
-      if (width <= 0) return
-      setLeftWidth(() => {
-        const fitted = clampDividerPosition(width * dividerRatioRef.current, width)
-        leftWidthRef.current = fitted
-        return fitted
-      })
-    }
-
-    fitToContainer()
-    const observer = new ResizeObserver(fitToContainer)
-    observer.observe(container)
-    return () => observer.disconnect()
-  }, [])
+  const [dividerRatio, setDividerRatio] = useState(0.5)
 
   const releasePointer = (target: HTMLDivElement, pointerId: number): void => {
     activePointerId.current = null
@@ -68,6 +47,12 @@ export function useResizableSplitPane(): ResizableSplitPane {
 
   const onPointerDown: PointerEventHandler<HTMLDivElement> = event => {
     event.preventDefault()
+    const container = containerRef.current
+    if (!container) return
+    const bounds = container.getBoundingClientRect()
+    const currentRatio = clampDividerRatio((event.clientX - bounds.left) / bounds.width, bounds.width)
+    dividerRatioRef.current = currentRatio
+    setDividerRatio(currentRatio)
     activePointerId.current = event.pointerId
     lastClientX.current = event.clientX
     event.currentTarget.setPointerCapture(event.pointerId)
@@ -84,11 +69,12 @@ export function useResizableSplitPane(): ResizableSplitPane {
     // one pixel immediately moves the divider back into the valid range.
     const delta = event.clientX - previousClientX
     lastClientX.current = event.clientX
-    const currentWidth = leftWidthRef.current ?? container.clientWidth / 2
-    const nextWidth = clampDividerPosition(currentWidth + delta, container.clientWidth)
-    leftWidthRef.current = nextWidth
-    dividerRatioRef.current = nextWidth / container.clientWidth
-    setLeftWidth(nextWidth)
+    const nextRatio = clampDividerRatio(
+      dividerRatioRef.current + delta / container.clientWidth,
+      container.clientWidth
+    )
+    dividerRatioRef.current = nextRatio
+    setDividerRatio(nextRatio)
   }
 
   const finishPointer: PointerEventHandler<HTMLDivElement> = event => {
@@ -98,31 +84,35 @@ export function useResizableSplitPane(): ResizableSplitPane {
 
   return {
     containerRef,
-    // Prevent the two fixed-width panes from establishing an intrinsic width
-    // larger than their parent. The observed container then follows window
-    // shrinkage, allowing fitToContainer() to move the divider as necessary.
     containerStyle: {
+      display: 'grid',
+      // Keep both flexible factors above 1fr. Sub-1fr tracks represent partial
+      // shares in CSS Grid; when their sibling hits its 200px minimum, that can
+      // leave unused space instead of filling the container.
+      gridTemplateColumns: `minmax(${PANE_MIN_WIDTH}px, ${dividerRatio * GRID_FRACTION_SCALE}fr) 0 minmax(${PANE_MIN_WIDTH}px, ${(1 - dividerRatio) * GRID_FRACTION_SCALE}fr)`,
       width: '100%',
       maxWidth: '100%',
       minWidth: 0
     },
     leftPaneStyle: {
-      width: leftWidth ?? '50%',
-      minWidth: PANE_MIN_WIDTH,
-      maxWidth: `calc(100% - ${PANE_MIN_WIDTH}px)`,
-      flex: '0 0 auto'
+      gridColumn: 1,
+      width: '100%',
+      minWidth: 0,
+      maxWidth: '100%',
+      justifySelf: 'stretch'
     },
     rightPaneStyle: {
-      width: leftWidth === null ? '50%' : `calc(100% - ${leftWidth}px)`,
-      minWidth: PANE_MIN_WIDTH,
-      maxWidth: `calc(100% - ${PANE_MIN_WIDTH}px)`,
-      flex: '0 0 auto'
+      gridColumn: 3,
+      width: '100%',
+      minWidth: 0,
+      maxWidth: '100%',
+      justifySelf: 'stretch'
     },
     dividerStyle: {
+      gridColumn: 2,
+      gridRow: 1,
       width: DIVIDER_HIT_WIDTH,
-      marginRight: -DIVIDER_HIT_WIDTH / 2,
-      marginLeft: -DIVIDER_HIT_WIDTH / 2,
-      flex: '0 0 auto',
+      justifySelf: 'center',
       position: 'relative',
       zIndex: 1,
       touchAction: 'none'

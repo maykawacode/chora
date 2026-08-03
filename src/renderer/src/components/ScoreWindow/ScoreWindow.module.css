@@ -2,6 +2,8 @@
   display: flex;
   flex-direction: column;
   flex: 1;
+  width: 100%;
+  min-width: 0;
   min-height: 0;
   background: #f0ede8;
   font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
@@ -150,6 +152,8 @@
 
 .tabContent {
   flex: 1;
+  width: 100%;
+  min-width: 0;
   min-height: 0;
   overflow: hidden;
   display: flex;
