@@ -1,10 +1,10 @@
-// ── TransformDataDialog ────────────────────────────────────────────────────────
+// ── ConversionsTab ─────────────────────────────────────────────────────────────
 //
-// App-owned modal for global data transformations. The editor keeps the existing
-// FROM → TO pipeline and delegates every mutation to the store; the wrapper owns
-// only dismissal and focus behavior.
+// Data-conversion operations presented as a FROM → TO pipeline.
+// User picks a source kind and a destination kind from dropdowns; contextual
+// controls appear only when relevant. All mutations delegate to store actions.
 
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { useAppStore } from '../../store/appStore'
 import { usePrefsStore } from '../../store/prefsStore'
 import styles from './ConversionsTab.module.css'
@@ -59,103 +59,7 @@ function buildSummary(
   return ''
 }
 
-interface DialogProps {
-  onClose: () => void
-}
-
-export function TransformDataDialog({ onClose }: DialogProps): React.JSX.Element {
-  const dialogRef = useRef<HTMLElement>(null)
-
-  useEffect(() => {
-    const previousFocus = document.activeElement instanceof HTMLElement
-      ? document.activeElement
-      : null
-    const focusFrame = window.requestAnimationFrame(() => {
-      dialogRef.current
-        ?.querySelector<HTMLElement>('[data-transform-source]')
-        ?.focus()
-    })
-
-    const onKeyDown = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape') {
-        event.preventDefault()
-        event.stopImmediatePropagation()
-        onClose()
-        return
-      }
-      if (event.key !== 'Tab' || !dialogRef.current) return
-
-      const focusable = Array.from(dialogRef.current.querySelectorAll<HTMLElement>(
-        'button:not(:disabled), select:not(:disabled), input:not(:disabled), textarea:not(:disabled), [href], [tabindex]:not([tabindex="-1"])'
-      )).filter(element => element.offsetParent !== null)
-
-      if (focusable.length === 0) {
-        event.preventDefault()
-        return
-      }
-
-      const first = focusable[0]
-      const last = focusable[focusable.length - 1]
-      const active = document.activeElement
-      if (!dialogRef.current.contains(active) || !focusable.includes(active as HTMLElement)) {
-        event.preventDefault()
-        const wrapTarget = event.shiftKey ? last : first
-        wrapTarget.focus()
-      } else if (event.shiftKey && active === first) {
-        event.preventDefault()
-        last.focus()
-      } else if (!event.shiftKey && active === last) {
-        event.preventDefault()
-        first.focus()
-      }
-    }
-    window.addEventListener('keydown', onKeyDown, true)
-    return () => {
-      window.cancelAnimationFrame(focusFrame)
-      window.removeEventListener('keydown', onKeyDown, true)
-      previousFocus?.focus()
-    }
-  }, [onClose])
-
-  return (
-    <div
-      className={styles.overlay}
-      onClick={event => { if (event.target === event.currentTarget) onClose() }}
-    >
-      <section
-        ref={dialogRef}
-        className={styles.dialog}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="transform-data-title"
-      >
-        <header className={styles.dialogHeader}>
-          <div>
-            <h2 id="transform-data-title" className={styles.dialogTitle}>Transform Data</h2>
-            <p className={styles.dialogSubtitle}>Review one change at a time. Apply closes this dialog; the change can be undone.</p>
-          </div>
-          <button
-            type="button"
-            className={styles.closeButton}
-            onClick={onClose}
-          >
-            Close
-          </button>
-        </header>
-
-        <div className={styles.dialogBody}>
-          <TransformDataEditor onApplied={onClose} />
-        </div>
-      </section>
-    </div>
-  )
-}
-
-interface EditorProps {
-  onApplied: () => void
-}
-
-function TransformDataEditor({ onApplied }: EditorProps): React.JSX.Element {
+export function ConversionsTab(): React.JSX.Element {
   const dimensions         = useAppStore(s => s.dimensions)
   const collections        = useAppStore(s => s.collections)
   const scores             = useAppStore(s => s.scores)
@@ -182,14 +86,16 @@ function TransformDataEditor({ onApplied }: EditorProps): React.JSX.Element {
   const [poleFlipped, setPoleFlipped] = useState(false)
   const [colorLow,    setColorLow]    = useState(prefLow)
   const [colorHigh,   setColorHigh]   = useState(prefHigh)
+  const [applied,     setApplied]     = useState(false)
 
   const [spreadDimId, setSpreadDimId] = useState('')
+  const [spreadApplied, setSpreadApplied] = useState(false)
   const spreadDim = spreadDimId ? dimensions.find(d => d.id === spreadDimId) ?? null : null
 
   function handleSpreadApply(): void {
     if (!spreadDim) return
     spreadDimensionScores(spreadDim.id)
-    onApplied()
+    setSpreadApplied(true)
   }
 
   function handleFromChange(val: string): void {
@@ -198,12 +104,14 @@ function TransformDataEditor({ onApplied }: EditorProps): React.JSX.Element {
     setFromDimId('')
     setToDimId('')
     setPoleFlipped(false)
+    setApplied(false)
   }
 
   function handleToChange(val: string): void {
     setToTarget(val as ToTarget | '')
     setToDimId('')
     setPoleFlipped(false)
+    setApplied(false)
   }
 
   const showFromDimPicker = fromSource === 'dim-scores'
@@ -246,11 +154,11 @@ function TransformDataEditor({ onApplied }: EditorProps): React.JSX.Element {
     else if (fromSource === 'el-shape'   && toTarget === 'collection') shapeToCollection()
     else if (fromSource === 'el-color'   && toTarget === 'el-shape')   colorToShape()
     else return
-    onApplied()
+    setApplied(true)
   }
 
   return (
-    <div className={styles.editor}>
+    <div className={styles.tab}>
 
       {/* ── FROM ────────────────────────────────────────────────────────────── */}
       <div className={styles.section}>
@@ -278,7 +186,7 @@ function TransformDataEditor({ onApplied }: EditorProps): React.JSX.Element {
                 <select
                   className={styles.select}
                   value={fromDimId}
-                  onChange={e => { const v = e.target.value; setFromDimId(v); if (v === toDimId) setToDimId('') }}
+                  onChange={e => { const v = e.target.value; setFromDimId(v); if (v === toDimId) setToDimId(''); setApplied(false) }}
                   aria-label="Source dimension"
                 >
                   <option value="">Choose dimension…</option>
@@ -332,7 +240,7 @@ function TransformDataEditor({ onApplied }: EditorProps): React.JSX.Element {
                 <select
                   className={styles.select}
                   value={toDimId}
-                  onChange={e => setToDimId(e.target.value)}
+                  onChange={e => { setToDimId(e.target.value); setApplied(false) }}
                   aria-label="Destination dimension"
                 >
                   <option value="">Choose dimension…</option>
@@ -354,7 +262,7 @@ function TransformDataEditor({ onApplied }: EditorProps): React.JSX.Element {
               <button
                 type="button"
                 className={`${styles.poleBtn} ${poleFlipped ? styles.poleBtnActive : ''}`}
-                onClick={() => setPoleFlipped(true)}
+                onClick={() => { setPoleFlipped(true); setApplied(false) }}
                 aria-pressed={poleFlipped}
               >
                 {poleDim.poleA || 'Pole A'}
@@ -362,7 +270,7 @@ function TransformDataEditor({ onApplied }: EditorProps): React.JSX.Element {
               <button
                 type="button"
                 className={`${styles.poleBtn} ${!poleFlipped ? styles.poleBtnActive : ''}`}
-                onClick={() => setPoleFlipped(false)}
+                onClick={() => { setPoleFlipped(false); setApplied(false) }}
                 aria-pressed={!poleFlipped}
               >
                 {poleDim.poleB || 'Pole B'}
@@ -376,12 +284,12 @@ function TransformDataEditor({ onApplied }: EditorProps): React.JSX.Element {
             <label className={styles.colorField}>
               <span className={styles.subLabel}>Low (score 0)</span>
               <input type="color" className={styles.colorPicker} value={colorLow}
-                onChange={e => setColorLow(e.target.value)} />
+                onChange={e => { setColorLow(e.target.value); setApplied(false) }} />
             </label>
             <label className={styles.colorField}>
               <span className={styles.subLabel}>High (score 1)</span>
               <input type="color" className={styles.colorPicker} value={colorHigh}
-                onChange={e => setColorHigh(e.target.value)} />
+                onChange={e => { setColorHigh(e.target.value); setApplied(false) }} />
             </label>
           </div>
         )}
@@ -416,10 +324,11 @@ function TransformDataEditor({ onApplied }: EditorProps): React.JSX.Element {
             </p>
           )}
           <button
-            className={hasExistingScores ? styles.applyBtnOverwrite : styles.applyBtn}
+            className={applied ? styles.applyBtnDone : hasExistingScores ? styles.applyBtnOverwrite : styles.applyBtn}
+            disabled={applied}
             onClick={handleApply}
           >
-            {hasExistingScores ? 'Overwrite & Randomize' : 'Apply Transform'}
+            {applied ? 'Applied' : hasExistingScores ? 'Overwrite & Randomize' : 'Apply Conversion'}
           </button>
         </div>
       )}
@@ -431,7 +340,7 @@ function TransformDataEditor({ onApplied }: EditorProps): React.JSX.Element {
         <select
           className={styles.select}
           value={spreadDimId}
-          onChange={e => setSpreadDimId(e.target.value)}
+          onChange={e => { setSpreadDimId(e.target.value); setSpreadApplied(false) }}
           aria-label="Dimension to spread"
         >
           <option value="">Choose dimension…</option>
@@ -447,10 +356,11 @@ function TransformDataEditor({ onApplied }: EditorProps): React.JSX.Element {
               highest becomes .95, preserving relative spacing. Unscored elements unchanged.
             </p>
             <button
-              className={styles.applyBtn}
+              className={spreadApplied ? styles.applyBtnDone : styles.applyBtn}
+              disabled={spreadApplied}
               onClick={handleSpreadApply}
             >
-              Apply Spread
+              {spreadApplied ? 'Applied' : 'Apply Spread'}
             </button>
           </div>
         )}

@@ -1,7 +1,7 @@
 // ── ScoreWindow ───────────────────────────────────────────────────────────────
 //
 // Top-level shell of the main application window. Renders the tab bar and
-// delegates to one of four tab components based on the active tab in the store.
+// delegates to one of five tab components based on the active tab in the store.
 // Dialog callbacks bubble up to App.tsx, which owns all modal state. The
 // internal `scores` key remains unchanged even though its user-facing label is
 // Assess, avoiding unrelated runtime state and type churn.
@@ -11,6 +11,7 @@ import { ElementsTab } from './ElementsTab'
 import { DimensionsTab } from './DimensionsTab'
 import { AssessTab } from './ScoresTab'
 import { CollectionsTab } from './CollectionsTab'
+import { ConversionsTab } from './ConversionsTab'
 import type { AppState } from '../../lib/types'
 import styles from './ScoreWindow.module.css'
 
@@ -20,7 +21,8 @@ const TAB_LABELS: Record<AppState['activeTab'], string> = {
   elements:    'Elements',
   collections: 'Collections',
   dimensions:  'Dimensions',
-  scores:      'Assess'
+  scores:      'Assess',
+  conversions: 'Conversions'
 }
 
 interface Props {
@@ -40,7 +42,7 @@ export function ScoreWindow({ onOpenStarterPicker }: Props): React.JSX.Element {
       <div className={styles.tabBar}>
         <span className={styles.windowTitle}>{fileName}</span>
 
-        {(['elements', 'dimensions', 'collections', 'scores'] as const).map(tab => (
+        {(['elements', 'dimensions', 'collections', 'scores', 'conversions'] as const).map(tab => (
           <button
             key={tab}
             className={[
@@ -65,6 +67,7 @@ export function ScoreWindow({ onOpenStarterPicker }: Props): React.JSX.Element {
         {activeTab === 'collections' && <CollectionsTab />}
         {activeTab === 'dimensions'  && <DimensionsTab onOpenStarterPicker={onOpenStarterPicker} />}
         {activeTab === 'scores'      && <AssessTab />}
+        {activeTab === 'conversions' && <ConversionsTab />}
       </div>
     </div>
   )

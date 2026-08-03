@@ -178,7 +178,7 @@ export interface AppState {
   selectedElementId: string | null
   selectedDimensionId: string | null
   selectedCollectionId: string | null
-  activeTab: 'elements' | 'dimensions' | 'scores' | 'collections'
+  activeTab: 'elements' | 'dimensions' | 'scores' | 'collections' | 'conversions'
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

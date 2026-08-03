@@ -116,16 +116,6 @@ export function buildMenu(): void {
     },
 
     {
-      label: 'Tools',
-      submenu: [
-        {
-          label: 'Transform Data…',
-          click: () => sendToRenderer('menu:transform-data')
-        }
-      ]
-    },
-
-    {
       label: 'Maps',
       submenu: [
         // Collection projection is no longer its own kind of map — a cartesian

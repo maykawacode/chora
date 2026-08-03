@@ -12,12 +12,11 @@
 // read-only displays — they send back only fine-grained score drags and config
 // changes. Every other mutation flows through this component.
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useAppStore } from './store/appStore'
 import { usePrefsStore } from './store/prefsStore'
 import { history } from './store/history'
 import { ScoreWindow } from './components/ScoreWindow/ScoreWindow'
-import { TransformDataDialog } from './components/ScoreWindow/ConversionsTab'
 import { ChooseDimensions, CreateSemanticMap } from './components/maps/ChooseDimensions'
 import { StarterListPicker } from './components/ScoreWindow/StarterListPicker'
 import { ImportPreview } from './components/ImportPreview'
@@ -75,16 +74,12 @@ export function App(): React.JSX.Element {
   const [showCreateSemantic,      setShowCreateSemantic]      = useState(false)
   const [showStarterPicker,    setShowStarterPicker]    = useState(false)
   const [showPreferences,      setShowPreferences]      = useState(false)
-  const [showTransformData,    setShowTransformData]    = useState(false)
   const [importPreview,        setImportPreview]        = useState<{ fileName: string; result: ImportResult } | null>(null)
-
-  const closeTransformData = useCallback(() => setShowTransformData(false), [])
 
   // True while any modal is open — used to bring the Score Window to the front
   // so it is not obscured by map BrowserWindows
   const isModalOpen = showWelcome || showChooseDimensions || showCreateSemantic ||
-                      showStarterPicker || showPreferences || showTransformData ||
-                      showQuitConfirm || importPreview !== null
+                      showStarterPicker || showPreferences || showQuitConfirm || importPreview !== null
 
   // ── suppressBroadcast ref ─────────────────────────────────────────────────────
   //
@@ -125,7 +120,6 @@ export function App(): React.JSX.Element {
             loadSession({ ...state, filePath: prefs.lastFilePath!, isDirty: false })
             selectElements([])
           })
-          setShowTransformData(false)
           window.api.restoreMainWindowBounds()
         })
         .catch(async (error: unknown) => {
@@ -230,7 +224,6 @@ export function App(): React.JSX.Element {
     // Quit requested — show confirm dialog if dirty, otherwise let it proceed
     const removeQuitRequested = window.api.onQuitRequested(() => {
       if (useAppStore.getState().isDirty) {
-        setShowTransformData(false)
         setShowQuitConfirm(true)
       } else {
         window.api.confirmQuit()
@@ -308,32 +301,18 @@ export function App(): React.JSX.Element {
         case 'save-as':            await handleSave(true);        break
         case 'import-spreadsheet': await handleImport();          break
         case 'export-spreadsheet': await handleExport();          break
-        case 'create-cartesian':
-          closeTransformData()
-          setShowChooseDimensions(true)
-          break
-        case 'create-semantic':
-          closeTransformData()
-          setShowCreateSemantic(true)
-          break
-        case 'preferences':
-          closeTransformData()
-          setShowPreferences(true)
-          break
-        case 'transform-data':
-          await focusMainSafely()
-          if (!isModalOpen) setShowTransformData(true)
-          break
+        case 'create-cartesian':   setShowChooseDimensions(true); break
+        case 'create-semantic':    setShowCreateSemantic(true);   break
+        case 'preferences':        setShowPreferences(true);      break
       }
     })
-  }, [filePath, isDirty, isModalOpen, closeTransformData])   // eslint-disable-line react-hooks/exhaustive-deps
+  }, [filePath, isDirty])   // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── File handlers ─────────────────────────────────────────────────────────────
 
   async function handleNew(): Promise<void> {
     if (isDirty && !await confirmDiscard()) return
     history.replaceDocument(() => resetToEmpty())
-    setShowTransformData(false)
     window.api.restoreMainWindowBounds()
   }
 
@@ -348,7 +327,6 @@ export function App(): React.JSX.Element {
         loadSession({ ...state, filePath: path, isDirty: false })
         selectElements([])
       })
-      setShowTransformData(false)
       window.api.restoreMainWindowBounds()
       // The Zustand subscriber above detects new maps and opens a window for each
       return true
@@ -446,7 +424,6 @@ export function App(): React.JSX.Element {
       const text     = await window.api.readFile(path)
       const result   = parseSpreadsheet(text)
       const fileName = path.split('/').pop() ?? path
-      setShowTransformData(false)
       setImportPreview({ fileName, result })
     } catch (e) {
       await focusMainSafely()
@@ -507,7 +484,6 @@ export function App(): React.JSX.Element {
       {showChooseDimensions   && <ChooseDimensions        onClose={() => setShowChooseDimensions(false)} />}
       {showCreateSemantic     && <CreateSemanticMap       onClose={() => setShowCreateSemantic(false)} />}
       {showPreferences      && <PreferencesDialog    onClose={() => setShowPreferences(false)} />}
-      {showTransformData    && <TransformDataDialog  onClose={closeTransformData} />}
 
       {showQuitConfirm && (
         <div className={styles.quitOverlay}>

@@ -149,7 +149,7 @@
   flex-direction: column;
 }
 
-/* Keep all four workflow tabs visible at the application's 300px minimum
+/* Keep all five workflow tabs visible at the application's 300px minimum
    width. The default spacing remains unchanged at normal window sizes. */
 @media (max-width: 420px) {
   .tabBar {
