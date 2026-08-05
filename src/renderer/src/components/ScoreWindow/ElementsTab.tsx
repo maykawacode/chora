@@ -1,20 +1,18 @@
 // ── ElementsTab ───────────────────────────────────────────────────────────────
 //
-// Left pane: scrollable list of elements with a color dot, add-input at the
-// bottom, and keyboard navigation (↑ ↓ for selection, Delete/Backspace to
-// trigger delete).
+// Left pane: scrollable list of elements with a color dot, the add-input in the
+// next list position, and keyboard navigation (↑ ↓ for selection,
+// Delete/Backspace to trigger delete).
 //
 // Right pane: detail editor for the selected element, ordered name, color,
-// shape, weight, definition, collections — the single-line fields first, as one
-// aligned column, then the two blocks that need room.
+// shape, weight, and definition.
 //
 // Multi-selection:
 //   Shift-click and Cmd/Ctrl-click extend the selection, as do Shift+↑ ↓. The
 //   list writes to the same selectedElementIds the map windows use for lasso
-//   selection, so a selection made here lights up on every open map — and a
-//   lasso drawn on a map arrives here ready to be assigned to a collection.
-//   Only the collection rows act on the whole selection; the rest of the detail
-//   pane edits the anchor element, which is the one drawn in full amber.
+//   selection, so a selection made here lights up on every open map and a
+//   lasso drawn on a map arrives here with the same highlighted group.
+//   The detail pane edits the anchor element, which is drawn in full amber.
 //
 // Delete behavior:
 //   - Multi-selection → always confirms, whatever the pref says
@@ -37,14 +35,8 @@ const SHAPE_SYMBOL: Record<ElementShape, string> = {
   diamond:  '◆'
 }
 
-// How many of a target set belong to a collection, expressed as the three
-// states a membership control can be in. "mixed" only ever arises for a
-// multi-selection; a single element is simply in or out.
-type Membership = 'all' | 'none' | 'mixed'
-
 export function ElementsTab(): React.JSX.Element {
   const elements         = useAppStore(s => s.elements)
-  const collections      = useAppStore(s => s.collections)
   const selectedId       = useAppStore(s => s.selectedElementId)
   const selectedIds      = useAppStore(s => s.selectedElementIds)
   const addElement       = useAppStore(s => s.addElement)
@@ -54,7 +46,6 @@ export function ElementsTab(): React.JSX.Element {
   const selectElement    = useAppStore(s => s.selectElement)
   const selectElements   = useAppStore(s => s.selectElements)
   const clearSelection   = useAppStore(s => s.clearElementSelection)
-  const setCollection    = useAppStore(s => s.setElementsCollection)
   const prefs            = usePrefsStore(s => s.prefs)
 
   const selected    = elements.find(e => e.id === selectedId) ?? null
@@ -69,27 +60,6 @@ export function ElementsTab(): React.JSX.Element {
   const displayElements = sortAlpha
     ? [...elements].sort((a, b) => a.name.localeCompare(b.name))
     : elements
-
-  // What a collection row acts on. Falls back to the anchor so the control
-  // behaves identically whether or not a multi-selection is active.
-  const targetIds = selectedIds.length > 0
-    ? selectedIds
-    : (selectedId ? [selectedId] : [])
-
-  const byId = new Map(elements.map(el => [el.id, el]))
-
-  function membership(collectionId: string): Membership {
-    if (targetIds.length === 0) return 'none'
-    let n = 0
-    for (const id of targetIds) {
-      if (byId.get(id)?.collectionIds.includes(collectionId)) n++
-    }
-    return n === 0 ? 'none' : n === targetIds.length ? 'all' : 'mixed'
-  }
-
-  // Drives the header link, which offers whichever action is still available.
-  const allOn = collections.length > 0 && targetIds.length > 0 &&
-    collections.every(c => membership(c.id) === 'all')
 
   const [newName,   setNewName]   = useState('')
   const [confirmIds, setConfirmIds] = useState<string[]>([])
@@ -213,16 +183,6 @@ export function ElementsTab(): React.JSX.Element {
     }
   }
 
-  // ── Membership ───────────────────────────────────────────────────────────────
-  //
-  // A mixed selection resolves to one answer rather than each element flipping
-  // independently: the first click brings everyone in, the next takes everyone
-  // out. Flipping individually would make the row's own state unreadable.
-  function toggleMembership(collectionId: string): void {
-    if (targetIds.length === 0) return
-    setCollection(targetIds, collectionId, membership(collectionId) !== 'all')
-  }
-
   const confirmElements = confirmIds
     .map(id => elements.find(e => e.id === id))
     .filter((e): e is NonNullable<typeof e> => e != null)
@@ -243,9 +203,8 @@ export function ElementsTab(): React.JSX.Element {
           <span className={styles.sortBadge}>{sortAlpha ? 'A–Z' : '⇅'}</span>
         </button>
 
-        {elements.length === 0
-          ? <p className={styles.emptyHint}>Begin by entering a list of elements.</p>
-          : (
+        <div className={styles.listEditor}>
+          {elements.length > 0 && (
             <ul
               className={styles.list}
               tabIndex={0}
@@ -274,18 +233,18 @@ export function ElementsTab(): React.JSX.Element {
                 )
               })}
             </ul>
-          )
-        }
+          )}
 
-        <div className={styles.addRow}>
-          <input
-            ref={addInputRef}
-            className={styles.addInput}
-            placeholder="New element…"
-            value={newName}
-            onChange={e => setNewName(e.target.value)}
-            onKeyDown={handleAddKeyDown}
-          />
+          <div className={styles.addRow}>
+            <input
+              ref={addInputRef}
+              className={styles.addInput}
+              placeholder="New element…"
+              value={newName}
+              onChange={e => setNewName(e.target.value)}
+              onKeyDown={handleAddKeyDown}
+            />
+          </div>
         </div>
       </div>
 
@@ -293,7 +252,7 @@ export function ElementsTab(): React.JSX.Element {
       <div className={styles.resizeHandle} style={splitPane.dividerStyle} {...splitPane.dividerProps} />
 
       {/* ── Detail pane ── */}
-      <div className={styles.detailPane} style={splitPane.rightPaneStyle}>
+      <div className={`${styles.detailPane} ${styles.elementDetailPane}`} style={splitPane.rightPaneStyle}>
         <div className={styles.fieldRow}>
           <label className={styles.label}>Name</label>
           {/* key forces input reset when selection changes, avoiding stale defaultValue */}
@@ -359,11 +318,6 @@ export function ElementsTab(): React.JSX.Element {
             })}
           />
         </div>
-        {/* The four single-line fields above stack without interruption so the
-            label gutter they share reads as one column and their controls line
-            up down the left. The two tall blocks follow, definition then
-            collections — putting either of them in the middle breaks that
-            column in half, which is what the earlier order did. */}
         <textarea
           className={styles.description}
           placeholder="Definition…"
@@ -376,76 +330,6 @@ export function ElementsTab(): React.JSX.Element {
             if (selected) updateElement(selected.id, { definition: e.target.value })
           }}
         />
-        {/* Membership goes last because it is the only control here that can
-            reach past the anchor element, and the only one that is a list
-            rather than a single value — the two things that make it the odd
-            one out among the fields above. It keeps a section of its own for
-            the same reason. */}
-        <div className={styles.collectionSection}>
-          <div className={styles.collectionHeader}>
-            <span className={styles.label}>
-              Collections
-              {targetIds.length > 1 && (
-                <span className={styles.targetCount}>{targetIds.length} selected</span>
-              )}
-            </span>
-            {collections.length > 0 && targetIds.length > 0 && (
-              <button
-                type="button"
-                className={styles.linkBtn}
-                onClick={() => {
-                  history.run(SCORE_HISTORY_OWNER, () => {
-                    for (const c of collections) setCollection(targetIds, c.id, !allOn)
-                  })
-                }}
-              >
-                {allOn ? 'None' : 'All'}
-              </button>
-            )}
-          </div>
-
-          {collections.length === 0
-            ? <span className={styles.fieldHint}>None defined — add some on the Collections tab.</span>
-            : (
-              <div className={styles.collectionList}>
-                {collections.map(collection => {
-                  const state = membership(collection.id)
-                  const c     = collection.color
-                  // Solid when everyone selected is a member, a hollow ring of
-                  // the collection's color when nobody is, half-filled when the
-                  // selection is split. The map sidebar draws the first two the
-                  // same way, deliberately.
-                  const swatch = state === 'all'
-                    ? { background: c, borderColor: c }
-                    : state === 'none'
-                      ? { background: 'transparent', borderColor: c }
-                      : { background: `linear-gradient(90deg, ${c} 0 50%, transparent 50% 100%)`, borderColor: c }
-                  return (
-                    <button
-                      key={collection.id}
-                      type="button"
-                      className={styles.collectionRow}
-                      disabled={targetIds.length === 0}
-                      aria-pressed={state === 'all'}
-                      aria-label={`${collection.name || 'Untitled collection'} — ${state === 'mixed' ? 'some selected elements' : state === 'all' ? 'all selected elements' : 'no selected elements'}`}
-                      onClick={() => toggleMembership(collection.id)}
-                    >
-                      <span className={styles.collectionSwatch} style={swatch} />
-                      <span className={styles.collectionRowName}>
-                        {collection.name || 'Untitled collection'}
-                      </span>
-                      {/* Total members across the whole session, not just the
-                          selection — the same number the map sidebar shows. */}
-                      <span className={styles.collectionRowCount}>
-                        {elements.filter(el => el.collectionIds.includes(collection.id)).length}
-                      </span>
-                    </button>
-                  )
-                })}
-              </div>
-            )
-          }
-        </div>
       </div>
 
       {/* ── Delete confirmation overlay ── */}

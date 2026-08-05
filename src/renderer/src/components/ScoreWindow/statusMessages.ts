@@ -8,7 +8,7 @@ export const STATUS_MESSAGES = {
   },
 
   dimensions: {
-    empty: 'Add a dimension to begin.',
+    empty: 'Add a dimension to begin. Select the "..." to pull up a library of suggestions.',
     noSelection: 'Select a dimension to edit.',
     selected: 'Edit the selected dimension in the detail panel.'
   },
@@ -20,8 +20,8 @@ export const STATUS_MESSAGES = {
   },
 
   assess: {
-    noElements: '[WARNING] You need at least one element before assessing.',
-    noDimensions: '[WARNING] you need at least one dimension before assessing.',
+    noElements: '[WARNING] You need at least one element before assessing. Create it in the elements panel.',
+    noDimensions: '[WARNING] You need at least one dimension before assessing. Create it in the dimensions panel.',
     noElementSelection: 'Choose an element to assess.',
     noDimensionSelection: 'Choose a dimension for the selected element.',
     ready: 'Move the score indicator, or use the arrow keys.'

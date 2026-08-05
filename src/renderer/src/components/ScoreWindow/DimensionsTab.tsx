@@ -147,9 +147,8 @@ export function DimensionsTab({ onOpenStarterPicker }: Props): React.JSX.Element
       <div className={styles.listPane} style={splitPane.leftPaneStyle}>
         <div className={styles.listHeader}>Dimensions ({dimensions.length})</div>
 
-        {dimensions.length === 0
-          ? <p className={styles.emptyHint}>Begin by entering a list of dimensions.</p>
-          : (
+        <div className={styles.listEditor}>
+          {dimensions.length > 0 && (
             <ul
               className={styles.list}
               tabIndex={0}
@@ -166,25 +165,25 @@ export function DimensionsTab({ onOpenStarterPicker }: Props): React.JSX.Element
                 </li>
               ))}
             </ul>
-          )
-        }
+          )}
 
-        <div className={styles.addRow}>
-          <input
-            ref={addInputRef}
-            className={styles.addInput}
-            placeholder="New dimension (e.g. Hot–Cold)…"
-            value={newLabel}
-            onChange={e => setNewLabel(e.target.value)}
-            onKeyDown={handleAddKeyDown}
-          />
-          <button
-            className={styles.starterBtn}
-            onClick={onOpenStarterPicker}
-            title="Browse starter lists"
-          >
-            ⋯
-          </button>
+          <div className={styles.addRow}>
+            <input
+              ref={addInputRef}
+              className={styles.addInput}
+              placeholder="New dimension (e.g. Hot–Cold)…"
+              value={newLabel}
+              onChange={e => setNewLabel(e.target.value)}
+              onKeyDown={handleAddKeyDown}
+            />
+            <button
+              className={styles.starterBtn}
+              onClick={onOpenStarterPicker}
+              title="Browse starter lists"
+            >
+              ⋯
+            </button>
+          </div>
         </div>
       </div>
 

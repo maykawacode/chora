@@ -96,9 +96,8 @@ export function CollectionsTab(): React.JSX.Element {
       <div className={styles.listPane} style={splitPane.leftPaneStyle}>
         <div className={styles.listHeader}>Collections ({collections.length})</div>
 
-        {collections.length === 0
-          ? <p className={styles.emptyHint}>Begin by entering a list of collections.</p>
-          : (
+        <div className={styles.listEditor}>
+          {collections.length > 0 && (
             <ul
               className={styles.list}
               tabIndex={0}
@@ -111,9 +110,6 @@ export function CollectionsTab(): React.JSX.Element {
                   className={`${styles.listItem} ${collection.id === selectedId ? styles.selected : ''}`}
                   onClick={() => selectCollection(collection.id)}
                 >
-                  {/* The swatch is the same picture the map sidebar and the
-                      element chips draw, so a collection is recognizable by
-                      color in all three places. */}
                   <span
                     className={styles.collectionSwatch}
                     style={{ background: collection.color, borderColor: collection.color }}
@@ -122,25 +118,25 @@ export function CollectionsTab(): React.JSX.Element {
                 </li>
               ))}
             </ul>
-          )
-        }
+          )}
 
-        <div className={styles.addRow}>
-          <input
-            ref={addInputRef}
-            className={styles.addInput}
-            placeholder="New collection…"
-            value={newName}
-            onChange={e => setNewName(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') handleAdd() }}
-          />
+          <div className={styles.addRow}>
+            <input
+              ref={addInputRef}
+              className={styles.addInput}
+              placeholder="New collection…"
+              value={newName}
+              onChange={e => setNewName(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') handleAdd() }}
+            />
+          </div>
+
+          {uncoloredCount > 0 && (
+            <button type="button" className={styles.bulkBtn} onClick={assignPaletteToUncoloredCollections}>
+              Assign colors to {uncoloredCount} uncolored {uncoloredCount === 1 ? 'collection' : 'collections'}
+            </button>
+          )}
         </div>
-
-        {uncoloredCount > 0 && (
-          <button type="button" className={styles.bulkBtn} onClick={assignPaletteToUncoloredCollections}>
-            Assign colors to {uncoloredCount} uncolored {uncoloredCount === 1 ? 'collection' : 'collections'}
-          </button>
-        )}
       </div>
 
       {/* ── Resize handle ── */}
