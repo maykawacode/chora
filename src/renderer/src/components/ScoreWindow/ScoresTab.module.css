@@ -45,6 +45,32 @@
   min-height: 132px;
   padding-right: 12.5%;
   padding-left: 12.5%;
+  background: #fff;
+}
+
+.scoreKey {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 18px;
+  padding: 5px 12px;
+  border-bottom: 1px solid var(--chrome-rule);
+  color: #6f6a61;
+  font-size: 10px;
+}
+
+.scoreKey > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.keySymbol {
+  width: 12px;
+  color: #4f4b45;
+  font-size: 11px;
+  text-align: center;
 }
 
 .workspace {

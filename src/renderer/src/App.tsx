@@ -58,6 +58,7 @@ export function App(): React.JSX.Element {
   const loadSession   = useAppStore(s => s.loadSession)
   const resetToEmpty  = useAppStore(s => s.resetToEmpty)
   const selectElement  = useAppStore(s => s.selectElement)
+  const selectDimension = useAppStore(s => s.selectDimension)
   const selectElements = useAppStore(s => s.selectElements)
 
   // ── Modal visibility state ────────────────────────────────────────────────────
@@ -256,8 +257,9 @@ export function App(): React.JSX.Element {
   // until the user explicitly clicks a dot.
 
   useEffect(() => {
-    const removeSelection = window.api.onSelection((elementId) => {
+    const removeSelection = window.api.onSelection((elementId, clearDimension) => {
       selectElement(elementId)
+      if (clearDimension) selectDimension(null)
     })
 
     const removeMultiSelection = window.api.onMultiSelection((ids) => {
@@ -268,7 +270,7 @@ export function App(): React.JSX.Element {
     window.addEventListener('blur', handleBlur)
 
     return () => { removeSelection(); removeMultiSelection(); window.removeEventListener('blur', handleBlur) }
-  }, [selectElement, selectElements])
+  }, [selectElement, selectDimension, selectElements])
 
   // ── Modal z-order ─────────────────────────────────────────────────────────────
   //

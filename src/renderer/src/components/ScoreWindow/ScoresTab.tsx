@@ -54,6 +54,15 @@ export function AssessTab(): React.JSX.Element {
   const dimScore = (selectedElId && selectedDimId)
     ? (scoreMap[selectedElId]?.[selectedDimId] ?? null) : null
 
+  // Enter Assess ready to score without enforcing a permanent selection. After
+  // this one-time initialization, a map's Deselect All must be allowed to leave
+  // the element anchor empty.
+  useEffect(() => {
+    const state = useAppStore.getState()
+    if (!state.selectedElementId && state.elements[0]) state.selectElement(state.elements[0].id)
+    if (!state.selectedDimensionId && state.dimensions[0]) state.selectDimension(state.dimensions[0].id)
+  }, [])
+
   // Left/right scoring belongs to the selected element × dimension pair, not
   // to whichever Assess control happens to hold focus. Reading live state keeps
   // key-repeat increments current between React renders.
@@ -106,9 +115,6 @@ export function AssessTab(): React.JSX.Element {
     }
     return count === 0 ? 'none' : count === targetIds.length ? 'all' : 'mixed'
   }
-
-  const allCollectionsOn = collections.length > 0 && targetIds.length > 0 &&
-    collections.every(collection => membership(collection.id) === 'all')
 
   function toggleMembership(collectionId: string): void {
     if (targetIds.length === 0) return
@@ -186,7 +192,10 @@ export function AssessTab(): React.JSX.Element {
       selectElements(next)
       if (next.includes(id)) selectElement(id)
       else if (next.length > 0) selectElement(next[next.length - 1])
-      else selectElement(null)
+      else {
+        selectElement(null)
+        selectDimension(null)
+      }
       return
     }
 
@@ -229,6 +238,12 @@ export function AssessTab(): React.JSX.Element {
           />
         )}
       </section>
+
+      <div className={styles.scoreKey} aria-label="Scoring status key">
+        <span><span className={styles.keySymbol}>–</span>No score</span>
+        <span><span className={styles.keySymbol}>◇</span>Incomplete scores</span>
+        <span><span className={styles.keySymbol}>●</span>Complete scores</span>
+      </div>
 
       <div className={styles.workspace} ref={splitPane.containerRef} style={splitPane.containerStyle}>
         <section className={`${styles.section} ${styles.elementsSection}`} style={splitPane.leftPaneStyle}>
@@ -348,19 +363,6 @@ export function AssessTab(): React.JSX.Element {
                 Collections
                 {targetIds.length > 1 && <span className={styles.targetCount}>{targetIds.length} selected</span>}
               </span>
-              {collections.length > 0 && targetIds.length > 0 && (
-                <button
-                  type="button"
-                  className={styles.linkBtn}
-                  onClick={() => history.run(SCORE_HISTORY_OWNER, () => {
-                    for (const collection of collections) {
-                      setCollection(targetIds, collection.id, !allCollectionsOn)
-                    }
-                  })}
-                >
-                  {allCollectionsOn ? 'None' : 'All'}
-                </button>
-              )}
             </h3>
 
             {collections.length === 0 ? (

@@ -115,9 +115,10 @@ contextBridge.exposeInMainWorld('api', {
   // New collection created inline from a map window modal
   broadcastNewCollection: (id: string, name: string): void =>
                             ipcRenderer.send('collection:add', id, name),
-  // Selection change from a map window dot click (or deselect on empty click)
-  broadcastSelection: (elementId: string | null): void =>
-                        ipcRenderer.send('selection:update', elementId),
+  // Selection change from a map window dot click. Explicit clears also clear
+  // the paired Assess dimension; transient drag/focus clears do not.
+  broadcastSelection: (elementId: string | null, clearDimension = false): void =>
+                        ipcRenderer.send('selection:update', elementId, clearDimension),
   // Multi-selection change from a map window shift-click or lasso
   broadcastMultiSelection: (ids: string[]): void =>
                              ipcRenderer.send('multiSelection:update', ids),
@@ -179,8 +180,9 @@ contextBridge.exposeInMainWorld('api', {
   },
 
   // Selection change relayed from a map window — Score Window listens for this
-  onSelection: (cb: (elementId: string | null) => void): (() => void) => {
-    const handler = (_: IpcRendererEvent, elementId: string | null): void => cb(elementId)
+  onSelection: (cb: (elementId: string | null, clearDimension: boolean) => void): (() => void) => {
+    const handler = (_: IpcRendererEvent, elementId: string | null, clearDimension = false): void =>
+      cb(elementId, clearDimension)
     ipcRenderer.on('selection:update', handler)
     return () => ipcRenderer.removeListener('selection:update', handler)
   },

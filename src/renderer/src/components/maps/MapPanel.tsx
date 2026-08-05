@@ -504,9 +504,23 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
   const deselectAll = useCallback(() => {
     selectElement(null)
     clearElementSelection()
-    window.api?.broadcastSelection(null)
+    window.api?.broadcastSelection(null, true)
     window.api?.broadcastMultiSelection([])
   }, [selectElement, clearElementSelection])
+
+  // Shift-click updates both layers of selection: the group used for batch
+  // operations and the single anchor Assess uses for scoring. Keeping this in
+  // one helper prevents Cartesian and semantic maps from drifting apart.
+  function toggleMapSelection(elementId: string): void {
+    toggleElementSelection(elementId)
+    const selectedIds = useAppStore.getState().selectedElementIds
+    const anchorId = selectedIds.includes(elementId)
+      ? elementId
+      : (selectedIds[selectedIds.length - 1] ?? null)
+    selectElement(anchorId)
+    window.api?.broadcastSelection(anchorId, anchorId === null)
+    window.api?.broadcastMultiSelection(selectedIds)
+  }
 
   // Escape clears all selection, on every map type, wherever focus sits in the
   // map window.
@@ -953,8 +967,7 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
       const dotHit = cartesianHitDot(x, y, W, H, config, elements, scores)
       if (dotHit) {
         if (e.shiftKey) {
-          toggleElementSelection(dotHit.elementId)
-          window.api?.broadcastMultiSelection(useAppStore.getState().selectedElementIds)
+          toggleMapSelection(dotHit.elementId)
         }
         // Non-shift: transient highlight via selectedElementId (cleared on mouseUp)
         return
@@ -973,8 +986,7 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
       const hit = semanticHitDot(x, y, W, H, semCfg, elements, collections, dimensions, scores)
       if (hit) {
         if (e.shiftKey) {
-          toggleElementSelection(hit.elementId)
-          window.api?.broadcastMultiSelection(useAppStore.getState().selectedElementIds)
+          toggleMapSelection(hit.elementId)
         }
         // Non-shift: mouseDown already called selectElements([id]) — nothing to do
         return

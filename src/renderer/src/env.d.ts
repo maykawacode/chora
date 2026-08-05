@@ -55,7 +55,7 @@ interface Window {
     broadcastMapConfig: (mapId: string, changes: Record<string, unknown>) => void
     broadcastElement:   (elementId: string, changes: Record<string, unknown>) => void
     broadcastNewCollection: (id: string, name: string) => void
-    broadcastSelection:      (elementId: string | null) => void
+    broadcastSelection:      (elementId: string | null, clearDimension?: boolean) => void
     broadcastMultiSelection: (ids: string[]) => void
     broadcastPrefs:          (prefs: Record<string, unknown>) => void
 
@@ -70,7 +70,7 @@ interface Window {
     onMapClosed:          (cb: (mapId: string) => void) => () => void
     onElementUpdate:      (cb: (elementId: string, changes: Record<string, unknown>) => void) => () => void
     onCollectionAdd:      (cb: (id: string, name: string) => void) => () => void
-    onSelection:          (cb: (elementId: string | null) => void) => () => void
+    onSelection:          (cb: (elementId: string | null, clearDimension: boolean) => void) => () => void
     onMultiSelection:     (cb: (ids: string[]) => void) => () => void
 
     // Quit confirmation
