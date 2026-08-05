@@ -13,6 +13,11 @@
   --chrome-bg: #e0ddd8;        /* title bar + control sidebar surface */
   --chrome-rule: #d0ccc4;      /* every rule in the chrome: outer edges + section dividers */
   --control-border: #b0a898;   /* buttons and inputs sitting on the chrome */
+  --type-title: 13px;
+  --type-tab: 12px;
+  --type-section: 11px;
+  --type-label: 12px;
+  --type-body: 13px;
 }
 
 *, *::before, *::after {

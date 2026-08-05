@@ -16,7 +16,7 @@
 
 .listHeader {
   font-weight: 600;
-  font-size: 12px;
+  font-size: var(--type-section);
   color: #555;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -34,7 +34,7 @@
   width: 100%;
   box-sizing: border-box;
   font-weight: 600;
-  font-size: 12px;
+  font-size: var(--type-section);
   color: #555;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -314,7 +314,7 @@
    ("Weight"), and the same number does the job on the Collections and
    Dimensions tabs, whose labels are all shorter still ("Pole A", "Pole B"). */
 .label {
-  font-size: 12px;
+  font-size: var(--type-label);
   color: #555;
   width: 48px;
   max-width: 100%;

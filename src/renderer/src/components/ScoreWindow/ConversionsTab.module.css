@@ -21,7 +21,7 @@
 }
 
 .sectionLabel {
-  font-size: 10px;
+  font-size: var(--type-section);
   font-weight: 700;
   color: #888;
   text-transform: uppercase;

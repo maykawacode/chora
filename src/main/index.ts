@@ -29,9 +29,9 @@ function createWindow(): void {
     minHeight: 500,
     show: false,
     closable: false,
-    // hiddenInset keeps the standard macOS traffic-light buttons visible
-    // while letting us style the rest of the title bar ourselves
-    titleBarStyle: 'hiddenInset',
+    // Match map windows: keep the standard macOS traffic lights while drawing
+    // the title surface in the renderer.
+    titleBarStyle: 'hidden',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false

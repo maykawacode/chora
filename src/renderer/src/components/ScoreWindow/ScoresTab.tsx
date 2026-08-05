@@ -33,6 +33,7 @@ export function AssessTab(): React.JSX.Element {
   const setActiveTab    = useAppStore(s => s.setActiveTab)
 
   const splitPane = useResizableSplitPane()
+  const keyboardHistoryOpenRef = useRef(false)
 
   const selectedEl  = elements.find(e => e.id === selectedElId)    ?? null
   const selectedDim = dimensions.find(d => d.id === selectedDimId) ?? null
@@ -52,6 +53,50 @@ export function AssessTab(): React.JSX.Element {
 
   const dimScore = (selectedElId && selectedDimId)
     ? (scoreMap[selectedElId]?.[selectedDimId] ?? null) : null
+
+  // Left/right scoring belongs to the selected element × dimension pair, not
+  // to whichever Assess control happens to hold focus. Reading live state keeps
+  // key-repeat increments current between React renders.
+  useEffect(() => {
+    if (!selectedElId || !selectedDimId) return
+
+    const endKeyboardHistory = (): void => {
+      if (!keyboardHistoryOpenRef.current) return
+      keyboardHistoryOpenRef.current = false
+      history.end(SCORE_HISTORY_OWNER)
+    }
+
+    const onKeyDown = (event: globalThis.KeyboardEvent): void => {
+      if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return
+      if (event.metaKey || event.ctrlKey || event.altKey) return
+
+      const state = useAppStore.getState()
+      if (!state.elements.some(element => element.id === selectedElId) ||
+          !state.dimensions.some(dimension => dimension.id === selectedDimId)) return
+
+      event.preventDefault()
+      history.begin(SCORE_HISTORY_OWNER)
+      keyboardHistoryOpenRef.current = true
+      const current = state.scores[selectedElId]?.[selectedDimId] ?? 0.5
+      const delta = event.key === 'ArrowLeft' ? -0.05 : 0.05
+      state.setScore(selectedElId, selectedDimId,
+        Math.round(Math.max(0, Math.min(1, current + delta)) * 100) / 100)
+    }
+
+    const onKeyUp = (event: globalThis.KeyboardEvent): void => {
+      if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') endKeyboardHistory()
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+    window.addEventListener('keyup', onKeyUp)
+    window.addEventListener('blur', endKeyboardHistory)
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+      window.removeEventListener('keyup', onKeyUp)
+      window.removeEventListener('blur', endKeyboardHistory)
+      endKeyboardHistory()
+    }
+  }, [selectedElId, selectedDimId])
 
   function membership(collectionId: string): Membership {
     if (targetIds.length === 0) return 'none'
@@ -470,9 +515,7 @@ function ScoreSlider({
     let next: number
 
     switch (e.key) {
-      case 'ArrowLeft':
       case 'ArrowDown': next = current - 0.05; break
-      case 'ArrowRight':
       case 'ArrowUp':   next = current + 0.05; break
       case 'Home':      next = 0; break
       case 'End':       next = 1; break
@@ -488,7 +531,7 @@ function ScoreSlider({
   }
 
   function handleTrackKeyUp(e: KeyboardEvent<HTMLDivElement>): void {
-    if (['ArrowLeft', 'ArrowDown', 'ArrowRight', 'ArrowUp', 'Home', 'End'].includes(e.key)) {
+    if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) {
       endDragHistory()
     }
   }
