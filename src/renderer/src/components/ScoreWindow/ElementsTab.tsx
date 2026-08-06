@@ -26,6 +26,7 @@ import { usePrefsStore } from '../../store/prefsStore'
 import { ELEMENT_SHAPES } from '../../lib/types'
 import type { ElementShape } from '../../lib/types'
 import { useResizableSplitPane } from './useResizableSplitPane'
+import { elementWeight } from '../../lib/numericRange'
 import styles from './DataTab.module.css'
 
 const SHAPE_SYMBOL: Record<ElementShape, string> = {
@@ -308,13 +309,12 @@ export function ElementsTab(): React.JSX.Element {
             key={`weight-${selected?.id ?? 'none'}-${selected?.weight ?? 1}`}
             className={styles.weightInput}
             type="number"
-            min={1}
-            max={100}
+            min={0}
             defaultValue={selected?.weight ?? 1}
             disabled={!selected}
             onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur() }}
             onBlur={e => selected && updateElement(selected.id, {
-              weight: Math.max(1, Math.min(100, +e.target.value || 1))
+              weight: elementWeight(Number(e.target.value))
             })}
           />
         </div>

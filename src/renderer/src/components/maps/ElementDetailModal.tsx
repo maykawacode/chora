@@ -16,6 +16,7 @@ import { useAppStore } from '../../store/appStore'
 import { ELEMENT_SHAPES } from '../../lib/types'
 import type { Element, ElementShape } from '../../lib/types'
 import styles from './ElementDetailModal.module.css'
+import { elementWeight, formatRange, numericRange } from '../../lib/numericRange'
 
 const SHAPE_SYMBOL: Record<ElementShape, string> = {
   circle:   '●',
@@ -37,7 +38,8 @@ interface Props {
 }
 
 export function ElementDetailModal({ elementId, onClose }: Props): React.JSX.Element | null {
-  const element       = useAppStore(s => s.elements.find(e => e.id === elementId))
+  const elements      = useAppStore(s => s.elements)
+  const element       = elements.find(e => e.id === elementId)
   const collections   = useAppStore(s => s.collections)
   const addCollection = useAppStore(s => s.addCollection)
 
@@ -71,7 +73,7 @@ export function ElementDetailModal({ elementId, onClose }: Props): React.JSX.Ele
   const handleCloseRef = useRef<() => void>(() => {})
   handleCloseRef.current = () => {
     if (!element) { onClose(null); return }
-    const parsedWeight = Math.max(1, Math.min(100, +weight || 1))
+    const parsedWeight = elementWeight(Number(weight))
     const validCollectionIds = new Set(collections.map(collection => collection.id))
     const validMembership = memberOf.filter(id => validCollectionIds.has(id))
     const currentMembership = element.collectionIds.filter(id => validCollectionIds.has(id))
@@ -93,6 +95,8 @@ export function ElementDetailModal({ elementId, onClose }: Props): React.JSX.Ele
   const handleClose = useCallback(() => handleCloseRef.current(), [])
 
   if (!element) return null
+
+  const weightRange = numericRange(elements.map(item => item.weight))
 
   function handleColorPicker(value: string): void {
     setColor(value)
@@ -160,11 +164,11 @@ export function ElementDetailModal({ elementId, onClose }: Props): React.JSX.Ele
           <input
             type="number"
             className={styles.weightInput}
-            min={1}
-            max={100}
+            min={0}
             value={weight}
             onChange={e => setWeight(e.target.value)}
           />
+          <span className={styles.range}>{formatRange(weightRange)}</span>
         </div>
 
         <textarea

@@ -32,6 +32,7 @@ import type { Element, Dimension, ScoreMap, SessionMeta, Collection } from './ty
 import { defaultCategories, defaultSessionMeta, parsePoles } from './types'
 import { MEMBERSHIP_CUTOFF } from './parser'
 import { COLLECTION_SEPARATOR } from './exporter'
+import { elementWeight } from './numericRange'
 
 // Strip surrounding double-quotes and unescape "" → " (standard TSV/CSV quoting).
 function stripQuotes(s: string): string {
@@ -134,6 +135,7 @@ function parseFullSpreadsheet(text: string): ImportResult {
       const name = tc(row[nameCol])
       if (!name) continue
       const rawColor = tc(row[colorCol])
+      const rawWeight = tc(row[weightCol])
       const rawShape = tc(row[shapeCol])
       const rawColls = collCol >= 0 ? tc(row[collCol]) : ''
       elementsByName.set(name, {
@@ -141,7 +143,9 @@ function parseFullSpreadsheet(text: string): ImportResult {
         name,
         definition: defCol >= 0 ? tc(row[defCol]) : '',
         color:      /^#[0-9a-fA-F]{6}$/.test(rawColor) ? rawColor : '#9d9d53',
-        weight:     weightCol >= 0 ? Math.max(1, Math.min(100, parseInt(row[weightCol] ?? '') || 1)) : 1,
+        weight:     weightCol >= 0 && rawWeight !== ''
+          ? elementWeight(Number(rawWeight), 1)
+          : 1,
         shape:      (['circle', 'square', 'triangle', 'diamond'] as const).includes(rawShape as Element['shape'])
                       ? rawShape as Element['shape'] : 'circle',
         collectionIds: rawColls

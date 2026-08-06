@@ -21,7 +21,7 @@ export interface Element {
   id: string
   name: string
   definition: string     // what this element IS
-  weight: number         // 1–100; drives dot size on cartesian maps
+  weight: number         // non-negative; maps normalize size across the current Element range
   color: string          // hex string, e.g. '#808000' (olive default)
   shape: ElementShape    // plot symbol used on all maps
   collectionIds: string[]  // collections this element belongs to; see below

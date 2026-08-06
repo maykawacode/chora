@@ -16,6 +16,7 @@ import { useAppStore } from '../../store/appStore'
 import { history, SCORE_HISTORY_OWNER } from '../../store/history'
 import { useResizableSplitPane } from './useResizableSplitPane'
 import styles from './DataTab.module.css'
+import { formatRange, numericRange } from '../../lib/numericRange'
 
 interface Props { onOpenStarterPicker: () => void }
 
@@ -138,6 +139,7 @@ export function DimensionsTab({ onOpenStarterPicker }: Props): React.JSX.Element
   }
 
   const confirmDim = confirmDeleteId ? dimensions.find(d => d.id === confirmDeleteId) : null
+  const weightRange = numericRange(dimensions.map(dimension => dimension.weight), 1)
 
   // ── Render ────────────────────────────────────────────────────────────────────
 
@@ -236,6 +238,7 @@ export function DimensionsTab({ onOpenStarterPicker }: Props): React.JSX.Element
               weight: Math.max(1, Math.min(100, +e.target.value || 1))
             })}
           />
+          <span className={styles.range}>{formatRange(weightRange)}</span>
         </div>
         <textarea
           className={styles.description}

@@ -436,6 +436,12 @@
   color: #999;
 }
 
+.range {
+  color: #888;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
 .description {
   flex: none;
   width: 100%;

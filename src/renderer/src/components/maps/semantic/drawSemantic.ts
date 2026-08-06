@@ -17,6 +17,7 @@ import { labelFont, LABEL_SIZE_DEFAULT } from '../cartesian/drawCartesian'
 import { resolveElementColor } from '../color'
 import { shownCollections } from '../collections'
 import { drawMark, markShapeIndex } from '../shape'
+import { normalizeInRange, numericRange, type NumericRange } from '../../../lib/numericRange'
 
 // Horizontal margin — space reserved on each side for pole labels
 export const SEM_MARGIN_H = 96
@@ -38,9 +39,11 @@ export const SEM_DOT_MAX_R = 18
  * Radius of an element's dot, honouring the weight-sizing toggle.
  * Exported so MapPanel's hit-testing matches what's actually painted.
  */
-export function semDotRadius(config: SemanticMapConfig, weight: number): number {
+export function semDotRadius(
+  config: SemanticMapConfig, weight: number, range: NumericRange
+): number {
   return config.sizeByWeight
-    ? SEM_DOT_R + (weight - 1) / 99 * (SEM_DOT_MAX_R - SEM_DOT_R)
+    ? SEM_DOT_R + normalizeInRange(weight, range) * (SEM_DOT_MAX_R - SEM_DOT_R)
     : SEM_DOT_R
 }
 
@@ -101,6 +104,7 @@ export function drawSemantic(
     .filter((d): d is Dimension => d !== undefined)
 
   const els = semanticElements(config, elements, collections)
+  const weightRange = numericRange(elements.map(element => element.weight))
 
   ctx.clearRect(0, 0, W, H)
 
@@ -209,7 +213,7 @@ export function drawSemantic(
   for (const el of drawOrder) {
     const shapeIndex = markShapeIndex(config.marks, el)
     const color      = resolveElementColor(config.colorMode, el, collections, claiming)
-    const dotR       = semDotRadius(config, el.weight)
+    const dotR       = semDotRadius(config, el.weight, weightRange)
     const points: Array<{ x: number; y: number }> = []
 
     for (let i = 0; i < dims.length; i++) {

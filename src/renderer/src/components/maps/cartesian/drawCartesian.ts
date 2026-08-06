@@ -24,21 +24,24 @@ import { setBlobPath, BLOB_PADDING, type Pt } from '../blob'
 import { resolveElementColor } from '../color'
 import { shownCollections } from '../collections'
 import { drawMark, markShapeIndex } from '../shape'
+import { normalizeInRange, numericRange, type NumericRange } from '../../../lib/numericRange'
 
 // Space reserved on each side of the canvas for pole labels
 export const MARGIN = 58
 
-// Dot radius range — weight 1 → DOT_MIN_RADIUS, weight 100 → DOT_MAX_RADIUS
+// Dot radius range — the current lightest Element → min, heaviest → max.
 export const DOT_MIN_RADIUS = 6
 export const DOT_MAX_RADIUS = 76
-// Uniform radius used when sizeByWeight is off — same as weight=1 so the smallest
-// weighted dot and the uniform dot are the same visual size.
+// Uniform radius used when sizeByWeight is off — the same as the current
+// lightest weighted dot.
 export const DOT_DEFAULT_RADIUS = DOT_MIN_RADIUS
 
 /** Shared by painting and hit-testing so large marks remain fully interactive. */
-export function cartesianDotRadius(config: CartesianMapConfig, weight: number): number {
+export function cartesianDotRadius(
+  config: CartesianMapConfig, weight: number, range: NumericRange
+): number {
   return config.sizeByWeight
-    ? DOT_MIN_RADIUS + (weight - 1) / 99 * (DOT_MAX_RADIUS - DOT_MIN_RADIUS)
+    ? DOT_MIN_RADIUS + normalizeInRange(weight, range) * (DOT_MAX_RADIUS - DOT_MIN_RADIUS)
     : DOT_DEFAULT_RADIUS
 }
 
@@ -187,6 +190,8 @@ export function drawCartesian(
 
   if (!xDim || !yDim) return
 
+  const weightRange = numericRange(elements.map(element => element.weight))
+
   // Projects a 0–1 score pair into canvas coordinates, applying axis flips and
   // the Y inversion. Used for both element dots and blob members.
   const project = (xScore: number, yScore: number): Pt => ({
@@ -290,7 +295,7 @@ export function drawCartesian(
     // Unscored or partially scored: use 0.5 as placeholder for any missing axis
     const isPartial = xScore === undefined || yScore === undefined
     const { x: cx, y: cy } = project(xScore ?? 0.5, yScore ?? 0.5)
-    const r = cartesianDotRadius(config, el.weight)
+    const r = cartesianDotRadius(config, el.weight, weightRange)
 
     const shapeIndex = markShapeIndex(config.marks, el)
     if (shapeIndex !== null) {

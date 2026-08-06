@@ -212,6 +212,37 @@ describe('HistoryController', () => {
     expect(state().elements.map(element => element.weight)).toEqual(randomWeights)
   })
 
+  it('scales the actual Element weight range into Dimension scores', () => {
+    controller.replaceDocument(() => {
+      state().addElement('Light')
+      state().addElement('Middle')
+      state().addElement('Heavy')
+      state().addDimension('Low–High')
+    })
+    const [light, middle, heavy] = state().elements
+    state().updateElement(light.id, { weight: 0 })
+    state().updateElement(middle.id, { weight: 125 })
+    state().updateElement(heavy.id, { weight: 250 })
+
+    const dimensionId = state().dimensions[0].id
+    state().weightToDimension(dimensionId)
+
+    expect(state().scores[light.id][dimensionId]).toBe(0)
+    expect(state().scores[middle.id][dimensionId]).toBe(0.5)
+    expect(state().scores[heavy.id][dimensionId]).toBe(1)
+  })
+
+  it('sanitizes Element weights without imposing an upper ceiling', () => {
+    controller.replaceDocument(() => state().addElement('Alpha'))
+    const id = state().elements[0].id
+
+    state().updateElement(id, { weight: 500 })
+    expect(state().elements[0].weight).toBe(500)
+
+    state().updateElement(id, { weight: -10 })
+    expect(state().elements[0].weight).toBe(0)
+  })
+
   it('randomizes element colors that remain readable under black text', () => {
     controller.replaceDocument(() => {
       state().addElement('Alpha')
@@ -483,13 +514,15 @@ describe('HistoryController', () => {
 })
 
 describe('cartesianDotRadius', () => {
-  it('shares the doubled weighted ceiling while retaining the default size', () => {
+  it('uses the complete current range while retaining the default size', () => {
     const weighted = cartesianMap()
-    expect(cartesianDotRadius(weighted, 1)).toBe(DOT_MIN_RADIUS)
-    expect(cartesianDotRadius(weighted, 100)).toBe(76)
+    const range = { min: 0, max: 250 }
+    expect(cartesianDotRadius(weighted, 0, range)).toBe(DOT_MIN_RADIUS)
+    expect(cartesianDotRadius(weighted, 125, range)).toBe(41)
+    expect(cartesianDotRadius(weighted, 250, range)).toBe(76)
     expect(DOT_MAX_RADIUS).toBe(76)
 
-    expect(cartesianDotRadius({ ...weighted, sizeByWeight: false }, 100))
+    expect(cartesianDotRadius({ ...weighted, sizeByWeight: false }, 250, range))
       .toBe(DOT_DEFAULT_RADIUS)
   })
 })

@@ -17,6 +17,7 @@ import { useAppStore } from '../../store/appStore'
 import { ELEMENT_SHAPES } from '../../lib/types'
 import type { Element, ElementShape } from '../../lib/types'
 import styles from './BulkEditModal.module.css'
+import { elementWeight } from '../../lib/numericRange'
 
 const SHAPE_SYMBOL: Record<ElementShape, string> = {
   circle:   '●',
@@ -95,8 +96,7 @@ export function BulkEditModal({ elementIds, elements, onClose }: Props): React.J
     const fields: Partial<Element> = {}
     if (color !== null) fields.color = color
     if (shape !== null) fields.shape = shape
-    const parsed = parseInt(weight, 10)
-    if (!isNaN(parsed) && parsed >= 1 && parsed <= 100) fields.weight = parsed
+    if (weight.trim() !== '') fields.weight = elementWeight(Number(weight))
 
     const validCollectionIds = new Set(collections.map(collection => collection.id))
     const touched = Object.entries(membership)
@@ -192,8 +192,7 @@ export function BulkEditModal({ elementIds, elements, onClose }: Props): React.J
           <input
             type="number"
             className={styles.weightInput}
-            min={1}
-            max={100}
+            min={0}
             value={weight}
             placeholder="mixed"
             onChange={e => setWeight(e.target.value)}

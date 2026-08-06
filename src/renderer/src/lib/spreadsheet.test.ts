@@ -42,6 +42,16 @@ describe('TSV round-trip', () => {
 })
 
 describe('legacy TSV', () => {
+  it('preserves open-ended Element weights', () => {
+    const tsv = [
+      '##ELEMENTS', 'Name\tDefinition\tColor\tWeight\tShape\tCollections',
+      'Light\t""\t#111111\t0\tcircle\t',
+      'Heavy\t""\t#222222\t275\tcircle\t'
+    ].join('\n')
+
+    expect(parseSpreadsheet(tsv).elements.map(element => element.weight)).toEqual([0, 275])
+  })
+
   it('reads ##TYPES + ##TYPE_SCORES at the 0.5 cutoff', () => {
     const legacy = [
       '##ELEMENTS', 'Name\tDefinition\tColor\tWeight\tShape',

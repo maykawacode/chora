@@ -23,6 +23,7 @@ import { ElementDetailModal } from './ElementDetailModal'
 import { BulkEditModal } from './BulkEditModal'
 import { MapSidebar } from './MapSidebar'
 import styles from './MapPanel.module.css'
+import { numericRange } from '../../lib/numericRange'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -246,13 +247,14 @@ function cartesianHitDot(
 
   // Test lightest (topmost-drawn) elements first so stacked dots select correctly
   const sorted = [...elements].sort((a, b) => a.weight - b.weight)
+  const weightRange = numericRange(elements.map(element => element.weight))
 
   for (const el of sorted) {
     // Mirror drawCartesian: use 0.5 placeholder for any missing axis
     const { x: cx, y: cy } = cartesianProject(config, W, H,
       scores[el.id]?.[config.xDimensionId] ?? 0.5,
       scores[el.id]?.[config.yDimensionId] ?? 0.5)
-    const r = cartesianDotRadius(config, el.weight)
+    const r = cartesianDotRadius(config, el.weight, weightRange)
 
     // Use max(r, 8) so tiny dots still have a reasonable tap target
     if ((x - cx) ** 2 + (y - cy) ** 2 <= Math.max(r, 8) ** 2) {
@@ -285,6 +287,7 @@ function semanticHitDot(
 
   const els = semanticElements(config, elements, collections)
   const ys  = semAxisYs(H, dims.length)
+  const weightRange = numericRange(elements.map(element => element.weight))
 
   // Row pre-filter uses the largest dot any element could have, so a heavy
   // (large) dot isn't skipped before its own radius is checked below.
@@ -300,7 +303,7 @@ function semanticHitDot(
       const score = config.flippedDimensionIds.includes(dim.id) ? 1 - raw : raw
       const dx = axisLeft + score * axisWidth
       // Min 8px so tiny dots still have a reasonable tap target
-      const hit = Math.max(semDotRadius(config, el.weight), 8)
+      const hit = Math.max(semDotRadius(config, el.weight, weightRange), 8)
       if ((x - dx) ** 2 + (y - ay) ** 2 <= hit ** 2) {
         return { elementId: el.id, dimId: dim.id }
       }

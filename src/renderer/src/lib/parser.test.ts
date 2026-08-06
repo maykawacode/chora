@@ -30,6 +30,21 @@ const sessionFiles = existsSync(DATA_DIR)
   ? readdirSync(DATA_DIR).filter(f => f.endsWith('.mtda'))
   : []
 
+describe('Element weight parsing', () => {
+  it('preserves zero and values above the former ceiling', () => {
+    const state = deserializeSession(JSON.stringify({
+      version: '5.0',
+      elements: [
+        { id: 'light', name: 'Light', weight: 0 },
+        { id: 'heavy', name: 'Heavy', weight: 275 }
+      ],
+      collections: [], dimensions: [], scores: {}, maps: []
+    }))
+
+    expect(state.elements.map(element => element.weight)).toEqual([0, 275])
+  })
+})
+
 describe('4.0 → 5.0 membership migration', () => {
   if (sessionFiles.length === 0) {
     it.skip('no .mtda files in Data/ to migrate', () => {})

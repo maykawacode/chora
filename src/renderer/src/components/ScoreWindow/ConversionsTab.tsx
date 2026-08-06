@@ -47,7 +47,7 @@ function buildSummary(
   if (from === 'dim-scores' && to === 'el-weight')  return `Sets each element's weight from ${fd} scores (scaled 1–100). Unscored elements unchanged.`
   if (from === 'dim-scores' && to === 'el-color')   return `Sets each element's color from ${fd} scores, interpolating between the chosen colors. Unscored elements unchanged.`
   if (from === 'dim-scores' && to === 'dim-scores') return `Copies scores from ${fd} to ${td}. Only scored elements are updated; unscored elements unchanged.`
-  if (from === 'el-weight'  && to === 'dim-scores') return `Writes each element's weight as its ${td} score (scaled 0–1). All elements updated.`
+  if (from === 'el-weight'  && to === 'dim-scores') return `Writes each element's weight as its ${td} score, scaling the current weight range to 0–1. All elements updated.`
   if (from === 'random'     && to === 'dim-scores') return `Assigns a random score to every element on ${td}.`
   if (from === 'random'     && to === 'el-weight')  return "Assigns a random weight (1–100) to every element."
   if (from === 'random'     && to === 'el-color')   return "Assigns a random color to every element."
@@ -203,7 +203,7 @@ export function ConversionsTab(): React.JSX.Element {
           </div>
         )}
 
-        {fromSource === 'el-weight' && <p className={styles.descriptor}>Each element's weight value (1–100).</p>}
+        {fromSource === 'el-weight' && <p className={styles.descriptor}>Each element's weight, scaled from the current range.</p>}
         {fromSource === 'random'    && <p className={styles.descriptor}>Random values, one per element.</p>}
         {fromSource === 'collection' && <p className={styles.descriptor}>The collections each element belongs to.</p>}
         {fromSource === 'el-shape'  && <p className={styles.descriptor}>Each element's current shape.</p>}

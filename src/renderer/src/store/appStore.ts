@@ -20,6 +20,7 @@ import type {
 import { DEFAULT_COLLECTION_COLOR, paletteColor, mixCollectionColors, randomReadableColor } from '../lib/color'
 import { defaultCategories, defaultSessionMeta, parsePoles } from '../lib/types'
 import { usePrefsStore } from './prefsStore'
+import { elementWeight, normalizeInRange, numericRange } from '../lib/numericRange'
 
 // ── Store interface ───────────────────────────────────────────────────────────
 
@@ -195,10 +196,15 @@ export const useAppStore = create<AppStore>((set) => ({
     }
   }),
 
-  updateElement: (id, changes) => set((s) => ({
-    elements: s.elements.map(e => e.id === id ? { ...e, ...changes } : e),
-    isDirty: true
-  })),
+  updateElement: (id, changes) => set((s) => {
+    const safeChanges = changes.weight === undefined
+      ? changes
+      : { ...changes, weight: elementWeight(changes.weight) }
+    return {
+      elements: s.elements.map(e => e.id === id ? { ...e, ...safeChanges } : e),
+      isDirty: true
+    }
+  }),
 
   removeElement: (id) => set((s) => {
     const remaining = s.elements.filter(e => e.id !== id)
@@ -392,14 +398,16 @@ export const useAppStore = create<AppStore>((set) => ({
     isDirty: true
   })),
 
-  // Writes each element's weight (1–100) back as its score on a dimension (0–1).
+  // Writes each element's weight back as its score on a dimension (0–1), using
+  // the current Element range rather than a fixed domain.
   // All elements are updated, even those not previously scored on this dimension.
-  // flip=true: weight 100 → score 0.0 (poleA end); weight 1 → score 1.0 (poleB end)
-  // flip=false (default): weight 100 → score 1.0 (poleB end)
+  // flip=true sends the current maximum to poleA and minimum to poleB;
+  // flip=false (default) sends the current minimum to poleA and maximum to poleB.
   weightToDimension: (dimensionId, flip = false) => set((s) => {
     const newScores = { ...s.scores }
+    const range = numericRange(s.elements.map(element => element.weight))
     for (const el of s.elements) {
-      const raw = (el.weight - 1) / 99
+      const raw = normalizeInRange(el.weight, range)
       newScores[el.id] = { ...newScores[el.id], [dimensionId]: flip ? 1 - raw : raw }
     }
     return { scores: newScores, isDirty: true }

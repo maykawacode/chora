@@ -29,6 +29,7 @@
 
 import type { AppState, ColorMode, MarkMode, Element, Collection, Dimension, MapConfig, SessionMeta } from './types'
 import { defaultCategories, defaultSessionMeta, parsePoles } from './types'
+import { elementWeight } from './numericRange'
 
 const FORMAT_VERSION = '5.0'
 
@@ -226,7 +227,7 @@ export function deserializeSession(json: string): AppState {
     // 3.0 files store 'description'; 4.0 files store 'definition'
     definition: typeof e.definition === 'string' ? e.definition
                 : typeof e.description === 'string' ? e.description : '',
-    weight:     typeof e.weight === 'number' ? e.weight : 1,
+    weight:     elementWeight(e.weight, 1),
     color:      typeof e.color  === 'string' ? e.color  : '#9d9d53',
     shape:      (['circle', 'square', 'triangle', 'diamond'].includes(e.shape as string)
                   ? e.shape : 'circle') as Element['shape'],
