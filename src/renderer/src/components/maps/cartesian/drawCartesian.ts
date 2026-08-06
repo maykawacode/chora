@@ -20,7 +20,7 @@
 // also narrow plotted Elements to the union of those selected collections.
 
 import type { CartesianMapConfig, Element, Dimension, Collection, ScoreMap } from '../../../lib/types'
-import { setBlobPath, BLOB_PADDING, type Pt } from '../blob'
+import { blobPadding, setBlobPath, type BlobPoint, type Pt } from '../blob'
 import { resolveElementColor } from '../color'
 import { cartesianElements, shownCollections } from '../collections'
 import { drawMark, markShapeIndex } from '../shape'
@@ -227,7 +227,7 @@ export function drawCartesian(
   for (const collection of shown) {
     const color = collection.color
 
-    const pts: Pt[] = []
+    const pts: BlobPoint[] = []
     let sumX = 0, sumY = 0
     for (const el of elements) {
       if (!el.collectionIds.includes(collection.id)) continue
@@ -235,7 +235,10 @@ export function drawCartesian(
       const yScore = scores[el.id]?.[yDim.id]
       if (xScore === undefined || yScore === undefined) continue
       const pt = project(xScore, yScore)
-      pts.push(pt)
+      pts.push({
+        ...pt,
+        padding: blobPadding(cartesianDotRadius(config, el.weight, weightRange))
+      })
       sumX += pt.x
       sumY += pt.y
     }
@@ -247,7 +250,7 @@ export function drawCartesian(
       // both axes. Drawn faintly at canvas center as a placeholder so the
       // collection doesn't silently vanish from the map.
       ctx.beginPath()
-      ctx.arc(midX, midY, BLOB_PADDING, 0, Math.PI * 2)
+      ctx.arc(midX, midY, blobPadding(DOT_DEFAULT_RADIUS), 0, Math.PI * 2)
       ctx.strokeStyle = color + '44'
       ctx.lineWidth = 1
       ctx.setLineDash([4, 4])

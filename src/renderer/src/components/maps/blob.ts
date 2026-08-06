@@ -12,23 +12,27 @@
 // Blob shape pipeline (per type):
 //   1. Collect canvas-space positions of qualifying members
 //   2. Compute convex hull of those positions (Jarvis march, CCW order)
-//   3. Pad each hull vertex outward along its bisector normal so that element
-//      dots (up to 76px radius) sit inside the blob rather than on its edge
+//   3. Pad each hull vertex outward along its bisector normal by that member's
+//      displayed radius plus the shared visual gap
 //   4. Fit a smooth closed Bézier spline through the padded hull vertices
 //      using Catmull-Rom parameterisation
 //
 // Member-count edge cases:
 //   0 members → caller draws a ghost ring (no path produced here)
-//   1 member  → filled circle of radius BLOB_PADDING around that point
+//   1 member  → filled circle using the supplied padding
 //   2 members → rounded capsule (stadium) connecting the two points
 //   3+ members → full convex hull + spline pipeline
 
-// How far (in canvas pixels) to push each hull vertex outward from the data
-// point cloud. Must be larger than DOT_MAX_RADIUS so the largest dots fit inside.
-export const BLOB_PADDING = 84
+// Visible space between each member mark and its collection boundary.
+export const BLOB_GAP = 8
+
+export function blobPadding(radius: number): number {
+  return (Number.isFinite(radius) && radius >= 0 ? radius : 0) + BLOB_GAP
+}
 
 // 2D point in canvas coordinates
 export type Pt = { x: number; y: number }
+export type BlobPoint = Pt & { padding: number }
 
 // ── Convex hull — Jarvis march (gift wrapping) ────────────────────────────────
 //
@@ -46,7 +50,7 @@ function dist2(a: Pt, b: Pt): number {
   return (a.x - b.x) ** 2 + (a.y - b.y) ** 2
 }
 
-function convexHull(pts: Pt[]): Pt[] {
+function convexHull(pts: BlobPoint[]): BlobPoint[] {
   const n = pts.length
   if (n < 3) return [...pts]
 
@@ -58,7 +62,7 @@ function convexHull(pts: Pt[]): Pt[] {
     }
   }
 
-  const hull: Pt[] = []
+  const hull: BlobPoint[] = []
   let current = startIdx
 
   // Each iteration picks the point that makes the most counter-clockwise turn
@@ -84,8 +88,8 @@ function convexHull(pts: Pt[]): Pt[] {
 
 // ── Outward padding ───────────────────────────────────────────────────────────
 //
-// Moves each hull vertex outward by `r` pixels so that element dots (which can
-// be up to DOT_MAX_RADIUS wide) sit inside the blob rather than on its edge.
+// Moves each hull vertex outward by its own padding so member marks sit inside
+// the blob rather than on its edge.
 //
 // For each vertex v[i], we compute the outward-facing bisector:
 //   - d_in  = unit vector along the incoming edge  (v[i-1] → v[i])
@@ -95,7 +99,7 @@ function convexHull(pts: Pt[]): Pt[] {
 //
 // If the two normals nearly cancel (very sharp reflex vertex — impossible in
 // a convex hull), we fall back to the average of the two edge normals as-is.
-function padHull(hull: Pt[], r: number): Pt[] {
+function padHull(hull: BlobPoint[]): Pt[] {
   const n = hull.length
   return hull.map((v, i) => {
     const prev = hull[(i - 1 + n) % n]
@@ -124,7 +128,7 @@ function padHull(hull: Pt[], r: number): Pt[] {
     // impossible in a convex hull, but defensive programming is cheap)
     if (bLen < 0.001) { bx = nOutX; by = nOutY } else { bx /= bLen; by /= bLen }
 
-    return { x: v.x + bx * r, y: v.y + by * r }
+    return { x: v.x + bx * v.padding, y: v.y + by * v.padding }
   })
 }
 
@@ -166,15 +170,15 @@ function smoothClosedPath(ctx: CanvasRenderingContext2D, pts: Pt[], tension = 0.
 
 // ── Capsule (stadium) shape ───────────────────────────────────────────────────
 //
-// Draws a rounded rectangle connecting two points — used when exactly two
-// member elements are present. The capsule is the union of a rectangle and
-// two semicircles of radius r, one at each endpoint.
+// Draws a tapered capsule connecting two points — used when exactly two member
+// elements are present. Each semicircular end uses its own Element padding, so
+// different displayed sizes do not inflate one another.
 //
 // Winding order explanation (important for correct arcs):
 //   The perpendicular (px, py) = (-dy/len, dx/len) points "left" when facing
 //   a→b. In canvas coordinates (y-down), this means:
-//     a1 = a + perp*r  is at angle (angle + π/2) from a's centre
-//     a2 = a - perp*r  is at angle (angle - π/2) from a's centre
+//     a1 = a + perp*a.padding  is at angle (angle + π/2) from a's centre
+//     a2 = a - perp*a.padding  is at angle (angle - π/2) from a's centre
 //     (same for b1, b2 relative to b)
 //
 //   The path travels CCW: a1 → b1 → arc-at-b (outer end) → b2 → a2 → arc-at-a (back end).
@@ -190,19 +194,26 @@ function smoothClosedPath(ctx: CanvasRenderingContext2D, pts: Pt[], tension = 0.
 //   Both arcs use anticlockwise=true. Using the default (clockwise) or swapping
 //   the angle arguments causes canvas to draw a stray chord across the centre
 //   of each endpoint before the arc, twisting the shape.
-function drawCapsule(ctx: CanvasRenderingContext2D, a: Pt, b: Pt, r: number): void {
+function drawCapsule(ctx: CanvasRenderingContext2D, a: BlobPoint, b: BlobPoint): void {
   const dx  = b.x - a.x
   const dy  = b.y - a.y
-  const len = Math.hypot(dx, dy) || 1
+  const len = Math.hypot(dx, dy)
+
+  if (len < 0.001) {
+    const point = a.padding >= b.padding ? a : b
+    ctx.beginPath()
+    ctx.arc(point.x, point.y, point.padding, 0, Math.PI * 2)
+    return
+  }
 
   // Unit perpendicular to the a→b axis ("left" when facing a→b)
   const px = -dy / len
   const py =  dx / len
 
   // Side points: offset perpendicularly from each endpoint
-  const a1 = { x: a.x + px * r, y: a.y + py * r }  // left of a  (angle + π/2 from a)
-  const a2 = { x: a.x - px * r, y: a.y - py * r }  // right of a (angle - π/2 from a)
-  const b1 = { x: b.x + px * r, y: b.y + py * r }  // left of b  (angle + π/2 from b)
+  const a1 = { x: a.x + px * a.padding, y: a.y + py * a.padding }
+  const a2 = { x: a.x - px * a.padding, y: a.y - py * a.padding }
+  const b1 = { x: b.x + px * b.padding, y: b.y + py * b.padding }
 
   const angle = Math.atan2(dy, dx)
 
@@ -210,34 +221,34 @@ function drawCapsule(ctx: CanvasRenderingContext2D, a: Pt, b: Pt, r: number): vo
   ctx.moveTo(a1.x, a1.y)
   ctx.lineTo(b1.x, b1.y)
   // Outer end cap at b: CCW from (angle + π/2) through angle to (angle - π/2)
-  ctx.arc(b.x, b.y, r, angle + Math.PI / 2, angle - Math.PI / 2, true)
+  ctx.arc(b.x, b.y, b.padding, angle + Math.PI / 2, angle - Math.PI / 2, true)
   // canvas is now at b2; draw the other long side back to a2
   ctx.lineTo(a2.x, a2.y)
   // Back end cap at a: CCW from (angle - π/2) through (angle ± π) to (angle + π/2)
-  ctx.arc(a.x, a.y, r, angle - Math.PI / 2, angle + Math.PI / 2, true)
+  ctx.arc(a.x, a.y, a.padding, angle - Math.PI / 2, angle + Math.PI / 2, true)
   ctx.closePath()
 }
 
 // ── Main entry point ──────────────────────────────────────────────────────────
 
 /**
- * Sets the current path on ctx to a blob containing every given point.
+ * Sets the current path on ctx to a blob containing every given padded point.
  * Does NOT fill or stroke — the caller does that so it can apply color and
  * opacity independently. A no-op for an empty point list.
  */
-export function setBlobPath(ctx: CanvasRenderingContext2D, pts: Pt[]): void {
+export function setBlobPath(ctx: CanvasRenderingContext2D, pts: BlobPoint[]): void {
   if (pts.length === 0) return
 
   if (pts.length === 1) {
     // Single member: simple circle
     ctx.beginPath()
-    ctx.arc(pts[0].x, pts[0].y, BLOB_PADDING, 0, Math.PI * 2)
+    ctx.arc(pts[0].x, pts[0].y, pts[0].padding, 0, Math.PI * 2)
     return
   }
 
   if (pts.length === 2) {
     // Two members: rounded capsule connecting the two points
-    drawCapsule(ctx, pts[0], pts[1], BLOB_PADDING)
+    drawCapsule(ctx, pts[0], pts[1])
     return
   }
 
@@ -245,17 +256,17 @@ export function setBlobPath(ctx: CanvasRenderingContext2D, pts: Pt[]): void {
   setBlobPathFromHull(ctx, convexHull(pts))
 }
 
-function setBlobPathFromHull(ctx: CanvasRenderingContext2D, hull: Pt[]): void {
+function setBlobPathFromHull(ctx: CanvasRenderingContext2D, hull: BlobPoint[]): void {
   // A hull can collapse to fewer than 3 vertices when all points are collinear;
   // fall back to the capsule/circle cases so we still draw something sensible.
   if (hull.length === 1) {
     ctx.beginPath()
-    ctx.arc(hull[0].x, hull[0].y, BLOB_PADDING, 0, Math.PI * 2)
+    ctx.arc(hull[0].x, hull[0].y, hull[0].padding, 0, Math.PI * 2)
     return
   }
   if (hull.length === 2) {
-    drawCapsule(ctx, hull[0], hull[1], BLOB_PADDING)
+    drawCapsule(ctx, hull[0], hull[1])
     return
   }
-  smoothClosedPath(ctx, padHull(hull, BLOB_PADDING))
+  smoothClosedPath(ctx, padHull(hull))
 }
