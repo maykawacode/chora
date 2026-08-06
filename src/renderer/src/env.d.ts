@@ -39,6 +39,7 @@ interface Window {
     // Application history
     historyBegin: () => void
     historyEnd:   () => void
+    setHistoryModalOpen: (open: boolean) => void
     onHistoryTransaction: (cb: (ownerId: number, phase: 'begin' | 'end') => void) => () => void
     setHistoryAvailability: (canUndo: boolean, canRedo: boolean) => void
 

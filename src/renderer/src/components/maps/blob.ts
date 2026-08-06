@@ -13,7 +13,7 @@
 //   1. Collect canvas-space positions of qualifying members
 //   2. Compute convex hull of those positions (Jarvis march, CCW order)
 //   3. Pad each hull vertex outward along its bisector normal so that element
-//      dots (up to 38px radius) sit inside the blob rather than on its edge
+//      dots (up to 76px radius) sit inside the blob rather than on its edge
 //   4. Fit a smooth closed Bézier spline through the padded hull vertices
 //      using Catmull-Rom parameterisation
 //
@@ -25,7 +25,7 @@
 
 // How far (in canvas pixels) to push each hull vertex outward from the data
 // point cloud. Must be larger than DOT_MAX_RADIUS so the largest dots fit inside.
-export const BLOB_PADDING = 46
+export const BLOB_PADDING = 84
 
 // 2D point in canvas coordinates
 export type Pt = { x: number; y: number }

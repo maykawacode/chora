@@ -103,9 +103,9 @@ export type MarkMode = 'none' | 'circle' | 'element'
 // emphasis. What "focused on" draws as is the map's own business, because the
 // two have different room to say it:
 //
-//   cartesian — draws each selected collection as a translucent blob and gives
-//               its members the collection's color. Everything stays plotted;
-//               the cluster is drawn around what is already there.
+//   cartesian — draws each selected collection as a translucent blob without
+//               overriding element colors. Everything stays plotted; the
+//               cluster is drawn around what is already there.
 //   semantic  — draws only the members and hides the rest. There is no 2D space
 //               to enclose a cluster in, so it narrows to the cluster instead.
 //               It claims colors too, but only under colorMode 'none', where

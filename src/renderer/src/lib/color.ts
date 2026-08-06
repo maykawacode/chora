@@ -56,6 +56,38 @@ function rgbToHex(r: number, g: number, b: number): string {
   return '#' + [r, g, b].map(v => Math.round(v).toString(16).padStart(2, '0')).join('')
 }
 
+function linearChannel(value: number): number {
+  const channel = value / 255
+  return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4
+}
+
+/** WCAG contrast ratio between a hex color and black text. */
+export function blackTextContrast(hex: string): number {
+  const rgb = hexToRgb(hex)
+  if (!rgb) return 1
+  const luminance = 0.2126 * linearChannel(rgb[0]) +
+    0.7152 * linearChannel(rgb[1]) +
+    0.0722 * linearChannel(rgb[2])
+  return (luminance + 0.05) / 0.05
+}
+
+/**
+ * Random element color that supports black normal-sized text at WCAG AA (4.5:1).
+ * Rejection sampling retains the full readable RGB gamut; the fallback makes
+ * the guarantee finite even with a deterministic or broken random source.
+ */
+export function randomReadableColor(random: () => number = Math.random): string {
+  for (let attempt = 0; attempt < 64; attempt += 1) {
+    const color = rgbToHex(
+      Math.floor(random() * 256),
+      Math.floor(random() * 256),
+      Math.floor(random() * 256)
+    )
+    if (blackTextContrast(color) >= 4.5) return color
+  }
+  return '#ffffff'
+}
+
 /**
  * Weighted mean of a set of hex colors, componentwise in RGB.
  *

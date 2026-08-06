@@ -4,14 +4,14 @@
 // former ⋯ dropdown in the title bar, and is the same panel on every map type:
 //
 //   Elements    — dots, labels, weight sizing, colors
-//   Collections — which collections color their members
+//   Collections — which collections the map displays or emphasizes
 //   Output      — export
 //
 // Collections was cartesian-only while the selection meant "draw this blob",
 // which a semantic map has no space for. It means "focus this map on these
 // collections" now, and each map type honours that the way its geometry allows:
-// a cartesian map draws the cluster as a blob and tints its members, a semantic
-// map narrows to the members and hides everything else. Same control, same
+// a cartesian map draws the cluster as a blob, while a semantic map narrows to
+// the members and hides everything else. Same control, same
 // question asked of it — so no section is conditional and the panel reads
 // identically whichever map you opened it from.
 //

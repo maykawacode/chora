@@ -30,10 +30,17 @@ export const MARGIN = 58
 
 // Dot radius range — weight 1 → DOT_MIN_RADIUS, weight 100 → DOT_MAX_RADIUS
 export const DOT_MIN_RADIUS = 6
-export const DOT_MAX_RADIUS = 38
+export const DOT_MAX_RADIUS = 76
 // Uniform radius used when sizeByWeight is off — same as weight=1 so the smallest
 // weighted dot and the uniform dot are the same visual size.
 export const DOT_DEFAULT_RADIUS = DOT_MIN_RADIUS
+
+/** Shared by painting and hit-testing so large marks remain fully interactive. */
+export function cartesianDotRadius(config: CartesianMapConfig, weight: number): number {
+  return config.sizeByWeight
+    ? DOT_MIN_RADIUS + (weight - 1) / 99 * (DOT_MAX_RADIUS - DOT_MIN_RADIUS)
+    : DOT_DEFAULT_RADIUS
+}
 
 // Gap between dot edge and element name label
 const LABEL_OFFSET = 3
@@ -208,8 +215,8 @@ export function drawCartesian(
   // cluster; with binary membership every member counts the same, so the plain
   // mean is the whole of it.
   //
-  // Computed once and reused by the element pass below, which colors dots by
-  // whichever of these blobs they fall inside.
+  // Computed once for blob rendering. It does not affect element colors; those
+  // continue to follow the Elements → Color setting independently.
   const shown = shownCollections(config, collections)
 
   for (const collection of shown) {
@@ -283,9 +290,7 @@ export function drawCartesian(
     // Unscored or partially scored: use 0.5 as placeholder for any missing axis
     const isPartial = xScore === undefined || yScore === undefined
     const { x: cx, y: cy } = project(xScore ?? 0.5, yScore ?? 0.5)
-    const r  = config.sizeByWeight
-      ? DOT_MIN_RADIUS + (el.weight - 1) / 99 * (DOT_MAX_RADIUS - DOT_MIN_RADIUS)
-      : DOT_DEFAULT_RADIUS
+    const r = cartesianDotRadius(config, el.weight)
 
     const shapeIndex = markShapeIndex(config.marks, el)
     if (shapeIndex !== null) {
@@ -299,7 +304,7 @@ export function drawCartesian(
         ctx.stroke()
         ctx.setLineDash([])
       } else {
-        ctx.fillStyle = resolveElementColor(config.colorMode, el, collections, shown)
+        ctx.fillStyle = resolveElementColor(config.colorMode, el, collections, [])
         ctx.fill()
         ctx.strokeStyle = '#ffffff'
         ctx.lineWidth = 1.5

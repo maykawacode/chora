@@ -29,20 +29,9 @@ export const NEUTRAL_COLOR = '#9a9a9a'
  * The color to draw one element in — cartesian dots, and semantic polylines
  * and dots alike.
  *
- * `shown` is the collections currently drawn as blobs, and it outranks the
- * mode: an element inside a drawn blob takes that collection's color whatever
- * the mode says, and an element inside two takes the mix of exactly those
- * two. Showing a collection is therefore one gesture, not two — the cluster
- * and its members light up together, and the dots keep saying which collection
- * they belong to even with color switched off.
- *
- * On a cartesian map `shown` is the blob selection, so the membership test is
- * the same one that decides what a blob encloses and a dot is tinted by a
- * collection precisely when it is drawn inside it. A semantic map has no blobs
- * and passes its selection only under 'none', where filling in the neutral
- * costs nothing; under the other modes it passes an empty list and everything
- * falls through. Either way this function just honours what it is handed —
- * which collections may claim is the caller's policy, not this one's.
+ * `shown` is an optional caller policy for collections allowed to claim color.
+ * Cartesian maps pass none because their collection selection draws blobs only;
+ * semantic maps retain their existing focus behavior.
  */
 export function resolveElementColor(
   mode: ColorMode,

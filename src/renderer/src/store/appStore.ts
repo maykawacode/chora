@@ -17,7 +17,7 @@ import type {
   AppState, Element, Collection, Dimension, DimensionCategories, SessionMeta,
   MapConfig, CartesianMapConfig, SemanticMapConfig, ElementShape
 } from '../lib/types'
-import { DEFAULT_COLLECTION_COLOR, paletteColor, mixCollectionColors } from '../lib/color'
+import { DEFAULT_COLLECTION_COLOR, paletteColor, mixCollectionColors, randomReadableColor } from '../lib/color'
 import { defaultCategories, defaultSessionMeta, parsePoles } from '../lib/types'
 import { usePrefsStore } from './prefsStore'
 
@@ -490,12 +490,7 @@ export const useAppStore = create<AppStore>((set) => ({
   })),
 
   randomizeColors: () => set((s) => ({
-    elements: s.elements.map(el => {
-      const r = Math.floor(Math.random() * 256)
-      const g = Math.floor(Math.random() * 256)
-      const b = Math.floor(Math.random() * 256)
-      return { ...el, color: '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('') }
-    }),
+    elements: s.elements.map(el => ({ ...el, color: randomReadableColor() })),
     isDirty: true
   })),
 

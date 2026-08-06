@@ -23,7 +23,7 @@ import {
   broadcastToAllExcept
 } from './windowManager'
 import { loadPreferences, savePreferences, getCachedPreferences } from './prefs'
-import { setHistoryAvailability } from './menu'
+import { setHistoryAvailability, setHistoryModalOpen } from './menu'
 import { writeFileAtomically } from './atomicWrite'
 
 export function registerIpcHandlers(): void {
@@ -192,6 +192,13 @@ export function registerIpcHandlers(): void {
     if (!scoreWin || scoreWin.isDestroyed() || scoreWin.webContents.id !== event.sender.id) return
     if (typeof canUndo !== 'boolean' || typeof canRedo !== 'boolean') return
     setHistoryAvailability(canUndo, canRedo)
+  })
+
+  // Map editing modals temporarily own keyboard interaction. Gate native
+  // Undo/Redo by renderer ID so several map windows can block independently.
+  ipcMain.on('history:modal', (event, open: boolean) => {
+    if (!isManagedMapWebContents(event.sender.id) || typeof open !== 'boolean') return
+    setHistoryModalOpen(event.sender.id, open)
   })
 
   // Fine-grained score from a drag gesture — relay to all other windows

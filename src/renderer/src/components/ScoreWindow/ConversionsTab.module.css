@@ -5,7 +5,27 @@
   min-height: 0;
   overflow-y: auto;
   padding: 14px;
-  gap: 0;
+  gap: 16px;
+}
+
+/* ── Conversion groups ───────────────────────────────────────────────────── */
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.groupTitle {
+  margin: 0;
+  font-size: var(--type-section);
+  font-weight: 600;
+  color: #555;
+}
+
+.groupBody {
+  display: flex;
+  flex-direction: column;
 }
 
 /* ── FROM / TO sections ──────────────────────────────────────────────────── */
@@ -146,12 +166,6 @@
   background: #c8a050 !important;
   color: #fff;
   font-weight: 500;
-}
-
-/* ── Standalone "Spread" section (separate from the FROM/TO pipeline) ───── */
-
-.standaloneSection {
-  margin-top: 16px;
 }
 
 /* ── Footer: summary, warning, apply button ──────────────────────────────── */

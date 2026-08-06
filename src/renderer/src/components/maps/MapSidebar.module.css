@@ -212,19 +212,19 @@
 .actionBtn {
   display: block;
   width: 100%;
-  padding: 5px 8px;
+  padding: 7px 10px;
   font-size: 12px;
   font-family: inherit;
-  text-align: left;
-  color: #222;
-  background: #fff;
-  border: 1px solid var(--control-border);
+  font-weight: 600;
+  text-align: center;
+  color: #fff;
+  background: #708040;
+  border: 1px solid #608040;
   border-radius: 4px;
   cursor: pointer;
 }
 
 .actionBtn:hover {
-  background: #808040;
-  border-color: #808040;
-  color: #fff;
+  background: #607030;
+  border-color: #506020;
 }

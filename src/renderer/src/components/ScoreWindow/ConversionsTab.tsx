@@ -160,6 +160,10 @@ export function ConversionsTab(): React.JSX.Element {
   return (
     <div className={styles.tab}>
 
+      <section className={styles.group}>
+        <h2 className={styles.groupTitle}>Mapping</h2>
+        <div className={styles.groupBody}>
+
       {/* ── FROM ────────────────────────────────────────────────────────────── */}
       <div className={styles.section}>
         <div className={styles.sectionLabel}>From</div>
@@ -332,39 +336,46 @@ export function ConversionsTab(): React.JSX.Element {
           </button>
         </div>
       )}
+        </div>
+      </section>
 
       {/* ── Spread: rescale a dimension's scores to fill .05–.95 ───────────── */}
-      <div className={`${styles.section} ${styles.standaloneSection}`}>
-        <div className={styles.sectionLabel}>Spread dimension to fill range</div>
+      <section className={styles.group}>
+        <h2 className={styles.groupTitle}>Scaling</h2>
+        <div className={styles.groupBody}>
+          <div className={styles.section}>
+            <div className={styles.sectionLabel}>Spread dimension to fill range</div>
 
-        <select
-          className={styles.select}
-          value={spreadDimId}
-          onChange={e => { setSpreadDimId(e.target.value); setSpreadApplied(false) }}
-          aria-label="Dimension to spread"
-        >
-          <option value="">Choose dimension…</option>
-          {dimensions.map((d, i) => (
-            <option key={d.id} value={d.id}>{d.label || `Dimension ${i + 1}`}</option>
-          ))}
-        </select>
-
-        {spreadDim && (
-          <div className={styles.footer}>
-            <p className={styles.summary}>
-              Rescales {spreadDim.label || 'this dimension'}&apos;s scores so the lowest becomes .05 and the
-              highest becomes .95, preserving relative spacing. Unscored elements unchanged.
-            </p>
-            <button
-              className={spreadApplied ? styles.applyBtnDone : styles.applyBtn}
-              disabled={spreadApplied}
-              onClick={handleSpreadApply}
+            <select
+              className={styles.select}
+              value={spreadDimId}
+              onChange={e => { setSpreadDimId(e.target.value); setSpreadApplied(false) }}
+              aria-label="Dimension to spread"
             >
-              {spreadApplied ? 'Applied' : 'Apply Spread'}
-            </button>
+              <option value="">Choose dimension…</option>
+              {dimensions.map((d, i) => (
+                <option key={d.id} value={d.id}>{d.label || `Dimension ${i + 1}`}</option>
+              ))}
+            </select>
+
+            {spreadDim && (
+              <div className={styles.footer}>
+                <p className={styles.summary}>
+                  Rescales {spreadDim.label || 'this dimension'}&apos;s scores so the lowest becomes .05 and the
+                  highest becomes .95, preserving relative spacing. Unscored elements unchanged.
+                </p>
+                <button
+                  className={spreadApplied ? styles.applyBtnDone : styles.applyBtn}
+                  disabled={spreadApplied}
+                  onClick={handleSpreadApply}
+                >
+                  {spreadApplied ? 'Applied' : 'Apply Spread'}
+                </button>
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        </div>
+      </section>
 
     </div>
   )

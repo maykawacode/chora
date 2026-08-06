@@ -67,6 +67,7 @@ contextBridge.exposeInMainWorld('api', {
   // webContents ID before relaying each boundary to the authoritative Score.
   historyBegin: (): void => ipcRenderer.send('history:transaction', 'begin'),
   historyEnd:   (): void => ipcRenderer.send('history:transaction', 'end'),
+  setHistoryModalOpen: (open: boolean): void => ipcRenderer.send('history:modal', open),
   onHistoryTransaction: (
     cb: (ownerId: number, phase: 'begin' | 'end') => void
   ): (() => void) => {

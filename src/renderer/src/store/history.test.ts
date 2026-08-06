@@ -1,5 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AppState, CartesianMapConfig } from '../lib/types'
+import { blackTextContrast } from '../lib/color'
+import {
+  cartesianDotRadius,
+  DOT_DEFAULT_RADIUS,
+  DOT_MAX_RADIUS,
+  DOT_MIN_RADIUS
+} from '../components/maps/cartesian/drawCartesian'
 import { useAppStore } from './appStore'
 import {
   HistoryController,
@@ -203,6 +210,19 @@ describe('HistoryController', () => {
     controller.redo()
 
     expect(state().elements.map(element => element.weight)).toEqual(randomWeights)
+  })
+
+  it('randomizes element colors that remain readable under black text', () => {
+    controller.replaceDocument(() => {
+      state().addElement('Alpha')
+      state().addElement('Beta')
+    })
+
+    state().randomizeColors()
+
+    for (const element of state().elements) {
+      expect(blackTextContrast(element.color)).toBeGreaterThanOrEqual(4.5)
+    }
   })
 
   it('ignores navigation and prunes only selections invalidated by restoration', () => {
@@ -459,5 +479,17 @@ describe('HistoryController', () => {
     unsubscribe()
     state().addElement('Beta')
     expect(listener).toHaveBeenCalledTimes(3)
+  })
+})
+
+describe('cartesianDotRadius', () => {
+  it('shares the doubled weighted ceiling while retaining the default size', () => {
+    const weighted = cartesianMap()
+    expect(cartesianDotRadius(weighted, 1)).toBe(DOT_MIN_RADIUS)
+    expect(cartesianDotRadius(weighted, 100)).toBe(76)
+    expect(DOT_MAX_RADIUS).toBe(76)
+
+    expect(cartesianDotRadius({ ...weighted, sizeByWeight: false }, 100))
+      .toBe(DOT_DEFAULT_RADIUS)
   })
 })

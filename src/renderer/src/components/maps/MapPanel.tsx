@@ -17,7 +17,7 @@ import { useAppStore, type ScoreEntry } from '../../store/appStore'
 import { usePrefsStore } from '../../store/prefsStore'
 import type { CartesianMapConfig, SemanticMapConfig, Collection, Dimension, Element, ScoreMap } from '../../lib/types'
 import C2S from 'canvas2svg'
-import { drawCartesian, MARGIN, POLE_LABEL_HIT_SPAN, DOT_MIN_RADIUS, DOT_MAX_RADIUS, DOT_DEFAULT_RADIUS } from './cartesian/drawCartesian'
+import { drawCartesian, MARGIN, POLE_LABEL_HIT_SPAN, cartesianDotRadius } from './cartesian/drawCartesian'
 import { drawSemantic, semanticElements, semDotRadius, SEM_MARGIN_H, SEM_MARGIN_V, SEM_DOT_MAX_R } from './semantic/drawSemantic'
 import { ElementDetailModal } from './ElementDetailModal'
 import { BulkEditModal } from './BulkEditModal'
@@ -213,16 +213,6 @@ function cartesianHitEdge(x: number, y: number, W: number, H: number): Edge | nu
 }
 
 /**
- * Radius of an element's dot — must mirror drawCartesian exactly so the hit
- * area always matches what the user sees.
- */
-function dotRadius(config: CartesianMapConfig, weight: number): number {
-  return config.sizeByWeight
-    ? DOT_MIN_RADIUS + (weight - 1) / 99 * (DOT_MAX_RADIUS - DOT_MIN_RADIUS)
-    : DOT_DEFAULT_RADIUS
-}
-
-/**
  * Projects a 0–1 score pair into canvas coordinates for a cartesian map,
  * applying axis flips and the Y inversion. Mirrors drawCartesian's `project`.
  */
@@ -262,7 +252,7 @@ function cartesianHitDot(
     const { x: cx, y: cy } = cartesianProject(config, W, H,
       scores[el.id]?.[config.xDimensionId] ?? 0.5,
       scores[el.id]?.[config.yDimensionId] ?? 0.5)
-    const r = dotRadius(config, el.weight)
+    const r = cartesianDotRadius(config, el.weight)
 
     // Use max(r, 8) so tiny dots still have a reasonable tap target
     if ((x - cx) ** 2 + (y - cy) ** 2 <= Math.max(r, 8) ** 2) {
@@ -460,6 +450,16 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
   // drives it sits in the title bar. Deliberately not persisted.
   const [sidebarOpen,    setSidebarOpen]    = useState(false)
   const titleInputRef = useRef<HTMLInputElement>(null)
+
+  // A map modal owns keyboard interaction while it is visible. Tell main to
+  // gate native Undo/Redo; cleanup also releases a block if this renderer exits.
+  const historyModalOpen = elementModal !== null || bulkModal
+  useEffect(() => {
+    window.api.setHistoryModalOpen(historyModalOpen)
+    return () => {
+      if (historyModalOpen) window.api.setHistoryModalOpen(false)
+    }
+  }, [historyModalOpen])
 
   // Map windows do not own history. They bracket gestures over IPC so the
   // authoritative Score Window captures one snapshot around every score drag or

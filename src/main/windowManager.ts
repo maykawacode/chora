@@ -17,6 +17,7 @@ import { BrowserWindow } from 'electron'
 import { join } from 'path'
 import { is } from '@electron-toolkit/utils'
 import { getCachedPreferences } from './prefs'
+import { clearHistoryModalOwner } from './menu'
 
 // Active map windows, keyed by the map ID (UUID from MapConfig)
 const mapWindows = new Map<string, BrowserWindow>()
@@ -107,6 +108,7 @@ export function openMapWindow(mapId: string, stateJson: string): void {
   // remain stuck open. A later 'closed' fallback is deliberately harmless.
   win.webContents.on('render-process-gone', () => {
     endMapHistoryTransaction(wcId)
+    clearHistoryModalOwner(wcId)
   })
 
   win.on('closed', () => {
@@ -115,6 +117,7 @@ export function openMapWindow(mapId: string, stateJson: string): void {
     pendingInits.delete(wcId)
     // Finish a leaked drag/bulk transaction before recording the map removal.
     endMapHistoryTransaction(wcId)
+    clearHistoryModalOwner(wcId)
     // Only notify Score Window if the close was user-initiated (not programmatic)
     // Guard isDestroyed() in case Score Window closed first during quit.
     if (!silentCloseWindows.has(win) && scoreWindow && !scoreWindow.isDestroyed()) {

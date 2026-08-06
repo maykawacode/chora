@@ -28,7 +28,7 @@ export const SEM_MARGIN_V = 85
 // Radius of the score dot drawn at each element × dimension intersection,
 // and the ceiling when config.sizeByWeight scales dots by element weight.
 //
-// The weighted ceiling is deliberately far below the cartesian map's 38px:
+// The weighted ceiling is deliberately far below the cartesian map's 76px:
 // semantic axes are stacked only ~110px apart in a default window, so full-size
 // dots would collide across neighbouring rows and bury the axis lines.
 export const SEM_DOT_R     = 6

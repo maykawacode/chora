@@ -13,6 +13,9 @@ let _mainWindow: BrowserWindow | null = null
 let _closeWindowItem: MenuItem | null = null
 let _undoItem: MenuItem | null = null
 let _redoItem: MenuItem | null = null
+let _canUndo = false
+let _canRedo = false
+const _historyModalOwners = new Set<number>()
 
 /** Called by index.ts right after the Score Window is created. */
 export function setMainWindowForMenu(win: BrowserWindow): void {
@@ -26,8 +29,27 @@ export function setCloseWindowEnabled(enabled: boolean): void {
 
 /** Keep application Undo/Redo in sync with the authoritative Score history. */
 export function setHistoryAvailability(canUndo: boolean, canRedo: boolean): void {
-  if (_undoItem) _undoItem.enabled = canUndo
-  if (_redoItem) _redoItem.enabled = canRedo
+  _canUndo = canUndo
+  _canRedo = canRedo
+  refreshHistoryAvailability()
+}
+
+/** Gate history while any managed map owns an open editing modal. */
+export function setHistoryModalOpen(ownerId: number, open: boolean): void {
+  if (open) _historyModalOwners.add(ownerId)
+  else _historyModalOwners.delete(ownerId)
+  refreshHistoryAvailability()
+}
+
+/** Releases a renderer-owned gate if its window exits without closing cleanly. */
+export function clearHistoryModalOwner(ownerId: number): void {
+  if (_historyModalOwners.delete(ownerId)) refreshHistoryAvailability()
+}
+
+function refreshHistoryAvailability(): void {
+  const blocked = _historyModalOwners.size > 0
+  if (_undoItem) _undoItem.enabled = !blocked && _canUndo
+  if (_redoItem) _redoItem.enabled = !blocked && _canRedo
 }
 
 function findMenuItemByLabel(menu: Menu, label: string): MenuItem | null {
@@ -43,6 +65,7 @@ function findMenuItemByLabel(menu: Menu, label: string): MenuItem | null {
 
 /** Sends a channel name to the Score Window renderer. */
 function sendToRenderer(channel: string): void {
+  if (_historyModalOwners.size > 0 && (channel === 'menu:undo' || channel === 'menu:redo')) return
   if (_mainWindow && !_mainWindow.isDestroyed()) {
     _mainWindow.webContents.send(channel)
   }
@@ -122,7 +145,7 @@ export function buildMenu(): void {
         // map draws collection blobs from the Collections section of its sidebar.
         // Plain Cmd/Ctrl+M is the standard Minimize shortcut. Shift keeps the
         // map mnemonic without colliding with that Window-menu command.
-        { label: 'New Map…',          accelerator: 'CmdOrCtrl+Shift+M', click: () => sendToRenderer('menu:create-cartesian') },
+        { label: 'New Cartesian Map…', accelerator: 'CmdOrCtrl+Shift+M', click: () => sendToRenderer('menu:create-cartesian') },
         { label: 'New Semantic Map…', accelerator: 'CmdOrCtrl+Shift+D', click: () => sendToRenderer('menu:create-semantic') }
       ]
     },
@@ -156,4 +179,5 @@ export function buildMenu(): void {
   _undoItem = findMenuItemByLabel(menu, 'Undo')
   _redoItem = findMenuItemByLabel(menu, 'Redo')
   _closeWindowItem = findMenuItemByLabel(menu, 'Close Window')
+  refreshHistoryAvailability()
 }

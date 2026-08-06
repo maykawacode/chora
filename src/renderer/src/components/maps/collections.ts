@@ -6,8 +6,9 @@
 // and a semantic painter importing it from cartesian/ would say otherwise.
 //
 // What each map *does* with the answer stays with that map, because the two
-// differ — drawCartesian draws blobs and tints their members, drawSemantic
-// hides everything that isn't a member and tints only under colorMode 'none'.
+// differ — drawCartesian draws blobs without changing element colors, while
+// drawSemantic hides everything that isn't a member and tints only under
+// colorMode 'none'.
 
 import type { MapConfig, Collection, Element } from '../../lib/types'
 
