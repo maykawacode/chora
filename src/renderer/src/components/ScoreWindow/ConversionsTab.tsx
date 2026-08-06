@@ -1,21 +1,19 @@
 // ── ConversionsTab ─────────────────────────────────────────────────────────────
 //
-// Data-conversion operations presented as a FROM → TO pipeline.
-// User picks a source kind and a destination kind from dropdowns; contextual
-// controls appear only when relevant. All mutations delegate to store actions.
+// Mapping operations use a FROM → TO pipeline. Scaling and Randomizing are
+// independent action groups. All mutations delegate to store actions.
 
 import { useState } from 'react'
 import { useAppStore } from '../../store/appStore'
 import { usePrefsStore } from '../../store/prefsStore'
 import styles from './ConversionsTab.module.css'
 
-type FromSource = 'dim-scores' | 'el-weight' | 'random' | 'collection' | 'el-shape' | 'el-color'
+type FromSource = 'dim-scores' | 'el-weight' | 'collection' | 'el-shape' | 'el-color'
 type ToTarget   = 'el-weight'  | 'el-color'  | 'dim-scores' | 'el-shape' | 'collection'
 
 const FROM_LABELS: Record<FromSource, string> = {
   'dim-scores': 'Dimension scores',
   'el-weight':  'Element weight',
-  'random':     'Random values',
   'collection': 'Collection membership',
   'el-shape':   'Element shape',
   'el-color':   'Element color',
@@ -32,7 +30,6 @@ const TO_LABELS: Record<ToTarget, string> = {
 const VALID_TO: Record<FromSource, ToTarget[]> = {
   'dim-scores': ['el-weight', 'el-color', 'dim-scores'],
   'el-weight':  ['dim-scores'],
-  'random':     ['dim-scores', 'el-weight', 'el-color'],
   'collection': ['el-color', 'el-shape'],
   'el-shape':   ['el-color', 'collection'],
   'el-color':   ['el-shape'],
@@ -48,9 +45,6 @@ function buildSummary(
   if (from === 'dim-scores' && to === 'el-color')   return `Sets each element's color from ${fd} scores, interpolating between the chosen colors. Unscored elements unchanged.`
   if (from === 'dim-scores' && to === 'dim-scores') return `Copies scores from ${fd} to ${td}. Only scored elements are updated; unscored elements unchanged.`
   if (from === 'el-weight'  && to === 'dim-scores') return `Writes each element's weight as its ${td} score, scaling the current weight range to 0–1. All elements updated.`
-  if (from === 'random'     && to === 'dim-scores') return `Assigns a random score to every element on ${td}.`
-  if (from === 'random'     && to === 'el-weight')  return "Assigns a random weight (1–100) to every element."
-  if (from === 'random'     && to === 'el-color')   return "Assigns a random color to every element."
   if (from === 'collection' && to === 'el-color')   return "Sets each element's color by mixing the colors of every collection it belongs to — the same mix a map colored by collection draws. Elements in no collection unchanged."
   if (from === 'collection' && to === 'el-shape')   return "Assigns shapes by collection order: circle, square, triangle, diamond (cycling). Elements in no collection unchanged."
   if (from === 'el-shape'   && to === 'el-color')   return "Sets each element's color by shape: circle→blue, square→red, triangle→green, diamond→purple."
@@ -68,8 +62,12 @@ export function ConversionsTab(): React.JSX.Element {
   const dimensionToColor   = useAppStore(s => s.dimensionToColor)
   const dimToDimScores     = useAppStore(s => s.dimToDimScores)
   const randomizeScores    = useAppStore(s => s.randomizeScores)
-  const randomizeWeights   = useAppStore(s => s.randomizeWeights)
-  const randomizeColors    = useAppStore(s => s.randomizeColors)
+  const randomizeElementWeights = useAppStore(s => s.randomizeElementWeights)
+  const randomizeElementColors = useAppStore(s => s.randomizeElementColors)
+  const randomizeDimensionWeights = useAppStore(s => s.randomizeDimensionWeights)
+  const randomizeCollectionColors = useAppStore(s => s.randomizeCollectionColors)
+  const randomizeElementShapes = useAppStore(s => s.randomizeElementShapes)
+  const randomizeCollectionAssignments = useAppStore(s => s.randomizeCollectionAssignments)
   const collectionToElementColor = useAppStore(s => s.collectionToElementColor)
   const collectionToElementShape = useAppStore(s => s.collectionToElementShape)
   const shapeToColor       = useAppStore(s => s.shapeToColor)
@@ -90,12 +88,77 @@ export function ConversionsTab(): React.JSX.Element {
 
   const [spreadDimId, setSpreadDimId] = useState('')
   const [spreadApplied, setSpreadApplied] = useState(false)
+  const [randomizerId, setRandomizerId] = useState('')
+  const [randomizerApplied, setRandomizerApplied] = useState(false)
   const spreadDim = spreadDimId ? dimensions.find(d => d.id === spreadDimId) ?? null : null
+
+  const randomizerGroups = [
+    {
+      label: 'Elements',
+      options: [
+        {
+          id: 'element-weights', label: 'Element weights (1–100)',
+          summary: 'Assigns a random weight from 1–100 to every element.',
+          overwrites: false, apply: randomizeElementWeights
+        },
+        {
+          id: 'element-colors', label: 'Element colors',
+          summary: 'Assigns a random readable color to every element.',
+          overwrites: false, apply: randomizeElementColors
+        },
+        {
+          id: 'element-shapes', label: 'Element shapes',
+          summary: 'Assigns a random circle, square, triangle, or diamond to every element.',
+          overwrites: false, apply: randomizeElementShapes
+        }
+      ]
+    },
+    {
+      label: 'Dimensions',
+      options: [
+        {
+          id: 'dimension-weights', label: 'Dimension weights (1–100)',
+          summary: 'Assigns a random weight from 1–100 to every dimension.',
+          overwrites: false, apply: randomizeDimensionWeights
+        },
+        ...dimensions.map((dimension, index) => ({
+          id: `dimension:${dimension.id}`,
+          label: `Dimension scores — ${dimension.label || `Dimension ${index + 1}`}`,
+          summary: `Assigns a random score to every element on ${dimension.label || `Dimension ${index + 1}`}.`,
+          overwrites: Object.values(scores).some(row => row[dimension.id] !== undefined),
+          apply: () => randomizeScores(dimension.id)
+        }))
+      ]
+    },
+    {
+      label: 'Collections',
+      options: [
+        {
+          id: 'collection-colors', label: 'Collection colors',
+          summary: 'Assigns a random readable color to every collection.',
+          overwrites: false, apply: randomizeCollectionColors
+        },
+        {
+          id: 'collection-assignments', label: 'Element-to-collection assignments',
+          summary: 'Replaces every element’s collection memberships with independently randomized assignments.',
+          overwrites: false, apply: randomizeCollectionAssignments
+        }
+      ]
+    }
+  ]
+  const randomizers = randomizerGroups.flatMap(group => group.options)
+  const randomizer = randomizers.find(option => option.id === randomizerId) ?? null
 
   function handleSpreadApply(): void {
     if (!spreadDim) return
     spreadDimensionScores(spreadDim.id)
     setSpreadApplied(true)
+  }
+
+  function handleRandomize(): void {
+    if (!randomizer) return
+    randomizer.apply()
+    setRandomizerApplied(true)
   }
 
   function handleFromChange(val: string): void {
@@ -124,10 +187,6 @@ export function ConversionsTab(): React.JSX.Element {
   const toDim   = toDimId   ? dimensions.find(d => d.id === toDimId)   ?? null : null
   const poleDim = fromSource === 'dim-scores' ? fromDim : toDim
 
-  const hasExistingScores = (fromSource === 'random' && !!toDimId)
-    ? Object.values(scores).some(el => el[toDimId] !== undefined)
-    : false
-
   const canApply = (() => {
     if (!fromSource || !toTarget) return false
     if (fromSource === 'dim-scores' && !fromDim) return false
@@ -145,9 +204,6 @@ export function ConversionsTab(): React.JSX.Element {
     else if (fromSource === 'dim-scores' && toTarget === 'el-color')   dimensionToColor(fromDimId, colorLow, colorHigh)
     else if (fromSource === 'dim-scores' && toTarget === 'dim-scores') dimToDimScores(fromDimId, toDimId)
     else if (fromSource === 'el-weight'  && toTarget === 'dim-scores') weightToDimension(toDimId, poleFlipped)
-    else if (fromSource === 'random'     && toTarget === 'dim-scores') randomizeScores(toDimId)
-    else if (fromSource === 'random'     && toTarget === 'el-weight')  randomizeWeights()
-    else if (fromSource === 'random'     && toTarget === 'el-color')   randomizeColors()
     else if (fromSource === 'collection' && toTarget === 'el-color')   collectionToElementColor()
     else if (fromSource === 'collection' && toTarget === 'el-shape')   collectionToElementShape()
     else if (fromSource === 'el-shape'   && toTarget === 'el-color')   shapeToColor()
@@ -204,7 +260,6 @@ export function ConversionsTab(): React.JSX.Element {
         )}
 
         {fromSource === 'el-weight' && <p className={styles.descriptor}>Each element's weight, scaled from the current range.</p>}
-        {fromSource === 'random'    && <p className={styles.descriptor}>Random values, one per element.</p>}
         {fromSource === 'collection' && <p className={styles.descriptor}>The collections each element belongs to.</p>}
         {fromSource === 'el-shape'  && <p className={styles.descriptor}>Each element's current shape.</p>}
         {fromSource === 'el-color'  && <p className={styles.descriptor}>Each element's current color.</p>}
@@ -322,17 +377,12 @@ export function ConversionsTab(): React.JSX.Element {
       {canApply && (
         <div className={styles.footer}>
           {summary && <p className={styles.summary}>{summary}</p>}
-          {hasExistingScores && (
-            <p className={styles.warning}>
-              ⚠ {toDim?.label || 'This dimension'} already has scores — applying will overwrite them.
-            </p>
-          )}
           <button
-            className={applied ? styles.applyBtnDone : hasExistingScores ? styles.applyBtnOverwrite : styles.applyBtn}
+            className={applied ? styles.applyBtnDone : styles.applyBtn}
             disabled={applied}
             onClick={handleApply}
           >
-            {applied ? 'Applied' : hasExistingScores ? 'Overwrite & Randomize' : 'Apply Conversion'}
+            {applied ? 'Applied' : 'Apply Conversion'}
           </button>
         </div>
       )}
@@ -370,6 +420,54 @@ export function ConversionsTab(): React.JSX.Element {
                   onClick={handleSpreadApply}
                 >
                   {spreadApplied ? 'Applied' : 'Apply Spread'}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <section className={styles.group}>
+        <h2 className={styles.groupTitle}>Randomizing</h2>
+        <div className={styles.groupBody}>
+          <div className={styles.section}>
+            <div className={styles.sectionLabel}>Apply randomizer</div>
+
+            <select
+              className={styles.select}
+              value={randomizerId}
+              onChange={e => { setRandomizerId(e.target.value); setRandomizerApplied(false) }}
+              aria-label="Randomizer"
+            >
+              <option value="">Choose randomizer…</option>
+              {randomizerGroups.map(group => (
+                <optgroup key={group.label} label={group.label}>
+                  {group.options.map(option => (
+                    <option key={option.id} value={option.id}>{option.label}</option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+            <p className={styles.descriptor}>
+              Randomized element and dimension weights use the range 1–100.
+            </p>
+
+            {randomizer && (
+              <div className={styles.footer}>
+                <p className={styles.summary}>{randomizer.summary}</p>
+                {randomizer.overwrites && (
+                  <p className={styles.warning}>⚠ Existing scores on this dimension will be overwritten.</p>
+                )}
+                <button
+                  className={randomizerApplied
+                    ? styles.applyBtnDone
+                    : randomizer.overwrites ? styles.applyBtnOverwrite : styles.applyBtn}
+                  disabled={randomizerApplied}
+                  onClick={handleRandomize}
+                >
+                  {randomizerApplied
+                    ? 'Applied'
+                    : randomizer.overwrites ? 'Overwrite & Randomize' : 'Apply Randomizer'}
                 </button>
               </div>
             )}

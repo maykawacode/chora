@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AppState, CartesianMapConfig } from '../lib/types'
+import { ELEMENT_SHAPES } from '../lib/types'
 import { blackTextContrast } from '../lib/color'
 import {
   cartesianDotRadius,
@@ -205,7 +206,7 @@ describe('HistoryController', () => {
       state().addElement('Beta')
     })
 
-    state().randomizeWeights()
+    state().randomizeElementWeights()
     const randomWeights = state().elements.map(element => element.weight)
     controller.undo()
     controller.redo()
@@ -261,11 +262,56 @@ describe('HistoryController', () => {
       state().addElement('Beta')
     })
 
-    state().randomizeColors()
+    state().randomizeElementColors()
 
     for (const element of state().elements) {
       expect(blackTextContrast(element.color)).toBeGreaterThanOrEqual(4.5)
     }
+  })
+
+  it('randomizes Dimension weights, Collection colors, and Element shapes', () => {
+    controller.replaceDocument(() => {
+      state().addElement('Alpha')
+      state().addElement('Beta')
+      state().addDimension('Low–High')
+      state().addDimension('Near–Far')
+      state().addCollection('A')
+      state().addCollection('B')
+    })
+
+    state().randomizeDimensionWeights()
+    state().randomizeCollectionColors()
+    state().randomizeElementShapes()
+
+    for (const dimension of state().dimensions) {
+      expect(Number.isInteger(dimension.weight)).toBe(true)
+      expect(dimension.weight).toBeGreaterThanOrEqual(1)
+      expect(dimension.weight).toBeLessThanOrEqual(100)
+    }
+    for (const collection of state().collections) {
+      expect(blackTextContrast(collection.color)).toBeGreaterThanOrEqual(4.5)
+    }
+    for (const element of state().elements) {
+      expect(ELEMENT_SHAPES).toContain(element.shape)
+    }
+  })
+
+  it('randomizes every Element-to-Collection assignment independently', () => {
+    controller.replaceDocument(() => {
+      state().addElement('Alpha')
+      state().addElement('Beta')
+      state().addCollection('A')
+      state().addCollection('B')
+    })
+    const [a, b] = state().collections
+    const random = vi.spyOn(Math, 'random')
+      .mockReturnValueOnce(0.1).mockReturnValueOnce(0.9)
+      .mockReturnValueOnce(0.9).mockReturnValueOnce(0.1)
+
+    state().randomizeCollectionAssignments()
+
+    expect(state().elements.map(element => element.collectionIds)).toEqual([[a.id], [b.id]])
+    random.mockRestore()
   })
 
   it('ignores navigation and prunes only selections invalidated by restoration', () => {

@@ -18,7 +18,7 @@ import type {
   MapConfig, CartesianMapConfig, SemanticMapConfig, ElementShape
 } from '../lib/types'
 import { DEFAULT_COLLECTION_COLOR, paletteColor, mixCollectionColors, randomReadableColor } from '../lib/color'
-import { defaultCategories, defaultSessionMeta, parsePoles } from '../lib/types'
+import { defaultCategories, defaultSessionMeta, ELEMENT_SHAPES, parsePoles } from '../lib/types'
 import { usePrefsStore } from './prefsStore'
 import { normalizeInRange, numericRange, openWeight } from '../lib/numericRange'
 
@@ -74,8 +74,12 @@ interface AppStore extends AppState {
   dimToDimScores:    (sourceDimId: string, targetDimId: string) => void
   randomizeScores:   (dimensionId: string) => void
   spreadDimensionScores: (dimensionId: string) => void
-  randomizeWeights:  () => void
-  randomizeColors:   () => void
+  randomizeElementWeights: () => void
+  randomizeElementColors: () => void
+  randomizeDimensionWeights: () => void
+  randomizeCollectionColors: () => void
+  randomizeElementShapes: () => void
+  randomizeCollectionAssignments: () => void
   collectionToElementColor: () => void
   collectionToElementShape: () => void
   shapeToColor:             () => void
@@ -125,7 +129,9 @@ const emptyState: AppState = {
 
 // ── Shape / color conversion helpers ─────────────────────────────────────────
 
-const SHAPE_SEQUENCE: ElementShape[] = ['circle', 'square', 'triangle', 'diamond']
+function randomWeight(): number {
+  return Math.floor(Math.random() * 100) + 1
+}
 
 const SHAPE_COLORS: Record<ElementShape, string> = {
   circle:   '#4080c0',
@@ -499,13 +505,47 @@ export const useAppStore = create<AppStore>((set) => ({
     return { scores: newScores, isDirty: true }
   }),
 
-  randomizeWeights: () => set((s) => ({
-    elements: s.elements.map(el => ({ ...el, weight: Math.round(Math.random() * 99 + 1) })),
+  randomizeElementWeights: () => set((s) => ({
+    elements: s.elements.map(el => ({ ...el, weight: randomWeight() })),
     isDirty: true
   })),
 
-  randomizeColors: () => set((s) => ({
+  randomizeElementColors: () => set((s) => ({
     elements: s.elements.map(el => ({ ...el, color: randomReadableColor() })),
+    isDirty: true
+  })),
+
+  randomizeDimensionWeights: () => set((s) => ({
+    dimensions: s.dimensions.map(dimension => ({
+      ...dimension,
+      weight: randomWeight()
+    })),
+    isDirty: true
+  })),
+
+  randomizeCollectionColors: () => set((s) => ({
+    collections: s.collections.map(collection => ({
+      ...collection,
+      color: randomReadableColor()
+    })),
+    isDirty: true
+  })),
+
+  randomizeElementShapes: () => set((s) => ({
+    elements: s.elements.map(element => ({
+      ...element,
+      shape: ELEMENT_SHAPES[Math.floor(Math.random() * ELEMENT_SHAPES.length)]
+    })),
+    isDirty: true
+  })),
+
+  randomizeCollectionAssignments: () => set((s) => ({
+    elements: s.elements.map(element => ({
+      ...element,
+      collectionIds: s.collections
+        .filter(() => Math.random() < 0.5)
+        .map(collection => collection.id)
+    })),
     isDirty: true
   })),
 
@@ -540,7 +580,7 @@ export const useAppStore = create<AppStore>((set) => ({
       const index = s.collections.findIndex(c => el.collectionIds.includes(c.id))
       return index === -1
         ? el
-        : { ...el, shape: SHAPE_SEQUENCE[index % SHAPE_SEQUENCE.length] }
+        : { ...el, shape: ELEMENT_SHAPES[index % ELEMENT_SHAPES.length] }
     }),
     isDirty: true
   })),
@@ -567,11 +607,11 @@ export const useAppStore = create<AppStore>((set) => ({
   // element can come out of this in several at once.
   shapeToCollection: () => set((s) => ({
     elements: s.elements.map(el => {
-      const shapeIdx = SHAPE_SEQUENCE.indexOf(el.shape)
+      const shapeIdx = ELEMENT_SHAPES.indexOf(el.shape)
       return {
         ...el,
         collectionIds: s.collections
-          .filter((_, i) => i % SHAPE_SEQUENCE.length === shapeIdx)
+          .filter((_, i) => i % ELEMENT_SHAPES.length === shapeIdx)
           .map(c => c.id)
       }
     }),
