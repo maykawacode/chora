@@ -49,6 +49,7 @@ export function ChooseDimensions({ onClose }: Props): React.JSX.Element {
       yFlipped: false,
       sizeByWeight: true,
       colorMode: 'element',
+      onlySelectedCollections: false,
       // No blobs to start — select collections in the map's sidebar to draw
       // them and color their members.
       shownCollectionIds: [],

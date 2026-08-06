@@ -13,6 +13,8 @@ import { history, SCORE_HISTORY_OWNER } from '../../store/history'
 import { scoreStatus } from '../../lib/types'
 import { useResizableSplitPane } from './useResizableSplitPane'
 import styles from './ScoresTab.module.css'
+import { CollectionChoiceRow } from '../CollectionChoiceRow'
+import { memberCount } from '../maps/collections'
 
 type Membership = 'all' | 'none' | 'mixed'
 
@@ -376,30 +378,16 @@ export function AssessTab(): React.JSX.Element {
               <div className={styles.collectionList}>
                 {collections.map(collection => {
                   const state = membership(collection.id)
-                  const color = collection.color
-                  const swatch = state === 'all'
-                    ? { background: color, borderColor: color }
-                    : state === 'none'
-                      ? { background: 'transparent', borderColor: color }
-                      : { background: `linear-gradient(90deg, ${color} 0 50%, transparent 50% 100%)`, borderColor: color }
                   return (
-                    <button
+                    <CollectionChoiceRow
                       key={collection.id}
-                      type="button"
-                      className={styles.collectionRow}
+                      name={collection.name || 'Untitled collection'}
+                      color={collection.color}
+                      state={state}
+                      count={memberCount(collection, elements)}
                       disabled={targetIds.length === 0}
-                      aria-pressed={state === 'mixed' ? 'mixed' : state === 'all'}
-                      aria-label={`${collection.name || 'Untitled collection'} — ${
-                        state === 'mixed' ? 'some selected elements' : state === 'all' ? 'all selected elements' : 'no selected elements'
-                      }`}
-                      onClick={() => toggleMembership(collection.id)}
-                    >
-                      <span className={styles.collectionSwatch} style={swatch} />
-                      <span className={styles.rowName}>{collection.name || 'Untitled collection'}</span>
-                      <span className={styles.collectionCount}>
-                        {elements.filter(element => element.collectionIds.includes(collection.id)).length}
-                      </span>
-                    </button>
+                      onToggle={() => toggleMembership(collection.id)}
+                    />
                   )
                 })}
               </div>

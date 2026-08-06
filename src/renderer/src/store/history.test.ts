@@ -29,6 +29,7 @@ function cartesianMap(id = 'map-1', title = 'Map'): CartesianMapConfig {
   return {
     id,
     type: 'cartesian',
+    onlySelectedCollections: false,
     title,
     xDimensionId: 'dim-x',
     yDimensionId: 'dim-y',

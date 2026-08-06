@@ -24,6 +24,7 @@ import { BulkEditModal } from './BulkEditModal'
 import { MapSidebar } from './MapSidebar'
 import styles from './MapPanel.module.css'
 import { numericRange } from '../../lib/numericRange'
+import { cartesianElements } from './collections'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -233,20 +234,21 @@ function cartesianProject(
  * under the pointer, or null. The caller fills in the missing fields before
  * storing the result.
  *
- * Every element is hit-testable, because every element is drawn. This used to
- * take the collection list too, back when selecting collections hid the
- * elements that qualified for none and hidden dots had to be ungrabbable.
+ * Uses the same visibility selector as painting, so a collection-filtered dot
+ * can never remain interactive after it disappears.
  */
 function cartesianHitDot(
   x: number, y: number, W: number, H: number,
   config: CartesianMapConfig,
   elements: Element[],
+  collections: Collection[],
   scores: ScoreMap
 ): Pick<DragTarget, 'elementId' | 'xDimId' | 'yDimId'> | null {
   if (config.marks === 'none') return null
 
   // Test lightest (topmost-drawn) elements first so stacked dots select correctly
-  const sorted = [...elements].sort((a, b) => a.weight - b.weight)
+  const sorted = [...cartesianElements(config, elements, collections)]
+    .sort((a, b) => a.weight - b.weight)
   const weightRange = numericRange(elements.map(element => element.weight))
 
   for (const el of sorted) {
@@ -321,13 +323,14 @@ function cartesianHitRect(
   W: number, H: number,
   config: CartesianMapConfig,
   elements: Element[],
+  collections: Collection[],
   scores: ScoreMap
 ): string[] {
   const minX = Math.min(rx1, rx2), maxX = Math.max(rx1, rx2)
   const minY = Math.min(ry1, ry2), maxY = Math.max(ry1, ry2)
 
   const hitIds: string[] = []
-  for (const el of elements) {
+  for (const el of cartesianElements(config, elements, collections)) {
     const { x: cx, y: cy } = cartesianProject(config, W, H,
       scores[el.id]?.[config.xDimensionId] ?? 0.5,
       scores[el.id]?.[config.yDimensionId] ?? 0.5)
@@ -445,7 +448,7 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
   const [axisPicker,     setAxisPicker]     = useState<AxisPickerState | null>(null)
   const [semanticPicker, setSemanticPicker] = useState<SemanticPickerState | null>(null)
   const [elementModal,   setElementModal]   = useState<string | null>(null)
-  const [bulkModal,      setBulkModal]      = useState(false)
+  const [bulkModalIds,   setBulkModalIds]   = useState<string[]>([])
   const [cursor,         setCursor]         = useState('default')
   const [editingTitle,   setEditingTitle]   = useState(false)
   const [titleDraft,     setTitleDraft]     = useState('')
@@ -456,7 +459,7 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
 
   // A map modal owns keyboard interaction while it is visible. Tell main to
   // gate native Undo/Redo; cleanup also releases a block if this renderer exits.
-  const historyModalOpen = elementModal !== null || bulkModal
+  const historyModalOpen = elementModal !== null || bulkModalIds.length > 0
   useEffect(() => {
     window.api.setHistoryModalOpen(historyModalOpen)
     return () => {
@@ -644,10 +647,14 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
     const y = e.clientY - rect.top
 
     if (config.type === 'cartesian') {
-      const hit = cartesianHitDot(x, y, rect.width, rect.height, config, elements, scores)
+      const hit = cartesianHitDot(x, y, rect.width, rect.height, config, elements, collections, scores)
       if (hit) {
         if (e.shiftKey) return  // defer to handleClick for toggle selection
+        const visibleIds = new Set(
+          cartesianElements(config, elements, collections).map(element => element.id)
+        )
         const groupIds = dragGroupIds(hit.elementId, useAppStore.getState().selectedElementIds)
+          .filter(id => visibleIds.has(id))
         draggingRef.current = {
           ...hit,
           members: groupIds.map(id => cartesianDragStart(id, hit.xDimId, hit.yDimId, scores)),
@@ -830,7 +837,7 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
     // ── Hover cursor ──────────────────────────────────────────────────────────
 
     if (config.type === 'cartesian') {
-      const hit = cartesianHitDot(x, y, W, H, config, elements, scores)
+      const hit = cartesianHitDot(x, y, W, H, config, elements, collections, scores)
       if (hit)                          { setCursor(e.shiftKey ? 'copy' : 'grab'); return }
       if (cartesianHitEdge(x, y, W, H)) { setCursor('pointer'); return }
       setCursor(e.shiftKey ? 'crosshair' : 'default')
@@ -854,10 +861,10 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
           const { x1, y1, x2, y2 } = lassoRef.current
           const existing = useAppStore.getState().selectedElementIds
           if (config.type === 'cartesian') {
-            // cartesianHitRect applies the type visibility filter itself, so a
+            // cartesianHitRect applies collection visibility itself, so a
             // lasso can never pick up a dot that isn't on screen.
             const newIds = cartesianHitRect(x1, y1, x2, y2, width, height,
-              config, elements, scores)
+              config, elements, collections, scores)
             selectElements([...new Set([...existing, ...newIds])])
             window.api?.broadcastMultiSelection(useAppStore.getState().selectedElementIds)
           } else {
@@ -932,7 +939,7 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
 
     let hitId: string | null = null
     if (config.type === 'cartesian') {
-      const hit = cartesianHitDot(x, y, W, H, config, elements, scores)
+      const hit = cartesianHitDot(x, y, W, H, config, elements, collections, scores)
       if (hit) hitId = hit.elementId
     } else {
       const hit = semanticHitDot(x, y, W, H, config, elements, collections, dimensions, scores)
@@ -943,9 +950,13 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
       setAxisPicker(null)
       setSemanticPicker(null)
       // Read directly from store to avoid stale React closure (e.g. after rapid shift+click)
-      const liveIds = useAppStore.getState().selectedElementIds
+      const visibleIds = new Set((config.type === 'cartesian'
+        ? cartesianElements(config, elements, collections)
+        : semanticElements(config, elements, collections)
+      ).map(element => element.id))
+      const liveIds = useAppStore.getState().selectedElementIds.filter(id => visibleIds.has(id))
       if (liveIds.length > 1 && liveIds.includes(hitId)) {
-        setBulkModal(true)
+        setBulkModalIds(liveIds)
       } else {
         setElementModal(hitId)
       }
@@ -967,7 +978,7 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
     const H = rect.height
 
     if (config.type === 'cartesian') {
-      const dotHit = cartesianHitDot(x, y, W, H, config, elements, scores)
+      const dotHit = cartesianHitDot(x, y, W, H, config, elements, collections, scores)
       if (dotHit) {
         if (e.shiftKey) {
           toggleMapSelection(dotHit.elementId)
@@ -1114,9 +1125,9 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
         )}
 
         {/* Bulk edit modal — shown on right-click when multiple elements are selected */}
-        {bulkModal && selectedElementIds.length > 0 && (
+        {bulkModalIds.length > 0 && (
           <BulkEditModal
-            elementIds={selectedElementIds}
+            elementIds={bulkModalIds}
             elements={elements}
             onClose={(changes) => {
               if (changes) {
@@ -1124,7 +1135,7 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
                 // payload; the shared fields are identical across them.
                 beginHistory()
                 try {
-                  for (const id of selectedElementIds) {
+                  for (const id of bulkModalIds) {
                     const forElement = changes.collectionIds
                       ? { ...changes.fields, collectionIds: changes.collectionIds[id] }
                       : changes.fields
@@ -1135,7 +1146,7 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
                   finishHistory()
                 }
               }
-              setBulkModal(false)
+              setBulkModalIds([])
             }}
           />
         )}

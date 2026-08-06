@@ -51,6 +51,18 @@ describe('Weight parsing', () => {
   })
 })
 
+describe('Cartesian collection filtering', () => {
+  it('preserves an enabled filter and defaults a missing filter off', () => {
+    const parseMap = (onlySelectedCollections?: boolean) => deserializeSession(JSON.stringify({
+      version: '5.0', elements: [], collections: [], dimensions: [], scores: {},
+      maps: [{ id: 'map', type: 'cartesian', onlySelectedCollections }]
+    })).maps[0]
+
+    expect(parseMap(true)).toMatchObject({ onlySelectedCollections: true })
+    expect(parseMap()).toMatchObject({ onlySelectedCollections: false })
+  })
+})
+
 describe('4.0 → 5.0 membership migration', () => {
   if (sessionFiles.length === 0) {
     it.skip('no .mtda files in Data/ to migrate', () => {})
@@ -132,6 +144,7 @@ describe('4.0 → 5.0 membership migration', () => {
           if (map.type !== 'cartesian') continue
           expect(map).not.toHaveProperty('threshold')
           expect(Array.isArray(map.shownCollectionIds)).toBe(true)
+          expect(typeof map.onlySelectedCollections).toBe('boolean')
         }
       })
 

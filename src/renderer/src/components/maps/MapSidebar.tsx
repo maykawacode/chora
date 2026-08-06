@@ -29,6 +29,7 @@
 import { useAppStore } from '../../store/appStore'
 import type { MapConfig, CartesianMapConfig, SemanticMapConfig, ColorMode, MarkMode } from '../../lib/types'
 import { memberCount } from './collections'
+import { CollectionChoiceRow } from '../CollectionChoiceRow'
 import styles from './MapSidebar.module.css'
 
 // Labels for the color mode picker. Declared alongside the control rather than
@@ -119,12 +120,12 @@ export function MapSidebar({ config, updateConfig, onExportSvg }: Props): React.
             collections.map(collection => {
               const shown = config.shownCollectionIds.includes(collection.id)
               return (
-                <CollectionRow
+                <CollectionChoiceRow
                   key={collection.id}
                   name={collection.name || 'Untitled collection'}
                   color={collection.color}
                   count={memberCount(collection, elements)}
-                  shown={shown}
+                  state={shown ? 'all' : 'none'}
                   onToggle={() => updateConfig({
                     shownCollectionIds: shown
                       ? config.shownCollectionIds.filter(id => id !== collection.id)
@@ -133,6 +134,15 @@ export function MapSidebar({ config, updateConfig, onExportSvg }: Props): React.
                 />
               )
             })
+          )}
+          {config.type === 'cartesian' && (
+            <Toggle
+              label="Show"
+              value={config.onlySelectedCollections}
+              whenTrue="selected only"
+              whenFalse="all elements"
+              onChange={value => updateConfig({ onlySelectedCollections: value })}
+            />
           )}
         </section>
 
@@ -145,49 +155,6 @@ export function MapSidebar({ config, updateConfig, onExportSvg }: Props): React.
         </section>
       </div>
     </div>
-  )
-}
-
-// ── Collection row ────────────────────────────────────────────────────────────
-//
-// One collection, and whether this map is currently focused on it. The swatch
-// carries the state on its own: solid when the collection is selected, a hollow
-// ring of the same color when it isn't. That reads at a glance where a checkbox
-// would need to be read, and it echoes the cartesian blob — an outline holding
-// a translucent fill — so on that map the control looks like a small picture of
-// its result.
-//
-// The count is how many elements belong to the collection, which is not always
-// how many the map ends up drawing: a cartesian member unscored on either axis
-// has nowhere to sit, and a semantic member unscored on every displayed
-// dimension draws no polyline at all. Both are counted here regardless — the
-// count describes the collection, not this map's view of it.
-
-interface CollectionRowProps {
-  name: string
-  color: string
-  count: number
-  shown: boolean
-  onToggle: () => void
-}
-
-function CollectionRow({ name, color, count, shown, onToggle }: CollectionRowProps): React.JSX.Element {
-  return (
-    <button
-      type="button"
-      className={styles.collection}
-      aria-pressed={shown}
-      onClick={onToggle}
-    >
-      <span
-        className={styles.collectionSwatch}
-        style={shown
-          ? { background: color, borderColor: color }
-          : { background: 'transparent', borderColor: color }}
-      />
-      <span className={styles.collectionName}>{name}</span>
-      <span className={styles.collectionCount}>{count}</span>
-    </button>
   )
 }
 

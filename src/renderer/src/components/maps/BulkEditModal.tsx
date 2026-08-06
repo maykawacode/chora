@@ -18,6 +18,7 @@ import { ELEMENT_SHAPES } from '../../lib/types'
 import type { Element, ElementShape } from '../../lib/types'
 import styles from './BulkEditModal.module.css'
 import { openWeight } from '../../lib/numericRange'
+import { CollectionChoiceRow } from '../CollectionChoiceRow'
 
 const SHAPE_SYMBOL: Record<ElementShape, string> = {
   circle:   '●',
@@ -206,16 +207,13 @@ export function BulkEditModal({ elementIds, elements, onClose }: Props): React.J
               {collections.map(c => {
                 const state = effectiveState(c.id)
                 return (
-                  <div
+                  <CollectionChoiceRow
                     key={c.id}
-                    className={`${styles.collectionRow} ${state === 'all' ? styles.collectionRowOn : ''}`}
-                    onClick={() => toggleCollection(c.id)}
-                  >
-                    <span className={styles.collectionDot} style={{ background: c.color }} />
-                    <span className={styles.collectionName}>{c.name}</span>
-                    {state === 'all'   && <span className={styles.collectionCheck}>✓</span>}
-                    {state === 'mixed' && <span className={styles.collectionMixed}>–</span>}
-                  </div>
+                    name={c.name || 'Untitled collection'}
+                    color={c.color}
+                    state={state}
+                    onToggle={() => toggleCollection(c.id)}
+                  />
                 )
               })}
             </div>

@@ -16,13 +16,13 @@
 //
 // This renderer absorbed the former Type Projection map: the overlay is now
 // per-collection (config.shownCollectionIds) rather than a separate map type.
-// Selecting a collection draws its blob; it has no effect on which elements are
-// plotted.
+// Selecting a collection draws its blob. The optional members-only filter can
+// also narrow plotted Elements to the union of those selected collections.
 
 import type { CartesianMapConfig, Element, Dimension, Collection, ScoreMap } from '../../../lib/types'
 import { setBlobPath, BLOB_PADDING, type Pt } from '../blob'
 import { resolveElementColor } from '../color'
-import { shownCollections } from '../collections'
+import { cartesianElements, shownCollections } from '../collections'
 import { drawMark, markShapeIndex } from '../shape'
 import { normalizeInRange, numericRange, type NumericRange } from '../../../lib/numericRange'
 
@@ -191,6 +191,7 @@ export function drawCartesian(
   if (!xDim || !yDim) return
 
   const weightRange = numericRange(elements.map(element => element.weight))
+  const visibleElements = cartesianElements(config, elements, collections)
 
   // Projects a 0–1 score pair into canvas coordinates, applying axis flips and
   // the Y inversion. Used for both element dots and blob members.
@@ -206,9 +207,8 @@ export function drawCartesian(
   // that can be placed — an element belonging to the collection AND scored on
   // both chosen axes (otherwise it has no position in 2D space).
   //
-  // Members are taken from the full element list: selecting a collection draws
-  // its blob and nothing more, so there is no hidden dot for a blob to wrap
-  // around.
+  // Members are taken from the full element list. When the members-only filter
+  // is active, every member of a selected collection is also a visible dot.
   //
   // A blob is drawn in its own collection's color, always — the element color
   // mode has no say, so switching elements to neutral gray leaves the
@@ -285,8 +285,8 @@ export function drawCartesian(
   // When sizing by weight, draw heaviest first so lighter (smaller) dots sit on top.
   // When uniform size, preserve store order (no visual reason to sort).
   const sorted = config.sizeByWeight
-    ? [...elements].sort((a, b) => b.weight - a.weight)
-    : elements
+    ? [...visibleElements].sort((a, b) => b.weight - a.weight)
+    : visibleElements
 
   for (const el of sorted) {
     const xScore = scores[el.id]?.[xDim.id]

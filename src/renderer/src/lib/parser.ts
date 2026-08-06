@@ -26,6 +26,8 @@
 //               selected collections. Additive: a file written before this has
 //               no such field on its semantic maps and loads with none
 //               selected, which draws exactly as it did.
+//   within 5.0: cartesian map.onlySelectedCollections added. Missing defaults
+//               to false, preserving the previous all-elements view.
 
 import type { AppState, ColorMode, MarkMode, Element, Collection, Dimension, MapConfig, SessionMeta } from './types'
 import { defaultCategories, defaultSessionMeta, parsePoles } from './types'
@@ -289,6 +291,7 @@ export function deserializeSession(json: string): AppState {
       return {
         ...base,
         type:         'cartesian' as const,
+        onlySelectedCollections: m.onlySelectedCollections === true,
         title:        typeof m.title === 'string' ? m.title : (wasCollectionMap ? 'Collection Map' : 'Map'),
         xDimensionId: typeof m.xDimensionId === 'string' ? m.xDimensionId : '',
         yDimensionId: typeof m.yDimensionId === 'string' ? m.yDimensionId : '',

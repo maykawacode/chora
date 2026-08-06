@@ -104,8 +104,8 @@ export type MarkMode = 'none' | 'circle' | 'element'
 // two have different room to say it:
 //
 //   cartesian — draws each selected collection as a translucent blob without
-//               overriding element colors. Everything stays plotted; the
-//               cluster is drawn around what is already there.
+//               overriding element colors. It normally keeps everything
+//               plotted, with an optional members-only filter.
 //   semantic  — draws only the members and hides the rest. There is no 2D space
 //               to enclose a cluster in, so it narrows to the cluster instead.
 //               It claims colors too, but only under colorMode 'none', where
@@ -134,13 +134,13 @@ export interface BaseMapConfig {
 // shownCollectionIds — the map formerly known as the Type Projection map, now
 // folded in as an overlay rather than a separate map type.
 //
-// That selection used to hide any element qualifying for no selected
-// collection, with an empty list meaning "all collections". Both are gone:
-// every element is always plotted, and an empty list means no blobs at all.
-// See readShownCollectionIds in parser.ts for how a file written under the old
-// rule is migrated.
+// An empty selection means no blobs. The separate onlySelectedCollections flag
+// can narrow dots to the union of selected collections without changing what
+// the selection itself means. See readShownCollectionIds in parser.ts for how
+// files written under the older selection rules are migrated.
 export interface CartesianMapConfig extends BaseMapConfig {
   type: 'cartesian'
+  onlySelectedCollections: boolean // true = draw only members of selected collections
   xDimensionId: string
   yDimensionId: string
   xFlipped: boolean            // reverses poleA/poleB direction on that axis

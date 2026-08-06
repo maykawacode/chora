@@ -1,6 +1,6 @@
 // ── Map collection selection ──────────────────────────────────────────────────
 //
-// Reads a map's collection selection. Two small functions, shared by both
+// Reads a map's collection selection and visibility. Small functions shared by
 // painters and the sidebar, which is why they live here rather than beside
 // either map type: every map is asked the same question in the same sidebar,
 // and a semantic painter importing it from cartesian/ would say otherwise.
@@ -18,6 +18,17 @@ import type { MapConfig, Collection, Element } from '../../lib/types'
  */
 export function shownCollections(config: MapConfig, collections: Collection[]): Collection[] {
   return collections.filter(c => config.shownCollectionIds.includes(c.id))
+}
+
+/** Elements visible on a Cartesian map under its optional collection filter. */
+export function cartesianElements(
+  config: Extract<MapConfig, { type: 'cartesian' }>,
+  elements: Element[],
+  collections: Collection[]
+): Element[] {
+  if (!config.onlySelectedCollections) return elements
+  const selectedIds = new Set(shownCollections(config, collections).map(collection => collection.id))
+  return elements.filter(element => element.collectionIds.some(id => selectedIds.has(id)))
 }
 
 /**
