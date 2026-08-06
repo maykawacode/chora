@@ -3,8 +3,8 @@ export interface NumericRange {
   max: number
 }
 
-/** Finite, non-negative Element weight with no artificial upper ceiling. */
-export function elementWeight(value: unknown, fallback = 0): number {
+/** Finite, non-negative weight with no artificial upper ceiling. */
+export function openWeight(value: unknown, fallback = 0): number {
   return typeof value === 'number' && Number.isFinite(value)
     ? Math.max(0, value)
     : fallback

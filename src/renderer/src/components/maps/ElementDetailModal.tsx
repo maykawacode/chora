@@ -16,7 +16,7 @@ import { useAppStore } from '../../store/appStore'
 import { ELEMENT_SHAPES } from '../../lib/types'
 import type { Element, ElementShape } from '../../lib/types'
 import styles from './ElementDetailModal.module.css'
-import { elementWeight, formatRange, numericRange } from '../../lib/numericRange'
+import { formatRange, numericRange, openWeight } from '../../lib/numericRange'
 
 const SHAPE_SYMBOL: Record<ElementShape, string> = {
   circle:   '●',
@@ -73,7 +73,7 @@ export function ElementDetailModal({ elementId, onClose }: Props): React.JSX.Ele
   const handleCloseRef = useRef<() => void>(() => {})
   handleCloseRef.current = () => {
     if (!element) { onClose(null); return }
-    const parsedWeight = elementWeight(Number(weight))
+    const parsedWeight = openWeight(Number(weight))
     const validCollectionIds = new Set(collections.map(collection => collection.id))
     const validMembership = memberOf.filter(id => validCollectionIds.has(id))
     const currentMembership = element.collectionIds.filter(id => validCollectionIds.has(id))

@@ -243,6 +243,17 @@ describe('HistoryController', () => {
     expect(state().elements[0].weight).toBe(0)
   })
 
+  it('sanitizes Dimension weights without imposing an upper ceiling', () => {
+    controller.replaceDocument(() => state().addDimension('Low–High'))
+    const id = state().dimensions[0].id
+
+    state().updateDimension(id, { weight: 500 })
+    expect(state().dimensions[0].weight).toBe(500)
+
+    state().updateDimension(id, { weight: -10 })
+    expect(state().dimensions[0].weight).toBe(0)
+  })
+
   it('randomizes element colors that remain readable under black text', () => {
     controller.replaceDocument(() => {
       state().addElement('Alpha')

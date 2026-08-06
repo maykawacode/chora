@@ -57,7 +57,7 @@ export interface Dimension {
   poleA: string        // left / bottom end of the axis (score 0.0)
   poleB: string        // right / top end of the axis (score 1.0)
   definition: string   // how scores are calculated; what 0.0 and 1.0 mean for this axis
-  weight: number       // future use; stored now so files round-trip cleanly
+  weight: number       // non-negative and open-ended; stored for weighting and round-tripping
   categories: DimensionCategories  // used by the Starter Lists picker
 }
 

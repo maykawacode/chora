@@ -30,18 +30,24 @@ const sessionFiles = existsSync(DATA_DIR)
   ? readdirSync(DATA_DIR).filter(f => f.endsWith('.mtda'))
   : []
 
-describe('Element weight parsing', () => {
-  it('preserves zero and values above the former ceiling', () => {
+describe('Weight parsing', () => {
+  it('preserves open-ended Element and Dimension weights', () => {
     const state = deserializeSession(JSON.stringify({
       version: '5.0',
       elements: [
         { id: 'light', name: 'Light', weight: 0 },
         { id: 'heavy', name: 'Heavy', weight: 275 }
       ],
-      collections: [], dimensions: [], scores: {}, maps: []
+      collections: [],
+      dimensions: [
+        { id: 'minor', label: 'Minor–Major', weight: 0 },
+        { id: 'major', label: 'Near–Far', weight: 480 }
+      ],
+      scores: {}, maps: []
     }))
 
     expect(state.elements.map(element => element.weight)).toEqual([0, 275])
+    expect(state.dimensions.map(dimension => dimension.weight)).toEqual([0, 480])
   })
 })
 

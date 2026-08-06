@@ -16,7 +16,7 @@ import { useAppStore } from '../../store/appStore'
 import { history, SCORE_HISTORY_OWNER } from '../../store/history'
 import { useResizableSplitPane } from './useResizableSplitPane'
 import styles from './DataTab.module.css'
-import { formatRange, numericRange } from '../../lib/numericRange'
+import { formatRange, numericRange, openWeight } from '../../lib/numericRange'
 
 interface Props { onOpenStarterPicker: () => void }
 
@@ -229,13 +229,12 @@ export function DimensionsTab({ onOpenStarterPicker }: Props): React.JSX.Element
             key={`weight-${selected?.id ?? 'none'}`}
             className={styles.weightInput}
             type="number"
-            min={1}
-            max={100}
+            min={0}
             defaultValue={selected?.weight ?? 1}
             disabled={!selected}
             onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur() }}
             onBlur={e => selected && updateDimension(selected.id, {
-              weight: Math.max(1, Math.min(100, +e.target.value || 1))
+              weight: openWeight(Number(e.target.value))
             })}
           />
           <span className={styles.range}>{formatRange(weightRange)}</span>

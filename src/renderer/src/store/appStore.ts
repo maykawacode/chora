@@ -20,7 +20,7 @@ import type {
 import { DEFAULT_COLLECTION_COLOR, paletteColor, mixCollectionColors, randomReadableColor } from '../lib/color'
 import { defaultCategories, defaultSessionMeta, parsePoles } from '../lib/types'
 import { usePrefsStore } from './prefsStore'
-import { elementWeight, normalizeInRange, numericRange } from '../lib/numericRange'
+import { normalizeInRange, numericRange, openWeight } from '../lib/numericRange'
 
 // ── Store interface ───────────────────────────────────────────────────────────
 
@@ -98,6 +98,12 @@ interface AppStore extends AppState {
   loadSession:  (state: AppState) => void
   markClean:    (filePath: string) => void
   resetToEmpty: () => void
+}
+
+function safeWeightChanges<T extends { weight: number }>(changes: Partial<T>): Partial<T> {
+  return changes.weight === undefined
+    ? changes
+    : { ...changes, weight: openWeight(changes.weight) }
 }
 
 // ── Initial empty state ───────────────────────────────────────────────────────
@@ -197,9 +203,7 @@ export const useAppStore = create<AppStore>((set) => ({
   }),
 
   updateElement: (id, changes) => set((s) => {
-    const safeChanges = changes.weight === undefined
-      ? changes
-      : { ...changes, weight: elementWeight(changes.weight) }
+    const safeChanges = safeWeightChanges(changes)
     return {
       elements: s.elements.map(e => e.id === id ? { ...e, ...safeChanges } : e),
       isDirty: true
@@ -313,10 +317,13 @@ export const useAppStore = create<AppStore>((set) => ({
     return { dimensions: [...s.dimensions, dim], isDirty: true }
   }),
 
-  updateDimension: (id, changes) => set((s) => ({
-    dimensions: s.dimensions.map(d => d.id === id ? { ...d, ...changes } : d),
-    isDirty: true
-  })),
+  updateDimension: (id, changes) => set((s) => {
+    const safeChanges = safeWeightChanges(changes)
+    return {
+      dimensions: s.dimensions.map(d => d.id === id ? { ...d, ...safeChanges } : d),
+      isDirty: true
+    }
+  }),
 
   removeDimension: (id) => set((s) => {
     const remaining = s.dimensions.filter(d => d.id !== id)

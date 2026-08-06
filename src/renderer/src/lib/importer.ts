@@ -32,7 +32,7 @@ import type { Element, Dimension, ScoreMap, SessionMeta, Collection } from './ty
 import { defaultCategories, defaultSessionMeta, parsePoles } from './types'
 import { MEMBERSHIP_CUTOFF } from './parser'
 import { COLLECTION_SEPARATOR } from './exporter'
-import { elementWeight } from './numericRange'
+import { openWeight } from './numericRange'
 
 // Strip surrounding double-quotes and unescape "" → " (standard TSV/CSV quoting).
 function stripQuotes(s: string): string {
@@ -144,7 +144,7 @@ function parseFullSpreadsheet(text: string): ImportResult {
         definition: defCol >= 0 ? tc(row[defCol]) : '',
         color:      /^#[0-9a-fA-F]{6}$/.test(rawColor) ? rawColor : '#9d9d53',
         weight:     weightCol >= 0 && rawWeight !== ''
-          ? elementWeight(Number(rawWeight), 1)
+          ? openWeight(Number(rawWeight), 1)
           : 1,
         shape:      (['circle', 'square', 'triangle', 'diamond'] as const).includes(rawShape as Element['shape'])
                       ? rawShape as Element['shape'] : 'circle',
@@ -173,13 +173,16 @@ function parseFullSpreadsheet(text: string): ImportResult {
       const label = tc(row[labelCol])
       if (!label) continue
       const derived = parsePoles(label)
+      const rawWeight = tc(row[weightCol])
       dimensionsByName.set(label, {
         id:         uuid(),
         label,
         poleA:      (poleACol >= 0 ? tc(row[poleACol]) : '') || derived.poleA,
         poleB:      (poleBCol >= 0 ? tc(row[poleBCol]) : '') || derived.poleB,
         definition: defCol    >= 0 ? tc(row[defCol])         : '',
-        weight:     weightCol >= 0 ? Math.max(1, Math.min(100, parseInt(row[weightCol] ?? '') || 1)) : 1,
+        weight:     weightCol >= 0 && rawWeight !== ''
+          ? openWeight(Number(rawWeight), 1)
+          : 1,
         categories: defaultCategories()
       })
     }

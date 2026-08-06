@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { elementWeight, formatRange, normalizeInRange, numericRange } from './numericRange'
+import { formatRange, normalizeInRange, numericRange, openWeight } from './numericRange'
 
 describe('numeric ranges', () => {
   it('derives and formats the complete finite range', () => {
@@ -16,10 +16,10 @@ describe('numeric ranges', () => {
     expect(normalizeInRange(10, numericRange([10, 10]))).toBe(0)
   })
 
-  it('accepts open-ended non-negative Element weights', () => {
-    expect(elementWeight(0)).toBe(0)
-    expect(elementWeight(500)).toBe(500)
-    expect(elementWeight(-4)).toBe(0)
-    expect(elementWeight(Number.POSITIVE_INFINITY, 1)).toBe(1)
+  it('accepts open-ended non-negative weights', () => {
+    expect(openWeight(0)).toBe(0)
+    expect(openWeight(500)).toBe(500)
+    expect(openWeight(-4)).toBe(0)
+    expect(openWeight(Number.POSITIVE_INFINITY, 1)).toBe(1)
   })
 })
