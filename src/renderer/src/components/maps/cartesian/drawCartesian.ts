@@ -10,9 +10,9 @@
 //   - Score 1.0 maps to the right/top edge
 //   - Y axis is inverted (canvas y grows downward, scores grow upward)
 //
-// Draw order: background → border → crosshair → pole labels → collection blobs
-// → element dots → element labels. Blobs go under the dots so dots stay
-// readable.
+// Draw order: background → border → crosshair → pole labels → element dots →
+// element labels → collection blobs. Blobs are overlays and remain visible on
+// top of their members.
 //
 // This renderer absorbed the former Type Projection map: the overlay is now
 // per-collection (config.shownCollectionIds) rather than a separate map type.
@@ -200,9 +200,10 @@ export function drawCartesian(
     y: plotTop  + (1 - (config.yFlipped ? 1 - yScore : yScore)) * plotH
   })
 
-  // ── Collection blobs ──────────────────────────────────────────────────────────
+  // ── Collection blob painter ───────────────────────────────────────────────────
   //
-  // Drawn before element dots so dots always render on top and stay readable.
+  // Defined here beside its projection data, then called after the Elements so
+  // blobs behave as overlays.
   // Each selected collection becomes a freeform shape containing every member
   // that can be placed — an element belonging to the collection AND scored on
   // both chosen axes (otherwise it has no position in 2D space).
@@ -224,58 +225,60 @@ export function drawCartesian(
   // continue to follow the Elements → Color setting independently.
   const shown = shownCollections(config, collections)
 
-  for (const collection of shown) {
-    const color = collection.color
+  const drawCollectionBlobs = (): void => {
+    for (const collection of shown) {
+      const color = collection.color
 
-    const pts: BlobPoint[] = []
-    let sumX = 0, sumY = 0
-    for (const el of elements) {
-      if (!el.collectionIds.includes(collection.id)) continue
-      const xScore = scores[el.id]?.[xDim.id]
-      const yScore = scores[el.id]?.[yDim.id]
-      if (xScore === undefined || yScore === undefined) continue
-      const pt = project(xScore, yScore)
-      pts.push({
-        ...pt,
-        padding: blobPadding(cartesianDotRadius(config, el.weight, weightRange))
-      })
-      sumX += pt.x
-      sumY += pt.y
-    }
+      const pts: BlobPoint[] = []
+      let sumX = 0, sumY = 0
+      for (const el of elements) {
+        if (!el.collectionIds.includes(collection.id)) continue
+        const xScore = scores[el.id]?.[xDim.id]
+        const yScore = scores[el.id]?.[yDim.id]
+        if (xScore === undefined || yScore === undefined) continue
+        const pt = project(xScore, yScore)
+        pts.push({
+          ...pt,
+          padding: blobPadding(cartesianDotRadius(config, el.weight, weightRange))
+        })
+        sumX += pt.x
+        sumY += pt.y
+      }
 
-    ctx.save()
+      ctx.save()
 
-    if (pts.length === 0) {
-      // Ghost ring: the collection exists but none of its members are scored on
-      // both axes. Drawn faintly at canvas center as a placeholder so the
-      // collection doesn't silently vanish from the map.
-      ctx.beginPath()
-      ctx.arc(midX, midY, blobPadding(DOT_DEFAULT_RADIUS), 0, Math.PI * 2)
-      ctx.strokeStyle = color + '44'
-      ctx.lineWidth = 1
-      ctx.setLineDash([4, 4])
+      if (pts.length === 0) {
+        // Ghost ring: the collection exists but none of its members are scored on
+        // both axes. Drawn faintly at canvas center as a placeholder so the
+        // collection doesn't silently vanish from the map.
+        ctx.beginPath()
+        ctx.arc(midX, midY, blobPadding(DOT_DEFAULT_RADIUS), 0, Math.PI * 2)
+        ctx.strokeStyle = color + '44'
+        ctx.lineWidth = 1
+        ctx.setLineDash([4, 4])
+        ctx.stroke()
+        ctx.setLineDash([])
+        ctx.restore()
+        continue
+      }
+
+      setBlobPath(ctx, pts)
+      ctx.fillStyle   = color + '22'   // ~13% opacity — translucent fill
+      ctx.fill()
+      ctx.strokeStyle = color + '99'   // ~60% opacity — visible but soft border
+      ctx.lineWidth   = 1.5
       ctx.stroke()
-      ctx.setLineDash([])
       ctx.restore()
-      continue
+
+      // Collection name at the centroid of its placed members
+      ctx.save()
+      ctx.font = `bold ${dimensionLabelSize + 1}px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif`
+      ctx.fillStyle    = color
+      ctx.textAlign    = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText(collection.name, sumX / pts.length, sumY / pts.length)
+      ctx.restore()
     }
-
-    setBlobPath(ctx, pts)
-    ctx.fillStyle   = color + '22'   // ~13% opacity — translucent fill
-    ctx.fill()
-    ctx.strokeStyle = color + '99'   // ~60% opacity — visible but soft border
-    ctx.lineWidth   = 1.5
-    ctx.stroke()
-    ctx.restore()
-
-    // Collection name at the centroid of its placed members
-    ctx.save()
-    ctx.font = `bold ${dimensionLabelSize + 1}px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif`
-    ctx.fillStyle    = color
-    ctx.textAlign    = 'center'
-    ctx.textBaseline = 'middle'
-    ctx.fillText(collection.name, sumX / pts.length, sumY / pts.length)
-    ctx.restore()
   }
 
   // ── Elements ──────────────────────────────────────────────────────────────────
@@ -345,4 +348,6 @@ export function drawCartesian(
       ctx.fillText(el.name, cx + DOT_DEFAULT_RADIUS + LABEL_OFFSET, cy)
     }
   }
+
+  drawCollectionBlobs()
 }
