@@ -293,6 +293,10 @@
   border-radius: 2px;
 }
 
+.sliderTrackInactive {
+  cursor: default;
+}
+
 .sliderLine {
   position: absolute;
   right: 0;

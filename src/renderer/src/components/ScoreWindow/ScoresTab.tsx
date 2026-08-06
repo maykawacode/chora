@@ -227,7 +227,7 @@ export function AssessTab(): React.JSX.Element {
             </button>
           </div>
         ) : !selectedEl ? (
-          <p className={styles.empty}>Choose one element below to score.</p>
+          <EmptyScoreSlider />
         ) : !selectedDim ? (
           <p className={styles.empty}>Choose a dimension below to score {selectedEl.name || 'this element'}.</p>
         ) : (
@@ -412,6 +412,45 @@ interface DimSliderProps {
   onScore:     (value: number) => void
 }
 
+interface ScoreScaleProps {
+  score: number | null
+  onDotMouseDown?: (event: React.MouseEvent) => void
+}
+
+function ScoreScale({ score, onDotMouseDown }: ScoreScaleProps): React.JSX.Element {
+  return (
+    <>
+      <div className={styles.sliderLine} />
+      {Array.from({ length: 11 }, (_, i) => (
+        <div key={i} className={styles.tick} style={{ left: `${i * 10}%` }} />
+      ))}
+      {score !== null && (
+        <div
+          className={styles.sliderDot}
+          data-score-slider-dot
+          style={{ left: `${score * 100}%` }}
+          onMouseDown={onDotMouseDown}
+        />
+      )}
+    </>
+  )
+}
+
+function EmptyScoreSlider(): React.JSX.Element {
+  return (
+    <div className={styles.slider} aria-hidden="true">
+      <div className={styles.sliderElementName}>&nbsp;</div>
+      <div className={styles.sliderPoles}>
+        <span className={styles.poleLabel}>&nbsp;</span>
+        <span className={styles.poleLabel}>&nbsp;</span>
+      </div>
+      <div className={`${styles.sliderTrack} ${styles.sliderTrackInactive}`}>
+        <ScoreScale score={null} />
+      </div>
+    </div>
+  )
+}
+
 function ScoreSlider({
   elementName,
   poleA,
@@ -526,8 +565,6 @@ function ScoreSlider({
     }
   }
 
-  const pct = score !== null ? score * 100 : null
-
   return (
     <div className={styles.slider}>
       <div className={styles.sliderElementName}>{elementName || ' '}</div>
@@ -552,18 +589,7 @@ function ScoreSlider({
         onBlur={endDragHistory}
         onClick={handleTrackClick}
       >
-        <div className={styles.sliderLine} />
-        {Array.from({ length: 11 }, (_, i) => (
-          <div key={i} className={styles.tick} style={{ left: `${i * 10}%` }} />
-        ))}
-        {pct !== null && (
-          <div
-            className={styles.sliderDot}
-            data-score-slider-dot
-            style={{ left: `${pct}%` }}
-            onMouseDown={handleDotMouseDown}
-          />
-        )}
+        <ScoreScale score={score} onDotMouseDown={handleDotMouseDown} />
       </div>
     </div>
   )
