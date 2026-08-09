@@ -34,7 +34,7 @@ export function registerIpcHandlers(): void {
     const win = getMainWindow()
     if (!win) return null
     const result = await dialog.showOpenDialog(win, {
-      filters: [{ name: 'MapTool Session', extensions: ['mtda'] }],
+      filters: [{ name: 'Chora Session', extensions: ['chora', 'mtda'] }],
       properties: ['openFile']
     })
     return result.canceled ? null : result.filePaths[0]
@@ -44,8 +44,8 @@ export function registerIpcHandlers(): void {
     const win = getMainWindow()
     if (!win) return null
     const result = await dialog.showSaveDialog(win, {
-      filters: [{ name: 'MapTool Session', extensions: ['mtda'] }],
-      defaultPath: 'Untitled.mtda'
+      filters: [{ name: 'Chora Session', extensions: ['chora'] }],
+      defaultPath: 'Untitled.chora'
     })
     return result.canceled ? null : result.filePath
   })
@@ -65,7 +65,7 @@ export function registerIpcHandlers(): void {
     if (!win) return null
     const result = await dialog.showSaveDialog(win, {
       filters: [{ name: 'Tab-separated values', extensions: ['tsv'] }],
-      defaultPath: 'maptool-export.tsv'
+      defaultPath: 'chora-export.tsv'
     })
     return result.canceled ? null : result.filePath
   })

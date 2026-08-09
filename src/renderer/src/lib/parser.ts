@@ -118,7 +118,7 @@ function readShownCollectionIds(
 //
 // Exported because the spreadsheet importer faces the same question when it
 // reads a legacy ##TYPE_SCORES matrix, and the two must answer it identically —
-// the same analysis exported as TSV and saved as .mtda has to come back the
+// the same analysis exported as TSV and saved as .chora has to come back the
 // same either way.
 export const MEMBERSHIP_CUTOFF = 0.5
 

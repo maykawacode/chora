@@ -1,6 +1,6 @@
 // ── Spreadsheet importer ──────────────────────────────────────────────────────
 //
-// Parses a TSV file into MapTool session data. Supports two formats:
+// Parses a TSV file into Chora session data. Supports two formats:
 //
 // FULL FORMAT (##SECTION markers) — produced by Export Spreadsheet.
 // Supports all analysis data for a lossless round-trip. Any section may be

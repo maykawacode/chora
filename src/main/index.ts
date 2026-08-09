@@ -12,6 +12,10 @@ import { buildMenu, setMainWindowForMenu, setCloseWindowEnabled } from './menu'
 import { setScoreWindow } from './windowManager'
 import { loadPreferences, getCachedPreferences, savePreferences, savePreferencesSync } from './prefs'
 
+// Lock the development and packaged runtime identity before Electron resolves
+// app.name and the userData directory.
+app.setName('Chora')
+
 let mainWindow: BrowserWindow | null = null
 let quitConfirmed = false
 

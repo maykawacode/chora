@@ -1,7 +1,9 @@
 {
-  "name": "maptool",
+  "name": "chora",
+  "productName": "Chora",
   "version": "0.1.0",
-  "description": "Multi-dimensional data visualization tool",
+  "private": true,
+  "description": "Spatial reasoning for qualitative data",
   "main": "./out/main/index.js",
   "author": "Matt Mayfield",
   "homepage": ".",

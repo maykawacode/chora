@@ -17,7 +17,7 @@ function operations(overrides: Partial<{
 describe('writeFileAtomically', () => {
   it('writes a sibling temporary file before renaming it over the target', async () => {
     const ops = operations()
-    const target = '/sessions/current.mtda'
+    const target = '/sessions/current.chora'
 
     await writeFileAtomically(target, 'new session', ops)
 
