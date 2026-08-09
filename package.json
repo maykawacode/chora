@@ -6,7 +6,15 @@
   "description": "Spatial reasoning for qualitative data",
   "main": "./out/main/index.js",
   "author": "Matt Mayfield",
-  "homepage": ".",
+  "license": "MIT",
+  "homepage": "https://github.com/maykawacode/chora#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/maykawacode/chora.git"
+  },
+  "bugs": {
+    "url": "https://github.com/maykawacode/chora/issues"
+  },
   "scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build",
