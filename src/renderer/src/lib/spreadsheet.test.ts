@@ -7,16 +7,23 @@
 // the same cutoff the .mtda reader uses.
 
 import { describe, it, expect } from 'vitest'
-import { readdirSync, readFileSync } from 'node:fs'
+import { readdirSync, readFileSync, existsSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { deserializeSession } from './parser'
 import { exportSpreadsheet } from './exporter'
 import { parseSpreadsheet } from './importer'
 
 const DATA_DIR = resolve(process.cwd(), '../Data')
-const files = readdirSync(DATA_DIR).filter(f => f.endsWith('.mtda'))
+const files = existsSync(DATA_DIR)
+  ? readdirSync(DATA_DIR).filter(f => f.endsWith('.mtda'))
+  : []
 
 describe('TSV round-trip', () => {
+  if (files.length === 0) {
+    it.skip('no .mtda files in Data/ to round-trip', () => {})
+    return
+  }
+
   for (const f of files) {
     it(f, () => {
       const state = deserializeSession(readFileSync(resolve(DATA_DIR, f), 'utf8'))
