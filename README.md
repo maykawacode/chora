@@ -23,8 +23,8 @@ and groupings can all evolve while you work.
 Chora is pre-release software under active development. The application is
 substantially functional, but public downloads and release documentation are
 not available yet. The first supported distribution target is macOS. Releases
-will be unsigned and will include explicit macOS Gatekeeper instructions and a
-SHA-256 checksum.
+will use a free ad-hoc signature rather than Apple Developer ID, and will include
+explicit macOS Gatekeeper instructions and a SHA-256 checksum.
 
 The preferred session format is `.chora`. Legacy MapTool `.mtda` sessions can
 still be opened.
@@ -48,15 +48,16 @@ npm run typecheck
 npm run build
 ```
 
-## Build the unsigned macOS package
+## Build the ad-hoc-signed macOS package
 
 ```sh
 npm run dist
 ```
 
 The package is written to `dist/` with its architecture in the filename, such
-as `Chora-0.1.0-beta.1-arm64.dmg`. Chora does not currently use Apple Developer
-ID signing or notarization.
+as `Chora-0.1.0-beta.2-arm64.dmg`. Chora uses a complete ad-hoc code signature
+so the Electron bundle is internally consistent, but it does not use Apple
+Developer ID signing or notarization.
 
 ## Feedback
 

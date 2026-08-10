@@ -1,7 +1,7 @@
 {
   "name": "chora",
   "productName": "Chora",
-  "version": "0.1.0-beta.1",
+  "version": "0.1.0-beta.2",
   "private": true,
   "description": "Spatial reasoning for qualitative data",
   "main": "./out/main/index.js",
@@ -75,7 +75,10 @@
     "mac": {
       "target": "dmg",
       "category": "public.app-category.education",
-      "identity": null
+      "identity": "-",
+      "hardenedRuntime": true,
+      "entitlements": "resources/build/entitlements.mac.plist",
+      "entitlementsInherit": "resources/build/entitlements.mac.plist"
     },
     "dmg": {
       "title": "${productName} ${version}"

@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   package:
-    name: Build unsigned Apple-silicon DMG
+    name: Build ad-hoc-signed Apple-silicon DMG
     runs-on: macos-15
     timeout-minutes: 30
 
@@ -46,7 +46,7 @@ jobs:
       - name: Run typecheck
         run: npm run typecheck
 
-      - name: Build unsigned DMG
+      - name: Build ad-hoc-signed DMG
         run: npm run dist
 
       - name: Generate SHA-256 checksum
