@@ -83,6 +83,16 @@ export function semanticElements(
 // Gap between axis end and pole label text
 const LABEL_GAP = 6
 
+export function hasVisibleScores(
+  elementIds: string[],
+  dimensionIds: string[],
+  scores: ScoreMap
+): boolean {
+  return elementIds.some(elementId =>
+    dimensionIds.some(dimensionId => scores[elementId]?.[dimensionId] !== undefined)
+  )
+}
+
 export function drawSemantic(
   ctx: CanvasRenderingContext2D,
   W: number,
@@ -164,6 +174,15 @@ export function drawSemantic(
     ctx.fillText(rightLabel, axisRight + LABEL_GAP, y)
   }
 
+  if (elements.length === 0) {
+    ctx.fillStyle = '#999'
+    ctx.font = '13px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText('No elements to show.', W / 2, H / 2)
+    return
+  }
+
   // A collection selection that matches nothing empties the map. The axes still
   // stand, which on their own look like a map still loading rather than one
   // showing an empty answer — so say which of the two it is. Only worth saying
@@ -177,6 +196,19 @@ export function drawSemantic(
     // Above the first axis, in the band the 45° element labels would occupy —
     // free by definition here, since there are no elements to label.
     ctx.fillText('No elements in the selected collections.', W / 2, SEM_MARGIN_V / 2)
+    return
+  }
+
+  if (els.length > 0 && !hasVisibleScores(
+    els.map(element => element.id),
+    dims.map(dimension => dimension.id),
+    scores
+  )) {
+    ctx.fillStyle = '#999'
+    ctx.font = '13px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText('No scores to show. Add scores in Assess.', W / 2, H / 2)
     return
   }
 

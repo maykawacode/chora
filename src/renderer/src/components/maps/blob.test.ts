@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { BLOB_GAP, blobPadding, setBlobPath } from './blob'
+import { hasVisibleScores } from './semantic/drawSemantic'
 
 describe('blobPadding', () => {
   it('keeps a fixed visual gap beyond each rendered member', () => {
@@ -28,5 +29,12 @@ describe('blobPadding', () => {
     const [x, y] = moveTo.mock.calls[0]
     expect(x).toBeCloseTo(-Math.SQRT1_2 * 10)
     expect(y).toBeCloseTo(-Math.SQRT1_2 * 10)
+  })
+})
+
+describe('semantic score visibility', () => {
+  it('counts zero as a visible score and ignores scores outside the map', () => {
+    expect(hasVisibleScores(['element'], ['shown'], { element: { shown: 0 } })).toBe(true)
+    expect(hasVisibleScores(['element'], ['shown'], { element: { hidden: 0.5 } })).toBe(false)
   })
 })

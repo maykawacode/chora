@@ -190,6 +190,15 @@ export function drawCartesian(
 
   if (!xDim || !yDim) return
 
+  if (elements.length === 0) {
+    ctx.fillStyle = '#999'
+    ctx.font = '13px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText('No elements to show.', midX, midY)
+    return
+  }
+
   const weightRange = numericRange(elements.map(element => element.weight))
   const visibleElements = cartesianElements(config, elements, collections)
 
