@@ -25,6 +25,13 @@ contextBridge.exposeInMainWorld('api', {
   readFile:          (path: string): Promise<string>     => ipcRenderer.invoke('file:read', path),
   writeFile:         (path: string, data: string): Promise<void> => ipcRenderer.invoke('file:write', path, data),
 
+  // ── Bundled application resources ────────────────────────────────────────────
+
+  readBundledExample: (fileName: string): Promise<string> =>
+    ipcRenderer.invoke('resource:read-example', fileName),
+  readHelpDocument: (fileName: string): Promise<string> =>
+    ipcRenderer.invoke('resource:read-help', fileName),
+
   // ── Menu actions (Score Window only) ─────────────────────────────────────────
   //
   // Registers listeners for all known menu channels at once. Returns a single

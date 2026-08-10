@@ -21,8 +21,10 @@ and groupings can all evolve while you work.
 ## Project status
 
 Chora is pre-release software under active development. The application is
-substantially functional, but signed downloads and release documentation are
-not available yet. The first supported distribution target is macOS.
+substantially functional, but public downloads and release documentation are
+not available yet. The first supported distribution target is macOS. Releases
+will be unsigned and will include explicit macOS Gatekeeper instructions and a
+SHA-256 checksum.
 
 The preferred session format is `.chora`. Legacy MapTool `.mtda` sessions can
 still be opened.
@@ -45,6 +47,16 @@ npm test
 npm run typecheck
 npm run build
 ```
+
+## Build the unsigned macOS package
+
+```sh
+npm run dist
+```
+
+The package is written to `dist/` with its architecture in the filename, such
+as `Chora-0.1.0-arm64.dmg`. Chora does not currently use Apple Developer ID
+signing or notarization.
 
 ## Feedback
 

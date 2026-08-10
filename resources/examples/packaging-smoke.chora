@@ -1,0 +1,44 @@
+{
+  "version": "5.0",
+  "sessionMeta": {
+    "id": "4b566862-e7b9-4a5a-86de-0bcc12974a9d",
+    "name": "Packaging smoke test",
+    "definition": "Minimal public fixture for verifying Chora's packaged-resource contract."
+  },
+  "elements": [
+    {
+      "id": "dcbeeb46-ef29-471a-9179-c510eacbd67f",
+      "name": "Example element",
+      "definition": "A single element is enough to prove the session parser can read the bundled fixture.",
+      "weight": 1,
+      "color": "#9d9d53",
+      "shape": "circle",
+      "collectionIds": []
+    }
+  ],
+  "collections": [],
+  "dimensions": [
+    {
+      "id": "8ec24f1f-200d-4c89-8fc9-df13d269893b",
+      "label": "Near–Far",
+      "poleA": "Near",
+      "poleB": "Far",
+      "definition": "Temporary dimension used only by the packaging smoke test.",
+      "weight": 1,
+      "categories": {
+        "evaluative": false,
+        "potency": false,
+        "activity": false,
+        "utility": false,
+        "socialMeaning": false,
+        "aesthetics": false
+      }
+    }
+  ],
+  "scores": {
+    "dcbeeb46-ef29-471a-9179-c510eacbd67f": {
+      "8ec24f1f-200d-4c89-8fc9-df13d269893b": 0.5
+    }
+  },
+  "maps": []
+}

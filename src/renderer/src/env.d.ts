@@ -25,6 +25,10 @@ interface Window {
     readFile:          (path: string) => Promise<string>
     writeFile:         (path: string, data: string) => Promise<void>
 
+    // Read-only packaged content. Callers name a file, never a filesystem path.
+    readBundledExample: (fileName: string) => Promise<string>
+    readHelpDocument:   (fileName: string) => Promise<string>
+
     // Menu actions (Score Window only) — callback receives action string without 'menu:' prefix
     onMenuAction: (cb: (action: string) => void) => () => void
 

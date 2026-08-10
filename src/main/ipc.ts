@@ -25,6 +25,7 @@ import {
 import { loadPreferences, savePreferences, getCachedPreferences } from './prefs'
 import { setHistoryAvailability, setHistoryModalOpen } from './menu'
 import { writeFileAtomically } from './atomicWrite'
+import { resolveBundledResourcePath } from './resourcePaths'
 
 export function registerIpcHandlers(): void {
 
@@ -78,6 +79,28 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('file:write', async (_event, filePath: string, data: string) => {
     await writeFileAtomically(filePath, data)
+  })
+
+  // ── Bundled application resources ────────────────────────────────────────────
+  //
+  // Renderer code names a public example or Help document, but never receives
+  // resourcesPath and never supplies an arbitrary path. The resolver constrains
+  // each channel to its fixed directory and allowed extensions.
+
+  const resourceRuntime = () => ({
+    isPackaged: app.isPackaged,
+    resourcesPath: process.resourcesPath,
+    appPath: app.getAppPath()
+  })
+
+  ipcMain.handle('resource:read-example', async (_event, fileName: string) => {
+    const filePath = resolveBundledResourcePath('example', fileName, resourceRuntime())
+    return readFile(filePath, 'utf-8')
+  })
+
+  ipcMain.handle('resource:read-help', async (_event, fileName: string) => {
+    const filePath = resolveBundledResourcePath('help', fileName, resourceRuntime())
+    return readFile(filePath, 'utf-8')
   })
 
   // ── Map window lifecycle ──────────────────────────────────────────────────────
