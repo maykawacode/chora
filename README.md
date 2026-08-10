@@ -55,8 +55,8 @@ npm run dist
 ```
 
 The package is written to `dist/` with its architecture in the filename, such
-as `Chora-0.1.0-arm64.dmg`. Chora does not currently use Apple Developer ID
-signing or notarization.
+as `Chora-0.1.0-beta.1-arm64.dmg`. Chora does not currently use Apple Developer
+ID signing or notarization.
 
 ## Feedback
 
