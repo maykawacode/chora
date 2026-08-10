@@ -347,6 +347,19 @@ export function deserializeSession(json: string): AppState {
   }
 }
 
+/**
+ * Opens packaged example data as a disposable working document. The bundled
+ * resource is never adopted as a user file, and any edit should immediately
+ * follow the normal unsaved-session path.
+ */
+export function deserializeBundledExample(json: string): AppState {
+  return {
+    ...deserializeSession(json),
+    filePath: null,
+    isDirty: true
+  }
+}
+
 // ── Private helpers ───────────────────────────────────────────────────────────
 
 /** Throws a descriptive error if a required string field is missing or empty. */

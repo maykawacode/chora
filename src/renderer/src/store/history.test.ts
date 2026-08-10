@@ -347,6 +347,23 @@ describe('HistoryController', () => {
     expect(state().elements[0].name).toBe('Opened')
   })
 
+  it('starts a bundled example as unsaved without retaining prior history', () => {
+    state().addElement('Prior document')
+
+    controller.replaceUnsavedDocument(() => state().loadSession(importedState('Example')))
+
+    expect(controller.availability).toEqual({ canUndo: false, canRedo: false })
+    expect(state().filePath).toBeNull()
+    expect(state().isDirty).toBe(true)
+    expect(state().elements[0].name).toBe('Example')
+
+    state().addElement('Exploration')
+    controller.undo()
+
+    expect(state().elements.map(element => element.name)).toEqual(['Example'])
+    expect(state().isDirty).toBe(true)
+  })
+
   it('rolls back a partial document replacement when its callback throws', () => {
     controller.replaceDocument(() => state().addElement('Original'))
 

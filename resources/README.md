@@ -14,6 +14,7 @@ During development, the main process resolves the first two directories under
 copies them beside the application archive under `process.resourcesPath`.
 Renderer code must never construct either path.
 
-Only redistributable, public content belongs here. The `packaging-smoke` files
-are deliberately minimal fixtures for P6-02. P6-06 and P5-15 will replace them
-with the real bundled example and orientation.
+Only redistributable, public content belongs here.
+`resources/examples/campus-study-spaces.mtda` is the P6-06 first-run example.
+The Help directory still contains the minimal P6-02 fixture; P5-15 will replace
+it with the one-page orientation.

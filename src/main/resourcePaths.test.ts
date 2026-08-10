@@ -21,8 +21,8 @@ describe('bundledResourceRoot', () => {
 
 describe('resolveBundledResourcePath', () => {
   it('resolves examples and Help inside their fixed directories', () => {
-    expect(resolveBundledResourcePath('example', 'packaging-smoke.chora', development))
-      .toBe('/workspace/chora/resources/examples/packaging-smoke.chora')
+    expect(resolveBundledResourcePath('example', 'campus-study-spaces.mtda', development))
+      .toBe('/workspace/chora/resources/examples/campus-study-spaces.mtda')
     expect(resolveBundledResourcePath('help', 'packaging-smoke.md', packaged))
       .toBe('/Applications/Chora.app/Contents/Resources/help/packaging-smoke.md')
   })

@@ -22,7 +22,7 @@ import { StarterListPicker } from './components/ScoreWindow/StarterListPicker'
 import { ImportPreview } from './components/ImportPreview'
 import { PreferencesDialog } from './components/PreferencesDialog'
 import { WelcomeDialog } from './components/WelcomeDialog'
-import { serializeSession, deserializeSession } from './lib/parser'
+import { serializeSession, deserializeSession, deserializeBundledExample } from './lib/parser'
 import { parseSpreadsheet } from './lib/importer'
 import type { ImportResult } from './lib/importer'
 import { exportSpreadsheet } from './lib/exporter'
@@ -339,6 +339,23 @@ export function App(): React.JSX.Element {
     }
   }
 
+  async function handleOpenExample(): Promise<boolean> {
+    try {
+      const json = await window.api.readBundledExample('campus-study-spaces.mtda')
+      const state = deserializeBundledExample(json)
+      history.replaceUnsavedDocument(() => {
+        loadSession(state)
+        selectElements([])
+      })
+      window.api.restoreMainWindowBounds()
+      return true
+    } catch (e) {
+      await focusMainSafely()
+      alert(`Could not open the bundled example:\n${errorMessage(e)}`)
+      return false
+    }
+  }
+
   async function handleSave(forceDialog: boolean): Promise<boolean> {
     const pending = saveInFlight.current
     if (pending) return pending
@@ -507,6 +524,10 @@ export function App(): React.JSX.Element {
 
       {showWelcome && (
         <WelcomeDialog
+          onExample={async () => {
+            const loaded = await handleOpenExample()
+            if (loaded) setShowWelcome(false)
+          }}
           onNew={async () => {
             await handleNew()
             setShowWelcome(false)

@@ -22,26 +22,37 @@
 import { describe, it, expect } from 'vitest'
 import { readdirSync, readFileSync, existsSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { deserializeSession, serializeSession } from './parser'
+import { deserializeBundledExample, deserializeSession, serializeSession } from './parser'
 
 const DATA_DIR = resolve(process.cwd(), '../Data')
-const PACKAGING_SMOKE_FIXTURE = resolve(
+const BUNDLED_EXAMPLE = resolve(
   process.cwd(),
-  'resources/examples/packaging-smoke.chora'
+  'resources/examples/campus-study-spaces.mtda'
 )
 
 const sessionFiles = existsSync(DATA_DIR)
   ? readdirSync(DATA_DIR).filter(f => f.endsWith('.mtda'))
   : []
 
-describe('Bundled packaging fixture', () => {
-  it('is a valid current-format Chora session', () => {
-    const state = deserializeSession(readFileSync(PACKAGING_SMOKE_FIXTURE, 'utf8'))
+describe('Bundled example', () => {
+  it('meets the release-plan content bounds and has both map types', () => {
+    const state = deserializeSession(readFileSync(BUNDLED_EXAMPLE, 'utf8'))
 
-    expect(state.sessionMeta.name).toBe('Packaging smoke test')
-    expect(state.elements).toHaveLength(1)
-    expect(state.dimensions).toHaveLength(1)
-    expect(state.scores[state.elements[0].id]?.[state.dimensions[0].id]).toBe(0.5)
+    expect(state.sessionMeta.name).toBe('Finding a place to study on campus')
+    expect(state.elements).toHaveLength(18)
+    expect(state.dimensions).toHaveLength(6)
+    expect(state.collections).toHaveLength(3)
+    expect(state.maps.map(map => map.type).sort()).toEqual(['cartesian', 'semantic'])
+    for (const element of state.elements) {
+      expect(Object.keys(state.scores[element.id] ?? {})).toHaveLength(6)
+    }
+  })
+
+  it('opens as an unsaved working copy', () => {
+    const state = deserializeBundledExample(readFileSync(BUNDLED_EXAMPLE, 'utf8'))
+
+    expect(state.filePath).toBeNull()
+    expect(state.isDirty).toBe(true)
   })
 })
 

@@ -228,6 +228,35 @@ export class HistoryController {
     return result
   }
 
+  /**
+   * Replace the whole document with a new unsaved working copy. Like Open, the
+   * replacement clears both stacks and cannot undo into the prior document;
+   * unlike Open, it has no savepoint until the user saves it explicitly.
+   */
+  replaceUnsavedDocument<T>(fn: () => T): T {
+    this.finishActive()
+    const before = this.captureCurrent()
+    let result!: T
+    try {
+      this.withRecordingGuard(() => { result = fn() })
+    } catch (error) {
+      if (!sameFrame(before, this.captureCurrent())) this.applyFrame(before)
+      throw error
+    }
+
+    this.documentGeneration++
+    this.past = []
+    this.future = []
+    this.active = null
+    // Serialized sessions are never empty, so this sentinel cannot equal a
+    // legitimate current frame. Undoing edits back to the example's initial
+    // state therefore still leaves the example correctly marked unsaved.
+    this.saved = { session: '', filePath: null }
+    this.setDirty(true)
+    this.notifyAvailability()
+    return result
+  }
+
   /** Replace the whole document as one undoable action (spreadsheet Import). */
   replaceUndoable<T>(fn: () => T): T {
     this.finishActive()
