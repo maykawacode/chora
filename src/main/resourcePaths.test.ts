@@ -23,8 +23,8 @@ describe('resolveBundledResourcePath', () => {
   it('resolves examples and Help inside their fixed directories', () => {
     expect(resolveBundledResourcePath('example', 'campus-study-spaces.mtda', development))
       .toBe('/workspace/chora/resources/examples/campus-study-spaces.mtda')
-    expect(resolveBundledResourcePath('help', 'packaging-smoke.md', packaged))
-      .toBe('/Applications/Chora.app/Contents/Resources/help/packaging-smoke.md')
+    expect(resolveBundledResourcePath('help', 'orientation.md', packaged))
+      .toBe('/Applications/Chora.app/Contents/Resources/help/orientation.md')
   })
 
   it.each([

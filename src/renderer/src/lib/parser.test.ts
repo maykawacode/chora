@@ -29,6 +29,7 @@ const BUNDLED_EXAMPLE = resolve(
   process.cwd(),
   'resources/examples/campus-study-spaces.mtda'
 )
+const BUNDLED_ORIENTATION = resolve(process.cwd(), 'resources/help/orientation.md')
 
 const sessionFiles = existsSync(DATA_DIR)
   ? readdirSync(DATA_DIR).filter(f => f.endsWith('.mtda'))
@@ -53,6 +54,18 @@ describe('Bundled example', () => {
 
     expect(state.filePath).toBeNull()
     expect(state.isDirty).toBe(true)
+  })
+})
+
+describe('Bundled orientation', () => {
+  it('covers the core concepts, both maps, and three example activities', () => {
+    const markdown = readFileSync(BUNDLED_ORIENTATION, 'utf8')
+
+    for (const term of ['Elements', 'Dimensions', 'Scores', 'Collections', 'Cartesian map', 'Semantic map']) {
+      expect(markdown).toContain(term)
+    }
+    expect(markdown.match(/^### \d\./gm)).toHaveLength(3)
+    expect(markdown).toContain('Elements → Dimensions → Collections → Assess → Maps')
   })
 })
 

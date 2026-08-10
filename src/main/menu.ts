@@ -171,6 +171,13 @@ export function buildMenu(): void {
           { role: 'front' as const }
         ] : [])
       ]
+    },
+
+    {
+      label: 'Help',
+      submenu: [
+        { label: 'Chora Orientation', click: () => sendToRenderer('menu:orientation') }
+      ]
     }
   ]
 

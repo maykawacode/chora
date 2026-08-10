@@ -47,6 +47,74 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
 }
 
+function renderInlineMarkdown(text: string): React.ReactNode[] {
+  return text.split(/(\*\*[^*]+\*\*)/g).filter(Boolean).map((part, index) =>
+    part.startsWith('**') && part.endsWith('**')
+      ? <strong key={index}>{part.slice(2, -2)}</strong>
+      : part
+  )
+}
+
+/** Render the deliberately small Markdown subset used by bundled Help. */
+function OrientationDocument({ markdown }: { markdown: string }): React.JSX.Element {
+  const lines = markdown.split(/\r?\n/)
+  const blocks: React.JSX.Element[] = []
+
+  for (let index = 0; index < lines.length;) {
+    const line = lines[index].trim()
+    if (!line) { index++; continue }
+
+    if (line.startsWith('# ')) {
+      blocks.push(<h1 key={index}>{renderInlineMarkdown(line.slice(2))}</h1>)
+      index++
+      continue
+    }
+    if (line.startsWith('## ')) {
+      blocks.push(<h2 key={index}>{renderInlineMarkdown(line.slice(3))}</h2>)
+      index++
+      continue
+    }
+    if (line.startsWith('### ')) {
+      blocks.push(<h3 key={index}>{renderInlineMarkdown(line.slice(4))}</h3>)
+      index++
+      continue
+    }
+    if (line.startsWith('- ')) {
+      const start = index
+      const items: string[] = []
+      while (index < lines.length && lines[index].trim().startsWith('- ')) {
+        const itemLines = [lines[index].trim().slice(2)]
+        index++
+        while (index < lines.length) {
+          const continuation = lines[index].trim()
+          if (!continuation || continuation.startsWith('#') || continuation.startsWith('- ')) break
+          itemLines.push(continuation)
+          index++
+        }
+        items.push(itemLines.join(' '))
+      }
+      blocks.push(
+        <ul key={start}>{items.map((item, itemIndex) =>
+          <li key={itemIndex}>{renderInlineMarkdown(item)}</li>
+        )}</ul>
+      )
+      continue
+    }
+
+    const start = index
+    const paragraph: string[] = []
+    while (index < lines.length) {
+      const candidate = lines[index].trim()
+      if (!candidate || candidate.startsWith('#') || candidate.startsWith('- ')) break
+      paragraph.push(candidate)
+      index++
+    }
+    blocks.push(<p key={start}>{renderInlineMarkdown(paragraph.join(' '))}</p>)
+  }
+
+  return <div className={styles.orientationContent}>{blocks}</div>
+}
+
 /** An error must remain visible even if its bring-to-front request also fails. */
 async function focusMainSafely(): Promise<void> {
   try { await window.api.focusMainWindow() } catch { /* alert in the caller */ }
@@ -75,12 +143,14 @@ export function App(): React.JSX.Element {
   const [showCreateSemantic,      setShowCreateSemantic]      = useState(false)
   const [showStarterPicker,    setShowStarterPicker]    = useState(false)
   const [showPreferences,      setShowPreferences]      = useState(false)
+  const [orientationMarkdown, setOrientationMarkdown] = useState<string | null>(null)
   const [importPreview,        setImportPreview]        = useState<{ fileName: string; result: ImportResult } | null>(null)
 
   // True while any modal is open — used to bring the Score Window to the front
   // so it is not obscured by map BrowserWindows
   const isModalOpen = showWelcome || showChooseDimensions || showCreateSemantic ||
-                      showStarterPicker || showPreferences || showQuitConfirm || importPreview !== null
+                      showStarterPicker || showPreferences || showQuitConfirm ||
+                      orientationMarkdown !== null || importPreview !== null
 
   // ── suppressBroadcast ref ─────────────────────────────────────────────────────
   //
@@ -283,6 +353,15 @@ export function App(): React.JSX.Element {
     window.api?.setModalOpen?.(isModalOpen)
   }, [isModalOpen])
 
+  useEffect(() => {
+    if (orientationMarkdown === null) return
+    const closeOnEscape = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape') setOrientationMarkdown(null)
+    }
+    window.addEventListener('keydown', closeOnEscape)
+    return () => window.removeEventListener('keydown', closeOnEscape)
+  }, [orientationMarkdown])
+
   // ── Title bar ─────────────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -306,6 +385,14 @@ export function App(): React.JSX.Element {
         case 'create-cartesian':   setShowChooseDimensions(true); break
         case 'create-semantic':    setShowCreateSemantic(true);   break
         case 'preferences':        setShowPreferences(true);      break
+        case 'orientation':
+          try {
+            setOrientationMarkdown(await window.api.readHelpDocument('orientation.md'))
+          } catch (error) {
+            await focusMainSafely()
+            alert(`Could not open Chora Orientation:\n${errorMessage(error)}`)
+          }
+          break
       }
     })
   }, [filePath, isDirty])   // eslint-disable-line react-hooks/exhaustive-deps
@@ -503,6 +590,24 @@ export function App(): React.JSX.Element {
       {showChooseDimensions   && <ChooseDimensions        onClose={() => setShowChooseDimensions(false)} />}
       {showCreateSemantic     && <CreateSemanticMap       onClose={() => setShowCreateSemantic(false)} />}
       {showPreferences      && <PreferencesDialog    onClose={() => setShowPreferences(false)} />}
+
+      {orientationMarkdown !== null && (
+        <div className={styles.orientationOverlay} onMouseDown={() => setOrientationMarkdown(null)}>
+          <section
+            className={styles.orientationDialog}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="orientation-title"
+            onMouseDown={event => event.stopPropagation()}
+          >
+            <header className={styles.orientationHeader}>
+              <span id="orientation-title">Chora Orientation</span>
+              <button autoFocus onClick={() => setOrientationMarkdown(null)}>Close</button>
+            </header>
+            <OrientationDocument markdown={orientationMarkdown} />
+          </section>
+        </div>
+      )}
 
       {showQuitConfirm && (
         <div className={styles.quitOverlay}>
