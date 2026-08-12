@@ -9,6 +9,7 @@
 // via the onConfirm callback.
 
 import type { ImportResult } from '../lib/importer'
+import { ForwardActionButton } from './ConfirmationDisc'
 import styles from './ImportPreview.module.css'
 
 interface Props {
@@ -58,7 +59,7 @@ export function ImportPreview({ fileName, result, onConfirm, onCancel }: Props):
 
         <div className={styles.buttons}>
           <button className={styles.btnCancel} onClick={onCancel}>Cancel</button>
-          <button className={styles.btnImport} onClick={onConfirm}>Import</button>
+          <ForwardActionButton label="Continue with import" onClick={onConfirm} />
         </div>
       </div>
     </div>

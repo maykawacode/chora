@@ -10,6 +10,7 @@ import { useState } from 'react'
 import { usePrefsStore } from '../store/prefsStore'
 import type { Preferences } from '../lib/preferences'
 import type { MarkMode } from '../lib/types'
+import { ForwardActionButton } from './ConfirmationDisc'
 import styles from './PreferencesDialog.module.css'
 
 interface Props { onClose: () => void }
@@ -164,7 +165,7 @@ export function PreferencesDialog({ onClose }: Props): React.JSX.Element {
 
         <div className={styles.buttons}>
           <button className={styles.btnCancel} onClick={onClose}>Cancel</button>
-          <button className={styles.btnSave} onClick={handleSave}>Save</button>
+          <ForwardActionButton label="Save preferences" onClick={handleSave} />
         </div>
       </div>
     </div>

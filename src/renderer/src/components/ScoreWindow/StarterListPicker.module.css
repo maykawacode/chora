@@ -151,11 +151,11 @@
 
 .buttons {
   display: flex;
+  align-items: center;
   gap: 8px;
 }
 
-.btnCancel,
-.btnAdd {
+.btnCancel {
   padding: 5px 16px;
   border-radius: 5px;
   font-size: 13px;
@@ -171,21 +171,4 @@
 
 .btnCancel:hover {
   background: #d0cdc8;
-}
-
-.btnAdd {
-  border: 1px solid #608040;
-  background: #708040;
-  color: #fff;
-  font-weight: 500;
-  min-width: 60px;
-}
-
-.btnAdd:hover {
-  background: #607030;
-}
-
-.btnAdd:disabled {
-  opacity: 0.4;
-  cursor: default;
 }

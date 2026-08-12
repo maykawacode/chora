@@ -9,8 +9,9 @@
 // All actual data changes happen in the Zustand store (appStore.ts). This
 // component just picks the target dimension and dispatches the right action.
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useAppStore } from '../../store/appStore'
+import { ConfirmationDisc, ForwardActionButton } from '../ConfirmationDisc'
 import styles from './ChooseDimensions.module.css'
 
 export type TransformMode = 'dim-to-weight' | 'weight-to-dim' | 'dim-to-color' | 'randomize-scores'
@@ -57,13 +58,6 @@ export function AdvancedTransform({ mode, onClose }: Props): React.JSX.Element {
 
   // Whether this mode has a meaningful pole direction to expose to the user
   const hasPoleControl = mode === 'dim-to-weight' || mode === 'weight-to-dim'
-
-  useEffect(() => {
-    if (!showConfirm) return
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setShowConfirm(false) }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [showConfirm])
 
   function handleApply(): void {
     if (!selectedId) return
@@ -144,25 +138,21 @@ export function AdvancedTransform({ mode, onClose }: Props): React.JSX.Element {
 
         <div className={styles.buttons}>
           <button className={styles.btnCancel} onClick={onClose}>Cancel</button>
-          <button
-            className={styles.btnDraw}
+          <ForwardActionButton
+            label="Apply transform"
             disabled={!selectedId || dimensions.length === 0}
             onClick={handleApply}
-          >
-            Apply
-          </button>
+          />
         </div>
 
         {showConfirm && selectedDim && (
-          <div className={styles.confirmOverlay}>
-            <div className={styles.confirmBox}>
-              <p>Randomize <strong>{selectedDim.label}</strong>?<br />Existing scores will be overwritten.</p>
-              <div className={styles.confirmButtons}>
-                <button className={styles.confirmCancel} onClick={() => setShowConfirm(false)}>Cancel</button>
-                <button className={styles.confirmDelete} onClick={applyTransform}>Randomize</button>
-              </div>
-            </div>
-          </div>
+          <ConfirmationDisc
+            title={<>Randomize <strong>{selectedDim.label}</strong>?</>}
+            detail="This will overwrite existing scores with new values"
+            actionLabel="Randomize"
+            onCancel={() => setShowConfirm(false)}
+            onAction={applyTransform}
+          />
         )}
       </div>
     </div>

@@ -27,6 +27,7 @@ import { ELEMENT_SHAPES } from '../../lib/types'
 import type { ElementShape } from '../../lib/types'
 import { useResizableSplitPane } from './useResizableSplitPane'
 import { openWeight } from '../../lib/numericRange'
+import { ConfirmationDisc } from '../ConfirmationDisc'
 import styles from './DataTab.module.css'
 
 const SHAPE_SYMBOL: Record<ElementShape, string> = {
@@ -66,11 +67,6 @@ export function ElementsTab(): React.JSX.Element {
   const [confirmIds, setConfirmIds] = useState<string[]>([])
   const addInputRef = useRef<HTMLInputElement>(null)
   const splitPane = useResizableSplitPane()
-
-  // Bring Score Window to front when the delete confirmation overlay opens
-  useEffect(() => {
-    if (confirmIds.length > 0) window.api.setModalOpen(true)
-  }, [confirmIds])
 
   // Cmd+D (Mac) / Ctrl+D (Windows/Linux) duplicates the selected element.
   // Registered at document level so it fires even when a detail field has
@@ -334,29 +330,22 @@ export function ElementsTab(): React.JSX.Element {
 
       {/* ── Delete confirmation overlay ── */}
       {confirmElements.length > 0 && (
-        <div className={styles.confirmOverlay}>
-          <div className={styles.confirmBox}>
-            {confirmElements.length === 1
-              ? <p>Delete <strong>{confirmElements[0].name}</strong>? This will remove all its scores.</p>
-              : <p>Delete <strong>{confirmElements.length} elements</strong>? This will remove all their scores.</p>
-            }
-            <div className={styles.confirmButtons}>
-              <button className={styles.confirmCancel} onClick={() => setConfirmIds([])}>Cancel</button>
-              <button
-                className={styles.confirmDelete}
-                onClick={() => {
-                  history.run(SCORE_HISTORY_OWNER, () => {
-                    for (const el of confirmElements) removeElement(el.id)
-                  })
-                  clearSelection()
-                  setConfirmIds([])
-                }}
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmationDisc
+          title={confirmElements.length === 1
+            ? <>Delete <strong>{confirmElements[0].name}</strong>?</>
+            : <>Delete <strong>{confirmElements.length} elements</strong>?</>
+          }
+          detail={confirmElements.length === 1 ? 'Its scores will be lost.' : 'Their scores will be lost.'}
+          actionLabel="Delete"
+          onCancel={() => setConfirmIds([])}
+          onAction={() => {
+            history.run(SCORE_HISTORY_OWNER, () => {
+              for (const el of confirmElements) removeElement(el.id)
+            })
+            clearSelection()
+            setConfirmIds([])
+          }}
+        />
       )}
     </div>
   )

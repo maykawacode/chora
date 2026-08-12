@@ -17,6 +17,7 @@ import { history, SCORE_HISTORY_OWNER } from '../../store/history'
 import { useResizableSplitPane } from './useResizableSplitPane'
 import styles from './DataTab.module.css'
 import { formatRange, numericRange, openWeight } from '../../lib/numericRange'
+import { ConfirmationDisc } from '../ConfirmationDisc'
 
 interface Props { onOpenStarterPicker: () => void }
 
@@ -79,21 +80,6 @@ export function DimensionsTab({ onOpenStarterPicker }: Props): React.JSX.Element
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const addInputRef = useRef<HTMLInputElement>(null)
   const splitPane = useResizableSplitPane()
-
-  // Bring Score Window to front when the delete confirmation overlay opens
-  useEffect(() => {
-    if (confirmDeleteId !== null) window.api.setModalOpen(true)
-  }, [confirmDeleteId])
-
-  // Dismiss the delete confirmation on Escape regardless of where focus is
-  useEffect(() => {
-    if (!confirmDeleteId) return
-    const onKey = (e: globalThis.KeyboardEvent) => {
-      if (e.key === 'Escape') setConfirmDeleteId(null)
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [confirmDeleteId])
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
 
@@ -255,20 +241,13 @@ export function DimensionsTab({ onOpenStarterPicker }: Props): React.JSX.Element
 
       {/* ── Delete confirmation overlay (only shown when dimension has scores) ── */}
       {confirmDim && (
-        <div className={styles.confirmOverlay}>
-          <div className={styles.confirmBox}>
-            <p>Delete <strong>{confirmDim.label}</strong>?<br />All scores for this dimension will be lost.</p>
-            <div className={styles.confirmButtons}>
-              <button className={styles.confirmCancel} onClick={() => setConfirmDeleteId(null)}>Cancel</button>
-              <button
-                className={styles.confirmDelete}
-                onClick={() => { removeDimension(confirmDeleteId!); setConfirmDeleteId(null) }}
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmationDisc
+          title={<>Delete <strong>{confirmDim.label}</strong>?</>}
+          detail="Its scores will be lost."
+          actionLabel="Delete"
+          onCancel={() => setConfirmDeleteId(null)}
+          onAction={() => { removeDimension(confirmDeleteId!); setConfirmDeleteId(null) }}
+        />
       )}
     </div>
   )

@@ -22,6 +22,7 @@ import { StarterListPicker } from './components/ScoreWindow/StarterListPicker'
 import { ImportPreview } from './components/ImportPreview'
 import { PreferencesDialog } from './components/PreferencesDialog'
 import { WelcomeDialog } from './components/WelcomeDialog'
+import { ConfirmationDisc } from './components/ConfirmationDisc'
 import { serializeSession, deserializeSession, deserializeBundledExample } from './lib/parser'
 import { parseSpreadsheet } from './lib/importer'
 import type { ImportResult } from './lib/importer'
@@ -128,6 +129,9 @@ export function App(): React.JSX.Element {
   const selectElement  = useAppStore(s => s.selectElement)
   const selectDimension = useAppStore(s => s.selectDimension)
   const selectElements = useAppStore(s => s.selectElements)
+  const hasDocumentContent = useAppStore(s =>
+    s.elements.length > 0 || s.collections.length > 0 || s.dimensions.length > 0 || s.maps.length > 0
+  )
 
   // ── Modal visibility state ────────────────────────────────────────────────────
 
@@ -138,7 +142,9 @@ export function App(): React.JSX.Element {
     return !(prefs.reopenLastFile && !!prefs.lastFilePath)
   })
 
-  const [showQuitConfirm,      setShowQuitConfirm]      = useState(false)
+  const [showQuitConfirm,       setShowQuitConfirm]       = useState(false)
+  const [showDiscardConfirm,    setShowDiscardConfirm]    = useState(false)
+  const [showImportReplaceConfirm, setShowImportReplaceConfirm] = useState(false)
   const [showChooseDimensions,    setShowChooseDimensions]    = useState(false)
   const [showCreateSemantic,      setShowCreateSemantic]      = useState(false)
   const [showStarterPicker,    setShowStarterPicker]    = useState(false)
@@ -149,8 +155,8 @@ export function App(): React.JSX.Element {
   // True while any modal is open — used to bring the Score Window to the front
   // so it is not obscured by map BrowserWindows
   const isModalOpen = showWelcome || showChooseDimensions || showCreateSemantic ||
-                      showStarterPicker || showPreferences || showQuitConfirm ||
-                      orientationMarkdown !== null || importPreview !== null
+                      showStarterPicker || showPreferences || showQuitConfirm || showDiscardConfirm ||
+                      showImportReplaceConfirm || orientationMarkdown !== null || importPreview !== null
 
   // ── suppressBroadcast ref ─────────────────────────────────────────────────────
   //
@@ -165,6 +171,13 @@ export function App(): React.JSX.Element {
   // one in-flight result; after it settles, a later request can capture a fresh
   // frame if changes remain.
   const saveInFlight = useRef<Promise<boolean> | null>(null)
+  // New/Open await the user's decision without falling back to a native dialog.
+  const discardConfirmationResolver = useRef<((confirmed: boolean) => void) | null>(null)
+
+  useEffect(() => () => {
+    discardConfirmationResolver.current?.(false)
+    discardConfirmationResolver.current = null
+  }, [])
 
   /** Fine-grained map updates must not echo a full state payload to their sender. */
   function withoutStateBroadcast<T>(fn: () => T): T {
@@ -551,7 +564,39 @@ export function App(): React.JSX.Element {
 
   async function confirmDiscard(): Promise<boolean> {
     await window.api.focusMainWindow()
-    return window.confirm('You have unsaved changes. Discard them?')
+    discardConfirmationResolver.current?.(false)
+    setShowDiscardConfirm(true)
+    return new Promise(resolve => {
+      discardConfirmationResolver.current = resolve
+    })
+  }
+
+  function resolveDiscardConfirmation(confirmed: boolean): void {
+    setShowDiscardConfirm(false)
+    const resolve = discardConfirmationResolver.current
+    discardConfirmationResolver.current = null
+    resolve?.(confirmed)
+  }
+
+  function applyImportPreview(): void {
+    if (!importPreview) return
+    const { sessionMeta, elements, collections, dimensions, scores } = importPreview.result
+    history.replaceUndoable(() => {
+      loadSession({
+        filePath: null, isDirty: true,
+        sessionMeta, elements, collections, dimensions, scores, maps: [],
+        // Selection defaults to none — consistent with the rest of the app.
+        // Previously auto-selected the first element/dimension, which
+        // contradicted the "selection is driven by map dot clicks" model.
+        selectedElementId:   null,
+        selectedDimensionId: null,
+        selectedCollectionId: null,
+        activeTab: 'elements'
+      })
+      selectElements([])
+    })
+    setShowImportReplaceConfirm(false)
+    setImportPreview(null)
   }
 
   // ── Render ────────────────────────────────────────────────────────────────────
@@ -566,22 +611,8 @@ export function App(): React.JSX.Element {
           result={importPreview.result}
           onCancel={() => setImportPreview(null)}
           onConfirm={() => {
-            const { sessionMeta, elements, collections, dimensions, scores } = importPreview.result
-            history.replaceUndoable(() => {
-              loadSession({
-                filePath: null, isDirty: true,
-                sessionMeta, elements, collections, dimensions, scores, maps: [],
-                // Selection defaults to none — consistent with the rest of the app.
-                // Previously auto-selected the first element/dimension, which
-                // contradicted the "selection is driven by map dot clicks" model.
-                selectedElementId:   null,
-                selectedDimensionId: null,
-                selectedCollectionId: null,
-                activeTab: 'elements'
-              })
-              selectElements([])
-            })
-            setImportPreview(null)
+            if (hasDocumentContent) setShowImportReplaceConfirm(true)
+            else applyImportPreview()
           }}
         />
       )}
@@ -610,21 +641,36 @@ export function App(): React.JSX.Element {
       )}
 
       {showQuitConfirm && (
-        <div className={styles.quitOverlay}>
-          <div className={styles.quitBox}>
-            <p><strong>Unsaved Changes</strong><br />
-              If you quit now, your changes will be lost.</p>
-            <div className={styles.quitButtons}>
-              <button className={styles.quitCancel} onClick={() => setShowQuitConfirm(false)}>Cancel</button>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button className={styles.quitSave} onClick={async () => {
-                  if (await handleSave(false)) window.api.confirmQuit()
-                }}>Save & Quit</button>
-                <button className={styles.quitConfirm} onClick={() => window.api.confirmQuit()}>Quit Without Saving</button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <ConfirmationDisc
+          fixed
+          title="Quit without saving?"
+          detail={<>Unsaved changes<br />will be lost.</>}
+          actionLabel="Yes, quit"
+          onCancel={() => setShowQuitConfirm(false)}
+          onAction={() => window.api.confirmQuit()}
+        />
+      )}
+
+      {showDiscardConfirm && (
+        <ConfirmationDisc
+          fixed
+          title="Discard unsaved changes?"
+          detail={<>Unsaved changes<br />will be lost.</>}
+          actionLabel="Discard changes"
+          onCancel={() => resolveDiscardConfirmation(false)}
+          onAction={() => resolveDiscardConfirmation(true)}
+        />
+      )}
+
+      {showImportReplaceConfirm && (
+        <ConfirmationDisc
+          fixed
+          title="Replace current session?"
+          detail={<>Existing data<br />will be replaced.</>}
+          actionLabel="Replace session"
+          onCancel={() => setShowImportReplaceConfirm(false)}
+          onAction={applyImportPreview}
+        />
       )}
 
       {showWelcome && (

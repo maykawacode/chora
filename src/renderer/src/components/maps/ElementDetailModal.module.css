@@ -11,8 +11,8 @@
 .modal {
   background: #f0ede8;
   border: 1px solid #888;
-  border-radius: 8px;
-  width: 280px;
+  border-radius: 0;
+  width: 320px;
   box-shadow: 0 8px 32px rgba(0,0,0,0.25);
   font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
   font-size: 13px;
@@ -24,8 +24,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 12px 8px;
-  border-bottom: 1px solid #d0ccc6;
+  padding: 20px 24px 10px;
 }
 
 .name {
@@ -39,29 +38,16 @@
 
 .footer {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
-  padding: 8px 12px 12px;
+  padding: 12px 24px 20px;
 }
-
-.doneBtn {
-  padding: 5px 20px;
-  border: 1px solid #608040;
-  border-radius: 5px;
-  background: #708040;
-  color: #fff;
-  font-size: 13px;
-  font-family: inherit;
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.doneBtn:hover { background: #607030; }
 
 .fieldRow {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px 0;
+  gap: 10px;
+  padding: 10px 24px 0;
 }
 
 .label {
@@ -143,8 +129,8 @@
 }
 
 .description {
-  margin: 8px 12px 6px;
-  padding: 6px;
+  margin: 12px 24px 8px;
+  padding: 8px;
   border: 1px solid #b0a898;
   border-radius: 4px;
   font-size: 12px;
@@ -156,7 +142,7 @@
 }
 
 .collectionsSection {
-  margin: 0 12px 8px;
+  margin: 4px 24px 10px;
   border: 1px solid #b0a898;
   border-radius: 4px;
   background: #fff;

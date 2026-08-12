@@ -20,6 +20,15 @@
   font-size: 13px;
 }
 
+/* Square only the outer window while preserving the established dialog styling. */
+.selectionDialog {
+  border-radius: 0;
+}
+
+.selectionDialog .list {
+  border-radius: 0;
+}
+
 .title {
   margin: 0 0 4px;
   font-size: 15px;
@@ -92,12 +101,12 @@
 
 .buttons {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
   gap: 8px;
 }
 
-.btnCancel,
-.btnDraw {
+.btnCancel {
   padding: 5px 16px;
   border-radius: 5px;
   font-size: 13px;
@@ -114,80 +123,6 @@
 .btnCancel:hover {
   background: #d0cdc8;
 }
-
-.btnDraw {
-  border: 1px solid #608040;
-  background: #708040;
-  color: #fff;
-  font-weight: 500;
-}
-
-.btnDraw:hover {
-  background: #607030;
-}
-
-.btnDraw:disabled {
-  opacity: 0.4;
-  cursor: default;
-}
-
-.confirmOverlay {
-  position: absolute;
-  inset: 0;
-  background: rgba(0,0,0,0.35);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 10;
-  border-radius: 8px;
-}
-
-.confirmBox {
-  background: #f5f2ed;
-  border: 1px solid #b0a898;
-  border-radius: 6px;
-  padding: 16px;
-  max-width: 220px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
-}
-
-.confirmBox p {
-  margin: 0 0 12px;
-  font-size: 13px;
-  line-height: 1.4;
-  color: #333;
-}
-
-.confirmButtons {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
-.confirmCancel {
-  padding: 4px 12px;
-  border: 1px solid #b0a898;
-  border-radius: 4px;
-  background: #e0ddd8;
-  font-size: 12px;
-  font-family: inherit;
-  cursor: pointer;
-}
-
-.confirmCancel:hover { background: #d0cdc8; }
-
-.confirmDelete {
-  padding: 4px 12px;
-  border: 1px solid #8b2020;
-  border-radius: 4px;
-  background: #b03030;
-  color: #fff;
-  font-size: 12px;
-  font-family: inherit;
-  cursor: pointer;
-}
-
-.confirmDelete:hover { background: #8b2020; }
 
 /* ── Pole direction toggle (AdvancedTransform dim-to-weight / weight-to-dim) ── */
 

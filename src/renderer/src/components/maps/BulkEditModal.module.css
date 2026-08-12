@@ -11,8 +11,8 @@
 .modal {
   background: #f0ede8;
   border: 1px solid #888;
-  border-radius: 8px;
-  width: 280px;
+  border-radius: 0;
+  width: 320px;
   box-shadow: 0 8px 32px rgba(0,0,0,0.25);
   font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
   font-size: 13px;
@@ -23,8 +23,7 @@
 .header {
   display: flex;
   align-items: center;
-  padding: 10px 12px 8px;
-  border-bottom: 1px solid #d0ccc6;
+  padding: 20px 24px 10px;
 }
 
 .name {
@@ -36,8 +35,8 @@
 .fieldRow {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px 0;
+  gap: 10px;
+  padding: 10px 24px 0;
 }
 
 .label {
@@ -117,7 +116,7 @@
 .weightInput::placeholder { color: #aaa; font-style: italic; }
 
 .collectionsSection {
-  margin: 8px 12px 0;
+  margin: 12px 24px 10px;
   border: 1px solid #b0a898;
   border-radius: 4px;
   background: #fff;
@@ -189,34 +188,7 @@
 
 .footer {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
-  gap: 8px;
-  padding: 12px 12px 12px;
+  padding: 12px 24px 20px;
 }
-
-.cancelBtn {
-  padding: 5px 14px;
-  border: 1px solid #b0a898;
-  border-radius: 5px;
-  background: #e8e5e0;
-  color: #444;
-  font-size: 13px;
-  font-family: inherit;
-  cursor: pointer;
-}
-
-.cancelBtn:hover { background: #d8d5d0; }
-
-.applyBtn {
-  padding: 5px 20px;
-  border: 1px solid #608040;
-  border-radius: 5px;
-  background: #708040;
-  color: #fff;
-  font-size: 13px;
-  font-family: inherit;
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.applyBtn:hover { background: #607030; }

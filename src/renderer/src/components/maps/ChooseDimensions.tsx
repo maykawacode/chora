@@ -9,14 +9,25 @@
 // There is no separate type-projection dialog: type clusters are a toggle in
 // the map's sidebar, so a cartesian map is the only 2D map you create.
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { v4 as uuid } from 'uuid'
 import { useAppStore } from '../../store/appStore'
 import { usePrefsStore } from '../../store/prefsStore'
 import type { CartesianMapConfig, SemanticMapConfig } from '../../lib/types'
+import { ForwardActionButton } from '../ConfirmationDisc'
 import styles from './ChooseDimensions.module.css'
 
 interface Props { onClose: () => void }
+
+function useCloseOnEscape(onClose: () => void): void {
+  useEffect(() => {
+    const closeOnEscape = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', closeOnEscape)
+    return () => window.removeEventListener('keydown', closeOnEscape)
+  }, [onClose])
+}
 
 // ── Cartesian map dialog ──────────────────────────────────────────────────────
 
@@ -27,6 +38,7 @@ export function ChooseDimensions({ onClose }: Props): React.JSX.Element {
   const prefs      = usePrefsStore(s => s.prefs)
 
   const [selected, setSelected] = useState<string[]>([])
+  useCloseOnEscape(onClose)
 
   // Maintain a sliding window of 2: drop the oldest selection when a third is added
   function toggle(id: string): void {
@@ -66,7 +78,7 @@ export function ChooseDimensions({ onClose }: Props): React.JSX.Element {
 
   return (
     <div className={styles.overlay} onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
-      <div className={styles.dialog}>
+      <div className={`${styles.dialog} ${styles.selectionDialog} modalZoomEnter`}>
         <h2 className={styles.title}>Choose Dimensions</h2>
         <p className={styles.subtitle}>Select two dimensions for the map axes.</p>
 
@@ -94,14 +106,11 @@ export function ChooseDimensions({ onClose }: Props): React.JSX.Element {
         </ul>
 
         <div className={styles.buttons}>
-          <button className={styles.btnCancel} onClick={onClose}>Cancel</button>
-          <button
-            className={styles.btnDraw}
+          <ForwardActionButton
+            label="Draw map"
             disabled={selected.length !== 2}
             onClick={handleDraw}
-          >
-            Draw Map
-          </button>
+          />
         </div>
       </div>
     </div>
@@ -119,6 +128,7 @@ export function CreateSemanticMap({ onClose }: Props): React.JSX.Element {
 
   // Start with all dimensions selected — user can deselect ones they don't want
   const [selectedIds, setSelectedIds] = useState<string[]>(() => dimensions.map(d => d.id))
+  useCloseOnEscape(onClose)
 
   function toggle(id: string): void {
     setSelectedIds(prev =>
@@ -156,7 +166,7 @@ export function CreateSemanticMap({ onClose }: Props): React.JSX.Element {
 
   return (
     <div className={styles.overlay} onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
-      <div className={styles.dialog}>
+      <div className={`${styles.dialog} ${styles.selectionDialog} modalZoomEnter`}>
         <h2 className={styles.title}>Create Semantic Map</h2>
         <p className={styles.subtitle}>
           Select dimensions to include ({elements.length} element{elements.length !== 1 ? 's' : ''}).
@@ -183,14 +193,11 @@ export function CreateSemanticMap({ onClose }: Props): React.JSX.Element {
         </ul>
 
         <div className={styles.buttons}>
-          <button className={styles.btnCancel} onClick={onClose}>Cancel</button>
-          <button
-            className={styles.btnDraw}
+          <ForwardActionButton
+            label="Draw semantic map"
             disabled={selectedIds.length < 2}
             onClick={handleDraw}
-          >
-            Draw Map
-          </button>
+          />
         </div>
       </div>
     </div>

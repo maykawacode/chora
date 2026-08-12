@@ -147,6 +147,7 @@
 
 .buttons {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
   gap: 8px;
   margin-top: 14px;
@@ -164,16 +165,3 @@
 }
 
 .btnCancel:hover { background: #d0cdc8; }
-
-.btnSave {
-  padding: 5px 14px;
-  border: 1px solid #808040;
-  border-radius: 4px;
-  background: #808040;
-  color: #fff;
-  font-size: 13px;
-  font-family: inherit;
-  cursor: pointer;
-}
-
-.btnSave:hover { background: #606030; }

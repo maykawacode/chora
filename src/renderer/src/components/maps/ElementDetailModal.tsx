@@ -2,7 +2,8 @@
 //
 // Centered modal triggered by right-clicking an element dot on any map.
 // Edits color, shape, weight, definition, and collection membership in local
-// draft state. Every change is committed together through onClose.
+// draft state. Changes are committed only through the green arrow; Escape or a
+// background click abandons the draft.
 //
 // Membership used to be written separately, as scores, and had to be broadcast
 // to the main window BEFORE the element update — the main window answers an
@@ -18,6 +19,7 @@ import type { Element, ElementShape } from '../../lib/types'
 import styles from './ElementDetailModal.module.css'
 import { formatRange, numericRange, openWeight } from '../../lib/numericRange'
 import { CollectionChoiceRow } from '../CollectionChoiceRow'
+import { ForwardActionButton } from '../ConfirmationDisc'
 
 const SHAPE_SYMBOL: Record<ElementShape, string> = {
   circle:   '●',
@@ -71,8 +73,9 @@ export function ElementDetailModal({ elementId, onClose }: Props): React.JSX.Ele
   }
 
   // Re-assigned every render so the closure always captures latest state
-  const handleCloseRef = useRef<() => void>(() => {})
-  handleCloseRef.current = () => {
+  const handleCloseRef = useRef<(apply: boolean) => void>(() => {})
+  handleCloseRef.current = (apply: boolean) => {
+    if (!apply) { onClose(null); return }
     if (!element) { onClose(null); return }
     const parsedWeight = openWeight(Number(weight))
     const validCollectionIds = new Set(collections.map(collection => collection.id))
@@ -88,12 +91,13 @@ export function ElementDetailModal({ elementId, onClose }: Props): React.JSX.Ele
   }
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') handleCloseRef.current() }
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') handleCloseRef.current(false) }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
-  const handleClose = useCallback(() => handleCloseRef.current(), [])
+  const handleApply  = useCallback(() => handleCloseRef.current(true),  [])
+  const handleCancel = useCallback(() => handleCloseRef.current(false), [])
 
   if (!element) return null
 
@@ -112,13 +116,16 @@ export function ElementDetailModal({ elementId, onClose }: Props): React.JSX.Ele
   return (
     <div
       className={styles.overlay}
-      onClick={e => e.stopPropagation()}
+      onClick={e => {
+        e.stopPropagation()
+        if (e.target === e.currentTarget) handleCancel()
+      }}
       onMouseDown={e => e.stopPropagation()}
       onMouseMove={e => e.stopPropagation()}
       onMouseUp={e => e.stopPropagation()}
       onContextMenu={e => e.stopPropagation()}
     >
-      <div className={styles.modal}>
+      <div className={`${styles.modal} modalZoomEnter`}>
         <div className={styles.header}>
           <span className={styles.name}>{element.name}</span>
         </div>
@@ -208,13 +215,6 @@ export function ElementDetailModal({ elementId, onClose }: Props): React.JSX.Ele
               placeholder="New collection…"
               onChange={e => setNewCollectionName(e.target.value)}
               onKeyDown={e => {
-                if (e.key === 'Escape') {
-                  if (newCollectionName.trim()) {
-                    e.nativeEvent.stopImmediatePropagation()
-                    setNewCollectionName('')
-                  }
-                  return
-                }
                 if (e.key === 'Enter' && newCollectionName.trim()) handleAddCollection()
               }}
             />
@@ -227,7 +227,7 @@ export function ElementDetailModal({ elementId, onClose }: Props): React.JSX.Ele
         </div>
 
         <div className={styles.footer}>
-          <button className={styles.doneBtn} onClick={handleClose}>Done</button>
+          <ForwardActionButton label="Apply element changes" onClick={handleApply} />
         </div>
       </div>
     </div>

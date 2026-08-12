@@ -19,6 +19,7 @@ import type { Element, ElementShape } from '../../lib/types'
 import styles from './BulkEditModal.module.css'
 import { openWeight } from '../../lib/numericRange'
 import { CollectionChoiceRow } from '../CollectionChoiceRow'
+import { ForwardActionButton } from '../ConfirmationDisc'
 
 const SHAPE_SYMBOL: Record<ElementShape, string> = {
   circle:   '●',
@@ -139,13 +140,16 @@ export function BulkEditModal({ elementIds, elements, onClose }: Props): React.J
   return (
     <div
       className={styles.overlay}
-      onClick={e => e.stopPropagation()}
+      onClick={e => {
+        e.stopPropagation()
+        if (e.target === e.currentTarget) handleCancel()
+      }}
       onMouseDown={e => e.stopPropagation()}
       onMouseMove={e => e.stopPropagation()}
       onMouseUp={e => e.stopPropagation()}
       onContextMenu={e => e.stopPropagation()}
     >
-      <div className={styles.modal}>
+      <div className={`${styles.modal} modalZoomEnter`}>
         <div className={styles.header}>
           <span className={styles.name}>Edit {elementIds.length} Elements</span>
         </div>
@@ -228,13 +232,6 @@ export function BulkEditModal({ elementIds, elements, onClose }: Props): React.J
               placeholder="New collection…"
               onChange={e => setNewCollectionName(e.target.value)}
               onKeyDown={e => {
-                if (e.key === 'Escape') {
-                  if (newCollectionName.trim()) {
-                    e.nativeEvent.stopImmediatePropagation()
-                    setNewCollectionName('')
-                  }
-                  return
-                }
                 if (e.key === 'Enter' && newCollectionName.trim()) handleAddCollection()
               }}
             />
@@ -247,8 +244,7 @@ export function BulkEditModal({ elementIds, elements, onClose }: Props): React.J
         </div>
 
         <div className={styles.footer}>
-          <button className={styles.cancelBtn} onClick={handleCancel}>Cancel</button>
-          <button className={styles.applyBtn}  onClick={handleApply}>Apply</button>
+          <ForwardActionButton label="Apply changes" onClick={handleApply} />
         </div>
       </div>
     </div>

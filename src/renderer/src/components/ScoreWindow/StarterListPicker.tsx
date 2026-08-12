@@ -13,6 +13,7 @@ import { history, SCORE_HISTORY_OWNER } from '../../store/history'
 import { STARTER_DIMENSIONS, CATEGORIES } from '../../lib/starterDimensions'
 import type { CategoryKey } from '../../lib/starterDimensions'
 import type { DimensionCategories } from '../../lib/types'
+import { ForwardActionButton } from '../ConfirmationDisc'
 import styles from './StarterListPicker.module.css'
 
 interface Props { onClose: () => void }
@@ -107,9 +108,11 @@ export function StarterListPicker({ onClose }: Props): React.JSX.Element {
           </span>
           <div className={styles.buttons}>
             <button className={styles.btnCancel} onClick={onClose}>Cancel</button>
-            <button className={styles.btnAdd} disabled={toAdd === 0} onClick={handleAdd}>
-              Add{toAdd > 0 ? ` ${toAdd}` : ''}
-            </button>
+            <ForwardActionButton
+              label={toAdd > 0 ? `Add ${toAdd} dimensions` : 'Add dimensions'}
+              disabled={toAdd === 0}
+              onClick={handleAdd}
+            />
           </div>
         </div>
       </div>

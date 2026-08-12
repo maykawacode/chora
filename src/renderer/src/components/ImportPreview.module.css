@@ -86,12 +86,12 @@
 
 .buttons {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
   gap: 8px;
 }
 
-.btnCancel,
-.btnImport {
+.btnCancel {
   padding: 5px 16px;
   border-radius: 5px;
   font-size: 13px;
@@ -106,12 +106,3 @@
 }
 
 .btnCancel:hover { background: #d0cdc8; }
-
-.btnImport {
-  border: 1px solid #608040;
-  background: #708040;
-  color: #fff;
-  font-weight: 500;
-}
-
-.btnImport:hover { background: #607030; }

@@ -11,11 +11,12 @@
 //   - If any element belongs to the collection → confirmation overlay
 //   - Otherwise → deletes immediately
 
-import { useRef, useState, useEffect, KeyboardEvent } from 'react'
+import { useRef, useState, KeyboardEvent } from 'react'
 import { useAppStore } from '../../store/appStore'
 import { history, SCORE_HISTORY_OWNER } from '../../store/history'
 import { DEFAULT_COLLECTION_COLOR } from '../../lib/color'
 import { useResizableSplitPane } from './useResizableSplitPane'
+import { ConfirmationDisc } from '../ConfirmationDisc'
 import styles from './DataTab.module.css'
 
 export function CollectionsTab(): React.JSX.Element {
@@ -40,19 +41,6 @@ export function CollectionsTab(): React.JSX.Element {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const addInputRef = useRef<HTMLInputElement>(null)
   const splitPane = useResizableSplitPane()
-
-  useEffect(() => {
-    if (confirmDeleteId !== null) window.api.setModalOpen(true)
-  }, [confirmDeleteId])
-
-  useEffect(() => {
-    if (!confirmDeleteId) return
-    const onKey = (e: globalThis.KeyboardEvent) => {
-      if (e.key === 'Escape') setConfirmDeleteId(null)
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [confirmDeleteId])
 
   function handleAdd(): void {
     const name = newName.trim()
@@ -189,24 +177,13 @@ export function CollectionsTab(): React.JSX.Element {
 
       {/* ── Delete confirmation overlay ── */}
       {confirmCollection && (
-        <div className={styles.confirmOverlay}>
-          <div className={styles.confirmBox}>
-            <p>
-              Delete <strong>{confirmCollection.name}</strong>?<br />
-              It will be removed from {confirmMemberCount}{' '}
-              {confirmMemberCount === 1 ? 'element' : 'elements'}.
-            </p>
-            <div className={styles.confirmButtons}>
-              <button className={styles.confirmCancel} onClick={() => setConfirmDeleteId(null)}>Cancel</button>
-              <button
-                className={styles.confirmDelete}
-                onClick={() => { removeCollection(confirmDeleteId!); setConfirmDeleteId(null) }}
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmationDisc
+          title={<>Delete <strong>{confirmCollection.name}</strong>?</>}
+          detail={<>Remove from {confirmMemberCount} {confirmMemberCount === 1 ? 'element' : 'elements'}.</>}
+          actionLabel="Delete"
+          onCancel={() => setConfirmDeleteId(null)}
+          onAction={() => { removeCollection(confirmDeleteId!); setConfirmDeleteId(null) }}
+        />
       )}
     </div>
   )

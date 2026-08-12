@@ -6,6 +6,7 @@
 import { useState } from 'react'
 import { useAppStore } from '../../store/appStore'
 import { usePrefsStore } from '../../store/prefsStore'
+import { ConfirmationDisc } from '../ConfirmationDisc'
 import styles from './ConversionsTab.module.css'
 
 type FromSource = 'dim-scores' | 'el-weight' | 'collection' | 'el-shape' | 'el-color'
@@ -90,6 +91,7 @@ export function ConversionsTab(): React.JSX.Element {
   const [spreadApplied, setSpreadApplied] = useState(false)
   const [randomizerId, setRandomizerId] = useState('')
   const [randomizerApplied, setRandomizerApplied] = useState(false)
+  const [showRandomizeConfirm, setShowRandomizeConfirm] = useState(false)
   const spreadDim = spreadDimId ? dimensions.find(d => d.id === spreadDimId) ?? null : null
 
   const randomizerGroups = [
@@ -155,10 +157,20 @@ export function ConversionsTab(): React.JSX.Element {
     setSpreadApplied(true)
   }
 
-  function handleRandomize(): void {
+  function applyRandomizer(): void {
     if (!randomizer) return
     randomizer.apply()
     setRandomizerApplied(true)
+    setShowRandomizeConfirm(false)
+  }
+
+  function handleRandomize(): void {
+    if (!randomizer) return
+    if (randomizer.overwrites) {
+      setShowRandomizeConfirm(true)
+      return
+    }
+    applyRandomizer()
   }
 
   function handleFromChange(val: string): void {
@@ -436,7 +448,11 @@ export function ConversionsTab(): React.JSX.Element {
             <select
               className={styles.select}
               value={randomizerId}
-              onChange={e => { setRandomizerId(e.target.value); setRandomizerApplied(false) }}
+              onChange={e => {
+                setRandomizerId(e.target.value)
+                setRandomizerApplied(false)
+                setShowRandomizeConfirm(false)
+              }}
               aria-label="Randomizer"
             >
               <option value="">Choose randomizer…</option>
@@ -474,6 +490,17 @@ export function ConversionsTab(): React.JSX.Element {
           </div>
         </div>
       </section>
+
+      {showRandomizeConfirm && randomizer && (
+        <ConfirmationDisc
+          fixed
+          title="Randomize scores?"
+          detail="This will overwrite existing scores with new values"
+          actionLabel="Randomize"
+          onCancel={() => setShowRandomizeConfirm(false)}
+          onAction={applyRandomizer}
+        />
+      )}
 
     </div>
   )
