@@ -36,6 +36,7 @@ interface Window {
     openMap:      (mapId: string, stateJson: string) => void
     closeMap:     (mapId: string) => void
     closeAllMaps: () => void
+    controlMapWindow: (action: 'close' | 'minimize' | 'zoom') => void
     signalReady:  () => void    // map renderer calls this after mounting IPC listeners
     setModalOpen: (open: boolean) => void
     focusMainWindow: () => Promise<void>

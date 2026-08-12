@@ -60,6 +60,8 @@ contextBridge.exposeInMainWorld('api', {
   openMap:      (mapId: string, stateJson: string): void => ipcRenderer.send('map:open', mapId, stateJson),
   closeMap:     (mapId: string): void                    => ipcRenderer.send('map:close', mapId),
   closeAllMaps: (): void                                  => ipcRenderer.send('map:closeAll'),
+  controlMapWindow: (action: 'close' | 'minimize' | 'zoom'): void =>
+    ipcRenderer.send('map:window-control', action),
   // Signal to main that this renderer has mounted its IPC listeners and is
   // ready to receive 'map:init'. See windowManager.ts for why this is needed.
   signalReady:  (): void                                  => ipcRenderer.send('map:ready'),

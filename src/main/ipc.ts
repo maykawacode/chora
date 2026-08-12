@@ -9,7 +9,7 @@
 // ipcMain.handle() — renderer uses invoke() and awaits a return value
 // ipcMain.on()     — renderer uses send(), fire-and-forget
 
-import { ipcMain, dialog, app } from 'electron'
+import { ipcMain, dialog, app, BrowserWindow } from 'electron'
 import { readFile } from 'fs/promises'
 import { getMainWindow, setQuitConfirmed } from './index'
 import {
@@ -120,6 +120,22 @@ export function registerIpcHandlers(): void {
 
   ipcMain.on('map:closeAll', () => {
     closeAllMapWindowsSilent()
+  })
+
+  // The square-corner map windows use HTML-rendered stoplight controls because
+  // macOS removes its native buttons when Electron switches to borderless
+  // square chrome. Only managed map renderers may control their own window.
+  ipcMain.on('map:window-control', (event, action: 'close' | 'minimize' | 'zoom') => {
+    if (!isManagedMapWebContents(event.sender.id)) return
+    const win = BrowserWindow.fromWebContents(event.sender)
+    if (!win || win.isDestroyed()) return
+
+    if (action === 'close') win.close()
+    if (action === 'minimize') win.minimize()
+    if (action === 'zoom') {
+      if (win.isMaximized()) win.unmaximize()
+      else win.maximize()
+    }
   })
 
   // A map renderer sends this once it has finished mounting all IPC listeners.

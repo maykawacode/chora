@@ -118,7 +118,7 @@ export function drawSemantic(
 
   ctx.clearRect(0, 0, W, H)
 
-  ctx.fillStyle = '#fafaf8'
+  ctx.fillStyle = '#ffffff'
   ctx.fillRect(0, 0, W, H)
 
   if (dims.length === 0) {

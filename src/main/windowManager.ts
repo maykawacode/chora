@@ -87,6 +87,9 @@ export function openMapWindow(mapId: string, stateJson: string): void {
     show: false,
     // 'hidden' removes the title bar entirely; we draw our own in MapPanel.tsx
     titleBarStyle: 'hidden',
+    // Keep the custom map chrome rectangular instead of inheriting the
+    // platform's rounded frameless-window corners.
+    roundedCorners: false,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false

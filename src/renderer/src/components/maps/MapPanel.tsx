@@ -1032,6 +1032,35 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
   return (
     <div className={windowed ? styles.panelWindowed : styles.panel}>
       <div className={`${styles.titleBar} ${windowed ? styles.titleBarWindowed : ''}`}>
+        {windowed && (
+          <div className={styles.windowControls} aria-label="Window controls">
+            <button
+              className={`${styles.windowControl} ${styles.windowControlClose}`}
+              onClick={() => window.api.controlMapWindow('close')}
+              title="Close"
+              aria-label="Close window"
+            >
+              <span aria-hidden="true">×</span>
+            </button>
+            <button
+              className={`${styles.windowControl} ${styles.windowControlMinimize}`}
+              onClick={() => window.api.controlMapWindow('minimize')}
+              title="Minimize"
+              aria-label="Minimize window"
+            >
+              <span aria-hidden="true">−</span>
+            </button>
+            <button
+              className={`${styles.windowControl} ${styles.windowControlZoom}`}
+              onClick={() => window.api.controlMapWindow('zoom')}
+              title="Zoom"
+              aria-label="Zoom window"
+            >
+              <span aria-hidden="true">+</span>
+            </button>
+          </div>
+        )}
+
         {/* The group is rendered unconditionally and only its naming element
             swaps, so the unsaved badge keeps its place beside the name while
             the title is being edited. */}
