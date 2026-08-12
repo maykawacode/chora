@@ -227,36 +227,45 @@
 }
 
 .axisPicker {
-  background: #fff;
-  border: 1px solid #b0a898;
-  border-radius: 5px;
-  box-shadow: 0 3px 12px rgba(0,0,0,0.2);
-  min-width: 140px;
+  background: #f0ede8;
+  border: 1px solid #888;
+  border-radius: 0;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+  min-width: 180px;
   max-width: 220px;
+  padding: 14px 16px 16px;
   overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+  font-size: 13px;
+}
+
+.axisPickerBackdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 9;
+  background: rgba(0,0,0,0.24);
 }
 
 .axisPickerTitle {
-  font-size: 11px;
+  margin: 0 0 10px;
+  font-size: 14px;
   font-weight: 600;
-  color: #555;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  padding: 5px 8px;
-  background: #f0ede8;
-  border-bottom: 1px solid #b0a898;
+  color: #222;
 }
 
 .axisPickerList {
   list-style: none;
-  margin: 0;
-  padding: 3px 0;
+  margin: 4px 0 0;
+  padding: 0;
+  border: 1px solid #b0a898;
+  background: #fff;
   max-height: 180px;
   overflow-y: auto;
 }
 
 .axisPickerItem {
-  padding: 4px 10px;
+  min-height: 28px;
+  padding: 6px 10px;
   font-size: 12px;
   cursor: pointer;
   white-space: nowrap;
@@ -265,30 +274,36 @@
 }
 
 .axisPickerItem:hover {
-  background: #e8e5e0;
+  background: #f0ede8;
 }
 
 .axisPickerSelected {
-  color: #808040;
+  background: #c8a050;
+  color: #fff;
   font-weight: 600;
+}
+
+.axisPickerSelected:hover {
+  background: #b89040;
 }
 
 .axisPickerFlipBtn {
   display: block;
   width: 100%;
-  padding: 5px 10px;
+  padding: 7px 10px;
   font-size: 12px;
-  text-align: left;
-  background: none;
-  border: none;
-  border-bottom: 1px solid #e0ddd8;
+  font-weight: 600;
+  text-align: center;
+  background: #fff;
+  border: 1px solid #b0a898;
+  border-radius: 4px;
   cursor: pointer;
   font-family: inherit;
-  color: #444;
+  color: #333;
 }
 
 .axisPickerFlipBtn:hover {
-  background: #e8e5e0;
+  background: #e0ddd8;
 }
 
 .axisPickerSubtitle {
@@ -297,7 +312,7 @@
   color: #888;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  padding: 4px 8px 2px;
+  margin-top: 14px;
 }
 
 /* The white map field yields exactly the same distance that the single,

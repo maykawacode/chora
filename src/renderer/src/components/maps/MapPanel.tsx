@@ -1303,9 +1303,14 @@ function AxisPicker({ edge, clickX, clickY, currentId, isFlipped, dimensions, on
 
   return (
     <>
-      {/* Transparent full-canvas backdrop — click to dismiss */}
-      <div style={{ position: 'absolute', inset: 0, zIndex: 9 }} onClick={onClose} />
-      <div className={styles.axisPicker} style={pickerStyle}>
+      <div className={styles.axisPickerBackdrop} onClick={onClose} />
+      <div
+        className={`${styles.axisPicker} modalZoomEnter`}
+        style={pickerStyle}
+        role="dialog"
+        aria-modal="true"
+        aria-label={`${axis} options`}
+      >
         <div className={styles.axisPickerTitle}>{axis}</div>
         <button
           className={styles.axisPickerFlipBtn}
@@ -1358,8 +1363,14 @@ function SemanticAxisPicker({ currentDimId, isFlipped, dimensions, clickX, click
 
   return (
     <>
-      <div style={{ position: 'absolute', inset: 0, zIndex: 9 }} onClick={onClose} />
-      <div className={styles.axisPicker} style={pickerStyle}>
+      <div className={styles.axisPickerBackdrop} onClick={onClose} />
+      <div
+        className={`${styles.axisPicker} modalZoomEnter`}
+        style={pickerStyle}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Dimension options"
+      >
         <div className={styles.axisPickerTitle}>Dimension</div>
         <button
           className={styles.axisPickerFlipBtn}
