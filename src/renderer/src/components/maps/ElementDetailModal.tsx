@@ -1,9 +1,9 @@
 // ── ElementDetailModal ────────────────────────────────────────────────────────
 //
 // Centered modal triggered by right-clicking an element dot on any map.
-// Edits color, shape, weight, definition, and collection membership in local
-// draft state. Changes are committed only through the green arrow; Escape or a
-// background click abandons the draft.
+// Edits name, color, shape, weight, definition, and collection membership in
+// local draft state. Changes are committed only through the green arrow;
+// Escape or a background click abandons the draft.
 //
 // Membership used to be written separately, as scores, and had to be broadcast
 // to the main window BEFORE the element update — the main window answers an
@@ -46,6 +46,7 @@ export function ElementDetailModal({ elementId, onClose }: Props): React.JSX.Ele
   const collections   = useAppStore(s => s.collections)
   const addCollection = useAppStore(s => s.addCollection)
 
+  const [name,       setName]       = useState(element?.name ?? '')
   const [color,      setColor]      = useState(element?.color ?? '#9d9d53')
   const [hexInput,   setHexInput]   = useState(element?.color ?? '#9d9d53')
   const [shape,      setShape]      = useState<ElementShape>(element?.shape ?? 'circle')
@@ -81,7 +82,9 @@ export function ElementDetailModal({ elementId, onClose }: Props): React.JSX.Ele
     const validCollectionIds = new Set(collections.map(collection => collection.id))
     const validMembership = memberOf.filter(id => validCollectionIds.has(id))
     const currentMembership = element.collectionIds.filter(id => validCollectionIds.has(id))
+    const trimmedName = name.trim()
     const changes: Partial<Element> = {}
+    if (trimmedName && trimmedName !== element.name) changes.name = trimmedName
     if (color        !== element.color)      changes.color      = color
     if (shape        !== element.shape)      changes.shape      = shape
     if (parsedWeight !== element.weight)     changes.weight     = parsedWeight
@@ -127,7 +130,13 @@ export function ElementDetailModal({ elementId, onClose }: Props): React.JSX.Ele
     >
       <div className={`${styles.modal} modalZoomEnter`}>
         <div className={styles.header}>
-          <span className={styles.name}>{element.name}</span>
+          <input
+            className={styles.nameInput}
+            value={name}
+            onChange={e => setName(e.target.value)}
+            aria-label="Element name"
+            spellCheck
+          />
         </div>
 
         <div className={styles.fieldRow}>

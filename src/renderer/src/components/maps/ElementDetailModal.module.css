@@ -27,13 +27,22 @@
   padding: 20px 24px 10px;
 }
 
-.name {
+.nameInput {
+  width: 100%;
+  min-width: 0;
+  padding: 5px 8px;
+  border: 1px solid #b0a898;
+  border-radius: 4px;
+  background: #fff;
   font-weight: 600;
   font-size: 14px;
+  font-family: inherit;
   color: #222;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  outline: none;
+}
+
+.nameInput:focus {
+  border-color: #808040;
 }
 
 .footer {
