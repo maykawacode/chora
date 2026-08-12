@@ -1,7 +1,8 @@
 /* Chrome tokens — the non-canvas control sidebar and the rules within it.
-   The map title bar is intentionally white and borderless so it flows into
-   the map field. Currently consumed by the map window chrome (MapSidebar);
-   other stylesheets still carry literal hexes.
+   The map title bar follows the white field except above an open sidebar,
+   where the gray chrome continues to the top edge. Currently consumed by the
+   map window chrome (MapPanel and MapSidebar); other stylesheets still carry
+   literal hexes.
 
    One rule colour serves the whole chrome — the edge against the canvas is no
    heavier than a divider between sections, so the panel reads as a single

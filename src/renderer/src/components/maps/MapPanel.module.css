@@ -1,3 +1,11 @@
+.panel,
+.panelWindowed {
+  --map-sidebar-width: 230px;
+  --map-sidebar-motion: 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  --map-titlebar-height: 28px;
+  position: relative;
+}
+
 .panelList {
   display: flex;
   flex-direction: column;
@@ -35,6 +43,8 @@
   justify-content: space-between;
   background: #fff;
   padding: 4px 8px;
+  overflow: hidden;
+  transition: margin-right var(--map-sidebar-motion);
   user-select: none;
   -webkit-app-region: drag;
 }
@@ -43,6 +53,7 @@
    the content past the macOS traffic lights. */
 .titleBarWindowed {
   padding-left: 78px;
+  padding-right: 38px;
 }
 
 .windowControls {
@@ -53,6 +64,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  z-index: 1;
   -webkit-app-region: no-drag;
 }
 
@@ -93,10 +105,12 @@
 }
 
 .titleGroup {
+  position: relative;
   display: flex;
   align-items: baseline;
   gap: 6px;
   min-width: 0;
+  z-index: 1;
   -webkit-app-region: no-drag;
 }
 
@@ -140,6 +154,7 @@
   gap: 6px;
   -webkit-app-region: no-drag;
   position: relative;
+  z-index: 1;
 }
 
 /* Sits inside .titleGroup, trailing the map title and file name. flex:none
@@ -201,6 +216,14 @@
 
 .sidebarBtnActive {
   color: #808040;
+}
+
+.windowedSidebarToggle {
+  position: absolute;
+  top: 4px;
+  right: 8px;
+  z-index: 3;
+  -webkit-app-region: no-drag;
 }
 
 .axisPicker {
@@ -277,12 +300,57 @@
   padding: 4px 8px 2px;
 }
 
-/* Canvas + control sidebar sit side by side below the title bar. */
+/* The white map field yields exactly the same distance that the single,
+   full-height sidebar travels, keeping their shared edge locked together. */
 .body {
   display: flex;
   flex: 1;
   min-height: 0;
   position: relative;
+  transition: margin-right var(--map-sidebar-motion);
+}
+
+.panelSidebarOpen .titleBar,
+.panelSidebarOpen .body {
+  margin-right: var(--map-sidebar-width);
+}
+
+.sidebarShell {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  width: var(--map-sidebar-width);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--chrome-bg);
+  border-left: 1px solid var(--chrome-rule);
+  transform: translateX(100%);
+  visibility: hidden;
+  transition:
+    transform var(--map-sidebar-motion),
+    visibility 0s 180ms;
+}
+
+.sidebarHeader {
+  flex: 0 0 var(--map-titlebar-height);
+  -webkit-app-region: drag;
+}
+
+.sidebarShellOpen {
+  transform: translateX(0);
+  visibility: visible;
+  transition-delay: 0s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .titleBar,
+  .body,
+  .sidebarShell {
+    transition: none;
+  }
 }
 
 .canvasWrapper {

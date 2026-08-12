@@ -1028,9 +1028,28 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
   // narrowing casts are only ever read for the matching map type.
   const cartConfig = config as CartesianMapConfig
   const semConfig  = config as SemanticMapConfig
+  const sidebarToggle = (
+    <button
+      className={`${styles.sidebarBtn} ${sidebarOpen ? styles.sidebarBtnActive : ''}`}
+      onClick={() => setSidebarOpen(o => !o)}
+      title={sidebarOpen ? 'Hide map controls' : 'Show map controls'}
+      aria-label={sidebarOpen ? 'Hide map controls' : 'Show map controls'}
+      aria-pressed={sidebarOpen}
+    >
+      {/* Standard sidebar glyph: a panel outline with the right pane filled */}
+      <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true">
+        <rect
+          x="1.5" y="2.5" width="13" height="11" rx="2"
+          fill="none" stroke="currentColor" strokeWidth="1.3"
+        />
+        <path d="M10 2.5v11" stroke="currentColor" strokeWidth="1.3" />
+        <path d="M10 3.5h3a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1h-3z" fill="currentColor" />
+      </svg>
+    </button>
+  )
 
   return (
-    <div className={windowed ? styles.panelWindowed : styles.panel}>
+    <div className={`${windowed ? styles.panelWindowed : styles.panel} ${sidebarOpen ? styles.panelSidebarOpen : ''}`}>
       <div className={`${styles.titleBar} ${windowed ? styles.titleBarWindowed : ''}`}>
         {windowed && (
           <div className={styles.windowControls} aria-label="Window controls">
@@ -1103,23 +1122,7 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
             <button className={styles.closeBtn} onClick={onClose} title="Close map">✕</button>
           )}
 
-          <button
-            className={`${styles.sidebarBtn} ${sidebarOpen ? styles.sidebarBtnActive : ''}`}
-            onClick={() => setSidebarOpen(o => !o)}
-            title={sidebarOpen ? 'Hide map controls' : 'Show map controls'}
-            aria-label={sidebarOpen ? 'Hide map controls' : 'Show map controls'}
-            aria-pressed={sidebarOpen}
-          >
-            {/* Standard sidebar glyph: a panel outline with the right pane filled */}
-            <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true">
-              <rect
-                x="1.5" y="2.5" width="13" height="11" rx="2"
-                fill="none" stroke="currentColor" strokeWidth="1.3"
-              />
-              <path d="M10 2.5v11" stroke="currentColor" strokeWidth="1.3" />
-              <path d="M10 3.5h3a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1h-3z" fill="currentColor" />
-            </svg>
-          </button>
+          {!windowed && sidebarToggle}
         </div>
       </div>
 
@@ -1247,14 +1250,22 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
         )}
       </div>
 
-        {sidebarOpen && (
-          <MapSidebar
-            config={config}
-            updateConfig={updateConfig}
-            onExportSvg={handleExportSvg}
-          />
-        )}
       </div>
+
+      <div
+        className={`${styles.sidebarShell} ${sidebarOpen ? styles.sidebarShellOpen : ''}`}
+        aria-hidden={!sidebarOpen}
+        inert={!sidebarOpen}
+      >
+        <div className={styles.sidebarHeader} />
+        <MapSidebar
+          config={config}
+          updateConfig={updateConfig}
+          onExportSvg={handleExportSvg}
+        />
+      </div>
+
+      {windowed && <div className={styles.windowedSidebarToggle}>{sidebarToggle}</div>}
     </div>
   )
 }
