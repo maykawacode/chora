@@ -6,6 +6,7 @@
   "description": "Spatial reasoning for qualitative data",
   "main": "./out/main/index.js",
   "author": "Matt Mayfield",
+  "copyright": "Copyright © 2026 Matt Mayfield",
   "license": "MIT",
   "homepage": "https://github.com/maykawacode/chora#readme",
   "repository": {
@@ -71,6 +72,8 @@
     "mac": {
       "target": "dmg",
       "category": "public.app-category.education",
+      "icon": "resources/build/icon.icns",
+      "minimumSystemVersion": "12.0.0",
       "identity": "-",
       "hardenedRuntime": true,
       "entitlements": "resources/build/entitlements.mac.plist",

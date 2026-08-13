@@ -7,8 +7,11 @@
 // The string sent as the IPC channel directly maps to the 'action' string
 // handled by onMenuAction() in the preload and dispatched in App.tsx.
 
-import { Menu, MenuItem, MenuItemConstructorOptions, BrowserWindow, app } from 'electron'
+import { Menu, MenuItem, MenuItemConstructorOptions, BrowserWindow, app, shell } from 'electron'
 import type { MenuAction } from '../shared/contracts'
+
+const RELEASES_URL = 'https://github.com/maykawacode/chora/releases'
+const FEEDBACK_URL = 'https://github.com/maykawacode/chora/discussions'
 
 let _mainWindow: BrowserWindow | null = null
 let _closeWindowItem: MenuItem | null = null
@@ -178,7 +181,10 @@ export function buildMenu(): void {
     {
       label: 'Help',
       submenu: [
-        { label: 'Chora Orientation', click: () => sendToRenderer('orientation') }
+        { label: 'Chora Orientation', click: () => sendToRenderer('orientation') },
+        { type: 'separator' },
+        { label: 'Check for Updates…', click: () => { void shell.openExternal(RELEASES_URL) } },
+        { label: 'Project & Feedback…', click: () => { void shell.openExternal(FEEDBACK_URL) } }
       ]
     }
   ]
