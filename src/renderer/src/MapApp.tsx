@@ -21,8 +21,7 @@ import { usePrefsStore } from './store/prefsStore'
 import { deserializeSession } from './lib/parser'
 import { MapPanel } from './components/maps/MapPanel'
 import type { CartesianMapConfig, SemanticMapConfig } from './lib/types'
-import type { Preferences } from './lib/preferences'
-import { DEFAULT_PREFERENCES } from './lib/preferences'
+import { decodeMapStateEnvelope, mergePreferences } from '../../shared/contracts'
 
 export function MapApp(): React.JSX.Element {
   const [mapId, setMapId]   = useState<string | null>(null)
@@ -49,7 +48,7 @@ export function MapApp(): React.JSX.Element {
     // closure without needing to be passed as a parameter.
     const applyStatePayload = (payload: string, context: string): void => {
       try {
-        const { isDirty, filePath, session, selectedElementId, selectedElementIds } = JSON.parse(payload)
+        const { isDirty, filePath, session, selectedElementId, selectedElementIds } = decodeMapStateEnvelope(payload)
         loadSession({
           ...deserializeSession(session),
           isDirty:           isDirty           ?? false,
@@ -87,7 +86,7 @@ export function MapApp(): React.JSX.Element {
     // Preferences dialog. Merging with defaults ensures any field not yet in
     // the stored prefs (newly added fields) gets a sensible fallback value.
     const removePrefs = window.api.onPrefs((raw) => {
-      setPrefs({ ...DEFAULT_PREFERENCES, ...(raw as Partial<Preferences>) })
+      setPrefs(mergePreferences(raw))
     })
 
     // Signal readiness AFTER all listeners are attached to prevent map:init race
@@ -120,7 +119,7 @@ export function MapApp(): React.JSX.Element {
 
   return (
     <div style={{ width: '100vw', height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-      <MapPanel mapId={mapId} onClose={() => window.close()} windowed />
+      <MapPanel mapId={mapId} />
     </div>
   )
 }

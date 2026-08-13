@@ -23,19 +23,11 @@ import { useRef, useState, useEffect, KeyboardEvent } from 'react'
 import { useAppStore } from '../../store/appStore'
 import { history, SCORE_HISTORY_OWNER } from '../../store/history'
 import { usePrefsStore } from '../../store/prefsStore'
-import { ELEMENT_SHAPES } from '../../lib/types'
-import type { ElementShape } from '../../lib/types'
+import { ELEMENT_SHAPES, ELEMENT_SHAPE_SYMBOLS } from '../../lib/types'
 import { useResizableSplitPane } from './useResizableSplitPane'
 import { openWeight } from '../../lib/numericRange'
 import { ConfirmationDisc } from '../ConfirmationDisc'
 import styles from './DataTab.module.css'
-
-const SHAPE_SYMBOL: Record<ElementShape, string> = {
-  circle:   '●',
-  square:   '■',
-  triangle: '▲',
-  diamond:  '◆'
-}
 
 export function ElementsTab(): React.JSX.Element {
   const elements         = useAppStore(s => s.elements)
@@ -224,7 +216,7 @@ export function ElementsTab(): React.JSX.Element {
                     aria-selected={inGroup || el.id === selectedId}
                     onClick={e => handleRowClick(e, el.id)}
                   >
-                    <span className={styles.shapeIcon} style={{ color: el.color }}>{SHAPE_SYMBOL[el.shape]}</span>
+                    <span className={styles.shapeIcon} style={{ color: el.color }}>{ELEMENT_SHAPE_SYMBOLS[el.shape]}</span>
                     <span className={styles.name}>{el.name}</span>
                   </li>
                 )
@@ -291,7 +283,7 @@ export function ElementsTab(): React.JSX.Element {
                 onClick={() => selected && updateElement(selected.id, { shape })}
                 title={shape.charAt(0).toUpperCase() + shape.slice(1)}
               >
-                {SHAPE_SYMBOL[shape]}
+                {ELEMENT_SHAPE_SYMBOLS[shape]}
               </button>
             ))}
           </div>

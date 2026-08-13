@@ -1,34 +1,40 @@
 // ── MapPanel ──────────────────────────────────────────────────────────────────
 //
-// Renders a single map (cartesian or semantic) inside a resizable container.
-// Used in two contexts:
-//   1. Embedded in the Score Window's map list (windowed=false)
-//   2. Fullscreen in a dedicated BrowserWindow (windowed=true)
-//
-// When windowed=true, the title bar adds left padding to clear macOS traffic
-// lights and enables the -webkit-app-region:drag so the user can move the
-// window by dragging the title bar area.
-//
-// Hit testing and drag logic live entirely in this component; the draw
-// functions (drawCartesian / drawSemantic) are pure canvas painters.
+// Renders one cartesian or semantic map in its dedicated BrowserWindow.
+// Pure geometry and hit testing live in mapGeometry; this component coordinates
+// React state, canvas painting, pointer gestures, and map-window controls.
 
 import { useRef, useEffect, useCallback, useState } from 'react'
 import { useAppStore, type ScoreEntry } from '../../store/appStore'
 import { usePrefsStore } from '../../store/prefsStore'
-import type { CartesianMapConfig, SemanticMapConfig, Collection, Dimension, Element, ScoreMap } from '../../lib/types'
+import type { CartesianMapConfig, SemanticMapConfig, Dimension } from '../../lib/types'
 import C2S from 'canvas2svg'
-import { drawCartesian, MARGIN, POLE_LABEL_HIT_SPAN, cartesianDotRadius } from './cartesian/drawCartesian'
-import { drawSemantic, semanticElements, semDotRadius, SEM_MARGIN_H, SEM_MARGIN_V, SEM_DOT_MAX_R } from './semantic/drawSemantic'
+import { drawCartesian, MARGIN } from './cartesian/drawCartesian'
+import { drawSemantic, semanticElements, SEM_MARGIN_H } from './semantic/drawSemantic'
 import { ElementDetailModal } from './ElementDetailModal'
 import { BulkEditModal } from './BulkEditModal'
 import { MapSidebar } from './MapSidebar'
+import { MapWindowChrome } from './MapWindowChrome'
+import { ModalShell } from '../ModalShell'
 import styles from './MapPanel.module.css'
-import { numericRange } from '../../lib/numericRange'
 import { cartesianElements } from './collections'
+import {
+  cartesianDragStart,
+  cartesianHitDot,
+  cartesianHitEdge,
+  cartesianHitRect,
+  clampGroupDelta,
+  dragGroupIds,
+  semanticDragMembers,
+  semanticHitDot,
+  semanticHitRect,
+  semanticHitRow,
+  type DragTarget,
+  type Edge,
+  type SemanticDragTarget
+} from './mapGeometry'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-
-type Edge = 'left' | 'right' | 'top' | 'bottom'
 
 interface AxisPickerState {
   edge: Edge
@@ -43,357 +49,13 @@ interface SemanticPickerState {
   clickY: number
 }
 
-// ── Drag state ────────────────────────────────────────────────────────────────
-//
-// A drag moves the whole multi-selection when the grabbed dot belongs to it,
-// and just that dot otherwise. The group translates rigidly: every member keeps
-// its offset from the others, so a drag rearranges where a cluster sits without
-// rearranging the cluster.
-//
-// Start scores are captured once, at mouse-down, and every frame is computed as
-// an offset from them rather than from wherever the dots are now. Accumulating
-// frame to frame would let rounding drift the group apart, and would let a
-// clamped frame — one where the group is pressed against an edge — permanently
-// squash the spacing.
-
-/** One element a drag is moving, with the scores it started the gesture at. */
-interface DragMember {
-  id: string
-  x0: number
-  y0: number
-}
-
-// Active cartesian drag. startX/Y and lockedAxis are mutated in place during
-// the drag — they are NOT set by cartesianHitDot() (which only knows the hit
-// element) but are filled in by handleMouseDown() before storing in the ref.
-interface DragTarget {
-  elementId: string
-  xDimId: string
-  yDimId: string
-  members: DragMember[]   // everything this gesture moves, grabbed dot included
-  origin: DragMember      // the grabbed dot's start scores; deltas measure from here
-  startX: number          // pointer position when drag started — used to pick lock axis
-  startY: number
-  lockedAxis: 'x' | 'y' | null  // set on first significant move while Shift is held
-}
-
-/** One element a semantic drag is moving, on the single axis being dragged. */
-interface SemDragMember {
-  id: string
-  s0: number
-}
-
-interface SemanticDragTarget {
-  elementId: string
-  dimId: string
-  members: SemDragMember[]
-  origin: SemDragMember
-  startX: number
-  startY: number
-}
-
-/**
- * Shifts a delta as far as it can go without pushing any member outside 0–1.
- *
- * Clamping the group rather than each element is what keeps it rigid: clamp
- * individually and the members still in range keep going while the ones at the
- * edge stall, and the cluster deforms a little more every time it is dragged
- * into a wall.
- */
-function clampGroupDelta(starts: number[], delta: number): number {
-  let lo = -Infinity
-  let hi = Infinity
-  for (const s of starts) {
-    lo = Math.max(lo, -s)
-    hi = Math.min(hi, 1 - s)
-  }
-  return Math.min(hi, Math.max(lo, delta))
-}
-
-/**
- * The scores an element starts a cartesian drag at.
- *
- * An axis with no score falls back to 0.5, which is exactly where
- * drawCartesian plots it — so an unscored dot moves from where it appears
- * instead of jumping. Dragging it does turn that placeholder into a real
- * score, which is what a single-dot drag has always done.
- */
-function cartesianDragStart(id: string, xDimId: string, yDimId: string, scores: ScoreMap): DragMember {
-  return {
-    id,
-    x0: scores[id]?.[xDimId] ?? 0.5,
-    y0: scores[id]?.[yDimId] ?? 0.5
-  }
-}
-
-/**
- * The elements a drag gesture moves: the whole multi-selection when the grabbed
- * element is part of it, otherwise the grabbed element alone.
- */
-function dragGroupIds(draggedId: string, selectedIds: string[]): string[] {
-  return selectedIds.includes(draggedId) ? selectedIds : [draggedId]
-}
-
-/**
- * The members of a semantic drag, on the one axis being dragged.
- *
- * Two ways an id in the group is dropped, and both mean the same thing: there
- * is no dot on screen to move. An element unscored on that axis has none drawn
- * there, and one hidden by the map's collection filter has none drawn at all —
- * a selection made while it was selected can leave it in selectedElementIds
- * long after it left the map. Dragging it would edit scores the user cannot
- * see moving.
- *
- * This is the opposite of the cartesian case only because the maps differ —
- * there, every element is drawn and an unscored one sits at the center.
- */
-function semanticDragMembers(
-  ids: string[], dimId: string, scores: ScoreMap, visible: Set<string>
-): SemDragMember[] {
-  const members: SemDragMember[] = []
-  for (const id of ids) {
-    if (!visible.has(id)) continue
-    const s0 = scores[id]?.[dimId]
-    if (s0 !== undefined) members.push({ id, s0 })
-  }
-  return members
-}
-
-// ── Hit-test helpers ──────────────────────────────────────────────────────────
-
-/**
- * Distributes semantic axes evenly across the canvas height.
- * Returns a single centered Y for one dimension, or evenly spaced Ys for many.
- */
-function semAxisYs(H: number, count: number): number[] {
-  if (count === 0) return []
-  if (count === 1) return [H / 2]
-  return Array.from({ length: count }, (_, i) =>
-    SEM_MARGIN_V + i * (H - 2 * SEM_MARGIN_V) / (count - 1)
-  )
-}
-
-/**
- * Returns the semantic dimension row index hit by a pointer at (_, y), or -1.
- * Tolerates ±6px from the axis line so small dots are easy to grab.
- */
-function semanticHitRow(y: number, H: number, dimCount: number): number {
-  if (dimCount === 0) return -1
-  const ys  = semAxisYs(H, dimCount)
-  const TOL = 6
-  for (let i = 0; i < ys.length; i++) {
-    if (Math.abs(y - ys[i]) <= TOL) return i
-  }
-  return -1
-}
-
-/**
- * Returns which cartesian axis edge was clicked, or null.
- * Matches both the center crosshair lines (inside the plot) and the pole
- * label region (in the margin) so users can click either target.
- */
-function cartesianHitEdge(x: number, y: number, W: number, H: number): Edge | null {
-  const midX = W / 2
-  const midY = H / 2
-  const pL = MARGIN, pR = W - MARGIN, pT = MARGIN, pB = H - MARGIN
-  const TOL = 6
-
-  if (Math.abs(y - midY) <= TOL && x >= pL && x <= pR) return x < midX ? 'left' : 'right'
-  if (Math.abs(x - midX) <= TOL && y >= pT && y <= pB) return y < midY ? 'top' : 'bottom'
-
-  // Pole label areas. Every label runs parallel to its own plot edge, so all
-  // four bands are measured the same way — along that edge, out from its
-  // midpoint — and share one span. The vertical pair used to need a shorter
-  // span than the horizontal pair because its text ran crosswise; the quarter
-  // turn in drawPoleLabel removed that difference.
-  if (x < pL && Math.abs(y - midY) <= POLE_LABEL_HIT_SPAN) return 'left'
-  if (x > pR && Math.abs(y - midY) <= POLE_LABEL_HIT_SPAN) return 'right'
-  if (y < pT && Math.abs(x - midX) <= POLE_LABEL_HIT_SPAN) return 'top'
-  if (y > pB && Math.abs(x - midX) <= POLE_LABEL_HIT_SPAN) return 'bottom'
-
-  return null
-}
-
-/**
- * Projects a 0–1 score pair into canvas coordinates for a cartesian map,
- * applying axis flips and the Y inversion. Mirrors drawCartesian's `project`.
- */
-function cartesianProject(
-  config: CartesianMapConfig, W: number, H: number, xScore: number, yScore: number
-): { x: number; y: number } {
-  const plotW = W - 2 * MARGIN
-  const plotH = H - 2 * MARGIN
-  return {
-    x: MARGIN + (config.xFlipped ? 1 - xScore : xScore) * plotW,
-    y: MARGIN + (1 - (config.yFlipped ? 1 - yScore : yScore)) * plotH
-  }
-}
-
-/**
- * Returns a partial DragTarget (no startX/Y/lockedAxis) for the cartesian dot
- * under the pointer, or null. The caller fills in the missing fields before
- * storing the result.
- *
- * Uses the same visibility selector as painting, so a collection-filtered dot
- * can never remain interactive after it disappears.
- */
-function cartesianHitDot(
-  x: number, y: number, W: number, H: number,
-  config: CartesianMapConfig,
-  elements: Element[],
-  collections: Collection[],
-  scores: ScoreMap
-): Pick<DragTarget, 'elementId' | 'xDimId' | 'yDimId'> | null {
-  if (config.marks === 'none') return null
-
-  // Test lightest (topmost-drawn) elements first so stacked dots select correctly
-  const sorted = [...cartesianElements(config, elements, collections)]
-    .sort((a, b) => a.weight - b.weight)
-  const weightRange = numericRange(elements.map(element => element.weight))
-
-  for (const el of sorted) {
-    // Mirror drawCartesian: use 0.5 placeholder for any missing axis
-    const { x: cx, y: cy } = cartesianProject(config, W, H,
-      scores[el.id]?.[config.xDimensionId] ?? 0.5,
-      scores[el.id]?.[config.yDimensionId] ?? 0.5)
-    const r = cartesianDotRadius(config, el.weight, weightRange)
-
-    // Use max(r, 8) so tiny dots still have a reasonable tap target
-    if ((x - cx) ** 2 + (y - cy) ** 2 <= Math.max(r, 8) ** 2) {
-      return { elementId: el.id, xDimId: config.xDimensionId, yDimId: config.yDimensionId }
-    }
-  }
-  return null
-}
-
-/**
- * Returns the semantic element × dimension under the pointer, or null.
- */
-function semanticHitDot(
-  x: number, y: number, W: number, H: number,
-  config: SemanticMapConfig,
-  elements: Element[],
-  collections: Collection[],
-  dimensions: Dimension[],
-  scores: ScoreMap
-): Pick<SemanticDragTarget, 'elementId' | 'dimId'> | null {
-  if (config.marks === 'none') return null
-
-  const axisLeft  = SEM_MARGIN_H
-  const axisRight = W - SEM_MARGIN_H
-  const axisWidth = axisRight - axisLeft
-
-  const dims = config.dimensionIds
-    .map(id => dimensions.find(d => d.id === id))
-    .filter((d): d is Dimension => d !== undefined)
-
-  const els = semanticElements(config, elements, collections)
-  const ys  = semAxisYs(H, dims.length)
-  const weightRange = numericRange(elements.map(element => element.weight))
-
-  // Row pre-filter uses the largest dot any element could have, so a heavy
-  // (large) dot isn't skipped before its own radius is checked below.
-  const ROW_TOL = Math.max(SEM_DOT_MAX_R, 8)
-
-  for (let i = 0; i < dims.length; i++) {
-    const dim = dims[i]
-    const ay  = ys[i]
-    if (Math.abs(y - ay) > ROW_TOL) continue
-    for (const el of els) {
-      const raw = scores[el.id]?.[dim.id]
-      if (raw === undefined) continue
-      const score = config.flippedDimensionIds.includes(dim.id) ? 1 - raw : raw
-      const dx = axisLeft + score * axisWidth
-      // Min 8px so tiny dots still have a reasonable tap target
-      const hit = Math.max(semDotRadius(config, el.weight, weightRange), 8)
-      if ((x - dx) ** 2 + (y - ay) ** 2 <= hit ** 2) {
-        return { elementId: el.id, dimId: dim.id }
-      }
-    }
-  }
-  return null
-}
-
-/**
- * Returns IDs of all visible elements whose cartesian dot center falls inside
- * the lasso rectangle defined by (rx1,ry1)→(rx2,ry2) in canvas coordinates.
- */
-function cartesianHitRect(
-  rx1: number, ry1: number, rx2: number, ry2: number,
-  W: number, H: number,
-  config: CartesianMapConfig,
-  elements: Element[],
-  collections: Collection[],
-  scores: ScoreMap
-): string[] {
-  const minX = Math.min(rx1, rx2), maxX = Math.max(rx1, rx2)
-  const minY = Math.min(ry1, ry2), maxY = Math.max(ry1, ry2)
-
-  const hitIds: string[] = []
-  for (const el of cartesianElements(config, elements, collections)) {
-    const { x: cx, y: cy } = cartesianProject(config, W, H,
-      scores[el.id]?.[config.xDimensionId] ?? 0.5,
-      scores[el.id]?.[config.yDimensionId] ?? 0.5)
-    if (cx >= minX && cx <= maxX && cy >= minY && cy <= maxY) hitIds.push(el.id)
-  }
-  return hitIds
-}
-
-/**
- * Returns IDs of all elements that have at least one scored dot inside the
- * lasso rectangle defined by (rx1,ry1)→(rx2,ry2) in canvas coordinates.
- */
-function semanticHitRect(
-  rx1: number, ry1: number, rx2: number, ry2: number,
-  W: number, H: number,
-  config: SemanticMapConfig,
-  elements: Element[],
-  collections: Collection[],
-  dimensions: Dimension[],
-  scores: ScoreMap
-): string[] {
-  const minX = Math.min(rx1, rx2)
-  const maxX = Math.max(rx1, rx2)
-  const minY = Math.min(ry1, ry2)
-  const maxY = Math.max(ry1, ry2)
-
-  const axisLeft  = SEM_MARGIN_H
-  const axisRight = W - SEM_MARGIN_H
-  const axisWidth = axisRight - axisLeft
-
-  const dims = config.dimensionIds
-    .map(id => dimensions.find(d => d.id === id))
-    .filter((d): d is Dimension => d !== undefined)
-
-  const els    = semanticElements(config, elements, collections)
-  const ys     = semAxisYs(H, dims.length)
-  const hitIds = new Set<string>()
-
-  for (let i = 0; i < dims.length; i++) {
-    const ay = ys[i]
-    if (ay < minY || ay > maxY) continue
-    const dim = dims[i]
-    for (const el of els) {
-      const raw = scores[el.id]?.[dim.id]
-      if (raw === undefined) continue
-      const score = config.flippedDimensionIds.includes(dim.id) ? 1 - raw : raw
-      const dx = axisLeft + score * axisWidth
-      if (dx >= minX && dx <= maxX) hitIds.add(el.id)
-    }
-  }
-
-  return [...hitIds]
-}
-
 // ── MapPanel component ────────────────────────────────────────────────────────
 
 interface Props {
   mapId: string
-  onClose: () => void
-  windowed?: boolean  // true when rendered inside a dedicated BrowserWindow
 }
 
-export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element | null {
+export function MapPanel({ mapId }: Props): React.JSX.Element | null {
   const config              = useAppStore(s => s.maps.find(m => m.id === mapId))
   const filePath            = useAppStore(s => s.filePath)
   const elements            = useAppStore(s => s.elements)
@@ -450,12 +112,9 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
   const [elementModal,   setElementModal]   = useState<string | null>(null)
   const [bulkModalIds,   setBulkModalIds]   = useState<string[]>([])
   const [cursor,         setCursor]         = useState('default')
-  const [editingTitle,   setEditingTitle]   = useState(false)
-  const [titleDraft,     setTitleDraft]     = useState('')
   // Sidebar visibility lives here, not in MapSidebar, because the toggle that
   // drives it sits in the title bar. Deliberately not persisted.
   const [sidebarOpen,    setSidebarOpen]    = useState(false)
-  const titleInputRef = useRef<HTMLInputElement>(null)
 
   // A map modal owns keyboard interaction while it is visible. Tell main to
   // gate native Undo/Redo; cleanup also releases a block if this renderer exits.
@@ -528,34 +187,17 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
     window.api?.broadcastMultiSelection(selectedIds)
   }
 
-  // Escape clears all selection, on every map type, wherever focus sits in the
-  // map window.
+  // Escape closes any map picker and clears all selection on every map type.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') deselectAll()
+      if (e.key !== 'Escape') return
+      setAxisPicker(null)
+      setSemanticPicker(null)
+      deselectAll()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [deselectAll])
-
-  // ── Title editing ─────────────────────────────────────────────────────────────
-
-  function startEditingTitle(): void {
-    setTitleDraft(config?.title ?? '')
-    setEditingTitle(true)
-    // Focus the input after React renders it — setTimeout yields to the paint cycle
-    setTimeout(() => { titleInputRef.current?.select() }, 0)
-  }
-
-  function commitTitle(): void {
-    const trimmed = titleDraft.trim()
-    if (trimmed && trimmed !== config?.title) updateConfig({ title: trimmed })
-    setEditingTitle(false)
-  }
-
-  function cancelTitle(): void {
-    setEditingTitle(false)
-  }
 
   function handleExportSvg(): void {
     const wrapper = wrapperRef.current
@@ -1028,103 +670,16 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
   // narrowing casts are only ever read for the matching map type.
   const cartConfig = config as CartesianMapConfig
   const semConfig  = config as SemanticMapConfig
-  const sidebarToggle = (
-    <button
-      className={`${styles.sidebarBtn} ${sidebarOpen ? styles.sidebarBtnActive : ''}`}
-      onClick={() => setSidebarOpen(o => !o)}
-      title={sidebarOpen ? 'Hide map controls' : 'Show map controls'}
-      aria-label={sidebarOpen ? 'Hide map controls' : 'Show map controls'}
-      aria-pressed={sidebarOpen}
-    >
-      {/* Standard sidebar glyph: a panel outline with the right pane filled */}
-      <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true">
-        <rect
-          x="1.5" y="2.5" width="13" height="11" rx="2"
-          fill="none" stroke="currentColor" strokeWidth="1.3"
-        />
-        <path d="M10 2.5v11" stroke="currentColor" strokeWidth="1.3" />
-        <path d="M10 3.5h3a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1h-3z" fill="currentColor" />
-      </svg>
-    </button>
-  )
-
   return (
-    <div className={`${windowed ? styles.panelWindowed : styles.panel} ${sidebarOpen ? styles.panelSidebarOpen : ''}`}>
-      <div className={`${styles.titleBar} ${windowed ? styles.titleBarWindowed : ''}`}>
-        {windowed && (
-          <div className={styles.windowControls} aria-label="Window controls">
-            <button
-              className={`${styles.windowControl} ${styles.windowControlClose}`}
-              onClick={() => window.api.controlMapWindow('close')}
-              title="Close"
-              aria-label="Close window"
-            >
-              <span aria-hidden="true">×</span>
-            </button>
-            <button
-              className={`${styles.windowControl} ${styles.windowControlMinimize}`}
-              onClick={() => window.api.controlMapWindow('minimize')}
-              title="Minimize"
-              aria-label="Minimize window"
-            >
-              <span aria-hidden="true">−</span>
-            </button>
-            <button
-              className={`${styles.windowControl} ${styles.windowControlZoom}`}
-              onClick={() => window.api.controlMapWindow('zoom')}
-              title="Zoom"
-              aria-label="Zoom window"
-            >
-              <span aria-hidden="true">+</span>
-            </button>
-          </div>
-        )}
-
-        {/* The group is rendered unconditionally and only its naming element
-            swaps, so the unsaved badge keeps its place beside the name while
-            the title is being edited. */}
-        <div className={styles.titleGroup}>
-          {editingTitle ? (
-            <input
-              ref={titleInputRef}
-              className={styles.titleInput}
-              value={titleDraft}
-              onChange={e => setTitleDraft(e.target.value)}
-              onBlur={commitTitle}
-              onKeyDown={e => {
-                if (e.key === 'Enter')  { e.preventDefault(); commitTitle() }
-                if (e.key === 'Escape') { e.preventDefault(); cancelTitle() }
-              }}
-            />
-          ) : (
-            <>
-              <span
-                className={styles.title}
-                onDoubleClick={startEditingTitle}
-                title="Double-click to rename"
-              >
-                {config.title}
-              </span>
-              {windowed && filePath && (
-                <span className={styles.titleFileName}>
-                  {filePath.split('/').pop()}
-                </span>
-              )}
-            </>
-          )}
-
-          {isDirty && <span className={styles.unsavedBadge}>Unsaved</span>}
-        </div>
-
-        <div className={styles.titleBarActions}>
-          {/* Close button only shown in embedded (non-windowed) mode */}
-          {!windowed && (
-            <button className={styles.closeBtn} onClick={onClose} title="Close map">✕</button>
-          )}
-
-          {!windowed && sidebarToggle}
-        </div>
-      </div>
+    <div className={`${styles.panelWindowed} ${sidebarOpen ? styles.panelSidebarOpen : ''}`}>
+      <MapWindowChrome
+        title={config.title}
+        filePath={filePath}
+        isDirty={isDirty}
+        sidebarOpen={sidebarOpen}
+        onRename={title => updateConfig({ title })}
+        onToggleSidebar={() => setSidebarOpen(open => !open)}
+      />
 
       {/* Body — canvas on the left, collapsible control sidebar on the right */}
       <div className={styles.body}>
@@ -1265,7 +820,6 @@ export function MapPanel({ mapId, onClose, windowed }: Props): React.JSX.Element
         />
       </div>
 
-      {windowed && <div className={styles.windowedSidebarToggle}>{sidebarToggle}</div>}
     </div>
   )
 }
@@ -1294,23 +848,21 @@ function AxisPicker({ edge, clickX, clickY, currentId, isFlipped, dimensions, on
   const pickerStyle: React.CSSProperties = (() => {
     const base: React.CSSProperties = { position: 'absolute', zIndex: 10 }
     switch (edge) {
-      case 'left':   return { ...base, left: MARGIN + 4,  top: Math.max(4, clickY - 20) }
-      case 'right':  return { ...base, right: MARGIN + 4, top: Math.max(4, clickY - 20) }
-      case 'top':    return { ...base, left: Math.max(4, clickX - 70), top: MARGIN + 4 }
+      case 'left':   return { ...base, left: MARGIN + 4,  top: `calc(var(--map-titlebar-height) + ${Math.max(4, clickY - 20)}px)` }
+      case 'right':  return { ...base, right: MARGIN + 4, top: `calc(var(--map-titlebar-height) + ${Math.max(4, clickY - 20)}px)` }
+      case 'top':    return { ...base, left: Math.max(4, clickX - 70), top: `calc(var(--map-titlebar-height) + ${MARGIN + 4}px)` }
       case 'bottom': return { ...base, left: Math.max(4, clickX - 70), bottom: MARGIN + 4 }
     }
   })()
 
   return (
-    <>
-      <div className={styles.axisPickerBackdrop} onClick={onClose} />
-      <div
-        className={`${styles.axisPicker} modalZoomEnter`}
-        style={pickerStyle}
-        role="dialog"
-        aria-modal="true"
-        aria-label={`${axis} options`}
-      >
+    <ModalShell
+      overlayClassName={styles.axisPickerBackdrop}
+      dialogClassName={styles.axisPicker}
+      onClose={onClose}
+      label={`${axis} options`}
+      dialogStyle={pickerStyle}
+    >
         <div className={styles.axisPickerTitle}>{axis}</div>
         <button
           className={styles.axisPickerFlipBtn}
@@ -1330,8 +882,7 @@ function AxisPicker({ edge, clickX, clickY, currentId, isFlipped, dimensions, on
             </li>
           ))}
         </ul>
-      </div>
-    </>
+    </ModalShell>
   )
 }
 
@@ -1358,19 +909,17 @@ function SemanticAxisPicker({ currentDimId, isFlipped, dimensions, clickX, click
     position: 'absolute',
     zIndex: 10,
     left: Math.max(4, clickX - 70),
-    top:  Math.max(4, clickY - 20)
+    top:  `calc(var(--map-titlebar-height) + ${Math.max(4, clickY - 20)}px)`
   }
 
   return (
-    <>
-      <div className={styles.axisPickerBackdrop} onClick={onClose} />
-      <div
-        className={`${styles.axisPicker} modalZoomEnter`}
-        style={pickerStyle}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Dimension options"
-      >
+    <ModalShell
+      overlayClassName={styles.axisPickerBackdrop}
+      dialogClassName={styles.axisPicker}
+      onClose={onClose}
+      label="Dimension options"
+      dialogStyle={pickerStyle}
+    >
         <div className={styles.axisPickerTitle}>Dimension</div>
         <button
           className={styles.axisPickerFlipBtn}
@@ -1390,8 +939,7 @@ function SemanticAxisPicker({ currentDimId, isFlipped, dimensions, clickX, click
             </li>
           ))}
         </ul>
-      </div>
-    </>
+    </ModalShell>
   )
 }
 

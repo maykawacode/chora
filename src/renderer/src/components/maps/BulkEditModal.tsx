@@ -12,21 +12,15 @@
 // the user did touch are driven to all-or-none, and the result is a different
 // id list per element. Hence the two-part BulkChanges below.
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { useAppStore } from '../../store/appStore'
-import { ELEMENT_SHAPES } from '../../lib/types'
+import { ELEMENT_SHAPES, ELEMENT_SHAPE_SYMBOLS } from '../../lib/types'
 import type { Element, ElementShape } from '../../lib/types'
-import styles from './BulkEditModal.module.css'
+import styles from './ElementDetailModal.module.css'
 import { openWeight } from '../../lib/numericRange'
 import { CollectionChoiceRow } from '../CollectionChoiceRow'
 import { ForwardActionButton } from '../ConfirmationDisc'
-
-const SHAPE_SYMBOL: Record<ElementShape, string> = {
-  circle:   '●',
-  square:   '■',
-  triangle: '▲',
-  diamond:  '◆'
-}
+import { ModalShell } from '../ModalShell'
 
 export interface BulkChanges {
   /** Applied identically to every selected element. */
@@ -118,12 +112,6 @@ export function BulkEditModal({ elementIds, elements, onClose }: Props): React.J
     onClose({ fields, collectionIds })
   }
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') handleCloseRef.current(false) }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [])
-
   const handleApply  = useCallback(() => handleCloseRef.current(true),  [])
   const handleCancel = useCallback(() => handleCloseRef.current(false), [])
 
@@ -138,18 +126,7 @@ export function BulkEditModal({ elementIds, elements, onClose }: Props): React.J
   }
 
   return (
-    <div
-      className={styles.overlay}
-      onClick={e => {
-        e.stopPropagation()
-        if (e.target === e.currentTarget) handleCancel()
-      }}
-      onMouseDown={e => e.stopPropagation()}
-      onMouseMove={e => e.stopPropagation()}
-      onMouseUp={e => e.stopPropagation()}
-      onContextMenu={e => e.stopPropagation()}
-    >
-      <div className={`${styles.modal} modalZoomEnter`}>
+    <ModalShell overlayClassName={styles.overlay} dialogClassName={styles.modal} onClose={handleCancel}>
         <div className={styles.header}>
           <span className={styles.name}>Edit {elementIds.length} Elements</span>
         </div>
@@ -186,7 +163,7 @@ export function BulkEditModal({ elementIds, elements, onClose }: Props): React.J
                 onClick={() => setShape(prev => prev === s ? null : s)}
                 title={s.charAt(0).toUpperCase() + s.slice(1)}
               >
-                {SHAPE_SYMBOL[s]}
+                {ELEMENT_SHAPE_SYMBOLS[s]}
               </button>
             ))}
           </div>
@@ -204,7 +181,7 @@ export function BulkEditModal({ elementIds, elements, onClose }: Props): React.J
           />
         </div>
 
-        <div className={styles.collectionsSection}>
+        <div className={`${styles.collectionsSection} ${styles.bulkCollectionsSection}`}>
           <span className={styles.collectionsLabel}>Collections</span>
           {collections.length > 0 && (
             <div className={styles.collectionList}>
@@ -246,7 +223,6 @@ export function BulkEditModal({ elementIds, elements, onClose }: Props): React.J
         <div className={styles.footer}>
           <ForwardActionButton label="Apply changes" onClick={handleApply} />
         </div>
-      </div>
-    </div>
+    </ModalShell>
   )
 }

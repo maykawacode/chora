@@ -11,6 +11,7 @@ import { usePrefsStore } from '../store/prefsStore'
 import type { Preferences } from '../lib/preferences'
 import type { MarkMode } from '../lib/types'
 import { ForwardActionButton } from './ConfirmationDisc'
+import { ModalShell } from './ModalShell'
 import styles from './PreferencesDialog.module.css'
 
 interface Props { onClose: () => void }
@@ -26,17 +27,16 @@ export function PreferencesDialog({ onClose }: Props): React.JSX.Element {
 
   function handleSave(): void {
     setPrefs(draft)
-    window.api?.savePreferences(draft as unknown as Record<string, unknown>)
+    window.api?.savePreferences(draft)
     // Push updated prefs to all open map BrowserWindows. Each has its own
     // renderer process with its own prefsStore, so they won't see the change
     // unless we explicitly relay it over IPC.
-    window.api?.broadcastPrefs(draft as unknown as Record<string, unknown>)
+    window.api?.broadcastPrefs(draft)
     onClose()
   }
 
   return (
-    <div className={styles.overlay} onClick={e => { if (e.target === e.currentTarget) onClose() }}>
-      <div className={styles.dialog}>
+    <ModalShell overlayClassName={styles.overlay} dialogClassName={styles.dialog} onClose={onClose}>
         <h2 className={styles.title}>Preferences</h2>
 
         {/* ── Window ── */}
@@ -167,7 +167,6 @@ export function PreferencesDialog({ onClose }: Props): React.JSX.Element {
           <button className={styles.btnCancel} onClick={onClose}>Cancel</button>
           <ForwardActionButton label="Save preferences" onClick={handleSave} />
         </div>
-      </div>
-    </div>
+    </ModalShell>
   )
 }

@@ -11,6 +11,13 @@ export type ElementShape = 'circle' | 'square' | 'triangle' | 'diamond'
 
 export const ELEMENT_SHAPES: ElementShape[] = ['circle', 'square', 'triangle', 'diamond']
 
+export const ELEMENT_SHAPE_SYMBOLS: Record<ElementShape, string> = {
+  circle: '●',
+  square: '■',
+  triangle: '▲',
+  diamond: '◆'
+}
+
 export interface SessionMeta {
   id: string          // UUID, generated once at session creation, never changed
   name: string        // human name for this analysis
@@ -94,7 +101,8 @@ export type ColorMode = 'none' | 'element' | 'collection'
 //   'element' — each element's own shape attribute
 // Replaced the earlier showDots boolean; see readMarkMode in parser.ts for how
 // files written before this change are migrated.
-export type MarkMode = 'none' | 'circle' | 'element'
+export type { MarkMode } from '../../../shared/contracts'
+import type { MarkMode } from '../../../shared/contracts'
 
 // Settings every map has, all driven from the map window's sidebar.
 //

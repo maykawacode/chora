@@ -204,25 +204,6 @@
   box-shadow: 0 0 0 2px rgba(128,128,64,0.2);
 }
 
-.addBtn {
-  width: 26px;
-  height: 26px;
-  border: 1px solid #b0a898;
-  border-radius: 4px;
-  background: #e0ddd8;
-  cursor: pointer;
-  font-size: 16px;
-  line-height: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: inherit;
-}
-
-.addBtn:hover {
-  background: #d0cdc8;
-}
-
 .starterBtn {
   width: 26px;
   height: 26px;
@@ -244,9 +225,7 @@
   background: #d0cdc8;
 }
 
-/* Full-width action under the add row, for operations that act on the whole
-   list rather than one item. Same surface as .addBtn, sized to read as a
-   sentence instead of an icon. */
+/* Full-width action under the add row for operations on the whole list. */
 .bulkBtn {
   padding: 4px 8px;
   border: 1px solid #b0a898;

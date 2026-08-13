@@ -148,27 +148,3 @@
   font-size: 11px;
   color: #888;
 }
-
-.buttons {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.btnCancel {
-  padding: 5px 16px;
-  border-radius: 5px;
-  font-size: 13px;
-  font-family: inherit;
-  cursor: pointer;
-}
-
-.btnCancel {
-  border: 1px solid #b0a898;
-  background: #e0ddd8;
-  color: #333;
-}
-
-.btnCancel:hover {
-  background: #d0cdc8;
-}

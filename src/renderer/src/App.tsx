@@ -2,7 +2,7 @@
 //
 // This is the top-level component of the Score Window (main window). It owns:
 //
-//   • The Zustand app state and all file I/O
+//   • The Zustand app state and document-workflow coordination
 //   • All modal dialog visibility state
 //   • IPC listeners for map window events (score updates, map closes, config changes)
 //   • The suppressBroadcast ref that prevents IPC feedback loops
@@ -23,102 +23,33 @@ import { ImportPreview } from './components/ImportPreview'
 import { PreferencesDialog } from './components/PreferencesDialog'
 import { WelcomeDialog } from './components/WelcomeDialog'
 import { ConfirmationDisc } from './components/ConfirmationDisc'
-import { serializeSession, deserializeSession, deserializeBundledExample } from './lib/parser'
-import { parseSpreadsheet } from './lib/importer'
-import type { ImportResult } from './lib/importer'
-import { exportSpreadsheet } from './lib/exporter'
+import { OrientationDialog } from './components/OrientationDialog'
+import { serializeSession } from './lib/parser'
+import {
+  chooseSpreadsheetImport,
+  exportDocument,
+  openBundledExample,
+  openDocument,
+  openOrientationDocument,
+  reopenLastDocument,
+  saveDocument,
+  type ImportPreviewData
+} from './lib/documentWorkflows'
 import type { CartesianMapConfig, SemanticMapConfig, Element } from './lib/types'
-import type { Preferences } from './lib/preferences'
 import styles from './App.module.css'
+import { encodeMapStateEnvelope } from '../../shared/contracts'
 
 type StoreState = ReturnType<typeof useAppStore.getState>
 
 /** One canonical payload shape for every Score Window → map state push. */
 function encodeStateEnvelope(state: StoreState): string {
-  return JSON.stringify({
+  return encodeMapStateEnvelope({
     isDirty: state.isDirty,
     filePath: state.filePath,
     session: serializeSession(state),
     selectedElementId: state.selectedElementId,
     selectedElementIds: state.selectedElementIds
   })
-}
-
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
-}
-
-function renderInlineMarkdown(text: string): React.ReactNode[] {
-  return text.split(/(\*\*[^*]+\*\*)/g).filter(Boolean).map((part, index) =>
-    part.startsWith('**') && part.endsWith('**')
-      ? <strong key={index}>{part.slice(2, -2)}</strong>
-      : part
-  )
-}
-
-/** Render the deliberately small Markdown subset used by bundled Help. */
-function OrientationDocument({ markdown }: { markdown: string }): React.JSX.Element {
-  const lines = markdown.split(/\r?\n/)
-  const blocks: React.JSX.Element[] = []
-
-  for (let index = 0; index < lines.length;) {
-    const line = lines[index].trim()
-    if (!line) { index++; continue }
-
-    if (line.startsWith('# ')) {
-      blocks.push(<h1 key={index}>{renderInlineMarkdown(line.slice(2))}</h1>)
-      index++
-      continue
-    }
-    if (line.startsWith('## ')) {
-      blocks.push(<h2 key={index}>{renderInlineMarkdown(line.slice(3))}</h2>)
-      index++
-      continue
-    }
-    if (line.startsWith('### ')) {
-      blocks.push(<h3 key={index}>{renderInlineMarkdown(line.slice(4))}</h3>)
-      index++
-      continue
-    }
-    if (line.startsWith('- ')) {
-      const start = index
-      const items: string[] = []
-      while (index < lines.length && lines[index].trim().startsWith('- ')) {
-        const itemLines = [lines[index].trim().slice(2)]
-        index++
-        while (index < lines.length) {
-          const continuation = lines[index].trim()
-          if (!continuation || continuation.startsWith('#') || continuation.startsWith('- ')) break
-          itemLines.push(continuation)
-          index++
-        }
-        items.push(itemLines.join(' '))
-      }
-      blocks.push(
-        <ul key={start}>{items.map((item, itemIndex) =>
-          <li key={itemIndex}>{renderInlineMarkdown(item)}</li>
-        )}</ul>
-      )
-      continue
-    }
-
-    const start = index
-    const paragraph: string[] = []
-    while (index < lines.length) {
-      const candidate = lines[index].trim()
-      if (!candidate || candidate.startsWith('#') || candidate.startsWith('- ')) break
-      paragraph.push(candidate)
-      index++
-    }
-    blocks.push(<p key={start}>{renderInlineMarkdown(paragraph.join(' '))}</p>)
-  }
-
-  return <div className={styles.orientationContent}>{blocks}</div>
-}
-
-/** An error must remain visible even if its bring-to-front request also fails. */
-async function focusMainSafely(): Promise<void> {
-  try { await window.api.focusMainWindow() } catch { /* alert in the caller */ }
 }
 
 export function App(): React.JSX.Element {
@@ -150,7 +81,7 @@ export function App(): React.JSX.Element {
   const [showStarterPicker,    setShowStarterPicker]    = useState(false)
   const [showPreferences,      setShowPreferences]      = useState(false)
   const [orientationMarkdown, setOrientationMarkdown] = useState<string | null>(null)
-  const [importPreview,        setImportPreview]        = useState<{ fileName: string; result: ImportResult } | null>(null)
+  const [importPreview,        setImportPreview]        = useState<ImportPreviewData | null>(null)
 
   // True while any modal is open — used to bring the Score Window to the front
   // so it is not obscured by map BrowserWindows
@@ -197,23 +128,11 @@ export function App(): React.JSX.Element {
   useEffect(() => {
     const { prefs } = usePrefsStore.getState()
     if (prefs.reopenLastFile && prefs.lastFilePath) {
-      window.api.readFile(prefs.lastFilePath)
-        .then(json => {
-          const state = deserializeSession(json)
-          history.replaceDocument(() => {
-            loadSession({ ...state, filePath: prefs.lastFilePath!, isDirty: false })
-            selectElements([])
-          })
-          window.api.restoreMainWindowBounds()
-        })
-        .catch(async (error: unknown) => {
-          // Auto-reopen initially suppresses Welcome, so a failed read or parse
-          // must restore a recovery path instead of leaving an unexplained
-          // empty window.
-          await focusMainSafely()
-          alert(`Could not reopen the last file:\n${errorMessage(error)}`)
-          setShowWelcome(true)
-        })
+      reopenLastDocument(prefs.lastFilePath).then(loaded => {
+        // Auto-reopen initially suppresses Welcome, so failure restores a
+        // recovery path instead of leaving an unexplained empty window.
+        if (!loaded) setShowWelcome(true)
+      })
     }
   }, [])  // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -366,15 +285,6 @@ export function App(): React.JSX.Element {
     window.api?.setModalOpen?.(isModalOpen)
   }, [isModalOpen])
 
-  useEffect(() => {
-    if (orientationMarkdown === null) return
-    const closeOnEscape = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape') setOrientationMarkdown(null)
-    }
-    window.addEventListener('keydown', closeOnEscape)
-    return () => window.removeEventListener('keydown', closeOnEscape)
-  }, [orientationMarkdown])
-
   // ── Title bar ─────────────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -399,12 +309,7 @@ export function App(): React.JSX.Element {
         case 'create-semantic':    setShowCreateSemantic(true);   break
         case 'preferences':        setShowPreferences(true);      break
         case 'orientation':
-          try {
-            setOrientationMarkdown(await window.api.readHelpDocument('orientation.md'))
-          } catch (error) {
-            await focusMainSafely()
-            alert(`Could not open Chora Orientation:\n${errorMessage(error)}`)
-          }
+          setOrientationMarkdown(await openOrientationDocument())
           break
       }
     })
@@ -420,47 +325,18 @@ export function App(): React.JSX.Element {
 
   async function handleOpen(): Promise<boolean> {
     if (isDirty && !await confirmDiscard()) return false
-    const path = await window.api.openFile()
-    if (!path) return false
-    try {
-      const json  = await window.api.readFile(path)
-      const state = deserializeSession(json)
-      history.replaceDocument(() => {
-        loadSession({ ...state, filePath: path, isDirty: false })
-        selectElements([])
-      })
-      window.api.restoreMainWindowBounds()
-      // The Zustand subscriber above detects new maps and opens a window for each
-      return true
-    } catch (e) {
-      await focusMainSafely()
-      alert(`Could not open file:\n${errorMessage(e)}`)
-      return false
-    }
+    return openDocument()
   }
 
   async function handleOpenExample(): Promise<boolean> {
-    try {
-      const json = await window.api.readBundledExample('campus-study-spaces.mtda')
-      const state = deserializeBundledExample(json)
-      history.replaceUnsavedDocument(() => {
-        loadSession(state)
-        selectElements([])
-      })
-      window.api.restoreMainWindowBounds()
-      return true
-    } catch (e) {
-      await focusMainSafely()
-      alert(`Could not open the bundled example:\n${errorMessage(e)}`)
-      return false
-    }
+    return openBundledExample()
   }
 
   async function handleSave(forceDialog: boolean): Promise<boolean> {
     const pending = saveInFlight.current
     if (pending) return pending
 
-    const operation = saveOnce(forceDialog)
+    const operation = saveDocument(forceDialog, withoutStateBroadcast)
     saveInFlight.current = operation
     try {
       return await operation
@@ -469,97 +345,13 @@ export function App(): React.JSX.Element {
     }
   }
 
-  async function saveOnce(forceDialog: boolean): Promise<boolean> {
-    // Dialog and geometry IPC happen before captureSave() can issue its guarded
-    // token. Remember which document initiated the operation so New, Open, or
-    // Import cannot make this Save write their replacement to the old path.
-    const startingGeneration = history.generation
-    let path = useAppStore.getState().filePath
-    try {
-      if (!path || forceDialog) {
-        path = await window.api.showSaveDialog()
-        if (!path) return false
-        if (history.generation !== startingGeneration) return false
-      }
-
-      const currentPrefs = usePrefsStore.getState().prefs
-
-      // Capture current map window positions before serializing, so geometry
-      // is saved to the file and can be restored on next open.
-      if (currentPrefs.rememberWindowPositions) {
-        const positions = await window.api.getMapWindowPositions()
-        if (history.generation !== startingGeneration) return false
-        history.suspend(() => withoutStateBroadcast(() => {
-          for (const [mapId, pos] of Object.entries(positions)) {
-            useAppStore.getState().updateMapConfig(mapId, {
-              windowX: pos.x, windowY: pos.y,
-              windowWidth: pos.width, windowHeight: pos.height
-            })
-          }
-        }))
-      }
-
-      if (history.generation !== startingGeneration) return false
-      const saveToken = history.captureSave()
-      await window.api.writeFile(path, saveToken.frame.session)
-
-      // New/Open/Import may replace the document while the asynchronous write is
-      // in flight. The old snapshot reached disk, but it must not clean or rename
-      // the replacement document.
-      if (!history.markSaved(saveToken, path)) {
-        await focusMainSafely()
-        alert('The session changed before the save completed. Please save again.')
-        return false
-      }
-
-      // Record this as the last-used file path for the auto-reopen preference.
-      const newPrefs: Preferences = { ...currentPrefs, lastFilePath: path }
-      usePrefsStore.getState().setPrefs(newPrefs)
-      window.api.savePreferences(newPrefs as unknown as Record<string, unknown>)
-
-      // Fine-grained map edits can arrive while the write is in flight. The file
-      // is valid, but those newer changes remain dirty and Save & Quit must wait
-      // for another save rather than discarding them.
-      if (useAppStore.getState().isDirty) {
-        await focusMainSafely()
-        alert('The session changed while it was being saved. Recent changes are still unsaved.')
-        return false
-      }
-
-      return true
-    } catch (e) {
-      // markSaved() is deliberately after the awaited write, so this path leaves
-      // the document unclean and does not adopt a proposed Save As path.
-      await focusMainSafely()
-      alert(`Could not save file:\n${errorMessage(e)}`)
-      return false
-    }
-  }
-
   async function handleImport(): Promise<void> {
-    const path = await window.api.openCsvFile()
-    if (!path) return
-    try {
-      const text     = await window.api.readFile(path)
-      const result   = parseSpreadsheet(text)
-      const fileName = path.split('/').pop() ?? path
-      setImportPreview({ fileName, result })
-    } catch (e) {
-      await focusMainSafely()
-      alert(`Could not parse file:\n${errorMessage(e)}`)
-    }
+    const preview = await chooseSpreadsheetImport()
+    if (preview) setImportPreview(preview)
   }
 
   async function handleExport(): Promise<void> {
-    const path = await window.api.showCsvSaveDialog()
-    if (!path) return
-    try {
-      const tsv = exportSpreadsheet(useAppStore.getState())
-      await window.api.writeFile(path, tsv)
-    } catch (e) {
-      await focusMainSafely()
-      alert(`Could not export file:\n${errorMessage(e)}`)
-    }
+    await exportDocument()
   }
 
   async function confirmDiscard(): Promise<boolean> {
@@ -623,21 +415,7 @@ export function App(): React.JSX.Element {
       {showPreferences      && <PreferencesDialog    onClose={() => setShowPreferences(false)} />}
 
       {orientationMarkdown !== null && (
-        <div className={styles.orientationOverlay} onMouseDown={() => setOrientationMarkdown(null)}>
-          <section
-            className={styles.orientationDialog}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="orientation-title"
-            onMouseDown={event => event.stopPropagation()}
-          >
-            <header className={styles.orientationHeader}>
-              <span id="orientation-title">Chora Orientation</span>
-              <button autoFocus onClick={() => setOrientationMarkdown(null)}>Close</button>
-            </header>
-            <OrientationDocument markdown={orientationMarkdown} />
-          </section>
-        </div>
+        <OrientationDialog markdown={orientationMarkdown} onClose={() => setOrientationMarkdown(null)} />
       )}
 
       {showQuitConfirm && (

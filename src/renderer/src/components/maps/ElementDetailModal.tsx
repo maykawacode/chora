@@ -12,21 +12,15 @@
 // now, so it travels in the same payload as color and shape and cannot arrive
 // out of order with itself.
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { useAppStore } from '../../store/appStore'
-import { ELEMENT_SHAPES } from '../../lib/types'
+import { ELEMENT_SHAPES, ELEMENT_SHAPE_SYMBOLS } from '../../lib/types'
 import type { Element, ElementShape } from '../../lib/types'
 import styles from './ElementDetailModal.module.css'
 import { formatRange, numericRange, openWeight } from '../../lib/numericRange'
 import { CollectionChoiceRow } from '../CollectionChoiceRow'
 import { ForwardActionButton } from '../ConfirmationDisc'
-
-const SHAPE_SYMBOL: Record<ElementShape, string> = {
-  circle:   '●',
-  square:   '■',
-  triangle: '▲',
-  diamond:  '◆'
-}
+import { ModalShell } from '../ModalShell'
 
 // Membership is a set; the array only records it. Two lists holding the same
 // ids in a different order are the same membership and must not read as an
@@ -93,12 +87,6 @@ export function ElementDetailModal({ elementId, onClose }: Props): React.JSX.Ele
     onClose(Object.keys(changes).length > 0 ? changes : null)
   }
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') handleCloseRef.current(false) }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [])
-
   const handleApply  = useCallback(() => handleCloseRef.current(true),  [])
   const handleCancel = useCallback(() => handleCloseRef.current(false), [])
 
@@ -117,18 +105,7 @@ export function ElementDetailModal({ elementId, onClose }: Props): React.JSX.Ele
   }
 
   return (
-    <div
-      className={styles.overlay}
-      onClick={e => {
-        e.stopPropagation()
-        if (e.target === e.currentTarget) handleCancel()
-      }}
-      onMouseDown={e => e.stopPropagation()}
-      onMouseMove={e => e.stopPropagation()}
-      onMouseUp={e => e.stopPropagation()}
-      onContextMenu={e => e.stopPropagation()}
-    >
-      <div className={`${styles.modal} modalZoomEnter`}>
+    <ModalShell overlayClassName={styles.overlay} dialogClassName={styles.modal} onClose={handleCancel}>
         <div className={styles.header}>
           <input
             className={styles.nameInput}
@@ -170,7 +147,7 @@ export function ElementDetailModal({ elementId, onClose }: Props): React.JSX.Ele
                 onClick={() => setShape(s)}
                 title={s.charAt(0).toUpperCase() + s.slice(1)}
               >
-                {SHAPE_SYMBOL[s]}
+                {ELEMENT_SHAPE_SYMBOLS[s]}
               </button>
             ))}
           </div>
@@ -238,7 +215,6 @@ export function ElementDetailModal({ elementId, onClose }: Props): React.JSX.Ele
         <div className={styles.footer}>
           <ForwardActionButton label="Apply element changes" onClick={handleApply} />
         </div>
-      </div>
-    </div>
+    </ModalShell>
   )
 }

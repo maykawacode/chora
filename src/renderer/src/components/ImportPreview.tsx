@@ -10,6 +10,7 @@
 
 import type { ImportResult } from '../lib/importer'
 import { ForwardActionButton } from './ConfirmationDisc'
+import { ModalShell } from './ModalShell'
 import styles from './ImportPreview.module.css'
 
 interface Props {
@@ -23,8 +24,7 @@ export function ImportPreview({ fileName, result, onConfirm, onCancel }: Props):
   const { elements, collections, dimensions, scaleNote, warnings } = result
 
   return (
-    <div className={styles.overlay} onClick={e => { if (e.target === e.currentTarget) onCancel() }}>
-      <div className={styles.dialog}>
+    <ModalShell overlayClassName={styles.overlay} dialogClassName={styles.dialog} onClose={onCancel}>
         <p className={styles.title}>Import Spreadsheet</p>
         <p className={styles.fileName}>{fileName}</p>
 
@@ -61,7 +61,6 @@ export function ImportPreview({ fileName, result, onConfirm, onCancel }: Props):
           <button className={styles.btnCancel} onClick={onCancel}>Cancel</button>
           <ForwardActionButton label="Continue with import" onClick={onConfirm} />
         </div>
-      </div>
-    </div>
+    </ModalShell>
   )
 }

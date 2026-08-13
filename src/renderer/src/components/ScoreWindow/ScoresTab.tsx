@@ -49,6 +49,7 @@ export function AssessTab(): React.JSX.Element {
   // different one-item group behind, the visible anchor wins rather than
   // silently sending Collection changes to another element.
   const groupIds = validGroupIds.length > 1 || !selectedEl ? validGroupIds : []
+  const isMultiSelection = groupIds.length > 1
   const targetIds = groupIds.length > 0
     ? groupIds
     : (selectedEl ? [selectedEl.id] : [])
@@ -69,7 +70,7 @@ export function AssessTab(): React.JSX.Element {
   // to whichever Assess control happens to hold focus. Reading live state keeps
   // key-repeat increments current between React renders.
   useEffect(() => {
-    if (!selectedElId || !selectedDimId) return
+    if (!selectedElId || !selectedDimId || isMultiSelection) return
 
     const endKeyboardHistory = (): void => {
       if (!keyboardHistoryOpenRef.current) return
@@ -107,7 +108,7 @@ export function AssessTab(): React.JSX.Element {
       window.removeEventListener('blur', endKeyboardHistory)
       endKeyboardHistory()
     }
-  }, [selectedElId, selectedDimId])
+  }, [selectedElId, selectedDimId, isMultiSelection])
 
   function membership(collectionId: string): Membership {
     if (targetIds.length === 0) return 'none'
@@ -162,6 +163,7 @@ export function AssessTab(): React.JSX.Element {
   }
 
   function handleDimensionListKey(e: KeyboardEvent<HTMLUListElement>): void {
+    if (isMultiSelection) return
     if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return
     if (dimensions.length === 0) return
 
@@ -226,6 +228,8 @@ export function AssessTab(): React.JSX.Element {
               Go to Dimensions
             </button>
           </div>
+        ) : isMultiSelection ? (
+          <p className={styles.multiScoreMessage}>Select one element to change dimension scores.</p>
         ) : !selectedEl ? (
           <EmptyScoreSlider />
         ) : !selectedDim ? (
@@ -318,11 +322,12 @@ export function AssessTab(): React.JSX.Element {
               </div>
             ) : (
               <ul
-                className={styles.list}
-                tabIndex={0}
+                className={`${styles.list} ${isMultiSelection ? styles.listDisabled : ''}`}
+                tabIndex={isMultiSelection ? -1 : 0}
                 onKeyDown={handleDimensionListKey}
                 role="listbox"
                 aria-label="Dimensions to score"
+                aria-disabled={isMultiSelection}
                 aria-activedescendant={selectedDim
                   ? `assess-dimension-${dimensions.findIndex(dimension => dimension.id === selectedDim.id)}`
                   : undefined}
@@ -342,11 +347,12 @@ export function AssessTab(): React.JSX.Element {
                     <li
                       id={`assess-dimension-${index}`}
                       key={dimension.id}
-                      className={`${styles.listItem} ${dimension.id === selectedDimId ? styles.selected : ''}`}
+                      className={`${styles.listItem} ${!isMultiSelection && dimension.id === selectedDimId ? styles.selected : ''}`}
                       role="option"
-                      aria-selected={dimension.id === selectedDimId}
-                      aria-current={dimension.id === selectedDimId ? 'true' : undefined}
-                      onClick={() => selectDimension(dimension.id)}
+                      aria-selected={!isMultiSelection && dimension.id === selectedDimId}
+                      aria-current={!isMultiSelection && dimension.id === selectedDimId ? 'true' : undefined}
+                      aria-disabled={isMultiSelection}
+                      onClick={() => { if (!isMultiSelection) selectDimension(dimension.id) }}
                     >
                       <span className={styles.indicator} title={completionLabel} aria-label={completionLabel}>
                         {status}

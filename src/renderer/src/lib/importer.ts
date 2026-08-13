@@ -27,7 +27,6 @@
 //   [blank]      [Definition]   DimLabel1   DimLabel2   ...
 //   ElementName  [def text]     score       score       ...
 
-import { v4 as uuid } from 'uuid'
 import type { Element, Dimension, ScoreMap, SessionMeta, Collection } from './types'
 import { defaultCategories, defaultSessionMeta, parsePoles } from './types'
 import { MEMBERSHIP_CUTOFF } from './parser'
@@ -99,7 +98,7 @@ function parseFullSpreadsheet(text: string): ImportResult {
       const name = tc(row[nameCol])
       if (!name) continue
       collectionsByName.set(name, {
-        id:         uuid(),
+        id:         crypto.randomUUID(),
         name,
         definition: defCol   >= 0 ? tc(row[defCol])   : '',
         color:      colorCol >= 0 ? tc(row[colorCol]) || '#808080' : '#808080'
@@ -113,7 +112,7 @@ function parseFullSpreadsheet(text: string): ImportResult {
   function ensureCollection(name: string): Collection {
     const existing = collectionsByName.get(name)
     if (existing) return existing
-    const created: Collection = { id: uuid(), name, definition: '', color: '#808080' }
+    const created: Collection = { id: crypto.randomUUID(), name, definition: '', color: '#808080' }
     collectionsByName.set(name, created)
     return created
   }
@@ -139,7 +138,7 @@ function parseFullSpreadsheet(text: string): ImportResult {
       const rawShape = tc(row[shapeCol])
       const rawColls = collCol >= 0 ? tc(row[collCol]) : ''
       elementsByName.set(name, {
-        id:         uuid(),
+        id:         crypto.randomUUID(),
         name,
         definition: defCol >= 0 ? tc(row[defCol]) : '',
         color:      /^#[0-9a-fA-F]{6}$/.test(rawColor) ? rawColor : '#9d9d53',
@@ -175,7 +174,7 @@ function parseFullSpreadsheet(text: string): ImportResult {
       const derived = parsePoles(label)
       const rawWeight = tc(row[weightCol])
       dimensionsByName.set(label, {
-        id:         uuid(),
+        id:         crypto.randomUUID(),
         label,
         poleA:      (poleACol >= 0 ? tc(row[poleACol]) : '') || derived.poleA,
         poleB:      (poleBCol >= 0 ? tc(row[poleBCol]) : '') || derived.poleB,
@@ -193,7 +192,7 @@ function parseFullSpreadsheet(text: string): ImportResult {
   function ensureElement(name: string): Element {
     if (!elementsByName.has(name)) {
       elementsByName.set(name, {
-        id: uuid(), name, definition: '', color: '#9d9d53', weight: 1,
+        id: crypto.randomUUID(), name, definition: '', color: '#9d9d53', weight: 1,
         shape: 'circle', collectionIds: []
       })
     }
@@ -261,7 +260,7 @@ function parseFullSpreadsheet(text: string): ImportResult {
       if (!dimensionsByName.has(header)) {
         const derived = parsePoles(header)
         const dim: Dimension = {
-          id: uuid(), label: header, poleA: derived.poleA, poleB: derived.poleB,
+          id: crypto.randomUUID(), label: header, poleA: derived.poleA, poleB: derived.poleB,
           definition: '', weight: 1, categories: defaultCategories()
         }
         dimensionsByName.set(header, dim)
@@ -375,13 +374,13 @@ function parseSimpleSpreadsheet(text: string): ImportResult {
   }
 
   const elements: Element[] = elementNames.map((name, i) => ({
-    id: uuid(), name, definition: elementDefinitions[i] ?? '', weight: 1,
+    id: crypto.randomUUID(), name, definition: elementDefinitions[i] ?? '', weight: 1,
     color: '#9d9d53', shape: 'circle' as const, collectionIds: []
   }))
 
   const dimensions: Dimension[] = dimLabels.map(label => {
     const { poleA, poleB } = parsePoles(label)
-    return { id: uuid(), label, poleA, poleB, definition: '', weight: 1, categories: defaultCategories() }
+    return { id: crypto.randomUUID(), label, poleA, poleB, definition: '', weight: 1, categories: defaultCategories() }
   })
 
   const scores: ScoreMap = {}

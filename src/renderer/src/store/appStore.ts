@@ -12,7 +12,6 @@
 //   See App.tsx for the suppressBroadcast ref pattern that prevents loops.
 
 import { create } from 'zustand'
-import { v4 as uuid } from 'uuid'
 import type {
   AppState, Element, Collection, Dimension, DimensionCategories, SessionMeta,
   MapConfig, CartesianMapConfig, SemanticMapConfig, ElementShape
@@ -20,7 +19,13 @@ import type {
 import { DEFAULT_COLLECTION_COLOR, paletteColor, mixCollectionColors, randomReadableColor } from '../lib/color'
 import { defaultCategories, defaultSessionMeta, ELEMENT_SHAPES, parsePoles } from '../lib/types'
 import { usePrefsStore } from './prefsStore'
-import { normalizeInRange, numericRange, openWeight } from '../lib/numericRange'
+import { openWeight } from '../lib/numericRange'
+import {
+  dimensionScoresToColors,
+  dimensionScoresToWeights,
+  spreadScores,
+  weightsToDimensionScores
+} from './transforms'
 
 // ── Store interface ───────────────────────────────────────────────────────────
 
@@ -100,7 +105,6 @@ interface AppStore extends AppState {
 
   // Session lifecycle
   loadSession:  (state: AppState) => void
-  markClean:    (filePath: string) => void
   resetToEmpty: () => void
 }
 
@@ -179,7 +183,7 @@ export const useAppStore = create<AppStore>((set) => ({
   addElement: (name, color) => set((s) => {
     const resolvedColor = color ?? usePrefsStore.getState().prefs.defaultElementColor
     const el: Element = {
-      id: uuid(), name, definition: '', weight: 1,
+      id: crypto.randomUUID(), name, definition: '', weight: 1,
       color: resolvedColor, shape: 'circle', collectionIds: []
     }
     return { elements: [...s.elements, el], isDirty: true }
@@ -192,7 +196,7 @@ export const useAppStore = create<AppStore>((set) => ({
   duplicateElement: (id) => set((s) => {
     const original = s.elements.find(e => e.id === id)
     if (!original) return s
-    const copy: Element = { ...original, id: uuid(), name: `${original.name} copy` }
+    const copy: Element = { ...original, id: crypto.randomUUID(), name: `${original.name} copy` }
     // Insert the copy right after the original rather than appending to the end
     const idx = s.elements.findIndex(e => e.id === id)
     const elements = [
@@ -235,7 +239,7 @@ export const useAppStore = create<AppStore>((set) => ({
   // collection looked broken and — worse — dragged multi-collection mixes
   // toward gray.
   addCollection: (name, id) => {
-    const newId = id ?? uuid()
+    const newId = id ?? crypto.randomUUID()
     set((s) => ({
       collections: [...s.collections, { id: newId, name, definition: '', color: paletteColor(s.collections.length) }],
       isDirty: true
@@ -312,7 +316,7 @@ export const useAppStore = create<AppStore>((set) => ({
   addDimension: (label, categories) => set((s) => {
     const { poleA, poleB } = parsePoles(label)
     const dim: Dimension = {
-      id: uuid(),
+      id: crypto.randomUUID(),
       label,
       poleA,
       poleB,
@@ -402,12 +406,7 @@ export const useAppStore = create<AppStore>((set) => ({
   // flip=true: score 0.0 (poleA) → weight 100; score 1.0 (poleB) → weight 1
   // flip=false (default): score 1.0 (poleB) → weight 100; score 0.0 (poleA) → weight 1
   dimensionToWeight: (dimensionId, flip = false) => set((s) => ({
-    elements: s.elements.map(el => {
-      const raw = s.scores[el.id]?.[dimensionId]
-      if (raw === undefined) return el
-      const score = flip ? 1 - raw : raw
-      return { ...el, weight: Math.round(score * 99 + 1) }
-    }),
+    elements: dimensionScoresToWeights(s.elements, s.scores, dimensionId, flip),
     isDirty: true
   })),
 
@@ -417,13 +416,7 @@ export const useAppStore = create<AppStore>((set) => ({
   // flip=true sends the current maximum to poleA and minimum to poleB;
   // flip=false (default) sends the current minimum to poleA and maximum to poleB.
   weightToDimension: (dimensionId, flip = false) => set((s) => {
-    const newScores = { ...s.scores }
-    const range = numericRange(s.elements.map(element => element.weight))
-    for (const el of s.elements) {
-      const raw = normalizeInRange(el.weight, range)
-      newScores[el.id] = { ...newScores[el.id], [dimensionId]: flip ? 1 - raw : raw }
-    }
-    return { scores: newScores, isDirty: true }
+    return { scores: weightsToDimensionScores(s.elements, s.scores, dimensionId, flip), isDirty: true }
   }),
 
   // Sets each element's color by interpolating between dimColorLow (score 0) and
@@ -434,26 +427,8 @@ export const useAppStore = create<AppStore>((set) => ({
     const dimColorLow  = colorLow  ?? prefs.dimColorLow
     const dimColorHigh = colorHigh ?? prefs.dimColorHigh
 
-    // Parse a '#rrggbb' hex string into an [r, g, b] triple
-    const hexToRgb = (hex: string): [number, number, number] => {
-      const n = parseInt(hex.slice(1), 16)
-      return [(n >> 16) & 0xff, (n >> 8) & 0xff, n & 0xff]
-    }
-
-    const [lr, lg, lb] = hexToRgb(dimColorLow)
-    const [hr, hg, hb] = hexToRgb(dimColorHigh)
-
     return {
-      elements: s.elements.map(el => {
-        const score = s.scores[el.id]?.[dimensionId]
-        if (score === undefined) return el
-        // Linear interpolation between the two preference colors
-        const r = Math.round(lr + (hr - lr) * score)
-        const g = Math.round(lg + (hg - lg) * score)
-        const b = Math.round(lb + (hb - lb) * score)
-        const hex = '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('')
-        return { ...el, color: hex }
-      }),
+      elements: dimensionScoresToColors(s.elements, s.scores, dimensionId, dimColorLow, dimColorHigh),
       isDirty: true
     }
   }),
@@ -487,22 +462,8 @@ export const useAppStore = create<AppStore>((set) => ({
   // Unscored elements are left unchanged. If every scored element has the
   // same value, they're all set to 0.5 (no spread to derive a ratio from).
   spreadDimensionScores: (dimensionId) => set((s) => {
-    const scored = s.elements
-      .map(el => ({ id: el.id, raw: s.scores[el.id]?.[dimensionId] }))
-      .filter((e): e is { id: string; raw: number } => e.raw !== undefined)
-
-    if (scored.length === 0) return s
-
-    const min = Math.min(...scored.map(e => e.raw))
-    const max = Math.max(...scored.map(e => e.raw))
-    const range = max - min
-
-    const newScores = { ...s.scores }
-    for (const { id, raw } of scored) {
-      const value = range === 0 ? 0.5 : 0.05 + ((raw - min) / range) * 0.9
-      newScores[id] = { ...newScores[id], [dimensionId]: value }
-    }
-    return { scores: newScores, isDirty: true }
+    const scores = spreadScores(s.elements, s.scores, dimensionId)
+    return scores === s.scores ? s : { scores, isDirty: true }
   }),
 
   randomizeElementWeights: () => set((s) => ({
@@ -638,9 +599,6 @@ export const useAppStore = create<AppStore>((set) => ({
   // Replaces the entire store state. Used by file open, import, and by
   // map windows when they receive a 'state:push' broadcast.
   loadSession: (state) => set({ ...state }),
-
-  // Called after a successful save — clears isDirty and records the file path
-  markClean: (filePath) => set({ filePath, isDirty: false }),
 
   // Resets to an empty session (File → New)
   resetToEmpty: () => set({ ...emptyState, sessionMeta: defaultSessionMeta(), selectedElementIds: [] })

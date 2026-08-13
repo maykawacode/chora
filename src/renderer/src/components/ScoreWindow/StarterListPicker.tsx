@@ -14,6 +14,7 @@ import { STARTER_DIMENSIONS, CATEGORIES } from '../../lib/starterDimensions'
 import type { CategoryKey } from '../../lib/starterDimensions'
 import type { DimensionCategories } from '../../lib/types'
 import { ForwardActionButton } from '../ConfirmationDisc'
+import { ModalShell } from '../ModalShell'
 import styles from './StarterListPicker.module.css'
 
 interface Props { onClose: () => void }
@@ -58,8 +59,7 @@ export function StarterListPicker({ onClose }: Props): React.JSX.Element {
   const toAdd = [...checked].filter(l => !existingLabels.has(l)).length
 
   return (
-    <div className={styles.overlay} onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
-      <div className={styles.dialog}>
+    <ModalShell overlayClassName={styles.overlay} dialogClassName={styles.dialog} onClose={onClose}>
         <h2 className={styles.title}>Dimension Starter Lists</h2>
 
         <div className={styles.body}>
@@ -106,16 +106,12 @@ export function StarterListPicker({ onClose }: Props): React.JSX.Element {
                 ? 'Select dimensions to add'
                 : 'Select dimensions'}
           </span>
-          <div className={styles.buttons}>
-            <button className={styles.btnCancel} onClick={onClose}>Cancel</button>
-            <ForwardActionButton
-              label={toAdd > 0 ? `Add ${toAdd} dimensions` : 'Add dimensions'}
-              disabled={toAdd === 0}
-              onClick={handleAdd}
-            />
-          </div>
+          <ForwardActionButton
+            label={toAdd > 0 ? `Add ${toAdd} dimensions` : 'Add dimensions'}
+            disabled={toAdd === 0}
+            onClick={handleAdd}
+          />
         </div>
-      </div>
-    </div>
+    </ModalShell>
   )
 }

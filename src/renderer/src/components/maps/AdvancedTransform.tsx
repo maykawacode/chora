@@ -12,6 +12,7 @@
 import { useState } from 'react'
 import { useAppStore } from '../../store/appStore'
 import { ConfirmationDisc, ForwardActionButton } from '../ConfirmationDisc'
+import { ModalShell } from '../ModalShell'
 import styles from './ChooseDimensions.module.css'
 
 export type TransformMode = 'dim-to-weight' | 'weight-to-dim' | 'dim-to-color' | 'randomize-scores'
@@ -85,8 +86,12 @@ export function AdvancedTransform({ mode, onClose }: Props): React.JSX.Element {
   const selectedDim = selectedId ? dimensions.find(d => d.id === selectedId) : null
 
   return (
-    <div className={styles.overlay} onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
-      <div className={styles.dialog}>
+    <ModalShell
+      overlayClassName={styles.overlay}
+      dialogClassName={styles.dialog}
+      onClose={onClose}
+      dismissOnEscape={!showConfirm}
+    >
         <h2 className={styles.title}>{info.title}</h2>
         <p className={styles.subtitle}>{info.subtitle}</p>
 
@@ -154,7 +159,6 @@ export function AdvancedTransform({ mode, onClose }: Props): React.JSX.Element {
             onAction={applyTransform}
           />
         )}
-      </div>
-    </div>
+    </ModalShell>
   )
 }

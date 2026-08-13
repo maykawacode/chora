@@ -13,8 +13,16 @@
 // The cleanup removes the listener when the React component unmounts.
 
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron'
+import {
+  MENU_ACTIONS,
+  type ChoraApi,
+  type HistoryPhase,
+  type MapWindowAction,
+  type MenuAction,
+  type Preferences
+} from '../shared/contracts'
 
-contextBridge.exposeInMainWorld('api', {
+const api = {
 
   // ── File I/O ──────────────────────────────────────────────────────────────────
 
@@ -39,16 +47,10 @@ contextBridge.exposeInMainWorld('api', {
   // 'menu:' prefix before being passed to the callback, so the caller receives
   // plain action strings like 'save', 'open', etc.
 
-  onMenuAction: (cb: (action: string) => void): (() => void) => {
-    const actions = [
-      'menu:undo', 'menu:redo',
-      'menu:new', 'menu:open', 'menu:save', 'menu:save-as',
-      'menu:import-spreadsheet', 'menu:export-spreadsheet',
-      'menu:create-cartesian', 'menu:create-semantic',
-      'menu:preferences', 'menu:orientation'
-    ]
-    const handlers = actions.map(channel => {
-      const handler = (): void => cb(channel.replace('menu:', ''))
+  onMenuAction: (cb: (action: MenuAction) => void): (() => void) => {
+    const handlers = MENU_ACTIONS.map(action => {
+      const channel = `menu:${action}`
+      const handler = (): void => cb(action)
       ipcRenderer.on(channel, handler)
       return { channel, handler }
     })
@@ -59,8 +61,7 @@ contextBridge.exposeInMainWorld('api', {
 
   openMap:      (mapId: string, stateJson: string): void => ipcRenderer.send('map:open', mapId, stateJson),
   closeMap:     (mapId: string): void                    => ipcRenderer.send('map:close', mapId),
-  closeAllMaps: (): void                                  => ipcRenderer.send('map:closeAll'),
-  controlMapWindow: (action: 'close' | 'minimize' | 'zoom'): void =>
+  controlMapWindow: (action: MapWindowAction): void =>
     ipcRenderer.send('map:window-control', action),
   // Signal to main that this renderer has mounted its IPC listeners and is
   // ready to receive 'map:init'. See windowManager.ts for why this is needed.
@@ -78,9 +79,9 @@ contextBridge.exposeInMainWorld('api', {
   historyEnd:   (): void => ipcRenderer.send('history:transaction', 'end'),
   setHistoryModalOpen: (open: boolean): void => ipcRenderer.send('history:modal', open),
   onHistoryTransaction: (
-    cb: (ownerId: number, phase: 'begin' | 'end') => void
+    cb: (ownerId: number, phase: HistoryPhase) => void
   ): (() => void) => {
-    const handler = (_: IpcRendererEvent, ownerId: number, phase: 'begin' | 'end'): void =>
+    const handler = (_: IpcRendererEvent, ownerId: number, phase: HistoryPhase): void =>
       cb(ownerId, phase)
     ipcRenderer.on('history:transaction', handler)
     return () => ipcRenderer.removeListener('history:transaction', handler)
@@ -94,9 +95,9 @@ contextBridge.exposeInMainWorld('api', {
   // The cache is guaranteed to be warm because main process loads prefs before
   // creating the window. Use this for initialization; use loadPreferences for
   // the full async flow with reopenLastFile support.
-  getPrefsSync:    (): Record<string, unknown>           => ipcRenderer.sendSync('prefs:get-sync'),
-  loadPreferences: (): Promise<Record<string, unknown>>  => ipcRenderer.invoke('prefs:load'),
-  savePreferences: (prefs: Record<string, unknown>): void => ipcRenderer.send('prefs:save', prefs),
+  getPrefsSync:    (): Preferences          => ipcRenderer.sendSync('prefs:get-sync'),
+  loadPreferences: (): Promise<Preferences> => ipcRenderer.invoke('prefs:load'),
+  savePreferences: (prefs: Preferences): void => ipcRenderer.send('prefs:save', prefs),
 
   // ── Window geometry ───────────────────────────────────────────────────────────
 
@@ -112,7 +113,7 @@ contextBridge.exposeInMainWorld('api', {
   // Preference changes — sent whenever the user saves the Preferences dialog
   // so that map BrowserWindows (separate renderer processes with their own
   // prefsStore instances) stay in sync without needing a full app restart.
-  broadcastPrefs: (prefs: Record<string, unknown>): void => ipcRenderer.send('prefs:push', prefs),
+  broadcastPrefs: (prefs: Preferences): void => ipcRenderer.send('prefs:push', prefs),
   // Single score update from a drag — cheaper than a full state broadcast
   broadcastScore:     (elementId: string, dimensionId: string, value: number): void =>
                         ipcRenderer.send('score:update', elementId, dimensionId, value),
@@ -136,8 +137,8 @@ contextBridge.exposeInMainWorld('api', {
   // ── Inbound listeners (used by map windows) ───────────────────────────────────
 
   // Preferences pushed from the Score Window after the user saves the dialog
-  onPrefs: (cb: (prefs: Record<string, unknown>) => void): (() => void) => {
-    const handler = (_: IpcRendererEvent, prefs: Record<string, unknown>): void => cb(prefs)
+  onPrefs: (cb: (prefs: Preferences) => void): (() => void) => {
+    const handler = (_: IpcRendererEvent, prefs: Preferences): void => cb(prefs)
     ipcRenderer.on('prefs:push', handler)
     return () => ipcRenderer.removeListener('prefs:push', handler)
   },
@@ -222,4 +223,6 @@ contextBridge.exposeInMainWorld('api', {
 
   // Renderer calls this to tell main it may proceed with the quit
   confirmQuit: (): void => ipcRenderer.send('app:confirm-quit')
-})
+} satisfies ChoraApi
+
+contextBridge.exposeInMainWorld('api', api)

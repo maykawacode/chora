@@ -223,6 +223,23 @@
   line-height: 1.4;
 }
 
+.multiScoreMessage {
+  width: 100%;
+  margin: 0;
+  color: #7b746a;
+  font-size: 12px;
+  text-align: center;
+}
+
+.listDisabled .listItem {
+  color: #8c877f;
+  cursor: default;
+}
+
+.listDisabled .listItem:hover {
+  background: transparent;
+}
+
 .targetCount {
   margin-left: 6px;
   color: #7b746a;

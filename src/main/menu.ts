@@ -8,6 +8,7 @@
 // handled by onMenuAction() in the preload and dispatched in App.tsx.
 
 import { Menu, MenuItem, MenuItemConstructorOptions, BrowserWindow, app } from 'electron'
+import type { MenuAction } from '../shared/contracts'
 
 let _mainWindow: BrowserWindow | null = null
 let _closeWindowItem: MenuItem | null = null
@@ -63,8 +64,9 @@ function findMenuItemByLabel(menu: Menu, label: string): MenuItem | null {
   return null
 }
 
-/** Sends a channel name to the Score Window renderer. */
-function sendToRenderer(channel: string): void {
+/** Sends a typed menu action to the Score Window renderer. */
+function sendToRenderer(action: MenuAction): void {
+  const channel = `menu:${action}`
   if (_historyModalOwners.size > 0 && (channel === 'menu:undo' || channel === 'menu:redo')) return
   if (_mainWindow && !_mainWindow.isDestroyed()) {
     _mainWindow.webContents.send(channel)
@@ -84,7 +86,7 @@ export function buildMenu(): void {
         {
           label: 'Preferences…',
           accelerator: 'CmdOrCtrl+,',
-          click: () => sendToRenderer('menu:preferences')
+          click: () => sendToRenderer('preferences')
         },
         { type: 'separator' as const },
         { role: 'services' as const },
@@ -100,14 +102,14 @@ export function buildMenu(): void {
     {
       label: 'File',
       submenu: [
-        { label: 'New',               accelerator: 'CmdOrCtrl+N',       click: () => sendToRenderer('menu:new') },
-        { label: 'Open…',             accelerator: 'CmdOrCtrl+O',       click: () => sendToRenderer('menu:open') },
+        { label: 'New',               accelerator: 'CmdOrCtrl+N',       click: () => sendToRenderer('new') },
+        { label: 'Open…',             accelerator: 'CmdOrCtrl+O',       click: () => sendToRenderer('open') },
         { type: 'separator' },
-        { label: 'Save',              accelerator: 'CmdOrCtrl+S',       click: () => sendToRenderer('menu:save') },
-        { label: 'Save As…',          accelerator: 'CmdOrCtrl+Shift+S', click: () => sendToRenderer('menu:save-as') },
+        { label: 'Save',              accelerator: 'CmdOrCtrl+S',       click: () => sendToRenderer('save') },
+        { label: 'Save As…',          accelerator: 'CmdOrCtrl+Shift+S', click: () => sendToRenderer('save-as') },
         { type: 'separator' },
-        { label: 'Import Spreadsheet…', accelerator: 'CmdOrCtrl+Shift+I', click: () => sendToRenderer('menu:import-spreadsheet') },
-        { label: 'Export Spreadsheet…', accelerator: 'CmdOrCtrl+Shift+E', click: () => sendToRenderer('menu:export-spreadsheet') },
+        { label: 'Import Spreadsheet…', accelerator: 'CmdOrCtrl+Shift+I', click: () => sendToRenderer('import-spreadsheet') },
+        { label: 'Export Spreadsheet…', accelerator: 'CmdOrCtrl+Shift+E', click: () => sendToRenderer('export-spreadsheet') },
         ...(isMac ? [] : [
           { type: 'separator' as const },
           { role: 'quit' as const }
@@ -122,13 +124,13 @@ export function buildMenu(): void {
           label: 'Undo',
           accelerator: 'CmdOrCtrl+Z',
           enabled: false,
-          click: () => sendToRenderer('menu:undo')
+          click: () => sendToRenderer('undo')
         },
         {
           label: 'Redo',
           accelerator: 'CmdOrCtrl+Shift+Z',
           enabled: false,
-          click: () => sendToRenderer('menu:redo')
+          click: () => sendToRenderer('redo')
         },
         { type: 'separator' as const },
         { role: 'cut' as const },
@@ -145,8 +147,8 @@ export function buildMenu(): void {
         // map draws collection blobs from the Collections section of its sidebar.
         // Plain Cmd/Ctrl+M is the standard Minimize shortcut. Shift keeps the
         // map mnemonic without colliding with that Window-menu command.
-        { label: 'New Cartesian Map…', accelerator: 'CmdOrCtrl+Shift+M', click: () => sendToRenderer('menu:create-cartesian') },
-        { label: 'New Semantic Map…', accelerator: 'CmdOrCtrl+Shift+D', click: () => sendToRenderer('menu:create-semantic') }
+        { label: 'New Cartesian Map…', accelerator: 'CmdOrCtrl+Shift+M', click: () => sendToRenderer('create-cartesian') },
+        { label: 'New Semantic Map…', accelerator: 'CmdOrCtrl+Shift+D', click: () => sendToRenderer('create-semantic') }
       ]
     },
 
@@ -176,7 +178,7 @@ export function buildMenu(): void {
     {
       label: 'Help',
       submenu: [
-        { label: 'Chora Orientation', click: () => sendToRenderer('menu:orientation') }
+        { label: 'Chora Orientation', click: () => sendToRenderer('orientation') }
       ]
     }
   ]

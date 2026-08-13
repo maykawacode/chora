@@ -13,11 +13,11 @@
 // Step 4–5 prevent a race condition where 'map:init' would arrive before the
 // renderer's useEffect had a chance to register the 'map:init' listener.
 
-import { BrowserWindow } from 'electron'
+import { app, BrowserWindow } from 'electron'
 import { join } from 'path'
-import { is } from '@electron-toolkit/utils'
 import { getCachedPreferences } from './prefs'
 import { clearHistoryModalOwner } from './menu'
+import { decodeMapStateEnvelope, type MapWindowBounds } from '../shared/contracts'
 
 // Active map windows, keyed by the map ID (UUID from MapConfig)
 const mapWindows = new Map<string, BrowserWindow>()
@@ -68,8 +68,8 @@ export function openMapWindow(mapId: string, stateJson: string): void {
     try {
       // stateJson is the IPC envelope { isDirty, session: "...", ... }.
       // Maps live inside the nested session string, not at the top level.
-      const envelope = JSON.parse(stateJson) as { session?: string }
-      const sessionData = envelope.session ? JSON.parse(envelope.session) : envelope
+      const envelope = decodeMapStateEnvelope(stateJson)
+      const sessionData = JSON.parse(envelope.session)
       type MapGeom = { id: string; windowX?: number; windowY?: number; windowWidth?: number; windowHeight?: number }
       const cfg = (sessionData.maps as MapGeom[] | undefined)?.find(m => m.id === mapId)
       if (cfg) {
@@ -128,7 +128,7 @@ export function openMapWindow(mapId: string, stateJson: string): void {
     }
   })
 
-  const mapUrl = is.dev && process.env['ELECTRON_RENDERER_URL']
+  const mapUrl = !app.isPackaged && process.env['ELECTRON_RENDERER_URL']
     ? `${process.env['ELECTRON_RENDERER_URL']}/map.html`
     : `file://${join(__dirname, '../renderer/map.html')}`
 
@@ -172,19 +172,6 @@ export function closeMapWindowSilent(mapId: string): void {
   win.destroy()
 }
 
-/**
- * Closes all open map windows without sending 'map:closed' notifications.
- * Document changes normally reconcile map IDs individually; this remains the
- * explicit bulk-close path for callers that need to tear every map window down.
- */
-export function closeAllMapWindowsSilent(): void {
-  for (const [mapId, win] of mapWindows.entries()) {
-    silentCloseWindows.add(win)
-    if (!win.isDestroyed()) win.destroy()
-    if (mapWindows.get(mapId) === win) mapWindows.delete(mapId)
-  }
-}
-
 /** True only while the ID belongs to a live map BrowserWindow we manage. */
 export function isManagedMapWebContents(webContentsId: number): boolean {
   for (const win of mapWindows.values()) {
@@ -199,8 +186,8 @@ export function isManagedMapWebContents(webContentsId: number): boolean {
  * Returns the current on-screen position and size of every open map window.
  * Used by handleSave() in App.tsx to capture geometry before serializing.
  */
-export function getMapWindowPositions(): Record<string, { x: number; y: number; width: number; height: number }> {
-  const result: Record<string, { x: number; y: number; width: number; height: number }> = {}
+export function getMapWindowPositions(): Record<string, MapWindowBounds> {
+  const result: Record<string, MapWindowBounds> = {}
   for (const [mapId, win] of mapWindows.entries()) {
     if (!win.isDestroyed()) {
       const [x, y] = win.getPosition()

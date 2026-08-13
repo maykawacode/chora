@@ -45,6 +45,12 @@
   border-color: #808040;
 }
 
+.name {
+  font-weight: 600;
+  font-size: 14px;
+  color: #222;
+}
+
 .footer {
   display: flex;
   align-items: center;
@@ -94,6 +100,14 @@
   background: #fff;
   color: #333;
 }
+
+.hexInput::placeholder,
+.weightInput::placeholder {
+  color: #aaa;
+  font-style: italic;
+}
+
+.hexInput::placeholder { font-family: inherit; }
 
 .shapePicker {
   display: flex;
@@ -157,6 +171,8 @@
   background: #fff;
   overflow: hidden;
 }
+
+.bulkCollectionsSection { margin-top: 12px; }
 
 .collectionsLabel {
   display: block;

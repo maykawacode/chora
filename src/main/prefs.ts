@@ -4,51 +4,11 @@
 // An in-memory cache avoids hitting the filesystem on every read —
 // the cached value is kept in sync with the file on every save.
 //
-// NOTE: The Preferences interface is intentionally duplicated from
-// src/renderer/src/lib/preferences.ts. Electron compiles main and renderer
-// into separate bundles, so they cannot import each other's source directly.
-// If you add a field here, also add it in the renderer's preferences.ts.
-
 import { app } from 'electron'
 import { join } from 'path'
 import { writeFileSync } from 'fs'
 import { readFile, writeFile } from 'fs/promises'
-
-interface Preferences {
-  rememberWindowPositions: boolean
-  defaultMarks: 'none' | 'circle' | 'element'  // mirrors MarkMode in the renderer's types.ts
-  defaultShowLabels: boolean
-  defaultElementColor: string
-  reopenLastFile: boolean
-  confirmDeleteElement: boolean
-  lastFilePath: string | null
-  elementLabelSize: number
-  dimensionLabelSize: number
-  dimColorLow: string   // hex color mapped to score 0 by the Dimension → Color transform
-  dimColorHigh: string  // hex color mapped to score 1 by the Dimension → Color transform
-  mainWindowX: number | null
-  mainWindowY: number | null
-  mainWindowWidth: number
-  mainWindowHeight: number
-}
-
-const DEFAULT: Preferences = {
-  rememberWindowPositions: true,
-  defaultMarks: 'circle',
-  defaultShowLabels: true,
-  defaultElementColor: '#9d9d53',
-  reopenLastFile: false,
-  confirmDeleteElement: true,
-  lastFilePath: null,
-  elementLabelSize: 11,
-  dimensionLabelSize: 11,
-  dimColorLow: '#b04040',
-  dimColorHigh: '#508050',
-  mainWindowX: null,
-  mainWindowY: null,
-  mainWindowWidth: 530,
-  mainWindowHeight: 800
-}
+import { DEFAULT_PREFERENCES, mergePreferences, type Preferences } from '../shared/contracts'
 
 // In-memory cache; null means not yet loaded from disk
 let cached: Preferences | null = null
@@ -65,10 +25,10 @@ export async function loadPreferences(): Promise<Preferences> {
   if (cached) return cached
   try {
     const text = await readFile(prefsPath(), 'utf-8')
-    cached = { ...DEFAULT, ...(JSON.parse(text) as Partial<Preferences>) }
+    cached = mergePreferences(JSON.parse(text) as Partial<Preferences>)
   } catch {
     // File doesn't exist yet or is corrupt — use defaults
-    cached = { ...DEFAULT }
+    cached = mergePreferences()
   }
   return cached!
 }
@@ -101,5 +61,5 @@ export function savePreferencesSync(prefs: Preferences): void {
  * Used in windowManager.ts where async is not practical.
  */
 export function getCachedPreferences(): Preferences {
-  return cached ?? DEFAULT
+  return cached ?? DEFAULT_PREFERENCES
 }

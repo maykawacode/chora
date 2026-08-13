@@ -15,7 +15,6 @@ import { getMainWindow, setQuitConfirmed } from './index'
 import {
   openMapWindow,
   closeMapWindowSilent,
-  closeAllMapWindowsSilent,
   handleMapReady,
   isManagedMapWebContents,
   getMapWindowPositions,
@@ -116,10 +115,6 @@ export function registerIpcHandlers(): void {
     if (scoreWin && !scoreWin.isDestroyed() && scoreWin.webContents.id === event.sender.id) {
       closeMapWindowSilent(mapId)
     }
-  })
-
-  ipcMain.on('map:closeAll', () => {
-    closeAllMapWindowsSilent()
   })
 
   // The square-corner map windows use HTML-rendered stoplight controls because
