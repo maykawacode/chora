@@ -7,8 +7,7 @@
 // label is rebuilt as "PoleA–PoleB" so the two representations stay in sync.
 //
 // Delete behavior:
-//   - If the dimension has any scores, show a confirmation dialog (data loss warning)
-//   - If it has no scores, delete immediately
+//   - Every deletion follows the global confirmDeleteData preference
 //   Escape dismisses the confirmation dialog.
 
 import { useRef, useState, useEffect, KeyboardEvent } from 'react'
@@ -18,6 +17,7 @@ import { useResizableSplitPane } from './useResizableSplitPane'
 import styles from './DataTab.module.css'
 import { formatRange, numericRange, openWeight } from '../../lib/numericRange'
 import { ConfirmationDisc } from '../ConfirmationDisc'
+import { usePrefsStore } from '../../store/prefsStore'
 
 interface Props { onOpenStarterPicker: () => void }
 
@@ -74,6 +74,7 @@ export function DimensionsTab({ onOpenStarterPicker }: Props): React.JSX.Element
   const removeDimension = useAppStore(s => s.removeDimension)
   const selectDimension = useAppStore(s => s.selectDimension)
   const scores          = useAppStore(s => s.scores)
+  const confirmDeleteData = usePrefsStore(s => s.prefs.confirmDeleteData)
 
   const selected = dimensions.find(d => d.id === selectedId) ?? null
   const [newLabel,       setNewLabel]       = useState('')
@@ -114,17 +115,15 @@ export function DimensionsTab({ onOpenStarterPicker }: Props): React.JSX.Element
       selectDimension(dimensions[idx - 1].id)
       e.preventDefault()
     } else if (e.key === 'Backspace' || e.key === 'Delete') {
-      // Require confirmation if any element has a score on this dimension
-      const hasScores = Object.values(scores).some(el => el[selectedId] !== undefined)
-      if (hasScores) {
-        setConfirmDeleteId(selectedId)
-      } else {
-        removeDimension(selectedId)
-      }
+      if (confirmDeleteData) setConfirmDeleteId(selectedId)
+      else removeDimension(selectedId)
     }
   }
 
   const confirmDim = confirmDeleteId ? dimensions.find(d => d.id === confirmDeleteId) : null
+  const confirmDimHasScores = confirmDeleteId
+    ? Object.values(scores).some(elementScores => elementScores[confirmDeleteId] !== undefined)
+    : false
   const weightRange = numericRange(dimensions.map(dimension => dimension.weight), 1)
 
   // ── Render ────────────────────────────────────────────────────────────────────
@@ -239,11 +238,11 @@ export function DimensionsTab({ onOpenStarterPicker }: Props): React.JSX.Element
         />
       </div>
 
-      {/* ── Delete confirmation overlay (only shown when dimension has scores) ── */}
+      {/* ── Delete confirmation overlay ── */}
       {confirmDim && (
         <ConfirmationDisc
           title={<>Delete <strong>{confirmDim.label}</strong>?</>}
-          detail="Its scores will be lost."
+          detail={confirmDimHasScores ? 'Its scores will be lost.' : 'This cannot be undone.'}
           actionLabel="Delete"
           onCancel={() => setConfirmDeleteId(null)}
           onAction={() => { removeDimension(confirmDeleteId!); setConfirmDeleteId(null) }}

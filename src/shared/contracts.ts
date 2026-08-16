@@ -8,7 +8,7 @@ export interface Preferences {
   defaultElementColor: string
   defaultElementShape: ElementShape
   reopenLastFile: boolean
-  confirmDeleteElement: boolean
+  confirmDeleteData: boolean
   lastFilePath: string | null
   elementLabelSize: number
   dimensionLabelSize: number
@@ -28,7 +28,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   defaultElementColor: '#9d9d53',
   defaultElementShape: 'circle',
   reopenLastFile: false,
-  confirmDeleteElement: true,
+  confirmDeleteData: true,
   lastFilePath: null,
   elementLabelSize: 11,
   dimensionLabelSize: 11,
@@ -41,8 +41,22 @@ export const DEFAULT_PREFERENCES: Preferences = {
   mainWindowHeight: 800
 }
 
-export function mergePreferences(raw: Partial<Preferences> = {}): Preferences {
-  return { ...DEFAULT_PREFERENCES, ...raw }
+type StoredPreferences = Partial<Preferences> & {
+  /** Preference name used before deletion confirmation became global. */
+  confirmDeleteElement?: boolean
+}
+
+export function mergePreferences(raw: StoredPreferences = {}): Preferences {
+  const { confirmDeleteElement, ...current } = raw
+  return {
+    ...DEFAULT_PREFERENCES,
+    ...current,
+    confirmDeleteData: typeof current.confirmDeleteData === 'boolean'
+      ? current.confirmDeleteData
+      : typeof confirmDeleteElement === 'boolean'
+        ? confirmDeleteElement
+        : DEFAULT_PREFERENCES.confirmDeleteData
+  }
 }
 
 export const MENU_ACTIONS = [

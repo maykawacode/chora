@@ -19,23 +19,15 @@
 .header {
   flex: none;
   padding: var(--space-four) 19px var(--space-three);
-  border-bottom: 1px solid var(--color-border-subtle);
-  background: var(--color-surface-raised);
   -webkit-app-region: drag;
 }
 
 .title {
-  margin: 0 0 2px;
+  margin: 0;
   font-size: var(--font-size-title);
   font-weight: var(--font-weight-semibold);
   line-height: var(--line-height-compact);
   color: var(--color-text-primary);
-}
-
-.subtitle {
-  margin: 0;
-  color: var(--color-text-muted);
-  font-size: var(--font-size-control);
 }
 
 .content {
@@ -164,8 +156,6 @@
   justify-content: space-between;
   gap: var(--space-two);
   padding: var(--space-three) 19px;
-  border-top: 1px solid var(--color-border-subtle);
-  background: var(--color-surface-raised);
   -webkit-app-region: no-drag;
 }
 

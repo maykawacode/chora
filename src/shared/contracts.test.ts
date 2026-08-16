@@ -15,6 +15,17 @@ describe('shared contracts', () => {
     })
   })
 
+  it('migrates the element deletion preference to the global data setting', () => {
+    const merged = mergePreferences({ confirmDeleteElement: false })
+
+    expect(merged.confirmDeleteData).toBe(false)
+    expect(merged).not.toHaveProperty('confirmDeleteElement')
+    expect(mergePreferences({
+      confirmDeleteData: true,
+      confirmDeleteElement: false
+    }).confirmDeleteData).toBe(true)
+  })
+
   it('round-trips a map state envelope', () => {
     const envelope: MapStateEnvelope = {
       isDirty: true,

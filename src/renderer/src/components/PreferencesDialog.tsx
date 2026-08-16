@@ -58,7 +58,6 @@ export function PreferencesDialog({ onClose }: Props): React.JSX.Element {
     >
       <header className={styles.header}>
         <h2 className={styles.title} id="preferences-title">Chora settings</h2>
-        <p className={styles.subtitle}>Interface, map, and session defaults</p>
       </header>
 
       <div className={styles.content}>
@@ -127,10 +126,14 @@ export function PreferencesDialog({ onClose }: Props): React.JSX.Element {
                 <option value="diamond">diamond</option>
               </select>
             </label>
+          </section>
+
+          <section className={styles.section} aria-labelledby="preferences-data">
+            <h3 className={styles.sectionTitle} id="preferences-data">Data</h3>
             <label className={styles.row}>
-              <input type="checkbox" checked={draft.confirmDeleteElement}
-                onChange={() => toggle('confirmDeleteElement')} />
-              <span>Confirm before deleting elements</span>
+              <input type="checkbox" checked={draft.confirmDeleteData}
+                onChange={() => toggle('confirmDeleteData')} />
+              <span>Confirm before deleting any data (elements, dimensions, collections)</span>
             </label>
           </section>
 

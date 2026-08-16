@@ -15,8 +15,7 @@
 //   The detail pane edits the anchor element, which is drawn in full amber.
 //
 // Delete behavior:
-//   - Multi-selection → always confirms, whatever the pref says
-//   - Single element → confirmation overlay only if confirmDeleteElement is ON
+//   - All single and multi-element deletions follow confirmDeleteData
 //   - There is no delete button in the UI; the keyboard is the only trigger.
 
 import { useRef, useState, useEffect, KeyboardEvent } from 'react'
@@ -95,15 +94,16 @@ export function ElementsTab(): React.JSX.Element {
     if (e.key === 'Enter') handleAdd()
   }
 
-  // Route a delete request through the confirmation preference.
-  // A multi-element delete always confirms: the pref exists to spare the user a
-  // prompt for one element, not to drop a dozen of them without a word.
+  // Route every single or batch delete through the global data preference.
   function requestDelete(ids: string[]): void {
     if (ids.length === 0) return
-    if (ids.length > 1 || prefs.confirmDeleteElement) {
+    if (prefs.confirmDeleteData) {
       setConfirmIds(ids)  // show the confirmation overlay
     } else {
-      removeElement(ids[0])
+      history.run(SCORE_HISTORY_OWNER, () => {
+        for (const id of ids) removeElement(id)
+      })
+      clearSelection()
     }
   }
 

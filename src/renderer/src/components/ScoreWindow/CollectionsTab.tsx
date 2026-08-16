@@ -8,8 +8,7 @@
 // IS; the Elements tab says who is in it.
 //
 // Delete behavior:
-//   - If any element belongs to the collection → confirmation overlay
-//   - Otherwise → deletes immediately
+//   - Every deletion follows the global confirmDeleteData preference
 
 import { useRef, useState, KeyboardEvent } from 'react'
 import { useAppStore } from '../../store/appStore'
@@ -17,6 +16,7 @@ import { history, SCORE_HISTORY_OWNER } from '../../store/history'
 import { DEFAULT_COLLECTION_COLOR } from '../../lib/color'
 import { useResizableSplitPane } from './useResizableSplitPane'
 import { ConfirmationDisc } from '../ConfirmationDisc'
+import { usePrefsStore } from '../../store/prefsStore'
 import styles from './DataTab.module.css'
 
 export function CollectionsTab(): React.JSX.Element {
@@ -28,6 +28,7 @@ export function CollectionsTab(): React.JSX.Element {
   const removeCollection = useAppStore(s => s.removeCollection)
   const selectCollection = useAppStore(s => s.selectCollection)
   const assignPaletteToUncoloredCollections = useAppStore(s => s.assignPaletteToUncoloredCollections)
+  const confirmDeleteData = usePrefsStore(s => s.prefs.confirmDeleteData)
 
   // Collections created before the palette existed all carry
   // DEFAULT_COLLECTION_COLOR, which makes a map colored by collection look like
@@ -50,12 +51,11 @@ export function CollectionsTab(): React.JSX.Element {
     addInputRef.current?.focus()
   }
 
-  // Deleting a collection drops it from every member's collectionIds, so warn
-  // whenever anyone is in it. Membership is the only thing lost — nothing else
-  // in the file points at a collection.
+  // Deleting a collection drops it from every member's collectionIds. Whether
+  // that operation asks first is governed by the same preference as every
+  // other data deletion.
   function requestDelete(id: string): void {
-    const hasMembers = elements.some(el => el.collectionIds.includes(id))
-    if (hasMembers) setConfirmDeleteId(id)
+    if (confirmDeleteData) setConfirmDeleteId(id)
     else removeCollection(id)
   }
 
@@ -179,7 +179,10 @@ export function CollectionsTab(): React.JSX.Element {
       {confirmCollection && (
         <ConfirmationDisc
           title={<>Delete <strong>{confirmCollection.name}</strong>?</>}
-          detail={<>Remove from {confirmMemberCount} {confirmMemberCount === 1 ? 'element' : 'elements'}.</>}
+          detail={confirmMemberCount > 0
+            ? <>Remove from {confirmMemberCount} {confirmMemberCount === 1 ? 'element' : 'elements'}.</>
+            : 'This cannot be undone.'
+          }
           actionLabel="Delete"
           onCancel={() => setConfirmDeleteId(null)}
           onAction={() => { removeCollection(confirmDeleteId!); setConfirmDeleteId(null) }}
