@@ -20,6 +20,7 @@ export function PreferencesDialog({ onClose }: Props): React.JSX.Element {
   const { prefs, setPrefs } = usePrefsStore()
   // Work on a draft so Cancel discards all changes
   const [draft, setDraft] = useState<Preferences>({ ...prefs })
+  const [isCancelling, setIsCancelling] = useState(false)
 
   function toggle(key: keyof Preferences): void {
     setDraft(d => ({ ...d, [key]: !d[key] }))
@@ -33,6 +34,15 @@ export function PreferencesDialog({ onClose }: Props): React.JSX.Element {
     // unless we explicitly relay it over IPC.
     window.api?.broadcastPrefs(draft)
     onClose()
+  }
+
+  function handleCancel(): void {
+    if (isCancelling) return
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      onClose()
+      return
+    }
+    setIsCancelling(true)
   }
 
   function restoreDefaults(): void {
@@ -53,8 +63,12 @@ export function PreferencesDialog({ onClose }: Props): React.JSX.Element {
     <ModalShell
       overlayClassName={styles.overlay}
       dialogClassName={styles.dialog}
-      onClose={onClose}
+      onClose={handleCancel}
       labelledBy="preferences-title"
+      dialogAnimationClassName={isCancelling ? 'modalZoomExit' : 'modalZoomEnter'}
+      onDialogAnimationEnd={() => {
+        if (isCancelling) onClose()
+      }}
     >
       <header className={styles.header}>
         <h2 className={styles.title} id="preferences-title">Chora settings</h2>
@@ -215,7 +229,7 @@ export function PreferencesDialog({ onClose }: Props): React.JSX.Element {
             className={styles.btnCancel}
             aria-label="Cancel settings"
             title="Cancel settings"
-            onClick={onClose}
+            onClick={handleCancel}
           >
             <svg className={styles.cancelIcon} viewBox="0 0 24 24" aria-hidden="true">
               <path d="M5 5L19 19M19 5L5 19" />

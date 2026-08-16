@@ -142,6 +142,24 @@ textarea {
   }
 }
 
+.modalZoomExit {
+  transform-origin: center;
+  pointer-events: none;
+  animation: modalZoomExit var(--motion-duration-enter) var(--motion-ease-standard) both;
+}
+
+@keyframes modalZoomExit {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+}
+
 .confirmationCopy {
   width: 100%;
   padding-left: calc(33.333% - 40px);
@@ -252,7 +270,8 @@ textarea {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .modalZoomEnter {
+  .modalZoomEnter,
+  .modalZoomExit {
     animation: none;
   }
 }

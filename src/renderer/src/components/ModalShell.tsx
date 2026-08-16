@@ -11,6 +11,8 @@ interface Props {
   label?: string
   dismissOnEscape?: boolean
   dialogStyle?: CSSProperties
+  dialogAnimationClassName?: string
+  onDialogAnimationEnd?: () => void
 }
 
 /** Shared behavior for cancelable dialogs; each dialog keeps its own layout. */
@@ -22,7 +24,9 @@ export function ModalShell({
   labelledBy,
   label,
   dismissOnEscape = true,
-  dialogStyle
+  dialogStyle,
+  dialogAnimationClassName = 'modalZoomEnter',
+  onDialogAnimationEnd
 }: Props): React.JSX.Element {
   useEffect(() => {
     const closeOnEscape = (event: KeyboardEvent): void => {
@@ -51,12 +55,15 @@ export function ModalShell({
       onContextMenu={event => event.stopPropagation()}
     >
       <div
-        className={`${dialogClassName} modalZoomEnter`}
+        className={`${dialogClassName} ${dialogAnimationClassName}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby={labelledBy}
         aria-label={label}
         style={dialogStyle}
+        onAnimationEnd={event => {
+          if (event.target === event.currentTarget) onDialogAnimationEnd?.()
+        }}
       >
         {children}
       </div>
