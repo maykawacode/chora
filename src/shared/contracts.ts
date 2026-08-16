@@ -44,7 +44,7 @@ export function mergePreferences(raw: Partial<Preferences> = {}): Preferences {
 
 export const MENU_ACTIONS = [
   'undo', 'redo',
-  'new', 'open', 'save', 'save-as',
+  'new', 'open', 'open-example', 'save', 'save-as',
   'import-spreadsheet', 'export-spreadsheet',
   'create-cartesian', 'create-semantic',
   'preferences', 'orientation'

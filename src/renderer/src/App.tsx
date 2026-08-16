@@ -301,6 +301,9 @@ export function App(): React.JSX.Element {
         case 'redo':               history.redo();               break
         case 'new':                await handleNew();             break
         case 'open':               await handleOpen();            break
+        case 'open-example':
+          if (await handleOpenExample()) setShowWelcome(false)
+          break
         case 'save':               await handleSave(false);       break
         case 'save-as':            await handleSave(true);        break
         case 'import-spreadsheet': await handleImport();          break
@@ -329,6 +332,7 @@ export function App(): React.JSX.Element {
   }
 
   async function handleOpenExample(): Promise<boolean> {
+    if (isDirty && !await confirmDiscard()) return false
     return openBundledExample()
   }
 

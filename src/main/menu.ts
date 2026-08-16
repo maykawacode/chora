@@ -181,6 +181,7 @@ export function buildMenu(): void {
     {
       label: 'Help',
       submenu: [
+        { label: 'Open Example Data', click: () => sendToRenderer('open-example') },
         { label: 'Chora Orientation', click: () => sendToRenderer('orientation') },
         { type: 'separator' },
         { label: 'Check for Updates…', click: () => { void shell.openExternal(RELEASES_URL) } },
