@@ -18,7 +18,7 @@ Examples include:
 - Images, statements, or themes
 
 Choose a set small enough to score one item at a time. Chora becomes useful when
-the relationships are hard to remember or see in a table.
+the relationships are not obvious, hard to remember, or see in a table.
 
 ## The four building blocks
 
@@ -90,7 +90,7 @@ Macs with Apple silicon running macOS 12 or later.
 6. Open **System Settings → Privacy & Security**, find the message about Chora,
    and choose **Open Anyway**. Authenticate if asked, then confirm **Open**.
 
-## Your first ten minutes
+## Jump in
 
 ### 1. Open the example
 
@@ -114,15 +114,9 @@ If the Welcome screen is not visible, choose **Help → Open Example Data**.
   later session.
 
 Click an item in the list on the left to inspect or edit its details on the
-right. The divider between the two panes can be dragged when you need more room.
+right. 
 
-### 3. Change one judgment
-
-Open **Assess** and select **Outdoor courtyard table**. Move one dimension
-slider. Watch the open maps update, then choose **Edit → Undo** or press
-**Command-Z**.
-
-### 4. Read the two map types
+### 3. Read the two map types
 
 The example includes both kinds of map:
 
@@ -137,7 +131,7 @@ Drag an Element on either map to revise the score represented by its position.
 The change also appears in Assess and in the other open maps. Use Undo whenever
 you want to step back.
 
-### 5. Save your own copy
+### 4. Save your own copy
 
 Choose **File → Save As…** and give the session a name. Chora saves the edited
 example as your own `.chora` file. Close Chora and reopen that file.
@@ -157,7 +151,7 @@ Open Dimensions, enter a paired label such as `Quiet–Lively`, and press Return
 Select the new Dimension to refine Pole A, Pole B, its definition, or its
 weight. The **…** control beside the new-Dimension field opens starter choices.
 
-After scoring a few Elements, revise any poles that feel vague or misleading.
+After scoring a few Elements, revise any poles that feel vague or misleading. You can do this later as well.
 
 ### 3. Add optional Collections
 
@@ -181,7 +175,7 @@ Use the **Maps** menu:
   Dimensions.
 
 Create any number of additional maps to compare other pairs or groups of
-Dimensions. Every map stays synchronized with the main Chora window.
+Dimensions.
 
 ## Working directly with maps
 
@@ -197,8 +191,7 @@ Dimensions. Every map stays synchronized with the main Chora window.
 
 Open the map's right-side controls to change marks, labels, weight-based sizing,
 Element or Collection coloring, and which Collections the map emphasizes. The
-same panel can export the current map as SVG for use in documents or graphics
-software.
+same panel can export the current map as SVG for use in other apps.
 
 ## Selection and editing in the main window
 
@@ -221,19 +214,6 @@ software.
 Back up any session you need to keep while Chora remains in prerelease. Use
 **Help → Check for Updates…** to visit the Releases page; updates are installed
 manually.
-
-## Reading a map
-
-Use a pattern on a map to ask a question:
-
-1. Name a cluster, separation, overlap, or unusual profile you notice.
-2. Identify which scores and Dimensions produced it.
-3. Ask whether those judgments still make sense for the underlying material.
-4. Revise a score or Dimension if your understanding has changed.
-5. Notice what changes and what remains stable across other maps.
-
-A saved Chora session records how you distinguished the Elements and where your
-judgment may need more work.
 
 ## Data and privacy
 
