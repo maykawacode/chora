@@ -53,20 +53,6 @@
   min-width: 0;
 }
 
-.unsavedBadge {
-  flex: none;
-  transform: translateY(-2px);
-  font-size: var(--font-size-meta);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text-inverse);
-  background: var(--color-unsaved);
-  border: none;
-  border-radius: var(--radius-small);
-  padding: 1px 6px;
-  user-select: none;
-  pointer-events: none;
-}
-
 .windowTitle {
   flex: 0 1 auto;
   min-width: 0;
@@ -98,9 +84,6 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.statusMessage {
   color: var(--color-text-secondary);
   font-size: var(--font-size-control);
   font-weight: var(--font-weight-regular);

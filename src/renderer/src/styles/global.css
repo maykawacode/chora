@@ -55,6 +55,21 @@ textarea {
   outline-offset: 1px;
 }
 
+/* Shared document-state marker used by both main and map window titles. */
+.unsavedBadge {
+  flex: none;
+  transform: translateY(-2px);
+  padding: 1px 6px;
+  border: none;
+  border-radius: var(--radius-small);
+  background: var(--color-unsaved);
+  color: var(--color-text-inverse);
+  font-size: var(--font-size-meta);
+  font-weight: var(--font-weight-semibold);
+  user-select: none;
+  pointer-events: none;
+}
+
 /* Confirmation discs -------------------------------------------------------
    Confirmations are deliberately distinct from task dialogs: they ask one
    short question, state one consequence, and offer an immediate choice. The

@@ -57,7 +57,7 @@ export function ScoreWindow({ onOpenStarterPicker, statusOverride }: Props): Rea
           <span className={styles.titleDivider} aria-hidden="true">|</span>
           <div className={styles.titleGroup}>
             <span className={styles.windowTitle}>{fileName}</span>
-            {isDirty && <span className={styles.unsavedBadge}>Unsaved</span>}
+            {isDirty && <span className="unsavedBadge">Unsaved</span>}
           </div>
         </div>
       </div>

@@ -101,16 +101,13 @@
 .btnCancel {
   padding: 5px 16px;
   min-height: var(--size-control);
+  border: 1px solid var(--color-border-control);
   border-radius: var(--radius-control);
+  background: var(--color-surface-chrome);
+  color: var(--color-text-primary);
   font-size: var(--font-size-body);
   font-family: inherit;
   cursor: pointer;
-}
-
-.btnCancel {
-  border: 1px solid var(--color-border-control);
-  background: var(--color-surface-chrome);
-  color: var(--color-text-primary);
 }
 
 .btnCancel:hover {

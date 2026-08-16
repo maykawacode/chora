@@ -2,15 +2,12 @@
   --map-sidebar-width: 230px;
   --map-sidebar-motion: var(--motion-duration-enter) var(--motion-ease-standard);
   --map-titlebar-height: var(--size-title-bar);
-  position: relative;
-}
-
-.panelWindowed {
   display: flex;
   flex-direction: column;
+  flex: 1;
+  position: relative;
   overflow: hidden;
   background: var(--map-background);
-  flex: 1;
 }
 
 /* White and borderless so the title bar flows directly into the map field. */
@@ -39,17 +36,21 @@
   -webkit-app-region: no-drag;
 }
 
+.windowControl,
+.sidebarBtn {
+  border: none;
+  background: transparent;
+  color: var(--color-action-strong);
+  cursor: pointer;
+  padding: 0;
+  -webkit-app-region: no-drag;
+}
+
 .windowControl {
   width: 12px;
   height: 12px;
   display: grid;
   place-items: center;
-  padding: 0;
-  border: none;
-  background: transparent;
-  color: var(--color-action-strong);
-  cursor: pointer;
-  -webkit-app-region: no-drag;
 }
 
 .windowControl svg {
@@ -105,37 +106,15 @@
   -webkit-app-region: no-drag;
 }
 
-/* Sits directly after the map title. flex:none keeps it at full size when a
-   long title or file name compresses the group. */
-.unsavedBadge {
-  flex: none;
-  transform: translateY(-2px);
-  font-size: var(--font-size-meta);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text-inverse);
-  background: var(--color-unsaved);
-  border: none;
-  border-radius: var(--radius-small);
-  padding: 1px 6px;
-  user-select: none;
-  pointer-events: none;
-}
-
 /* Sidebar toggle — sits at the right end of the title bar, the conventional
    spot for a "show/hide inspector" control. */
 .sidebarBtn {
   width: 22px;
   height: 20px;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  color: var(--color-action-strong);
   border-radius: var(--radius-small);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0;
-  -webkit-app-region: no-drag;
 }
 
 .windowedSidebarToggle {
@@ -186,7 +165,6 @@
 }
 
 .axisPickerItem {
-  min-height: 28px;
   padding: 6px 10px;
   min-height: var(--size-control);
   font-size: var(--font-size-control);

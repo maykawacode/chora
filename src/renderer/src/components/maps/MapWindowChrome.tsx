@@ -10,6 +10,32 @@ interface Props {
   onToggleSidebar: () => void
 }
 
+type MapWindowAction = 'close' | 'minimize' | 'zoom'
+
+interface MapChromeButtonProps {
+  action: MapWindowAction
+  label: string
+  glyph: string
+}
+
+function MapChromeButton({ action, label, glyph }: MapChromeButtonProps): React.JSX.Element {
+  return (
+    <button
+      className={styles.windowControl}
+      onClick={() => window.api.controlMapWindow(action)}
+      title={label}
+      aria-label={`${label} window`}
+    >
+      <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
+        <g fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round">
+          <circle cx="6" cy="6" r="5" />
+          <path d={glyph} />
+        </g>
+      </svg>
+    </button>
+  )
+}
+
 export function SidebarToggle({ open, onToggle }: { open: boolean; onToggle: () => void }): React.JSX.Element {
   const label = open ? 'Hide map controls' : 'Show map controls'
   return (
@@ -58,28 +84,9 @@ export function MapWindowChrome({
     <>
       <div className={styles.titleBar}>
         <div className={styles.windowControls} aria-label="Window controls">
-          <button className={styles.windowControl}
-            onClick={() => window.api.controlMapWindow('close')} title="Close" aria-label="Close window">
-            <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
-              <circle cx="6" cy="6" r="5" fill="none" stroke="currentColor" strokeWidth="1.3" />
-              <path d="M3.5 3.5 8.5 8.5M8.5 3.5 3.5 8.5"
-                fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
-            </svg>
-          </button>
-          <button className={styles.windowControl}
-            onClick={() => window.api.controlMapWindow('minimize')} title="Minimize" aria-label="Minimize window">
-            <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
-              <circle cx="6" cy="6" r="5" fill="none" stroke="currentColor" strokeWidth="1.3" />
-              <path d="M3 6h6" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
-            </svg>
-          </button>
-          <button className={styles.windowControl}
-            onClick={() => window.api.controlMapWindow('zoom')} title="Zoom" aria-label="Zoom window">
-            <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
-              <circle cx="6" cy="6" r="5" fill="none" stroke="currentColor" strokeWidth="1.3" />
-              <path d="M3 6h6M6 3v6" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
-            </svg>
-          </button>
+          <MapChromeButton action="close" label="Close" glyph="M3.5 3.5 8.5 8.5M8.5 3.5 3.5 8.5" />
+          <MapChromeButton action="minimize" label="Minimize" glyph="M3 6h6" />
+          <MapChromeButton action="zoom" label="Zoom" glyph="M3 6h6M6 3v6" />
         </div>
 
         <div className={styles.titleGroup}>
@@ -100,7 +107,7 @@ export function MapWindowChrome({
               {title}
             </span>
           )}
-          {isDirty && <span className={styles.unsavedBadge}>Unsaved</span>}
+          {isDirty && <span className="unsavedBadge">Unsaved</span>}
           {!editing && filePath && <span className={styles.titleFileName}>{filePath.split('/').pop()}</span>}
         </div>
       </div>
