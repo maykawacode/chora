@@ -47,7 +47,7 @@ export const MENU_ACTIONS = [
   'new', 'open', 'open-example', 'save', 'save-as',
   'import-spreadsheet', 'export-spreadsheet',
   'create-cartesian', 'create-semantic',
-  'preferences', 'orientation'
+  'preferences', 'orientation', 'about'
 ] as const
 
 export type MenuAction = typeof MENU_ACTIONS[number]
@@ -94,6 +94,7 @@ export interface ChoraApi {
   writeFile: (path: string, data: string) => Promise<void>
   readBundledExample: (fileName: string) => Promise<string>
   readHelpDocument: (fileName: string) => Promise<string>
+  getAppVersion: () => string
   onMenuAction: (cb: (action: MenuAction) => void) => () => void
   openMap: (mapId: string, stateJson: string) => void
   closeMap: (mapId: string) => void

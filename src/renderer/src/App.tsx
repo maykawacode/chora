@@ -24,6 +24,7 @@ import { PreferencesDialog } from './components/PreferencesDialog'
 import { WelcomeDialog } from './components/WelcomeDialog'
 import { ConfirmationDisc } from './components/ConfirmationDisc'
 import { OrientationDialog } from './components/OrientationDialog'
+import { ModalShell } from './components/ModalShell'
 import { serializeSession } from './lib/parser'
 import {
   chooseSpreadsheetImport,
@@ -41,6 +42,27 @@ import { encodeMapStateEnvelope } from '../../shared/contracts'
 
 type StoreState = ReturnType<typeof useAppStore.getState>
 
+const REPOSITORY_URL = 'https://github.com/maykawacode/chora'
+
+function AboutDialog({ version, onClose }: { version: string; onClose: () => void }): React.JSX.Element {
+  return (
+    <ModalShell
+      overlayClassName={styles.aboutOverlay}
+      dialogClassName={styles.aboutDialog}
+      onClose={onClose}
+      labelledBy="about-dialog-title"
+    >
+      <h1 className={styles.aboutTitle} id="about-dialog-title">Chora</h1>
+      <p className={styles.aboutTagline}>Spatial reasoning for qualitative data</p>
+      <p className={styles.aboutVersion}>Version {version}</p>
+      <p className={styles.aboutCopyright}>Copyright © 2026 Matt Mayfield</p>
+      <a className={styles.aboutLink} href={REPOSITORY_URL} target="_blank" rel="noreferrer">
+        github.com/maykawacode/chora
+      </a>
+    </ModalShell>
+  )
+}
+
 /** One canonical payload shape for every Score Window → map state push. */
 function encodeStateEnvelope(state: StoreState): string {
   return encodeMapStateEnvelope({
@@ -53,6 +75,7 @@ function encodeStateEnvelope(state: StoreState): string {
 }
 
 export function App(): React.JSX.Element {
+  const [appVersion] = useState(() => window.api.getAppVersion())
   const filePath      = useAppStore(s => s.filePath)
   const isDirty       = useAppStore(s => s.isDirty)
   const loadSession   = useAppStore(s => s.loadSession)
@@ -80,13 +103,14 @@ export function App(): React.JSX.Element {
   const [showCreateSemantic,      setShowCreateSemantic]      = useState(false)
   const [showStarterPicker,    setShowStarterPicker]    = useState(false)
   const [showPreferences,      setShowPreferences]      = useState(false)
+  const [showAbout,            setShowAbout]            = useState(false)
   const [orientationMarkdown, setOrientationMarkdown] = useState<string | null>(null)
   const [importPreview,        setImportPreview]        = useState<ImportPreviewData | null>(null)
 
   // True while any modal is open — used to bring the Score Window to the front
   // so it is not obscured by map BrowserWindows
   const isModalOpen = showWelcome || showChooseDimensions || showCreateSemantic ||
-                      showStarterPicker || showPreferences || showQuitConfirm || showDiscardConfirm ||
+                      showStarterPicker || showPreferences || showAbout || showQuitConfirm || showDiscardConfirm ||
                       showImportReplaceConfirm || orientationMarkdown !== null || importPreview !== null
 
   // ── suppressBroadcast ref ─────────────────────────────────────────────────────
@@ -311,6 +335,7 @@ export function App(): React.JSX.Element {
         case 'create-cartesian':   setShowChooseDimensions(true); break
         case 'create-semantic':    setShowCreateSemantic(true);   break
         case 'preferences':        setShowPreferences(true);      break
+        case 'about':              setShowAbout(true);            break
         case 'orientation':
           setOrientationMarkdown(await openOrientationDocument())
           break
@@ -421,6 +446,8 @@ export function App(): React.JSX.Element {
       {orientationMarkdown !== null && (
         <OrientationDialog markdown={orientationMarkdown} onClose={() => setOrientationMarkdown(null)} />
       )}
+
+      {showAbout && <AboutDialog version={appVersion} onClose={() => setShowAbout(false)} />}
 
       {showQuitConfirm && (
         <ConfirmationDisc

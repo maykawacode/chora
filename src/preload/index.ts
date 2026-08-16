@@ -39,6 +39,7 @@ const api = {
     ipcRenderer.invoke('resource:read-example', fileName),
   readHelpDocument: (fileName: string): Promise<string> =>
     ipcRenderer.invoke('resource:read-help', fileName),
+  getAppVersion: (): string => ipcRenderer.sendSync('app:get-version'),
 
   // ── Menu actions (Score Window only) ─────────────────────────────────────────
   //

@@ -102,6 +102,10 @@ export function registerIpcHandlers(): void {
     return readFile(filePath, 'utf-8')
   })
 
+  ipcMain.on('app:get-version', (event) => {
+    event.returnValue = app.getVersion()
+  })
+
   // ── Map window lifecycle ──────────────────────────────────────────────────────
 
   ipcMain.on('map:open', (_event, mapId: string, stateJson: string) => {

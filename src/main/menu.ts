@@ -84,7 +84,7 @@ export function buildMenu(): void {
     ...(isMac ? [{
       label: app.name,
       submenu: [
-        { role: 'about' as const },
+        { label: 'About Chora', click: () => sendToRenderer('about') },
         { type: 'separator' as const },
         {
           label: 'Preferences…',
@@ -185,7 +185,11 @@ export function buildMenu(): void {
         { label: 'Chora Orientation', click: () => sendToRenderer('orientation') },
         { type: 'separator' },
         { label: 'Check for Updates…', click: () => { void shell.openExternal(RELEASES_URL) } },
-        { label: 'Project & Feedback…', click: () => { void shell.openExternal(FEEDBACK_URL) } }
+        { label: 'Project & Feedback…', click: () => { void shell.openExternal(FEEDBACK_URL) } },
+        ...(isMac ? [] : [
+          { type: 'separator' as const },
+          { label: 'About Chora', click: () => sendToRenderer('about') }
+        ])
       ]
     }
   ]
