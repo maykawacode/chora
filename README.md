@@ -9,15 +9,6 @@ The method is informed by repertory-grid practice, but Chora is designed as a
 looser workspace for qualitative reasoning: the dimensions, scores, labels,
 and groupings can all evolve while you work.
 
-## What Chora does
-
-- Scores elements along bipolar dimensions such as simple ↔ complex.
-- Shows the same data in linked cartesian and semantic maps.
-- Updates every open view when an element is moved or edited.
-- Groups elements into Collections for comparison and filtering.
-- Imports tabular data and exports sessions and map graphics.
-- Supports undo and redo across the main scoring workspace and map windows.
-
 ## Get started
 
 - [Download the current prerelease](https://github.com/maykawacode/chora/releases)
@@ -29,9 +20,6 @@ Chora is pre-release software under active development. The application is
 substantially functional. The current packaged release supports Macs with Apple
 silicon running macOS 12 or later. Releases use a free ad-hoc signature and
 include macOS Gatekeeper instructions and a SHA-256 checksum.
-
-The preferred session format is `.chora`. Legacy MapTool `.mtda` sessions can
-still be opened.
 
 ## Run from source
 
