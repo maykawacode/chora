@@ -4,13 +4,18 @@
      every section shares one inset; the section dividers deliberately ignore it
      and run full-bleed, which is what keeps them reading as panel rules rather
      than underlines belonging to the content above them. */
-  --sidebar-inset: 25px;
+  --sidebar-inset: var(--space-four);
 
   width: 100%;
   flex: 1;
   display: flex;
   flex-direction: column;
   min-height: 0;
+  background: var(--color-surface-app);
+  color: var(--color-text-primary);
+  font-family: var(--font-family-ui);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-interface);
   user-select: none;
 }
 
@@ -21,7 +26,7 @@
 }
 
 .section {
-  padding: var(--space-two) var(--sidebar-inset) 10px;
+  padding: var(--space-three) var(--sidebar-inset);
   border-bottom: 1px solid var(--color-border-subtle);
 }
 
@@ -29,9 +34,6 @@
   border-bottom: none;
 }
 
-/* The 10px above sits on the title rather than in .section's padding so the
-   space belongs to the heading and travels with it, and so the section's
-   bottom rule keeps its own spacing independent of this. */
 /* Flex so a section can carry an action on the right — Collections uses it for
    its All/None link. Baseline alignment keeps that link sitting on the same
    line as the heading despite the two different font sizes. */
@@ -39,12 +41,13 @@
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  margin: 10px 0 6px;
-  font-size: var(--font-size-meta);
+  gap: var(--space-two);
+  margin: 0 0 var(--space-two);
+  font-size: var(--font-size-label);
   font-weight: var(--font-weight-semibold);
   color: var(--color-text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
 }
 
 /* ── Setting rows ─────────────────────────────────────────────────────────────
@@ -55,16 +58,24 @@
    is the same on every row. */
 .setting {
   display: flex;
-  align-items: baseline;
-  gap: var(--space-one);
+  align-items: center;
+  gap: var(--space-two);
   width: 100%;
-  padding: 3px 0;
+  min-height: var(--size-list-row);
+  margin: 0 calc(-1 * var(--space-one));
+  padding: var(--space-one);
   border: none;
+  border-radius: var(--radius-small);
   background: none;
   font-family: inherit;
   font-size: var(--font-size-control);
+  line-height: var(--line-height-interface);
   text-align: left;
   cursor: pointer;
+}
+
+.setting:hover {
+  background: var(--color-surface-hover);
 }
 
 /* Fixed width so every value in a section starts at the same x. That column is
@@ -74,7 +85,7 @@
    column, so raise this if one is added. */
 .settingName {
   flex: none;
-  min-width: 42px;
+  min-width: 44px;
   color: var(--color-text-secondary);
 }
 
@@ -84,10 +95,6 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.setting:hover .settingValue {
-  text-decoration: underline;
 }
 
 /* Menu variant: the text above is ours, and the real <select> lies invisibly
@@ -110,17 +117,17 @@
 
 /* The select holds focus but is invisible and so cannot show it; the row draws
    the ring on its behalf. Buttons show their own. */
-.settingMenu:focus-within .settingValue,
-.setting:focus-visible .settingValue {
+.settingMenu:focus-within,
+.setting:focus-visible {
   outline: 2px solid var(--color-focus-ring);
-  outline-offset: 2px;
-  border-radius: var(--radius-subtle);
+  outline-offset: 1px;
 }
 
 .linkBtn {
   border: none;
+  border-radius: var(--radius-subtle);
   background: none;
-  padding: 0;
+  padding: 0 2px;
   font-family: inherit;
   font-size: var(--font-size-meta);
   font-weight: var(--font-weight-semibold);
@@ -131,32 +138,34 @@
 }
 
 .linkBtn:hover {
-  text-decoration: underline;
+  background: var(--color-surface-hover);
+  color: var(--color-text-primary);
 }
 
 .empty {
   margin: 0;
   font-size: var(--font-size-label);
+  line-height: var(--line-height-reading);
   color: var(--color-text-muted);
 }
 
 .actionBtn {
   display: block;
   width: 100%;
-  padding: 7px 10px;
+  padding: var(--space-one) var(--space-three);
   min-height: var(--size-control);
   font-size: var(--font-size-control);
   font-family: inherit;
   font-weight: var(--font-weight-semibold);
   text-align: center;
   color: var(--color-text-inverse);
-  background: var(--color-selection-strong);
-  border: 1px solid var(--color-selection-strong);
+  background: var(--color-action-strong);
+  border: 1px solid var(--color-action-strong);
   border-radius: var(--radius-control);
   cursor: pointer;
 }
 
 .actionBtn:hover {
-  background: var(--color-selection-hover);
-  border-color: var(--color-selection-hover);
+  background: var(--color-action-hover);
+  border-color: var(--color-action-hover);
 }

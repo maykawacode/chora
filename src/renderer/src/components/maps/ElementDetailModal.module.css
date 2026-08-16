@@ -133,7 +133,7 @@
 .shapeBtnActive {
   background: var(--color-selection-strong) !important;
   border-color: var(--color-selection-strong) !important;
-  color: var(--color-text-inverse) !important;
+  color: var(--color-selection-text) !important;
 }
 
 .weightInput {

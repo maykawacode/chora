@@ -86,14 +86,12 @@ export function MapWindowChrome({
               }}
             />
           ) : (
-            <>
-              <span className={styles.title} onDoubleClick={startEditing} title="Double-click to rename">
-                {title}
-              </span>
-              {filePath && <span className={styles.titleFileName}>{filePath.split('/').pop()}</span>}
-            </>
+            <span className={styles.title} onDoubleClick={startEditing} title="Double-click to rename">
+              {title}
+            </span>
           )}
           {isDirty && <span className={styles.unsavedBadge}>Unsaved</span>}
+          {!editing && filePath && <span className={styles.titleFileName}>{filePath.split('/').pop()}</span>}
         </div>
       </div>
 

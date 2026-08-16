@@ -44,7 +44,7 @@
 .btnPrimary {
   padding: 8px 0;
   min-height: var(--size-control);
-  background: var(--color-selection-strong);
+  background: var(--color-action-strong);
   color: var(--color-text-inverse);
   border: none;
   border-radius: var(--radius-control);
@@ -56,7 +56,7 @@
 }
 
 .btnPrimary:hover {
-  background: var(--color-selection-hover);
+  background: var(--color-action-hover);
 }
 
 .btnSecondary {

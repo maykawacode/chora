@@ -52,8 +52,8 @@ export function ScoreWindow({ onOpenStarterPicker, statusOverride }: Props): Rea
   return (
     <div className={styles.window}>
       <div className={styles.titleBar}>
-        <span className={styles.windowTitle}>{fileName}</span>
-        <div className={styles.titleActions}>
+        <div className={styles.titleGroup}>
+          <span className={styles.windowTitle}>{fileName}</span>
           {isDirty && <span className={styles.unsavedBadge}>Unsaved</span>}
         </div>
       </div>

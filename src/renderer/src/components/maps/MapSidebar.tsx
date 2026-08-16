@@ -21,8 +21,8 @@
 // every time a window opens. Everything it changes IS persisted, via the
 // caller's updateConfig.
 //
-// The sidebar carries no header of its own. It shares --chrome-bg with the
-// title bar so the two present as one panel, and the toggle that reveals it
+// The sidebar carries no header of its own. It shares the application surface
+// with the strip above it so the two present as one panel, and the toggle that reveals it
 // already names it — a "Controls" strip would only restate that and cut the
 // shared surface in two. Section headings do the labelling from here down.
 

@@ -74,7 +74,7 @@
 
 .selected {
   background: var(--color-selection-strong) !important;
-  color: var(--color-text-inverse);
+  color: var(--color-selection-text);
 }
 
 .axisLabel {
@@ -169,6 +169,6 @@
 /* Active segment matches the list selection highlight color */
 .poleBtnActive {
   background: var(--color-selection-strong) !important;
-  color: var(--color-text-inverse);
+  color: var(--color-selection-text);
   font-weight: var(--font-weight-medium);
 }

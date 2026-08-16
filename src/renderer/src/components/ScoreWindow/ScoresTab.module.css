@@ -158,7 +158,7 @@
 .selected,
 .selected:hover {
   background: var(--color-selection-strong);
-  color: var(--color-text-inverse);
+  color: var(--color-selection-text);
 }
 
 .indicator {
@@ -170,7 +170,7 @@
 }
 
 .selected .indicator {
-  color: var(--color-text-inverse);
+  color: var(--color-selection-text);
 }
 
 .rowName {
@@ -333,9 +333,9 @@
 .sliderDot {
   position: absolute;
   z-index: 1;
-  width: 16px;
-  height: 16px;
-  border: 2px solid var(--color-selection-strong);
+  width: 21px;
+  height: 21px;
+  border: 1px solid var(--color-text-secondary);
   border-radius: 50%;
   background: var(--color-selection-strong);
   cursor: grab;

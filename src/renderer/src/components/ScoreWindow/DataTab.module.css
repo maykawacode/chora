@@ -101,7 +101,7 @@
    land on it — the !important is what keeps the anchor distinguishable there. */
 .selected {
   background: var(--color-selection-strong) !important;
-  color: var(--color-text-inverse);
+  color: var(--color-selection-text);
 }
 
 .multiSelected {
@@ -345,7 +345,7 @@
 .shapeBtnActive {
   background: var(--color-selection-strong) !important;
   border-color: var(--color-selection-strong);
-  color: var(--color-text-inverse);
+  color: var(--color-selection-text);
 }
 
 /* Collection color marker in the Collections tab list. */

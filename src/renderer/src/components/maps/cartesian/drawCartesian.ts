@@ -52,7 +52,9 @@ const LABEL_OFFSET = 3
 // Default label size used when callers don't supply an explicit size.
 export const LABEL_SIZE_DEFAULT = 11
 
-// Builds the canvas font string for any given pixel size.
+// Builds the canvas font string for any given pixel size. Map labels remain
+// deliberately independent of interface typography so a future preference can
+// change them without changing window chrome or controls.
 // Exported so drawSemantic can share the same typeface without duplicating it.
 // Called with a runtime size so P5-20 preference values flow through cleanly.
 export function labelFont(size: number): string {

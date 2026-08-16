@@ -13,7 +13,7 @@
 .titleBar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   flex-shrink: 0;
   height: var(--size-title-bar);
   min-width: 0;
@@ -22,19 +22,20 @@
   -webkit-app-region: drag;
 }
 
-.titleActions {
+.titleGroup {
   display: flex;
-  align-items: center;
-  flex: none;
-  -webkit-app-region: no-drag;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
 }
 
 .unsavedBadge {
+  flex: none;
   font-size: var(--font-size-meta);
   font-weight: var(--font-weight-semibold);
-  color: var(--color-unsaved-text);
-  background: var(--color-unsaved-surface);
-  border: 1px solid var(--color-unsaved-border);
+  color: var(--color-text-inverse);
+  background: var(--color-unsaved);
+  border: none;
   border-radius: var(--radius-small);
   padding: 1px 6px;
   user-select: none;
@@ -42,6 +43,7 @@
 }
 
 .windowTitle {
+  flex: 0 1 auto;
   min-width: 0;
   overflow: hidden;
   font-size: var(--font-size-body);
@@ -128,6 +130,7 @@
 
 .tabTool:hover {
   background: var(--color-selection-strong);
+  color: var(--color-selection-text);
 }
 
 .tabActive {
@@ -139,7 +142,7 @@
 .tabActiveTool,
 .tabActiveTool:hover {
   background: var(--color-selection-strong);
-  color: var(--color-text-inverse);
+  color: var(--color-selection-text);
 }
 
 .tabContent {
