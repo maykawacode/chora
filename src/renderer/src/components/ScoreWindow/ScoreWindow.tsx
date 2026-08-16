@@ -73,9 +73,7 @@ export function ScoreWindow({ onOpenStarterPicker, statusOverride }: Props): Rea
             className={[
               styles.tab,
               tab === 'conversions' ? styles.tabIcon : '',
-              tab === 'scores' || tab === 'conversions' ? styles.tabTool : '',
-              activeTab === tab ? styles.tabActive : '',
-              activeTab === tab && (tab === 'scores' || tab === 'conversions') ? styles.tabActiveTool : ''
+              activeTab === tab ? styles.tabActive : ''
             ].filter(Boolean).join(' ')}
             onClick={() => setActiveTab(tab)}
             aria-pressed={activeTab === tab}

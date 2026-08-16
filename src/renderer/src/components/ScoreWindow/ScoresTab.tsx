@@ -213,6 +213,12 @@ export function AssessTab(): React.JSX.Element {
 
   return (
     <div className={styles.tab}>
+      <div className={styles.scoreKey} aria-label="Scoring status key">
+        <span><span className={styles.keySymbol}>–</span>No score</span>
+        <span><span className={styles.keySymbol}>◇</span>Incomplete scores</span>
+        <span><span className={styles.keySymbol}>●</span>Complete scores</span>
+      </div>
+
       <section className={`${styles.section} ${styles.scoreSection}`}>
         {elements.length === 0 ? (
           <div className={styles.guidance}>
@@ -244,12 +250,6 @@ export function AssessTab(): React.JSX.Element {
           />
         )}
       </section>
-
-      <div className={styles.scoreKey} aria-label="Scoring status key">
-        <span><span className={styles.keySymbol}>–</span>No score</span>
-        <span><span className={styles.keySymbol}>◇</span>Incomplete scores</span>
-        <span><span className={styles.keySymbol}>●</span>Complete scores</span>
-      </div>
 
       <div className={styles.workspace} ref={splitPane.containerRef} style={splitPane.containerStyle}>
         <section className={`${styles.section} ${styles.elementsSection}`} style={splitPane.leftPaneStyle}>

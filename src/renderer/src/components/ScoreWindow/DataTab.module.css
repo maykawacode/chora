@@ -25,7 +25,20 @@
   overflow-y: auto;
 }
 
-.listHeader {
+/* Clickable header variant — used by ElementsTab to toggle sort order. */
+.listHeaderBtn {
+  all: unset;
+}
+
+/* Plain and interactive list headings share one box so their text and the
+   list content beneath them align identically across all three data tabs. */
+.listHeader,
+.listHeaderBtn {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 1px 2px;
   font-weight: var(--font-weight-semibold);
   font-size: var(--font-size-label);
   color: var(--color-text-secondary);
@@ -34,24 +47,10 @@
   overflow-wrap: anywhere;
 }
 
-/* Clickable header variant — used by ElementsTab to toggle sort order.
-   Resets <button> defaults, then inherits the same look as .listHeader
-   with a hover highlight to signal it is interactive. */
 .listHeaderBtn {
-  all: unset;
-  display: flex;
-  align-items: center;
   justify-content: space-between;
-  width: 100%;
-  box-sizing: border-box;
-  font-weight: var(--font-weight-semibold);
-  font-size: var(--font-size-label);
-  color: var(--color-text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
   cursor: pointer;
   border-radius: var(--radius-small);
-  padding: 1px 2px;
 }
 
 .listHeaderBtn:hover {
