@@ -45,37 +45,20 @@
   display: grid;
   place-items: center;
   padding: 0;
-  border: 1px solid var(--color-window-control-border);
-  border-radius: 50%;
-  color: var(--color-window-control-glyph);
-  cursor: default;
-  font-family: var(--font-family-ui);
-  font-size: var(--font-size-meta);
-  font-weight: var(--font-weight-semibold);
-  line-height: 1;
+  border: none;
+  background: transparent;
+  color: var(--color-action-strong);
+  cursor: pointer;
   -webkit-app-region: no-drag;
 }
 
-.windowControl span {
-  opacity: 0;
-  transform: translateY(-0.5px);
+.windowControl svg {
+  display: block;
 }
 
-.windowControls:hover .windowControl span,
-.windowControl:focus-visible span {
-  opacity: 1;
-}
-
-.windowControlClose {
-  background: var(--color-window-control);
-}
-
-.windowControlMinimize {
-  background: var(--color-window-control);
-}
-
-.windowControlZoom {
-  background: var(--color-window-control);
+.windowControl:hover,
+.sidebarBtn:hover {
+  color: var(--color-text-primary);
 }
 
 .titleGroup {
@@ -146,21 +129,13 @@
   border: none;
   background: transparent;
   cursor: pointer;
-  color: var(--color-text-muted);
+  color: var(--color-action-strong);
   border-radius: var(--radius-small);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 0;
   -webkit-app-region: no-drag;
-}
-
-.sidebarBtn:hover {
-  color: var(--color-text-primary);
-}
-
-.sidebarBtnActive {
-  color: var(--color-action-strong);
 }
 
 .windowedSidebarToggle {

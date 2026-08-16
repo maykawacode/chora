@@ -32,9 +32,10 @@ function createWindow(): void {
     minHeight: 500,
     show: false,
     closable: false,
-    // Match map windows: keep the standard macOS traffic lights while drawing
-    // the title surface in the renderer.
-    titleBarStyle: 'hidden',
+    // The renderer owns the complete title surface; frameless mode guarantees
+    // that native window controls are not drawn behind it.
+    frame: false,
+    roundedCorners: false,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false

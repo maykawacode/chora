@@ -264,16 +264,10 @@
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  padding: 28px var(--space-two) var(--space-two);
+  padding: 30px var(--space-two) var(--space-two);
   gap: var(--space-two);
   overflow-x: hidden;
   overflow-y: auto;
-}
-
-/* The Elements header is also a button and carries 1px vertical padding, making
-   it 2px taller than the plain headers on the other two data tabs. */
-.elementDetailPane {
-  padding-top: 30px;
 }
 
 .detailPane > * {

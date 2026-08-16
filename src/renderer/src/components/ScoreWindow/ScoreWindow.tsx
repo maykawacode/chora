@@ -52,9 +52,13 @@ export function ScoreWindow({ onOpenStarterPicker, statusOverride }: Props): Rea
   return (
     <div className={styles.window}>
       <div className={styles.titleBar}>
-        <div className={styles.titleGroup}>
-          <span className={styles.windowTitle}>{fileName}</span>
-          {isDirty && <span className={styles.unsavedBadge}>Unsaved</span>}
+        <div className={styles.titleLine}>
+          <span className={styles.productName}>Chora</span>
+          <span className={styles.titleDivider} aria-hidden="true">|</span>
+          <div className={styles.titleGroup}>
+            <span className={styles.windowTitle}>{fileName}</span>
+            {isDirty && <span className={styles.unsavedBadge}>Unsaved</span>}
+          </div>
         </div>
       </div>
 

@@ -14,7 +14,7 @@ export function SidebarToggle({ open, onToggle }: { open: boolean; onToggle: () 
   const label = open ? 'Hide map controls' : 'Show map controls'
   return (
     <button
-      className={`${styles.sidebarBtn} ${open ? styles.sidebarBtnActive : ''}`}
+      className={styles.sidebarBtn}
       onClick={onToggle}
       title={label}
       aria-label={label}
@@ -58,17 +58,27 @@ export function MapWindowChrome({
     <>
       <div className={styles.titleBar}>
         <div className={styles.windowControls} aria-label="Window controls">
-          <button className={`${styles.windowControl} ${styles.windowControlClose}`}
+          <button className={styles.windowControl}
             onClick={() => window.api.controlMapWindow('close')} title="Close" aria-label="Close window">
-            <span aria-hidden="true">×</span>
+            <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
+              <circle cx="6" cy="6" r="5" fill="none" stroke="currentColor" strokeWidth="1.3" />
+              <path d="M3.5 3.5 8.5 8.5M8.5 3.5 3.5 8.5"
+                fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+            </svg>
           </button>
-          <button className={`${styles.windowControl} ${styles.windowControlMinimize}`}
+          <button className={styles.windowControl}
             onClick={() => window.api.controlMapWindow('minimize')} title="Minimize" aria-label="Minimize window">
-            <span aria-hidden="true">−</span>
+            <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
+              <circle cx="6" cy="6" r="5" fill="none" stroke="currentColor" strokeWidth="1.3" />
+              <path d="M3 6h6" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+            </svg>
           </button>
-          <button className={`${styles.windowControl} ${styles.windowControlZoom}`}
+          <button className={styles.windowControl}
             onClick={() => window.api.controlMapWindow('zoom')} title="Zoom" aria-label="Zoom window">
-            <span aria-hidden="true">+</span>
+            <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
+              <circle cx="6" cy="6" r="5" fill="none" stroke="currentColor" strokeWidth="1.3" />
+              <path d="M3 6h6M6 3v6" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+            </svg>
           </button>
         </div>
 

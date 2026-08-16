@@ -242,7 +242,7 @@ export function ElementsTab(): React.JSX.Element {
       <div className={styles.resizeHandle} style={splitPane.dividerStyle} {...splitPane.dividerProps} />
 
       {/* ── Detail pane ── */}
-      <div className={`${styles.detailPane} ${styles.elementDetailPane}`} style={splitPane.rightPaneStyle}>
+      <div className={styles.detailPane} style={splitPane.rightPaneStyle}>
         <div className={styles.fieldRow}>
           <label className={styles.label}>Name</label>
           {/* key forces input reset when selection changes, avoiding stale defaultValue */}
