@@ -149,8 +149,11 @@ export function MapSidebar({ config, updateConfig, onExportSvg }: Props): React.
         {/* ── Output ─────────────────────────────────────────────────────── */}
         <section className={styles.section}>
           <h3 className={styles.sectionTitle}>Output</h3>
-          <button className={styles.actionBtn} onClick={onExportSvg}>
-            Export as SVG…
+          <button type="button" className={styles.actionBtn} onClick={onExportSvg}>
+            <span>Export as SVG…</span>
+            <svg className={styles.actionArrow} viewBox="0 0 36 24" aria-hidden="true">
+              <path d="M4 12H30M21 4L30 12L21 20" />
+            </svg>
           </button>
         </section>
       </div>

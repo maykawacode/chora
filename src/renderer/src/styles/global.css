@@ -70,6 +70,16 @@ textarea {
   pointer-events: none;
 }
 
+/* Unicode's diamond has a smaller visual box and a lower optical center than
+   the other element-shape glyphs. Keep its correction consistent anywhere the
+   editable element controls use the text symbol. */
+.elementShapeGlyph[data-shape='diamond'] {
+  display: inline-block;
+  font-size: calc(var(--font-size-title) + 3.15px);
+  line-height: 1;
+  transform: translateY(-1px);
+}
+
 /* Confirmation discs -------------------------------------------------------
    Confirmations are deliberately distinct from task dialogs: they ask one
    short question, state one consequence, and offer an immediate choice. The

@@ -218,7 +218,9 @@ export function ElementsTab(): React.JSX.Element {
                     onClick={e => handleRowClick(e, el.id)}
                   >
                     <span className={styles.shapeIcon} data-shape={el.shape} style={{ color: el.color }}>
-                      <span className={styles.shapeGlyph}>{ELEMENT_SHAPE_SYMBOLS[el.shape]}</span>
+                      <span className={`elementShapeGlyph ${styles.shapeGlyph}`} data-shape={el.shape}>
+                        {ELEMENT_SHAPE_SYMBOLS[el.shape]}
+                      </span>
                     </span>
                     <span className={styles.name}>{el.name}</span>
                   </li>
@@ -287,7 +289,9 @@ export function ElementsTab(): React.JSX.Element {
                 onClick={() => selected && updateElement(selected.id, { shape })}
                 title={shape.charAt(0).toUpperCase() + shape.slice(1)}
               >
-                <span className={styles.shapeGlyph}>{ELEMENT_SHAPE_SYMBOLS[shape]}</span>
+                <span className={`elementShapeGlyph ${styles.shapeGlyph}`} data-shape={shape}>
+                  {ELEMENT_SHAPE_SYMBOLS[shape]}
+                </span>
               </button>
             ))}
           </div>

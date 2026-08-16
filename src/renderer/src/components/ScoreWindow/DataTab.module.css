@@ -135,12 +135,6 @@
   line-height: 1;
 }
 
-.shapeIcon[data-shape='diamond'] .shapeGlyph,
-.shapeBtn[data-shape='diamond'] .shapeGlyph {
-  font-size: calc(var(--font-size-title) + 3.15px);
-  transform: translateY(-1px);
-}
-
 .name {
   flex: 1;
   outline: none;

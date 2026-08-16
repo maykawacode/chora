@@ -147,7 +147,9 @@ export function ElementDetailModal({ elementId, onClose }: Props): React.JSX.Ele
                 onClick={() => setShape(s)}
                 title={s.charAt(0).toUpperCase() + s.slice(1)}
               >
-                {ELEMENT_SHAPE_SYMBOLS[s]}
+                <span className="elementShapeGlyph" data-shape={s}>
+                  {ELEMENT_SHAPE_SYMBOLS[s]}
+                </span>
               </button>
             ))}
           </div>
