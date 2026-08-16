@@ -7,7 +7,8 @@
 //
 // Canonical schema reference: Output/2026-07-26_dataset-schema_v2.md
 
-export type ElementShape = 'circle' | 'square' | 'triangle' | 'diamond'
+export type { ElementShape } from '../../../shared/contracts'
+import type { ElementShape } from '../../../shared/contracts'
 
 export const ELEMENT_SHAPES: ElementShape[] = ['circle', 'square', 'triangle', 'diamond']
 

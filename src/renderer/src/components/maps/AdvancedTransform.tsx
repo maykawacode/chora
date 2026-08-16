@@ -29,7 +29,7 @@ const INFO: Record<TransformMode, { title: string; subtitle: string }> = {
   },
   'dim-to-color': {
     title: 'Dimension → Color',
-    subtitle: "Sets each element's color by interpolating between the low and high colors configured in Preferences. Unscored elements are unchanged."
+    subtitle: "Sets each element's color by interpolating between the low and high colors configured in Settings. Unscored elements are unchanged."
   },
   'randomize-scores': {
     title: 'Randomize Scores',

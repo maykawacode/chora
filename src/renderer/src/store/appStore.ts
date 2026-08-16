@@ -181,10 +181,11 @@ export const useAppStore = create<AppStore>((set) => ({
   // ── Elements ────────────────────────────────────────────────────────────────
 
   addElement: (name, color) => set((s) => {
-    const resolvedColor = color ?? usePrefsStore.getState().prefs.defaultElementColor
+    const prefs = usePrefsStore.getState().prefs
+    const resolvedColor = color ?? prefs.defaultElementColor
     const el: Element = {
       id: crypto.randomUUID(), name, definition: '', weight: 1,
-      color: resolvedColor, shape: 'circle', collectionIds: []
+      color: resolvedColor, shape: prefs.defaultElementShape, collectionIds: []
     }
     return { elements: [...s.elements, el], isDirty: true }
   }),

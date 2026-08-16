@@ -9,6 +9,8 @@ import {
   DOT_MIN_RADIUS
 } from '../components/maps/cartesian/drawCartesian'
 import { useAppStore } from './appStore'
+import { DEFAULT_PREFERENCES } from '../lib/preferences'
+import { usePrefsStore } from './prefsStore'
 import {
   HistoryController,
   SCORE_HISTORY_OWNER,
@@ -74,6 +76,7 @@ function importedState(name: string): AppState {
 }
 
 beforeEach(() => {
+  usePrefsStore.setState({ prefs: { ...DEFAULT_PREFERENCES }, loaded: true })
   state().resetToEmpty()
   useAppStore.setState({
     filePath: null,
@@ -93,6 +96,21 @@ afterEach(() => {
 })
 
 describe('HistoryController', () => {
+  it('uses the preferred color and shape for new elements', () => {
+    usePrefsStore.setState({
+      prefs: {
+        ...DEFAULT_PREFERENCES,
+        defaultElementColor: '#123456',
+        defaultElementShape: 'diamond'
+      },
+      loaded: true
+    })
+
+    state().addElement('Alpha')
+
+    expect(state().elements[0]).toMatchObject({ color: '#123456', shape: 'diamond' })
+  })
+
   it('captures one atomic mutation and restores it with undo and redo', () => {
     state().addElement('Alpha')
 
@@ -599,5 +617,15 @@ describe('cartesianDotRadius', () => {
 
     expect(cartesianDotRadius({ ...weighted, sizeByWeight: false }, 250, range))
       .toBe(DOT_DEFAULT_RADIUS)
+  })
+
+  it('uses and bounds the preferred base radius', () => {
+    const weighted = cartesianMap()
+    const range = { min: 0, max: 250 }
+
+    expect(cartesianDotRadius(weighted, 0, range, 10)).toBe(10)
+    expect(cartesianDotRadius(weighted, 125, range, 10)).toBe(43)
+    expect(cartesianDotRadius({ ...weighted, sizeByWeight: false }, 250, range, 10)).toBe(10)
+    expect(cartesianDotRadius(weighted, 0, range, 100)).toBe(16)
   })
 })

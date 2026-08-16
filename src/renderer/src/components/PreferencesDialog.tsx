@@ -8,8 +8,8 @@
 
 import { useState } from 'react'
 import { usePrefsStore } from '../store/prefsStore'
-import type { Preferences } from '../lib/preferences'
-import type { MarkMode } from '../lib/types'
+import { DEFAULT_PREFERENCES, type Preferences } from '../lib/preferences'
+import type { ElementShape, MarkMode } from '../lib/types'
 import { ForwardActionButton } from './ConfirmationDisc'
 import { ModalShell } from './ModalShell'
 import styles from './PreferencesDialog.module.css'
@@ -33,6 +33,20 @@ export function PreferencesDialog({ onClose }: Props): React.JSX.Element {
     // unless we explicitly relay it over IPC.
     window.api?.broadcastPrefs(draft)
     onClose()
+  }
+
+  function restoreDefaults(): void {
+    setDraft(current => ({
+      ...DEFAULT_PREFERENCES,
+      // These values are application state rather than choices shown in this
+      // screen. Restoring defaults must not forget the last document or move
+      // the main window the next time Settings is saved.
+      lastFilePath: current.lastFilePath,
+      mainWindowX: current.mainWindowX,
+      mainWindowY: current.mainWindowY,
+      mainWindowWidth: current.mainWindowWidth,
+      mainWindowHeight: current.mainWindowHeight
+    }))
   }
 
   return (
@@ -64,7 +78,7 @@ export function PreferencesDialog({ onClose }: Props): React.JSX.Element {
             <label className={styles.row}>
               <input type="checkbox" checked={draft.rememberWindowPositions}
                 onChange={() => toggle('rememberWindowPositions')} />
-              <span>Remember map window positions</span>
+              <span>Remember window positions</span>
             </label>
           </section>
 
@@ -101,6 +115,19 @@ export function PreferencesDialog({ onClose }: Props): React.JSX.Element {
               />
             </label>
             <label className={styles.row}>
+              <span>Default shape</span>
+              <select
+                className={styles.selectInput}
+                value={draft.defaultElementShape}
+                onChange={e => setDraft(d => ({ ...d, defaultElementShape: e.target.value as ElementShape }))}
+              >
+                <option value="circle">circle</option>
+                <option value="square">square</option>
+                <option value="triangle">triangle</option>
+                <option value="diamond">diamond</option>
+              </select>
+            </label>
+            <label className={styles.row}>
               <input type="checkbox" checked={draft.confirmDeleteElement}
                 onChange={() => toggle('confirmDeleteElement')} />
               <span>Confirm before deleting elements</span>
@@ -108,7 +135,7 @@ export function PreferencesDialog({ onClose }: Props): React.JSX.Element {
           </section>
 
           <section className={styles.section} aria-labelledby="preferences-labels">
-            <h3 className={styles.sectionTitle} id="preferences-labels">Map Labels</h3>
+            <h3 className={styles.sectionTitle} id="preferences-labels">Map Labels &amp; Marks</h3>
             <label className={styles.row}>
               <span>Element labels</span>
               <span className={styles.sizeControl}>
@@ -135,10 +162,23 @@ export function PreferencesDialog({ onClose }: Props): React.JSX.Element {
                 <span className={styles.sizeUnit}>px</span>
               </span>
             </label>
+            <label className={styles.row}>
+              <span>Default mark radius</span>
+              <span className={styles.sizeControl}>
+                <input
+                  type="number"
+                  className={styles.sizeInput}
+                  min={3} max={16} step={1}
+                  value={draft.dotDefaultSize}
+                  onChange={e => setDraft(d => ({ ...d, dotDefaultSize: Math.max(3, Math.min(16, +e.target.value || 6)) }))}
+                />
+                <span className={styles.sizeUnit}>px</span>
+              </span>
+            </label>
           </section>
 
           <section className={styles.section} aria-labelledby="preferences-dimension-color">
-            <h3 className={styles.sectionTitle} id="preferences-dimension-color">Dimension Color</h3>
+            <h3 className={styles.sectionTitle} id="preferences-dimension-color">Dimension-to-color Gradient</h3>
             <label className={styles.row}>
               <span>Low end</span>
               <input
@@ -159,28 +199,27 @@ export function PreferencesDialog({ onClose }: Props): React.JSX.Element {
             </label>
           </section>
 
-          <section className={styles.section} aria-labelledby="preferences-shortcuts">
-            <h3 className={styles.sectionTitle} id="preferences-shortcuts">Keyboard Shortcuts</h3>
-            <div className={styles.shortcutRow}><kbd className={styles.kbd}>⌘D</kbd><span>Duplicate selected element</span></div>
-            <div className={styles.shortcutRow}><kbd className={styles.kbd}>↑ ↓</kbd><span>Navigate element / dimension list</span></div>
-            <div className={styles.shortcutRow}><kbd className={styles.kbd}>⌫</kbd><span>Delete selected element / dimension</span></div>
-          </section>
         </div>
       </div>
 
       <footer className={styles.buttons}>
-        <button
-          type="button"
-          className={styles.btnCancel}
-          aria-label="Cancel settings"
-          title="Cancel settings"
-          onClick={onClose}
-        >
-          <svg className={styles.cancelIcon} viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M5 5L19 19M19 5L5 19" />
-          </svg>
+        <button type="button" className={styles.restoreButton} onClick={restoreDefaults}>
+          Restore defaults
         </button>
-        <ForwardActionButton label="Save settings" onClick={handleSave} />
+        <div className={styles.buttonActions}>
+          <button
+            type="button"
+            className={styles.btnCancel}
+            aria-label="Cancel settings"
+            title="Cancel settings"
+            onClick={onClose}
+          >
+            <svg className={styles.cancelIcon} viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 5L19 19M19 5L5 19" />
+            </svg>
+          </button>
+          <ForwardActionButton label="Save settings" onClick={handleSave} />
+        </div>
       </footer>
     </ModalShell>
   )

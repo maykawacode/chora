@@ -13,7 +13,11 @@
 import type { SemanticMapConfig, Element, Collection, Dimension, ScoreMap } from '../../../lib/types'
 // labelFont and LABEL_SIZE_DEFAULT are defined once in drawCartesian and shared
 // here so there is a single source of truth for map typography.
-import { labelFont, LABEL_SIZE_DEFAULT } from '../cartesian/drawCartesian'
+import {
+  labelFont,
+  LABEL_SIZE_DEFAULT,
+  normalizeDefaultDotRadius
+} from '../cartesian/drawCartesian'
 import { resolveElementColor } from '../color'
 import { shownCollections } from '../collections'
 import { drawMark, drawSelectionRing, markShapeIndex } from '../shape'
@@ -41,11 +45,15 @@ export const SEM_DOT_MAX_R = 18
  * Exported so MapPanel's hit-testing matches what's actually painted.
  */
 export function semDotRadius(
-  config: SemanticMapConfig, weight: number, range: NumericRange
+  config: SemanticMapConfig,
+  weight: number,
+  range: NumericRange,
+  defaultRadius: number = SEM_DOT_R
 ): number {
+  const baseRadius = normalizeDefaultDotRadius(defaultRadius)
   return config.sizeByWeight
-    ? SEM_DOT_R + normalizeInRange(weight, range) * (SEM_DOT_MAX_R - SEM_DOT_R)
-    : SEM_DOT_R
+    ? baseRadius + normalizeInRange(weight, range) * (SEM_DOT_MAX_R - baseRadius)
+    : baseRadius
 }
 
 /**
@@ -107,8 +115,10 @@ export function drawSemantic(
   selectedElementId?: string,
   elementLabelSize: number = LABEL_SIZE_DEFAULT,
   dimensionLabelSize: number = LABEL_SIZE_DEFAULT,
-  selectedElementIds: string[] = []
+  selectedElementIds: string[] = [],
+  defaultDotRadius: number = SEM_DOT_R
 ): void {
+  const baseDotRadius = normalizeDefaultDotRadius(defaultDotRadius)
   // Resolve dimension IDs to full objects, preserving config order
   const dims = config.dimensionIds
     .map(id => dimensions.find(d => d.id === id))
@@ -246,7 +256,7 @@ export function drawSemantic(
   for (const el of drawOrder) {
     const shapeIndex = markShapeIndex(config.marks, el)
     const color      = resolveElementColor(config.colorMode, el, collections, claiming)
-    const dotR       = semDotRadius(config, el.weight, weightRange)
+    const dotR       = semDotRadius(config, el.weight, weightRange, baseDotRadius)
     const points: Array<{ x: number; y: number }> = []
 
     for (let i = 0; i < dims.length; i++) {

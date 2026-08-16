@@ -51,3 +51,11 @@ focus to narrow the view.
 In Assess, select Outdoor courtyard table and move one score. Watch both open
 maps update, then choose **Edit → Undo**. Save As creates your own editable copy;
 the bundled example itself is never overwritten.
+
+## Keyboard shortcuts
+
+- **Command-D** on macOS or **Ctrl-D** on Windows and Linux duplicates the
+  selected element.
+- **Up Arrow / Down Arrow** navigates element, dimension, and Collection lists.
+- **Delete** removes the selected element, dimension, or Collection. Chora may
+  ask for confirmation when that deletion would remove related data.

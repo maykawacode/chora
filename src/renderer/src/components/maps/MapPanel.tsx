@@ -79,6 +79,7 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
   // → redraw useCallback deps change → canvas repaints).
   const elementLabelSize   = usePrefsStore(s => s.prefs.elementLabelSize)
   const dimensionLabelSize = usePrefsStore(s => s.prefs.dimensionLabelSize)
+  const defaultDotRadius   = usePrefsStore(s => s.prefs.dotDefaultSize)
 
   // Wraps updateMapConfig + IPC so changes made in either window stay in sync.
   // Map windows send broadcastMapConfig → main → Score Window's onMapConfig
@@ -212,10 +213,12 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
     ;(ctx as unknown as Record<string, unknown>).setLineDash = (): void => {}
     if (config.type === 'cartesian') {
       drawCartesian(ctx, cssW, cssH, config, elements, collections, dimensions, scores,
-        selectedElementId ?? undefined, elementLabelSize, dimensionLabelSize, selectedElementIds)
+        selectedElementId ?? undefined, elementLabelSize, dimensionLabelSize,
+        selectedElementIds, defaultDotRadius)
     } else {
       drawSemantic(ctx, cssW, cssH, config, elements, collections, dimensions, scores,
-        undefined, selectedElementId ?? undefined, elementLabelSize, dimensionLabelSize, selectedElementIds)
+        undefined, selectedElementId ?? undefined, elementLabelSize, dimensionLabelSize,
+        selectedElementIds, defaultDotRadius)
     }
     const svg = ctx.getSerializedSvg(true)
     const blob = new Blob([svg], { type: 'image/svg+xml' })
@@ -246,11 +249,12 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
 
     if (config.type === 'cartesian') {
       drawCartesian(ctx, cssW, cssH, config, elements, collections, dimensions, scores,
-        selectedElementId ?? undefined, elementLabelSize, dimensionLabelSize, selectedElementIds)
+        selectedElementId ?? undefined, elementLabelSize, dimensionLabelSize,
+        selectedElementIds, defaultDotRadius)
     } else {
       drawSemantic(ctx, cssW, cssH, config, elements, collections, dimensions, scores,
         semDraggingRef.current?.elementId, selectedElementId ?? undefined,
-        elementLabelSize, dimensionLabelSize, selectedElementIds)
+        elementLabelSize, dimensionLabelSize, selectedElementIds, defaultDotRadius)
     }
 
     // Lasso overlay — applies to all map types
@@ -263,9 +267,10 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
       ctx.strokeRect(x1, y1, x2 - x1, y2 - y1)
       ctx.restore()
     }
-  // selectedElementId, selectedElementIds, elementLabelSize, dimensionLabelSize must all be deps:
+  // Selection and every map appearance preference must be dependencies:
   // any of them changing should immediately repaint the canvas.
-  }, [config, elements, collections, dimensions, scores, selectedElementId, selectedElementIds, elementLabelSize, dimensionLabelSize])
+  }, [config, elements, collections, dimensions, scores, selectedElementId,
+    selectedElementIds, elementLabelSize, dimensionLabelSize, defaultDotRadius])
 
   // Redraw whenever any input data changes
   useEffect(() => { redraw() }, [redraw])
@@ -290,7 +295,9 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
     const y = e.clientY - rect.top
 
     if (config.type === 'cartesian') {
-      const hit = cartesianHitDot(x, y, rect.width, rect.height, config, elements, collections, scores)
+      const hit = cartesianHitDot(
+        x, y, rect.width, rect.height, config, elements, collections, scores, defaultDotRadius
+      )
       if (hit) {
         if (e.shiftKey) return  // defer to handleClick for toggle selection
         const visibleIds = new Set(
@@ -314,7 +321,10 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
         lassoMovedRef.current = false
       }
     } else {
-      const hit = semanticHitDot(x, y, rect.width, rect.height, config, elements, collections, dimensions, scores)
+      const hit = semanticHitDot(
+        x, y, rect.width, rect.height, config, elements, collections, dimensions, scores,
+        defaultDotRadius
+      )
       if (hit) {
         if (e.shiftKey) {
           // Shift+mousedown on a dot: defer to handleClick for toggle
@@ -480,12 +490,16 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
     // ── Hover cursor ──────────────────────────────────────────────────────────
 
     if (config.type === 'cartesian') {
-      const hit = cartesianHitDot(x, y, W, H, config, elements, collections, scores)
+      const hit = cartesianHitDot(
+        x, y, W, H, config, elements, collections, scores, defaultDotRadius
+      )
       if (hit)                          { setCursor(e.shiftKey ? 'copy' : 'grab'); return }
       if (cartesianHitEdge(x, y, W, H)) { setCursor('pointer'); return }
       setCursor(e.shiftKey ? 'crosshair' : 'default')
     } else {
-      const hit = semanticHitDot(x, y, W, H, config, elements, collections, dimensions, scores)
+      const hit = semanticHitDot(
+        x, y, W, H, config, elements, collections, dimensions, scores, defaultDotRadius
+      )
       if (hit) { setCursor(e.shiftKey ? 'copy' : 'grab'); return }
       if (semanticHitRow(y, H, config.dimensionIds.length) >= 0) { setCursor('pointer'); return }
       setCursor(e.shiftKey ? 'crosshair' : 'default')
@@ -582,10 +596,14 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
 
     let hitId: string | null = null
     if (config.type === 'cartesian') {
-      const hit = cartesianHitDot(x, y, W, H, config, elements, collections, scores)
+      const hit = cartesianHitDot(
+        x, y, W, H, config, elements, collections, scores, defaultDotRadius
+      )
       if (hit) hitId = hit.elementId
     } else {
-      const hit = semanticHitDot(x, y, W, H, config, elements, collections, dimensions, scores)
+      const hit = semanticHitDot(
+        x, y, W, H, config, elements, collections, dimensions, scores, defaultDotRadius
+      )
       if (hit) hitId = hit.elementId
     }
 
@@ -621,7 +639,9 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
     const H = rect.height
 
     if (config.type === 'cartesian') {
-      const dotHit = cartesianHitDot(x, y, W, H, config, elements, collections, scores)
+      const dotHit = cartesianHitDot(
+        x, y, W, H, config, elements, collections, scores, defaultDotRadius
+      )
       if (dotHit) {
         if (e.shiftKey) {
           toggleMapSelection(dotHit.elementId)
@@ -640,7 +660,9 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
     } else {
       setAxisPicker(null)
       const semCfg = config
-      const hit = semanticHitDot(x, y, W, H, semCfg, elements, collections, dimensions, scores)
+      const hit = semanticHitDot(
+        x, y, W, H, semCfg, elements, collections, dimensions, scores, defaultDotRadius
+      )
       if (hit) {
         if (e.shiftKey) {
           toggleMapSelection(hit.elementId)

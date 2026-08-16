@@ -49,6 +49,8 @@ export function ChooseDimensions({ onClose }: Props): React.JSX.Element {
       xFlipped: false,
       yFlipped: false,
       sizeByWeight: true,
+      // New maps always begin with each Element's own color. This is deliberate
+      // application behavior, not a user-configurable default.
       colorMode: 'element',
       onlySelectedCollections: false,
       // No blobs to start — select collections in the map's sidebar to draw
@@ -135,6 +137,7 @@ export function CreateSemanticMap({ onClose }: Props): React.JSX.Element {
       // Weight sizing is off by default here: semantic axes sit close together,
       // so uniform dots keep a fresh map readable.
       sizeByWeight: false,
+      // Match Cartesian maps: new maps always begin with Element colors.
       colorMode: 'element',
       // No collection claiming any color to start — select them in the map's
       // sidebar, same as on a cartesian map.

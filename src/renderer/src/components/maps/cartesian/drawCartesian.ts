@@ -36,14 +36,26 @@ export const DOT_MAX_RADIUS = 76
 // Uniform radius used when sizeByWeight is off — the same as the current
 // lightest weighted dot.
 export const DOT_DEFAULT_RADIUS = DOT_MIN_RADIUS
+export const DOT_DEFAULT_RADIUS_MIN = 3
+export const DOT_DEFAULT_RADIUS_MAX = 16
+
+/** Keeps saved or hand-edited preferences inside the range supported by maps. */
+export function normalizeDefaultDotRadius(radius: number = DOT_DEFAULT_RADIUS): number {
+  if (!Number.isFinite(radius)) return DOT_DEFAULT_RADIUS
+  return Math.max(DOT_DEFAULT_RADIUS_MIN, Math.min(DOT_DEFAULT_RADIUS_MAX, radius))
+}
 
 /** Shared by painting and hit-testing so large marks remain fully interactive. */
 export function cartesianDotRadius(
-  config: CartesianMapConfig, weight: number, range: NumericRange
+  config: CartesianMapConfig,
+  weight: number,
+  range: NumericRange,
+  defaultRadius: number = DOT_DEFAULT_RADIUS
 ): number {
+  const baseRadius = normalizeDefaultDotRadius(defaultRadius)
   return config.sizeByWeight
-    ? DOT_MIN_RADIUS + normalizeInRange(weight, range) * (DOT_MAX_RADIUS - DOT_MIN_RADIUS)
-    : DOT_DEFAULT_RADIUS
+    ? baseRadius + normalizeInRange(weight, range) * (DOT_MAX_RADIUS - baseRadius)
+    : baseRadius
 }
 
 // Gap between dot edge and element name label
@@ -125,8 +137,10 @@ export function drawCartesian(
   selectedElementId?: string,
   elementLabelSize: number = LABEL_SIZE_DEFAULT,
   dimensionLabelSize: number = LABEL_SIZE_DEFAULT,
-  selectedElementIds: string[] = []
+  selectedElementIds: string[] = [],
+  defaultDotRadius: number = DOT_DEFAULT_RADIUS
 ): void {
+  const baseDotRadius = normalizeDefaultDotRadius(defaultDotRadius)
   const plotLeft   = MARGIN
   const plotTop    = MARGIN
   const plotRight  = W - MARGIN
@@ -251,7 +265,7 @@ export function drawCartesian(
         const pt = project(xScore, yScore)
         pts.push({
           ...pt,
-          padding: blobPadding(cartesianDotRadius(config, el.weight, weightRange))
+          padding: blobPadding(cartesianDotRadius(config, el.weight, weightRange, baseDotRadius))
         })
         sumX += pt.x
         sumY += pt.y
@@ -264,7 +278,7 @@ export function drawCartesian(
         // both axes. Drawn faintly at canvas center as a placeholder so the
         // collection doesn't silently vanish from the map.
         ctx.beginPath()
-        ctx.arc(midX, midY, blobPadding(DOT_DEFAULT_RADIUS), 0, Math.PI * 2)
+        ctx.arc(midX, midY, blobPadding(baseDotRadius), 0, Math.PI * 2)
         ctx.strokeStyle = color + '44'
         ctx.lineWidth = 1
         ctx.setLineDash([4, 4])
@@ -313,7 +327,7 @@ export function drawCartesian(
     // Unscored or partially scored: use 0.5 as placeholder for any missing axis
     const isPartial = xScore === undefined || yScore === undefined
     const { x: cx, y: cy } = project(xScore ?? 0.5, yScore ?? 0.5)
-    const r = cartesianDotRadius(config, el.weight, weightRange)
+    const r = cartesianDotRadius(config, el.weight, weightRange, baseDotRadius)
 
     const shapeIndex = markShapeIndex(config.marks, el)
     if (shapeIndex !== null) {
@@ -343,7 +357,7 @@ export function drawCartesian(
     }
 
     if (config.showLabels) {
-      // Label offset is pinned to the DEFAULT dot radius, not the actual one.
+      // Label offset is pinned to the preferred base radius, not the actual one.
       // At default size the label sits just clear of the dot; as weight grows
       // the dot expands past the label, which then reads as sitting on top of
       // it. That keeps labels vertically aligned regardless of dot size.
@@ -351,7 +365,7 @@ export function drawCartesian(
       ctx.fillStyle = isPartial ? uiTheme.map.partial : uiTheme.map.label
       ctx.textAlign = 'left'
       ctx.textBaseline = 'middle'
-      ctx.fillText(el.name, cx + DOT_DEFAULT_RADIUS + LABEL_OFFSET, cy)
+      ctx.fillText(el.name, cx + baseDotRadius + LABEL_OFFSET, cy)
     }
   }
 

@@ -157,44 +157,38 @@
   white-space: nowrap;
 }
 
-.shortcutRow {
-  min-height: 24px;
-  display: flex;
-  align-items: center;
-  gap: var(--space-two);
-  color: var(--color-text-primary);
-  font-size: var(--font-size-control);
-}
-
-.shortcutRow span {
-  min-width: 0;
-}
-
-.kbd {
-  min-width: 38px;
-  flex: none;
-  padding: 1px 5px;
-  border: 1px solid var(--color-border-control);
-  border-bottom-width: 2px;
-  border-radius: var(--radius-control);
-  background: var(--color-surface-hover);
-  color: var(--color-text-secondary);
-  font-family: inherit;
-  font-size: var(--font-size-label);
-  text-align: center;
-  white-space: nowrap;
-}
-
 .buttons {
   flex: none;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: var(--space-two);
   padding: var(--space-three) 19px;
   border-top: 1px solid var(--color-border-subtle);
   background: var(--color-surface-raised);
   -webkit-app-region: no-drag;
+}
+
+.buttonActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-two);
+}
+
+.restoreButton {
+  min-height: var(--size-control);
+  padding: var(--space-one) var(--space-two);
+  border: 0;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-control);
+  cursor: pointer;
+}
+
+.restoreButton:hover {
+  color: var(--color-text-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .btnCancel {

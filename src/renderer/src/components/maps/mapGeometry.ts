@@ -151,7 +151,8 @@ export function cartesianHitDot(
   config: CartesianMapConfig,
   elements: Element[],
   collections: Collection[],
-  scores: ScoreMap
+  scores: ScoreMap,
+  defaultDotRadius?: number
 ): Pick<DragTarget, 'elementId' | 'xDimId' | 'yDimId'> | null {
   if (config.marks === 'none') return null
 
@@ -167,7 +168,10 @@ export function cartesianHitDot(
       scores[element.id]?.[config.xDimensionId] ?? 0.5,
       scores[element.id]?.[config.yDimensionId] ?? 0.5
     )
-    const hitRadius = Math.max(cartesianDotRadius(config, element.weight, weightRange), 8)
+    const hitRadius = Math.max(
+      cartesianDotRadius(config, element.weight, weightRange, defaultDotRadius),
+      8
+    )
     if ((x - point.x) ** 2 + (y - point.y) ** 2 <= hitRadius ** 2) {
       return {
         elementId: element.id,
@@ -188,7 +192,8 @@ export function semanticHitDot(
   elements: Element[],
   collections: Collection[],
   dimensions: Dimension[],
-  scores: ScoreMap
+  scores: ScoreMap,
+  defaultDotRadius?: number
 ): Pick<SemanticDragTarget, 'elementId' | 'dimId'> | null {
   if (config.marks === 'none') return null
 
@@ -209,7 +214,10 @@ export function semanticHitDot(
       if (raw === undefined) continue
       const score = config.flippedDimensionIds.includes(dimension.id) ? 1 - raw : raw
       const dotX = SEM_MARGIN_H + score * axisWidth
-      const hitRadius = Math.max(semDotRadius(config, element.weight, weightRange), 8)
+      const hitRadius = Math.max(
+        semDotRadius(config, element.weight, weightRange, defaultDotRadius),
+        8
+      )
       if ((x - dotX) ** 2 + (y - axisY) ** 2 <= hitRadius ** 2) {
         return { elementId: element.id, dimId: dimension.id }
       }

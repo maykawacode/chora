@@ -1,10 +1,12 @@
 export type MarkMode = 'none' | 'circle' | 'element'
+export type ElementShape = 'circle' | 'square' | 'triangle' | 'diamond'
 
 export interface Preferences {
   rememberWindowPositions: boolean
   defaultMarks: MarkMode
   defaultShowLabels: boolean
   defaultElementColor: string
+  defaultElementShape: ElementShape
   reopenLastFile: boolean
   confirmDeleteElement: boolean
   lastFilePath: string | null
@@ -24,6 +26,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   defaultMarks: 'circle',
   defaultShowLabels: true,
   defaultElementColor: '#9d9d53',
+  defaultElementShape: 'circle',
   reopenLastFile: false,
   confirmDeleteElement: true,
   lastFilePath: null,
