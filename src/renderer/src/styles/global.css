@@ -58,8 +58,9 @@ textarea {
 /* Shared document-state marker used by both main and map window titles. */
 .unsavedBadge {
   flex: none;
-  transform: translateY(-2px);
+  margin-left: 2px;
   padding: 1px 6px;
+  transform: translateY(-1px);
   border: none;
   border-radius: var(--radius-small);
   background: var(--color-unsaved);
