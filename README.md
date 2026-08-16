@@ -1,4 +1,4 @@
-# Chora — spatial reasoning for qualitative data
+# Chora: spatial reasoning for qualitative data
 
 Chora is a desktop app for exploring small, multidimensional datasets through
 direct manipulation. Score elements against bipolar dimensions, group them
@@ -18,13 +18,17 @@ and groupings can all evolve while you work.
 - Imports tabular data and exports sessions and map graphics.
 - Supports undo and redo across the main scoring workspace and map windows.
 
+## Get started
+
+- [Download the current prerelease](https://github.com/maykawacode/chora/releases)
+- Read the [Chora introduction and quick start](GETTING_STARTED.md)
+
 ## Project status
 
 Chora is pre-release software under active development. The application is
-substantially functional, but public downloads and release documentation are
-not available yet. The first supported distribution target is macOS. Releases
-will use a free ad-hoc signature rather than Apple Developer ID, and will include
-explicit macOS Gatekeeper instructions and a SHA-256 checksum.
+substantially functional. The current packaged release supports Macs with Apple
+silicon running macOS 12 or later. Releases use a free ad-hoc signature and
+include macOS Gatekeeper instructions and a SHA-256 checksum.
 
 The preferred session format is `.chora`. Legacy MapTool `.mtda` sessions can
 still be opened.
