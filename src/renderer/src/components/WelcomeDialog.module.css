@@ -5,73 +5,116 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: var(--space-four);
   z-index: 100;
 }
 
-.card {
+.disc {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  width: min(300px, calc(100vw - 32px), calc(100vh - 32px));
+  aspect-ratio: 1;
+  flex: none;
+  overflow: hidden;
   background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-control);
-  border-radius: var(--radius-welcome);
-  box-shadow: var(--shadow-dialog-strong);
-  padding: 36px 48px var(--space-six);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  min-width: 280px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 50%;
+  box-shadow:
+    var(--shadow-confirmation),
+    inset 0 0 0 5px var(--color-confirmation-inset);
+}
+
+.copy {
+  padding: 42px 36px 0;
+  text-align: center;
 }
 
 .title {
   font-size: var(--font-size-display);
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-compact);
   color: var(--color-text-primary);
-  margin: 0 0 6px;
+  margin: 0 0 var(--space-one);
   letter-spacing: -0.02em;
 }
 
 .subtitle {
-  font-size: var(--font-size-control);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-interface);
   color: var(--color-text-muted);
-  margin: 0 0 28px;
+  margin: 0;
 }
 
-.buttons {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-three);
-  width: 100%;
+.actions {
+  align-self: start;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-two);
+  margin: 20px 38px 0;
 }
 
-.btnPrimary {
-  padding: 8px 0;
-  min-height: var(--size-control);
-  background: var(--color-action-strong);
-  color: var(--color-text-inverse);
-  border: none;
-  border-radius: var(--radius-control);
-  font-size: var(--font-size-body);
-  font-family: inherit;
-  font-weight: var(--font-weight-semibold);
-  cursor: pointer;
-  width: 100%;
-}
-
-.btnPrimary:hover {
-  background: var(--color-action-hover);
-}
-
-.btnSecondary {
-  padding: 8px 0;
-  min-height: var(--size-control);
-  background: var(--color-surface-chrome-strong);
+.action {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
   color: var(--color-text-primary);
-  border: 1px solid var(--color-border-control);
-  border-radius: var(--radius-control);
   font-size: var(--font-size-body);
   font-family: inherit;
+  font-weight: var(--font-weight-regular);
   cursor: pointer;
-  width: 100%;
 }
 
-.btnSecondary:hover {
-  background: var(--color-surface-hover);
+.actionCircle {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: var(--color-confirmation);
+  color: var(--color-text-inverse);
+}
+
+.exampleAction .actionCircle {
+  background: var(--color-text-muted);
+}
+
+.action:hover .actionCircle {
+  background: var(--color-confirmation-hover);
+}
+
+.exampleAction:hover .actionCircle {
+  background: var(--color-text-secondary);
+}
+
+.actionLabel {
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.action:hover .actionLabel {
+  color: var(--color-text-primary);
+}
+
+.actionIcon {
+  display: block;
+  width: 36px;
+  height: 24px;
+  overflow: visible;
+}
+
+.actionIcon path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.actionIcon circle {
+  fill: currentColor;
 }
