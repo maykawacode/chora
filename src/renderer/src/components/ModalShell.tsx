@@ -1,5 +1,7 @@
 import { useEffect, type CSSProperties, type ReactNode } from 'react'
 
+export const CANCEL_MODAL_EVENT = 'chora:cancel-modals'
+
 interface Props {
   children: ReactNode
   overlayClassName: string
@@ -23,12 +25,17 @@ export function ModalShell({
   dialogStyle
 }: Props): React.JSX.Element {
   useEffect(() => {
-    if (!dismissOnEscape) return
     const closeOnEscape = (event: KeyboardEvent): void => {
       if (event.key === 'Escape') onClose()
     }
-    window.addEventListener('keydown', closeOnEscape)
-    return () => window.removeEventListener('keydown', closeOnEscape)
+    const closeOnAppQuit = (): void => onClose()
+
+    if (dismissOnEscape) window.addEventListener('keydown', closeOnEscape)
+    window.addEventListener(CANCEL_MODAL_EVENT, closeOnAppQuit)
+    return () => {
+      if (dismissOnEscape) window.removeEventListener('keydown', closeOnEscape)
+      window.removeEventListener(CANCEL_MODAL_EVENT, closeOnAppQuit)
+    }
   }, [dismissOnEscape, onClose])
 
   return (

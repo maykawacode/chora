@@ -36,137 +36,152 @@ export function PreferencesDialog({ onClose }: Props): React.JSX.Element {
   }
 
   return (
-    <ModalShell overlayClassName={styles.overlay} dialogClassName={styles.dialog} onClose={onClose}>
-        <h2 className={styles.title}>Preferences</h2>
+    <ModalShell
+      overlayClassName={styles.overlay}
+      dialogClassName={styles.dialog}
+      onClose={onClose}
+      labelledBy="preferences-title"
+    >
+      <header className={styles.header}>
+        <h2 className={styles.title} id="preferences-title">Chora settings</h2>
+        <p className={styles.subtitle}>Interface, map, and session defaults</p>
+      </header>
 
-        {/* ── Window ── */}
-        <section className={styles.section}>
-          <div className={styles.sectionTitle}>Window</div>
-          <label className={styles.row}>
-            <input type="checkbox" checked={draft.rememberWindowPositions}
-              onChange={() => toggle('rememberWindowPositions')} />
-            <span>Remember map window positions</span>
-          </label>
-        </section>
+      <div className={styles.content}>
+        <div className={styles.settingsGrid}>
+          <section className={styles.section} aria-labelledby="preferences-startup">
+            <h3 className={styles.sectionTitle} id="preferences-startup">Startup &amp; Windows</h3>
+            <label className={styles.row}>
+              <input type="checkbox" checked={draft.reopenLastFile}
+                onChange={() => toggle('reopenLastFile')} />
+              <span>Reopen last file on startup</span>
+            </label>
+            {draft.lastFilePath && (
+              <div className={styles.lastFile} title={draft.lastFilePath}>
+                Last: {draft.lastFilePath.split('/').pop()}
+              </div>
+            )}
+            <label className={styles.row}>
+              <input type="checkbox" checked={draft.rememberWindowPositions}
+                onChange={() => toggle('rememberWindowPositions')} />
+              <span>Remember map window positions</span>
+            </label>
+          </section>
 
-        {/* ── New Maps ── */}
-        <section className={styles.section}>
-          <div className={styles.sectionTitle}>New Maps</div>
-          <label className={styles.row}>
-            <span>Marks</span>
-            <select
-              className={styles.selectInput}
-              value={draft.defaultMarks}
-              onChange={e => setDraft(d => ({ ...d, defaultMarks: e.target.value as MarkMode }))}
-            >
-              <option value="none">none</option>
-              <option value="circle">circles</option>
-              <option value="element">by element</option>
-            </select>
-          </label>
-          <label className={styles.row}>
-            <input type="checkbox" checked={draft.defaultShowLabels}
-              onChange={() => toggle('defaultShowLabels')} />
-            <span>Show labels by default</span>
-          </label>
-        </section>
+          <section className={styles.section} aria-labelledby="preferences-new-maps">
+            <h3 className={styles.sectionTitle} id="preferences-new-maps">New Maps</h3>
+            <label className={styles.row}>
+              <span>Marks</span>
+              <select
+                className={styles.selectInput}
+                value={draft.defaultMarks}
+                onChange={e => setDraft(d => ({ ...d, defaultMarks: e.target.value as MarkMode }))}
+              >
+                <option value="none">none</option>
+                <option value="circle">circles</option>
+                <option value="element">by element</option>
+              </select>
+            </label>
+            <label className={styles.row}>
+              <input type="checkbox" checked={draft.defaultShowLabels}
+                onChange={() => toggle('defaultShowLabels')} />
+              <span>Show labels by default</span>
+            </label>
+          </section>
 
-        {/* ── Elements ── */}
-        <section className={styles.section}>
-          <div className={styles.sectionTitle}>Elements</div>
-          <div className={styles.row}>
-            <span>Default color</span>
-            <input
-              type="color"
-              className={styles.colorInput}
-              value={draft.defaultElementColor}
-              onChange={e => setDraft(d => ({ ...d, defaultElementColor: e.target.value }))}
-            />
-          </div>
-          <label className={styles.row}>
-            <input type="checkbox" checked={draft.confirmDeleteElement}
-              onChange={() => toggle('confirmDeleteElement')} />
-            <span>Confirm before deleting elements</span>
-          </label>
-        </section>
+          <section className={styles.section} aria-labelledby="preferences-elements">
+            <h3 className={styles.sectionTitle} id="preferences-elements">Elements</h3>
+            <label className={styles.row}>
+              <span>Default color</span>
+              <input
+                type="color"
+                className={styles.colorInput}
+                value={draft.defaultElementColor}
+                onChange={e => setDraft(d => ({ ...d, defaultElementColor: e.target.value }))}
+              />
+            </label>
+            <label className={styles.row}>
+              <input type="checkbox" checked={draft.confirmDeleteElement}
+                onChange={() => toggle('confirmDeleteElement')} />
+              <span>Confirm before deleting elements</span>
+            </label>
+          </section>
 
-        {/* ── Dimension → Color ── */}
-        <section className={styles.section}>
-          <div className={styles.sectionTitle}>Dimension → Color</div>
-          <div className={styles.row}>
-            <span>Low end color</span>
-            <input
-              type="color"
-              className={styles.colorInput}
-              value={draft.dimColorLow}
-              onChange={e => setDraft(d => ({ ...d, dimColorLow: e.target.value }))}
-            />
-          </div>
-          <div className={styles.row}>
-            <span>High end color</span>
-            <input
-              type="color"
-              className={styles.colorInput}
-              value={draft.dimColorHigh}
-              onChange={e => setDraft(d => ({ ...d, dimColorHigh: e.target.value }))}
-            />
-          </div>
-        </section>
+          <section className={styles.section} aria-labelledby="preferences-labels">
+            <h3 className={styles.sectionTitle} id="preferences-labels">Map Labels</h3>
+            <label className={styles.row}>
+              <span>Element labels</span>
+              <span className={styles.sizeControl}>
+                <input
+                  type="number"
+                  className={styles.sizeInput}
+                  min={8} max={24} step={1}
+                  value={draft.elementLabelSize}
+                  onChange={e => setDraft(d => ({ ...d, elementLabelSize: Math.max(8, Math.min(24, +e.target.value || 11)) }))}
+                />
+                <span className={styles.sizeUnit}>px</span>
+              </span>
+            </label>
+            <label className={styles.row}>
+              <span>Dimension labels</span>
+              <span className={styles.sizeControl}>
+                <input
+                  type="number"
+                  className={styles.sizeInput}
+                  min={8} max={24} step={1}
+                  value={draft.dimensionLabelSize}
+                  onChange={e => setDraft(d => ({ ...d, dimensionLabelSize: Math.max(8, Math.min(24, +e.target.value || 11)) }))}
+                />
+                <span className={styles.sizeUnit}>px</span>
+              </span>
+            </label>
+          </section>
 
-        {/* ── Labels ── */}
-        <section className={styles.section}>
-          <div className={styles.sectionTitle}>Labels</div>
-          <div className={styles.row}>
-            <span>Element label size</span>
-            <input
-              type="number"
-              className={styles.sizeInput}
-              min={8} max={24} step={1}
-              value={draft.elementLabelSize}
-              onChange={e => setDraft(d => ({ ...d, elementLabelSize: Math.max(8, Math.min(24, +e.target.value || 11)) }))}
-            />
-            <span className={styles.sizeUnit}>px</span>
-          </div>
-          <div className={styles.row}>
-            <span>Dimension label size</span>
-            <input
-              type="number"
-              className={styles.sizeInput}
-              min={8} max={24} step={1}
-              value={draft.dimensionLabelSize}
-              onChange={e => setDraft(d => ({ ...d, dimensionLabelSize: Math.max(8, Math.min(24, +e.target.value || 11)) }))}
-            />
-            <span className={styles.sizeUnit}>px</span>
-          </div>
-        </section>
+          <section className={styles.section} aria-labelledby="preferences-dimension-color">
+            <h3 className={styles.sectionTitle} id="preferences-dimension-color">Dimension Color</h3>
+            <label className={styles.row}>
+              <span>Low end</span>
+              <input
+                type="color"
+                className={styles.colorInput}
+                value={draft.dimColorLow}
+                onChange={e => setDraft(d => ({ ...d, dimColorLow: e.target.value }))}
+              />
+            </label>
+            <label className={styles.row}>
+              <span>High end</span>
+              <input
+                type="color"
+                className={styles.colorInput}
+                value={draft.dimColorHigh}
+                onChange={e => setDraft(d => ({ ...d, dimColorHigh: e.target.value }))}
+              />
+            </label>
+          </section>
 
-        {/* ── Session ── */}
-        <section className={styles.section}>
-          <div className={styles.sectionTitle}>Session</div>
-          <label className={styles.row}>
-            <input type="checkbox" checked={draft.reopenLastFile}
-              onChange={() => toggle('reopenLastFile')} />
-            <span>Reopen last file on startup</span>
-          </label>
-          {draft.lastFilePath && (
-            <div className={styles.lastFile} title={draft.lastFilePath}>
-              Last: {draft.lastFilePath.split('/').pop()}
-            </div>
-          )}
-        </section>
-
-        {/* ── Keyboard Shortcuts ── */}
-        <section className={styles.section}>
-          <div className={styles.sectionTitle}>Keyboard Shortcuts</div>
-          <div className={styles.shortcutRow}><kbd className={styles.kbd}>⌘D</kbd><span>Duplicate selected element</span></div>
-          <div className={styles.shortcutRow}><kbd className={styles.kbd}>↑ ↓</kbd><span>Navigate element / dimension list</span></div>
-          <div className={styles.shortcutRow}><kbd className={styles.kbd}>⌫</kbd><span>Delete selected element / dimension</span></div>
-        </section>
-
-        <div className={styles.buttons}>
-          <button className={styles.btnCancel} onClick={onClose}>Cancel</button>
-          <ForwardActionButton label="Save preferences" onClick={handleSave} />
+          <section className={styles.section} aria-labelledby="preferences-shortcuts">
+            <h3 className={styles.sectionTitle} id="preferences-shortcuts">Keyboard Shortcuts</h3>
+            <div className={styles.shortcutRow}><kbd className={styles.kbd}>⌘D</kbd><span>Duplicate selected element</span></div>
+            <div className={styles.shortcutRow}><kbd className={styles.kbd}>↑ ↓</kbd><span>Navigate element / dimension list</span></div>
+            <div className={styles.shortcutRow}><kbd className={styles.kbd}>⌫</kbd><span>Delete selected element / dimension</span></div>
+          </section>
         </div>
+      </div>
+
+      <footer className={styles.buttons}>
+        <button
+          type="button"
+          className={styles.btnCancel}
+          aria-label="Cancel settings"
+          title="Cancel settings"
+          onClick={onClose}
+        >
+          <svg className={styles.cancelIcon} viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5 5L19 19M19 5L5 19" />
+          </svg>
+        </button>
+        <ForwardActionButton label="Save settings" onClick={handleSave} />
+      </footer>
     </ModalShell>
   )
 }

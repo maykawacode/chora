@@ -215,6 +215,12 @@ const api = {
 
   // ── Quit confirmation ─────────────────────────────────────────────────────────
 
+  onCancelModals: (cb: () => void): (() => void) => {
+    const handler = (): void => cb()
+    ipcRenderer.on('app:cancel-modals', handler)
+    return () => ipcRenderer.removeListener('app:cancel-modals', handler)
+  },
+
   // Main process fires this before quitting so the renderer can save or cancel
   onQuitRequested: (cb: () => void): (() => void) => {
     const handler = (): void => cb()

@@ -1,170 +1,242 @@
 .overlay {
   position: fixed;
   inset: 0;
-  background: var(--color-backdrop-strong);
-  display: flex;
-  align-items: flex-start;   /* anchor to top so dialog doesn't disappear above viewport */
-  justify-content: center;
   z-index: 100;
-  overflow-y: auto;          /* scroll the overlay if the dialog is taller than the window */
-  padding: var(--space-five) 0; /* breathing room above and below the dialog */
+  overflow: hidden;
+  background: var(--color-surface-app);
 }
 
 .dialog {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  background: var(--color-surface-app);
+  color: var(--color-text-primary);
+}
+
+.header {
+  flex: none;
+  padding: var(--space-four) 19px var(--space-three);
+  border-bottom: 1px solid var(--color-border-subtle);
   background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-control);
-  border-radius: var(--radius-dialog);
-  padding: var(--space-five);
-  width: 320px;
-  box-shadow: var(--shadow-dialog);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-one);
-  flex-shrink: 0;            /* don't let flexbox compress the dialog */
+  -webkit-app-region: drag;
 }
 
 .title {
-  margin: 0 0 var(--space-three);
+  margin: 0 0 2px;
   font-size: var(--font-size-title);
   font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-compact);
   color: var(--color-text-primary);
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-control);
+}
+
+.content {
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-four) 19px;
+}
+
+.settingsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-three);
+  align-items: start;
 }
 
 .section {
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-two);
-  padding: var(--space-three) 0;
-  border-bottom: 1px solid var(--color-border-subtle);
-}
-
-.section:last-of-type {
-  border-bottom: none;
+  gap: 6px;
+  padding: var(--space-three);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sharp);
+  background: var(--color-surface-raised);
 }
 
 .sectionTitle {
+  margin: 0 0 2px;
+  color: var(--color-text-muted);
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-semibold);
-  color: var(--color-text-muted);
+  line-height: var(--line-height-interface);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  margin-bottom: 2px;
 }
 
 .row {
+  min-width: 0;
+  min-height: var(--size-control);
   display: flex;
   align-items: center;
   gap: var(--space-two);
-  font-size: var(--font-size-body);
   color: var(--color-text-primary);
+  font-size: var(--font-size-control);
   cursor: pointer;
+}
+
+.row > span:first-child {
+  min-width: 0;
 }
 
 .row input[type="checkbox"] {
   width: 14px;
   height: 14px;
-  flex-shrink: 0;
-  cursor: pointer;
+  flex: none;
+  margin: 0;
   accent-color: var(--color-selection-strong);
+  cursor: pointer;
 }
 
 .colorInput {
   width: 36px;
   height: 24px;
+  flex: none;
+  margin-left: auto;
+  padding: 1px 2px;
   border: 1px solid var(--color-border-control);
   border-radius: var(--radius-control);
-  padding: 1px 2px;
-  cursor: pointer;
   background: var(--color-surface-field);
-  margin-left: auto;
+  cursor: pointer;
 }
 
-.lastFile {
-  font-size: var(--font-size-label);
-  color: var(--color-text-disabled);
-  padding-left: 22px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.selectInput {
+  min-width: 96px;
+  min-height: var(--size-control);
+  margin-left: auto;
+  padding: 2px var(--space-one);
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-control);
+  background: var(--color-surface-field);
+  color: var(--color-text-primary);
+  font-family: inherit;
+  font-size: var(--font-size-control);
+  cursor: pointer;
+}
+
+.sizeControl {
+  display: flex;
+  align-items: center;
+  gap: var(--space-one);
+  margin-left: auto;
 }
 
 .sizeInput {
-  width: 48px;
-  padding: 2px 4px;
+  width: 46px;
   min-height: var(--size-control);
+  padding: 2px var(--space-one);
   border: 1px solid var(--color-border-control);
   border-radius: var(--radius-control);
   background: var(--color-surface-field);
-  font-size: var(--font-size-body);
-  font-family: inherit;
   color: var(--color-text-primary);
+  font-family: inherit;
+  font-size: var(--font-size-control);
   text-align: right;
-  margin-left: auto;
-}
-
-/* Dropdown in a .row — pushed right to sit in the same column as .colorInput
-   and .sizeInput, so every value in the dialog lines up on one edge. */
-.selectInput {
-  padding: 2px 4px;
-  min-height: var(--size-control);
-  border: 1px solid var(--color-border-control);
-  border-radius: var(--radius-control);
-  background: var(--color-surface-field);
-  font-size: var(--font-size-body);
-  font-family: inherit;
-  color: var(--color-text-primary);
-  margin-left: auto;
-  cursor: pointer;
 }
 
 .sizeUnit {
-  font-size: var(--font-size-label);
   color: var(--color-text-muted);
-  margin-left: 2px;
+  font-size: var(--font-size-label);
+}
+
+.lastFile {
+  min-width: 0;
+  margin: -2px 0 0 22px;
+  overflow: hidden;
+  color: var(--color-text-disabled);
+  font-size: var(--font-size-label);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .shortcutRow {
+  min-height: 24px;
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-size: var(--font-size-body);
+  gap: var(--space-two);
   color: var(--color-text-primary);
+  font-size: var(--font-size-control);
+}
+
+.shortcutRow span {
+  min-width: 0;
 }
 
 .kbd {
-  display: inline-block;
-  min-width: 32px;
-  padding: 2px 6px;
+  min-width: 38px;
+  flex: none;
+  padding: 1px 5px;
   border: 1px solid var(--color-border-control);
   border-bottom-width: 2px;
   border-radius: var(--radius-control);
   background: var(--color-surface-hover);
-  font-size: var(--font-size-label);
-  font-family: inherit;
-  text-align: center;
   color: var(--color-text-secondary);
+  font-family: inherit;
+  font-size: var(--font-size-label);
+  text-align: center;
   white-space: nowrap;
-  flex-shrink: 0;
 }
 
 .buttons {
+  flex: none;
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: var(--space-two);
-  margin-top: 14px;
+  padding: var(--space-three) 19px;
+  border-top: 1px solid var(--color-border-subtle);
+  background: var(--color-surface-raised);
+  -webkit-app-region: no-drag;
 }
 
 .btnCancel {
-  padding: 5px 14px;
-  min-height: var(--size-control);
-  border: 1px solid var(--color-border-control);
-  border-radius: var(--radius-control);
-  background: var(--color-surface-chrome);
-  font-size: var(--font-size-body);
-  font-family: inherit;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--color-unsaved);
+  color: var(--color-text-inverse);
   cursor: pointer;
-  color: var(--color-text-secondary);
 }
 
-.btnCancel:hover { background: var(--color-surface-hover); }
+.btnCancel:hover {
+  background: var(--color-destructive-hover);
+}
+
+.cancelIcon {
+  display: block;
+  width: 24px;
+  height: 24px;
+}
+
+.cancelIcon path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 5;
+  stroke-linecap: round;
+}
+
+@media (max-width: 460px) {
+  .header,
+  .content,
+  .buttons {
+    padding-left: var(--space-three);
+    padding-right: var(--space-three);
+  }
+
+  .settingsGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

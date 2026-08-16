@@ -24,7 +24,7 @@ import { PreferencesDialog } from './components/PreferencesDialog'
 import { WelcomeDialog } from './components/WelcomeDialog'
 import { ConfirmationDisc } from './components/ConfirmationDisc'
 import { OrientationDialog } from './components/OrientationDialog'
-import { ModalShell } from './components/ModalShell'
+import { CANCEL_MODAL_EVENT, ModalShell } from './components/ModalShell'
 import { serializeSession } from './lib/parser'
 import {
   chooseSpreadsheetImport,
@@ -133,6 +133,26 @@ export function App(): React.JSX.Element {
     discardConfirmationResolver.current?.(false)
     discardConfirmationResolver.current = null
   }, [])
+
+  /** Abandons every transient modal draft before the application evaluates quit. */
+  function cancelOpenModalViews(): void {
+    window.dispatchEvent(new Event(CANCEL_MODAL_EVENT))
+    setShowWelcome(false)
+    setShowQuitConfirm(false)
+    setShowDiscardConfirm(false)
+    setShowImportReplaceConfirm(false)
+    setShowChooseDimensions(false)
+    setShowCreateSemantic(false)
+    setShowStarterPicker(false)
+    setShowPreferences(false)
+    setShowAbout(false)
+    setOrientationMarkdown(null)
+    setImportPreview(null)
+
+    const resolveDiscard = discardConfirmationResolver.current
+    discardConfirmationResolver.current = null
+    resolveDiscard?.(false)
+  }
 
   /** Fine-grained map updates must not echo a full state payload to their sender. */
   function withoutStateBroadcast<T>(fn: () => T): T {
@@ -248,8 +268,11 @@ export function App(): React.JSX.Element {
       window.api.broadcastState(encodeStateEnvelope(useAppStore.getState()))
     })
 
+    const removeCancelModals = window.api.onCancelModals(cancelOpenModalViews)
+
     // Quit requested — show confirm dialog if dirty, otherwise let it proceed
     const removeQuitRequested = window.api.onQuitRequested(() => {
+      cancelOpenModalViews()
       if (useAppStore.getState().isDirty) {
         setShowQuitConfirm(true)
       } else {
@@ -264,6 +287,7 @@ export function App(): React.JSX.Element {
       removeMapClosed()
       removeElementUpdate()
       removeCollectionAdd()
+      removeCancelModals()
       removeQuitRequested()
     }
   }, [])

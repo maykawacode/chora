@@ -87,7 +87,7 @@ export function buildMenu(): void {
         { label: 'About Chora', click: () => sendToRenderer('about') },
         { type: 'separator' as const },
         {
-          label: 'Preferences…',
+          label: 'Settings…',
           accelerator: 'CmdOrCtrl+,',
           click: () => sendToRenderer('preferences')
         },

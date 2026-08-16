@@ -20,6 +20,7 @@ import { useAppStore } from './store/appStore'
 import { usePrefsStore } from './store/prefsStore'
 import { deserializeSession } from './lib/parser'
 import { MapPanel } from './components/maps/MapPanel'
+import { CANCEL_MODAL_EVENT } from './components/ModalShell'
 import type { CartesianMapConfig, SemanticMapConfig } from './lib/types'
 import { decodeMapStateEnvelope, mergePreferences } from '../../shared/contracts'
 import { uiTheme } from './design/theme'
@@ -90,10 +91,21 @@ export function MapApp(): React.JSX.Element {
       setPrefs(mergePreferences(raw))
     })
 
+    const removeCancelModals = window.api.onCancelModals(() => {
+      window.dispatchEvent(new Event(CANCEL_MODAL_EVENT))
+    })
+
     // Signal readiness AFTER all listeners are attached to prevent map:init race
     window.api.signalReady()
 
-    return () => { removeInit(); removeState(); removeScore(); removeConfig(); removePrefs() }
+    return () => {
+      removeInit()
+      removeState()
+      removeScore()
+      removeConfig()
+      removePrefs()
+      removeCancelModals()
+    }
   }, [loadSession, selectElements, setScore, updateMapConfig])
 
   // ── OS window title sync ──────────────────────────────────────────────────

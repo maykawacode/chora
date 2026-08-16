@@ -1,4 +1,5 @@
 import { useEffect, useId, type ReactNode } from 'react'
+import { CANCEL_MODAL_EVENT } from './ModalShell'
 
 interface ConfirmationDiscProps {
   title: ReactNode
@@ -70,8 +71,13 @@ export function ConfirmationDisc({
     const closeOnEscape = (event: KeyboardEvent): void => {
       if (event.key === 'Escape') onCancel()
     }
+    const closeOnAppQuit = (): void => onCancel()
     window.addEventListener('keydown', closeOnEscape)
-    return () => window.removeEventListener('keydown', closeOnEscape)
+    window.addEventListener(CANCEL_MODAL_EVENT, closeOnAppQuit)
+    return () => {
+      window.removeEventListener('keydown', closeOnEscape)
+      window.removeEventListener(CANCEL_MODAL_EVENT, closeOnAppQuit)
+    }
   }, [onCancel])
 
   return (

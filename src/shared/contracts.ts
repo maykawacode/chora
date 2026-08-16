@@ -130,6 +130,7 @@ export interface ChoraApi {
   onCollectionAdd: (cb: (id: string, name: string) => void) => () => void
   onSelection: (cb: (elementId: string | null, clearDimension: boolean) => void) => () => void
   onMultiSelection: (cb: (ids: string[]) => void) => () => void
+  onCancelModals: (cb: () => void) => () => void
   onQuitRequested: (cb: () => void) => () => void
   confirmQuit: () => void
 }

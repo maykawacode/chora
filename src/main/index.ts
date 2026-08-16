@@ -104,6 +104,9 @@ app.whenReady().then(async () => {
 app.on('before-quit', (e) => {
   if (!quitConfirmed) {
     e.preventDefault()
+    for (const win of BrowserWindow.getAllWindows()) {
+      if (!win.isDestroyed()) win.webContents.send('app:cancel-modals')
+    }
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('app:quit-requested')
     }
