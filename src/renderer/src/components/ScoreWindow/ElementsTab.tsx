@@ -25,7 +25,7 @@ import { history, SCORE_HISTORY_OWNER } from '../../store/history'
 import { usePrefsStore } from '../../store/prefsStore'
 import { ELEMENT_SHAPES, ELEMENT_SHAPE_SYMBOLS } from '../../lib/types'
 import { useResizableSplitPane } from './useResizableSplitPane'
-import { openWeight } from '../../lib/numericRange'
+import { formatRange, numericRange, openWeight } from '../../lib/numericRange'
 import { ConfirmationDisc } from '../ConfirmationDisc'
 import styles from './DataTab.module.css'
 
@@ -43,6 +43,7 @@ export function ElementsTab(): React.JSX.Element {
   const prefs            = usePrefsStore(s => s.prefs)
 
   const selected    = elements.find(e => e.id === selectedId) ?? null
+  const weightRange = numericRange(elements.map(element => element.weight), 1)
 
   // sortAlpha=false → display in creation/import order (the store's canonical order)
   // sortAlpha=true  → display alphabetically by name (view-only; store order is unchanged)
@@ -305,6 +306,7 @@ export function ElementsTab(): React.JSX.Element {
               weight: openWeight(Number(e.target.value))
             })}
           />
+          <span className={styles.range}>{formatRange(weightRange)}</span>
         </div>
         <textarea
           className={styles.description}

@@ -126,6 +126,7 @@
    long title or file name compresses the group. */
 .unsavedBadge {
   flex: none;
+  transform: translateY(-2px);
   font-size: var(--font-size-meta);
   font-weight: var(--font-weight-semibold);
   color: var(--color-text-inverse);

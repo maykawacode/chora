@@ -32,12 +32,6 @@
   overflow-wrap: anywhere;
 }
 
-.sectionCount {
-  flex: none;
-  color: var(--color-text-muted);
-  font-variant-numeric: tabular-nums;
-}
-
 .scoreSection {
   display: flex;
   align-items: center;

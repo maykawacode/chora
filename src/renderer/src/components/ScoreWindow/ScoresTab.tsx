@@ -253,10 +253,7 @@ export function AssessTab(): React.JSX.Element {
 
       <div className={styles.workspace} ref={splitPane.containerRef} style={splitPane.containerStyle}>
         <section className={`${styles.section} ${styles.elementsSection}`} style={splitPane.leftPaneStyle}>
-          <h3 className={styles.sectionTitle}>
-            <span>Elements</span>
-            <span className={styles.sectionCount}>{elements.length}</span>
-          </h3>
+          <h3 className={styles.sectionTitle}>Elements</h3>
           {elements.length === 0 ? (
             <p className={styles.empty}>No elements defined yet.</p>
           ) : (
@@ -384,13 +381,14 @@ export function AssessTab(): React.JSX.Element {
               <div className={styles.collectionList}>
                 {collections.map(collection => {
                   const state = membership(collection.id)
+                  const count = memberCount(collection, elements)
+                  const name = collection.name || 'Untitled collection'
                   return (
                     <CollectionChoiceRow
                       key={collection.id}
-                      name={collection.name || 'Untitled collection'}
+                      name={`${name} (${count})`}
                       color={collection.color}
                       state={state}
-                      count={memberCount(collection, elements)}
                       disabled={targetIds.length === 0}
                       onToggle={() => toggleMembership(collection.id)}
                     />
