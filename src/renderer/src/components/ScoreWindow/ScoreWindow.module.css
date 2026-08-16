@@ -5,9 +5,9 @@
   width: 100%;
   min-width: 0;
   min-height: 0;
-  background: #f0ede8;
-  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
-  font-size: 13px;
+  background: var(--color-surface-app);
+  font-family: var(--font-family-ui);
+  font-size: var(--font-size-body);
 }
 
 .titleBar {
@@ -15,10 +15,10 @@
   align-items: center;
   justify-content: space-between;
   flex-shrink: 0;
-  height: 28px;
+  height: var(--size-title-bar);
   min-width: 0;
-  padding: 0 8px 0 78px;
-  background: #e0ddd8;
+  padding: 0 var(--space-two) 0 78px;
+  background: var(--color-surface-chrome);
   -webkit-app-region: drag;
 }
 
@@ -30,12 +30,12 @@
 }
 
 .unsavedBadge {
-  font-size: 10px;
-  font-weight: 600;
-  color: #6b5a00;
-  background: #f5e080;
-  border: 1px solid #c8a800;
-  border-radius: 3px;
+  font-size: var(--font-size-meta);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-unsaved-text);
+  background: var(--color-unsaved-surface);
+  border: 1px solid var(--color-unsaved-border);
+  border-radius: var(--radius-small);
   padding: 1px 6px;
   user-select: none;
   pointer-events: none;
@@ -44,9 +44,9 @@
 .windowTitle {
   min-width: 0;
   overflow: hidden;
-  font-size: var(--type-title);
-  font-weight: 650;
-  color: #333;
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
   text-overflow: ellipsis;
   white-space: nowrap;
   pointer-events: none;
@@ -58,12 +58,12 @@
   flex: none;
   flex-direction: column;
   justify-content: center;
-  height: 74px;
-  min-height: 74px;
+  height: var(--size-status-bar);
+  min-height: var(--size-status-bar);
   min-width: 0;
-  padding: 4px 12px 4px 14px;
-  background: #ebe8e3;
-  line-height: 1.25;
+  padding: var(--space-one) var(--space-three) var(--space-one) 14px;
+  background: var(--color-surface-raised);
+  line-height: var(--line-height-compact);
 }
 
 .statusMessage {
@@ -73,9 +73,9 @@
 }
 
 .statusMessage {
-  color: #37342f;
-  font-size: 12px;
-  font-weight: 400;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-control);
+  font-weight: var(--font-weight-regular);
 }
 
 .tabBar {
@@ -83,24 +83,25 @@
   flex-shrink: 0;
   min-width: 0;
   overflow: hidden;
-  border-bottom: 1px solid #b0a898;
-  background: #e0ddd8;
-  padding: 0 8px;
+  border-bottom: 1px solid var(--color-border-control);
+  background: var(--color-surface-chrome);
+  padding: 0 var(--space-two);
   gap: 2px;
 }
 
 .tab {
   flex: 1 1 0;
   min-width: 0;
-  padding: 5px 16px;
-  border: 1px solid #b0a898;
+  min-height: var(--size-control);
+  padding: var(--space-one) var(--space-four);
+  border: 1px solid var(--color-border-control);
   border-bottom: none;
-  background: #d0cdc8;
-  color: #444;
+  background: var(--color-surface-chrome-strong);
+  color: var(--color-text-secondary);
   cursor: pointer;
-  border-radius: 4px 4px 0 0;
-  font-size: var(--type-tab);
-  font-weight: 500;
+  border-radius: var(--radius-control) var(--radius-control) 0 0;
+  font-size: var(--font-size-control);
+  font-weight: var(--font-weight-medium);
   font-family: inherit;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -117,28 +118,28 @@
 }
 
 .tab:hover {
-  background: #c8c5c0;
+  background: var(--color-surface-hover);
 }
 
 .tabTool {
-  background: #68685a;
-  color: #fff;
+  background: var(--color-text-secondary);
+  color: var(--color-text-inverse);
 }
 
 .tabTool:hover {
-  background: #59594d;
+  background: var(--color-selection-strong);
 }
 
 .tabActive {
-  background: #f0ede8;
-  color: #000;
-  font-weight: 650;
+  background: var(--color-surface-app);
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-semibold);
 }
 
 .tabActiveTool,
 .tabActiveTool:hover {
-  background: #4e4e43;
-  color: #fff;
+  background: var(--color-selection-strong);
+  color: var(--color-text-inverse);
 }
 
 .tabContent {
@@ -172,8 +173,8 @@
   .tab {
     flex: 1;
     min-width: 0;
-    padding: 5px 2px;
-    font-size: 10px;
+    padding: var(--space-one) 2px;
+    font-size: var(--font-size-meta);
   }
 
   .tabIcon {

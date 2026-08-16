@@ -1,14 +1,14 @@
 .row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-two);
   width: 100%;
   padding: 3px 0;
   border: none;
   background: none;
-  color: #222;
+  color: var(--color-text-primary);
   font-family: inherit;
-  font-size: 12px;
+  font-size: var(--font-size-control);
   text-align: left;
   cursor: pointer;
 }
@@ -18,9 +18,9 @@
 }
 
 .row:focus-visible .name {
-  outline: 2px solid rgba(128, 128, 64, 0.5);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
-  border-radius: 2px;
+  border-radius: var(--radius-subtle);
 }
 
 .row:disabled {
@@ -33,7 +33,7 @@
   height: 12px;
   flex: none;
   border: 1.5px solid;
-  border-radius: 3px;
+  border-radius: var(--radius-small);
 }
 
 .name {
@@ -46,7 +46,7 @@
 
 .count {
   flex: none;
-  color: #7b746a;
-  font-size: 11px;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-label);
   font-variant-numeric: tabular-nums;
 }

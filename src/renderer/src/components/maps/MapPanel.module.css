@@ -1,7 +1,7 @@
 .panelWindowed {
   --map-sidebar-width: 230px;
-  --map-sidebar-motion: 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
-  --map-titlebar-height: 28px;
+  --map-sidebar-motion: var(--motion-duration-enter) var(--motion-ease-standard);
+  --map-titlebar-height: var(--size-title-bar);
   position: relative;
 }
 
@@ -9,7 +9,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: #fff;
+  background: var(--map-background);
   flex: 1;
 }
 
@@ -19,7 +19,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #fff;
+  background: var(--map-background);
   padding: 4px 38px 4px 78px;
   overflow: hidden;
   transition: margin-right var(--map-sidebar-motion);
@@ -45,11 +45,14 @@
   display: grid;
   place-items: center;
   padding: 0;
-  border: 1px solid rgba(0, 0, 0, 0.14);
+  border: 1px solid var(--color-window-control-border);
   border-radius: 50%;
-  color: rgba(0, 0, 0, 0.58);
+  color: var(--color-window-control-glyph);
   cursor: default;
-  font: 700 10px/10px -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: var(--font-family-ui);
+  font-size: var(--font-size-meta);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1;
   -webkit-app-region: no-drag;
 }
 
@@ -64,15 +67,15 @@
 }
 
 .windowControlClose {
-  background: #aaa;
+  background: var(--color-window-control);
 }
 
 .windowControlMinimize {
-  background: #aaa;
+  background: var(--color-window-control);
 }
 
 .windowControlZoom {
-  background: #aaa;
+  background: var(--color-window-control);
 }
 
 .titleGroup {
@@ -86,17 +89,17 @@
 }
 
 .title {
-  font-size: 12px;
-  font-weight: 600;
-  color: #333;
+  font-size: var(--font-size-control);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
   cursor: text;
   -webkit-app-region: no-drag;
 }
 
 .titleFileName {
-  font-size: 12px;
-  font-weight: 600;
-  color: #999;
+  font-size: var(--font-size-control);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-disabled);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -105,12 +108,12 @@
 }
 
 .titleInput {
-  font-size: 12px;
-  font-weight: 600;
-  color: #333;
-  background: #fff;
-  border: 1px solid #808040;
-  border-radius: 3px;
+  font-size: var(--font-size-control);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  background: var(--color-surface-field);
+  border: 1px solid var(--color-focus);
+  border-radius: var(--radius-small);
   padding: 1px 5px;
   font-family: inherit;
   outline: none;
@@ -123,12 +126,12 @@
    keeps it at full size when a long file name compresses the group. */
 .unsavedBadge {
   flex: none;
-  font-size: 10px;
-  font-weight: 600;
-  color: #6b5a00;
-  background: #f5e080;
-  border: 1px solid #c8a800;
-  border-radius: 3px;
+  font-size: var(--font-size-meta);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-unsaved-text);
+  background: var(--color-unsaved-surface);
+  border: 1px solid var(--color-unsaved-border);
+  border-radius: var(--radius-small);
   padding: 1px 6px;
   user-select: none;
   pointer-events: none;
@@ -142,8 +145,8 @@
   border: none;
   background: transparent;
   cursor: pointer;
-  color: #777;
-  border-radius: 3px;
+  color: var(--color-text-muted);
+  border-radius: var(--radius-small);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -152,11 +155,11 @@
 }
 
 .sidebarBtn:hover {
-  color: #333;
+  color: var(--color-text-primary);
 }
 
 .sidebarBtnActive {
-  color: #808040;
+  color: var(--color-selection-strong);
 }
 
 .windowedSidebarToggle {
@@ -170,38 +173,38 @@
 .axisPicker {
   position: absolute;
   z-index: 10;
-  background: #f0ede8;
-  border: 1px solid #888;
+  background: var(--color-surface-app);
+  border: 1px solid var(--color-border-strong);
   border-radius: 0;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+  box-shadow: var(--shadow-dialog);
   min-width: 180px;
   max-width: 220px;
   padding: 14px 16px 16px;
   overflow: hidden;
-  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
-  font-size: 13px;
+  font-family: var(--font-family-ui);
+  font-size: var(--font-size-body);
 }
 
 .axisPickerBackdrop {
   position: fixed;
   inset: 0;
   z-index: 9;
-  background: rgba(0,0,0,0.24);
+  background: var(--color-backdrop);
 }
 
 .axisPickerTitle {
   margin: 0 0 10px;
-  font-size: 14px;
-  font-weight: 600;
-  color: #222;
+  font-size: var(--font-size-title);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
 }
 
 .axisPickerList {
   list-style: none;
   margin: 4px 0 0;
   padding: 0;
-  border: 1px solid #b0a898;
-  background: #fff;
+  border: 1px solid var(--color-border-control);
+  background: var(--color-surface-field);
   max-height: 180px;
   overflow-y: auto;
 }
@@ -209,7 +212,8 @@
 .axisPickerItem {
   min-height: 28px;
   padding: 6px 10px;
-  font-size: 12px;
+  min-height: var(--size-control);
+  font-size: var(--font-size-control);
   cursor: pointer;
   white-space: nowrap;
   overflow: hidden;
@@ -217,42 +221,43 @@
 }
 
 .axisPickerItem:hover {
-  background: #f0ede8;
+  background: var(--color-surface-hover);
 }
 
 .axisPickerSelected {
-  background: #c8a050;
-  color: #fff;
-  font-weight: 600;
+  background: var(--color-selection-strong);
+  color: var(--color-text-inverse);
+  font-weight: var(--font-weight-semibold);
 }
 
 .axisPickerSelected:hover {
-  background: #b89040;
+  background: var(--color-selection-hover);
 }
 
 .axisPickerFlipBtn {
   display: block;
   width: 100%;
   padding: 7px 10px;
-  font-size: 12px;
-  font-weight: 600;
+  min-height: var(--size-control);
+  font-size: var(--font-size-control);
+  font-weight: var(--font-weight-semibold);
   text-align: center;
-  background: #fff;
-  border: 1px solid #b0a898;
-  border-radius: 4px;
+  background: var(--color-surface-field);
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-control);
   cursor: pointer;
   font-family: inherit;
-  color: #333;
+  color: var(--color-text-primary);
 }
 
 .axisPickerFlipBtn:hover {
-  background: #e0ddd8;
+  background: var(--color-surface-chrome);
 }
 
 .axisPickerSubtitle {
-  font-size: 10px;
-  font-weight: 600;
-  color: #888;
+  font-size: var(--font-size-meta);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   margin-top: 14px;
@@ -283,8 +288,8 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: var(--chrome-bg);
-  border-left: 1px solid var(--chrome-rule);
+  background: var(--color-surface-chrome);
+  border-left: 1px solid var(--color-border-subtle);
   transform: translateX(100%);
   visibility: hidden;
   transition:

@@ -23,8 +23,9 @@ import type { CartesianMapConfig, Element, Dimension, Collection, ScoreMap } fro
 import { blobPadding, setBlobPath, type BlobPoint, type Pt } from '../blob'
 import { resolveElementColor } from '../color'
 import { cartesianElements, shownCollections } from '../collections'
-import { drawMark, markShapeIndex } from '../shape'
+import { drawMark, drawSelectionRing, markShapeIndex } from '../shape'
 import { normalizeInRange, numericRange, type NumericRange } from '../../../lib/numericRange'
+import { uiTheme } from '../../../design/theme'
 
 // Space reserved on each side of the canvas for pole labels
 export const MARGIN = 58
@@ -137,12 +138,12 @@ export function drawCartesian(
   // ── Background ───────────────────────────────────────────────────────────────
 
   ctx.clearRect(0, 0, W, H)
-  ctx.fillStyle = '#ffffff'
+  ctx.fillStyle = uiTheme.map.background
   ctx.fillRect(plotLeft, plotTop, plotW, plotH)
 
   // ── Plot border ───────────────────────────────────────────────────────────────
 
-  ctx.strokeStyle = '#444'
+  ctx.strokeStyle = uiTheme.map.axis
   ctx.lineWidth = 1
   ctx.strokeRect(plotLeft, plotTop, plotW, plotH)
 
@@ -151,7 +152,7 @@ export function drawCartesian(
   const midX = plotLeft + plotW / 2
   const midY = plotTop  + plotH / 2
 
-  ctx.strokeStyle = '#ccc'
+  ctx.strokeStyle = uiTheme.map.grid
   ctx.lineWidth = 1
   ctx.setLineDash([4, 4])
 
@@ -172,7 +173,7 @@ export function drawCartesian(
   // label appears on which end.
 
   ctx.font = labelFont(dimensionLabelSize)
-  ctx.fillStyle = '#333'
+  ctx.fillStyle = uiTheme.map.label
 
   if (xDim) {
     const leftLabel  = config.xFlipped ? xDim.poleB : xDim.poleA
@@ -191,7 +192,7 @@ export function drawCartesian(
   if (!xDim || !yDim) return
 
   if (elements.length === 0) {
-    ctx.fillStyle = '#999'
+    ctx.fillStyle = uiTheme.map.labelMuted
     ctx.font = '13px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif'
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
@@ -316,32 +317,26 @@ export function drawCartesian(
     if (shapeIndex !== null) {
       drawMark(ctx, shapeIndex, cx, cy, r)
       if (isPartial) {
-        ctx.fillStyle = '#ffffff'
+        ctx.fillStyle = uiTheme.map.background
         ctx.fill()
         ctx.setLineDash([3, 3])
-        ctx.strokeStyle = '#cc0000'
+        ctx.strokeStyle = uiTheme.map.partial
         ctx.lineWidth = 1.5
         ctx.stroke()
         ctx.setLineDash([])
       } else {
         ctx.fillStyle = resolveElementColor(config.colorMode, el, collections, [])
         ctx.fill()
-        ctx.strokeStyle = '#ffffff'
+        ctx.strokeStyle = uiTheme.map.outline
         ctx.lineWidth = 1.5
         ctx.stroke()
       }
 
       if (el.id === selectedElementId && selectedElementIds.length === 0) {
-        drawMark(ctx, shapeIndex, cx, cy, r + 3)
-        ctx.strokeStyle = '#e8c040'
-        ctx.lineWidth = 2
-        ctx.stroke()
+        drawSelectionRing(ctx, shapeIndex, cx, cy, r)
       }
       if (selectedElementIds.includes(el.id)) {
-        drawMark(ctx, shapeIndex, cx, cy, r + 3)
-        ctx.strokeStyle = '#e8c040'
-        ctx.lineWidth = 2
-        ctx.stroke()
+        drawSelectionRing(ctx, shapeIndex, cx, cy, r)
       }
     }
 
@@ -351,7 +346,7 @@ export function drawCartesian(
       // the dot expands past the label, which then reads as sitting on top of
       // it. That keeps labels vertically aligned regardless of dot size.
       ctx.font = labelFont(elementLabelSize)
-      ctx.fillStyle = isPartial ? '#cc0000' : '#222'
+      ctx.fillStyle = isPartial ? uiTheme.map.partial : uiTheme.map.label
       ctx.textAlign = 'left'
       ctx.textBaseline = 'middle'
       ctx.fillText(el.name, cx + DOT_DEFAULT_RADIUS + LABEL_OFFSET, cy)

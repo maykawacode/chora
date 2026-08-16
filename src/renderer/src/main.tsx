@@ -4,7 +4,10 @@ import { App } from './App'
 import { usePrefsStore } from './store/prefsStore'
 import { history } from './store/history'
 import { mergePreferences } from './lib/preferences'
+import { applyUiTheme } from './design/theme'
 import './styles/global.css'
+
+applyUiTheme()
 
 // Load preferences BEFORE React mounts so every component sees the correct
 // values on its first render — no async gap to race against.

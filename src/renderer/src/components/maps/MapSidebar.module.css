@@ -21,8 +21,8 @@
 }
 
 .section {
-  padding: 8px var(--sidebar-inset) 10px;
-  border-bottom: 1px solid var(--chrome-rule);
+  padding: var(--space-two) var(--sidebar-inset) 10px;
+  border-bottom: 1px solid var(--color-border-subtle);
 }
 
 .section:last-child {
@@ -40,9 +40,9 @@
   align-items: baseline;
   justify-content: space-between;
   margin: 10px 0 6px;
-  font-size: 10px;
-  font-weight: 700;
-  color: #808040;
+  font-size: var(--font-size-meta);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
@@ -56,13 +56,13 @@
 .setting {
   display: flex;
   align-items: baseline;
-  gap: 4px;
+  gap: var(--space-one);
   width: 100%;
   padding: 3px 0;
   border: none;
   background: none;
   font-family: inherit;
-  font-size: 12px;
+  font-size: var(--font-size-control);
   text-align: left;
   cursor: pointer;
 }
@@ -75,12 +75,12 @@
 .settingName {
   flex: none;
   min-width: 42px;
-  color: #555;
+  color: var(--color-text-secondary);
 }
 
 .settingValue {
-  color: #222;
-  font-weight: 600;
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-semibold);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -112,9 +112,9 @@
    the ring on its behalf. Buttons show their own. */
 .settingMenu:focus-within .settingValue,
 .setting:focus-visible .settingValue {
-  outline: 2px solid rgba(128, 128, 64, 0.5);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
-  border-radius: 2px;
+  border-radius: var(--radius-subtle);
 }
 
 .linkBtn {
@@ -122,10 +122,10 @@
   background: none;
   padding: 0;
   font-family: inherit;
-  font-size: 10px;
-  font-weight: 700;
+  font-size: var(--font-size-meta);
+  font-weight: var(--font-weight-semibold);
   letter-spacing: 0.04em;
-  color: #808040;
+  color: var(--color-text-secondary);
   cursor: pointer;
   text-transform: uppercase;
 }
@@ -136,26 +136,27 @@
 
 .empty {
   margin: 0;
-  font-size: 11px;
-  color: #7b746a;
+  font-size: var(--font-size-label);
+  color: var(--color-text-muted);
 }
 
 .actionBtn {
   display: block;
   width: 100%;
   padding: 7px 10px;
-  font-size: 12px;
+  min-height: var(--size-control);
+  font-size: var(--font-size-control);
   font-family: inherit;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   text-align: center;
-  color: #fff;
-  background: #708040;
-  border: 1px solid #608040;
-  border-radius: 4px;
+  color: var(--color-text-inverse);
+  background: var(--color-selection-strong);
+  border: 1px solid var(--color-selection-strong);
+  border-radius: var(--radius-control);
   cursor: pointer;
 }
 
 .actionBtn:hover {
-  background: #607030;
-  border-color: #506020;
+  background: var(--color-selection-hover);
+  border-color: var(--color-selection-hover);
 }

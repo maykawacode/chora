@@ -1,7 +1,7 @@
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.35);
+  background: var(--color-backdrop);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -10,14 +10,14 @@
 
 .dialog {
   position: relative;
-  background: #f0ede8;
-  border: 1px solid #888;
-  border-radius: 8px;
-  padding: 20px 24px;
+  background: var(--color-surface-app);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-dialog);
+  padding: var(--space-five);
   width: 320px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.25);
-  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
-  font-size: 13px;
+  box-shadow: var(--shadow-dialog);
+  font-family: var(--font-family-ui);
+  font-size: var(--font-size-body);
 }
 
 /* Square only the outer window while preserving the established dialog styling. */
@@ -31,19 +31,20 @@
 
 .title {
   margin: 0 0 4px;
-  font-size: 15px;
-  font-weight: 600;
+  font-size: var(--font-size-title);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
 }
 
 .subtitle {
   margin: 0 0 12px;
-  color: #666;
-  font-size: 12px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-control);
 }
 
 .warning {
-  color: #b04000;
-  font-size: 12px;
+  color: var(--color-warning-text);
+  font-size: var(--font-size-control);
   margin: 0 0 8px;
 }
 
@@ -51,9 +52,9 @@
   list-style: none;
   margin: 0 0 16px;
   padding: 0;
-  border: 1px solid #b0a898;
-  border-radius: 4px;
-  background: #fff;
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-control);
+  background: var(--color-surface-field);
   max-height: 240px;
   overflow-y: auto;
 }
@@ -64,25 +65,25 @@
   gap: 8px;
   padding: 5px 10px;
   cursor: pointer;
-  min-height: 26px;
+  min-height: var(--size-list-row);
 }
 
 .item:hover {
-  background: #f0ede8;
+  background: var(--color-surface-hover);
 }
 
 .selected {
-  background: #c8a050 !important;
-  color: #fff;
+  background: var(--color-selection-strong) !important;
+  color: var(--color-text-inverse);
 }
 
 .axisLabel {
-  font-size: 11px;
-  font-weight: 700;
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-semibold);
   width: 14px;
   text-align: center;
-  background: rgba(255,255,255,0.3);
-  border-radius: 2px;
+  background: var(--color-white-wash);
+  border-radius: var(--radius-subtle);
   flex-shrink: 0;
 }
 
@@ -94,25 +95,26 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 8px;
+  gap: var(--space-two);
 }
 
 .btnCancel {
   padding: 5px 16px;
-  border-radius: 5px;
-  font-size: 13px;
+  min-height: var(--size-control);
+  border-radius: var(--radius-control);
+  font-size: var(--font-size-body);
   font-family: inherit;
   cursor: pointer;
 }
 
 .btnCancel {
-  border: 1px solid #b0a898;
-  background: #e0ddd8;
-  color: #333;
+  border: 1px solid var(--color-border-control);
+  background: var(--color-surface-chrome);
+  color: var(--color-text-primary);
 }
 
 .btnCancel:hover {
-  background: #d0cdc8;
+  background: var(--color-surface-hover);
 }
 
 /* ── Pole direction toggle (AdvancedTransform dim-to-weight / weight-to-dim) ── */
@@ -123,10 +125,10 @@
 
 /* Small uppercase label above the segment control */
 .poleSectionLabel {
-  font-size: 11px;
-  color: #888;
+  font-size: var(--font-size-label);
+  color: var(--color-text-muted);
   margin: 0 0 4px;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -134,20 +136,21 @@
 /* Pill-shaped segment control housing both pole buttons */
 .poleButtons {
   display: flex;
-  border: 1px solid #b0a898;
-  border-radius: 4px;
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-control);
   overflow: hidden;
 }
 
 .poleBtn {
   flex: 1;
   padding: 5px 8px;
-  font-size: 12px;
+  min-height: var(--size-control);
+  font-size: var(--font-size-control);
   font-family: inherit;
-  background: #fff;
+  background: var(--color-surface-field);
   border: none;
   cursor: pointer;
-  color: #555;
+  color: var(--color-text-secondary);
   text-align: center;
   white-space: nowrap;
   overflow: hidden;
@@ -156,16 +159,16 @@
 
 /* Divider between the two segments */
 .poleBtn + .poleBtn {
-  border-left: 1px solid #b0a898;
+  border-left: 1px solid var(--color-border-control);
 }
 
 .poleBtn:hover {
-  background: #f0ede8;
+  background: var(--color-surface-hover);
 }
 
 /* Active segment matches the list selection highlight color */
 .poleBtnActive {
-  background: #c8a050 !important;
-  color: #fff;
-  font-weight: 500;
+  background: var(--color-selection-strong) !important;
+  color: var(--color-text-inverse);
+  font-weight: var(--font-weight-medium);
 }

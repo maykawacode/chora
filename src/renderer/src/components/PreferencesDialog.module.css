@@ -1,41 +1,41 @@
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.4);
+  background: var(--color-backdrop-strong);
   display: flex;
   align-items: flex-start;   /* anchor to top so dialog doesn't disappear above viewport */
   justify-content: center;
   z-index: 100;
   overflow-y: auto;          /* scroll the overlay if the dialog is taller than the window */
-  padding: 20px 0;           /* breathing room above and below the dialog */
+  padding: var(--space-five) 0; /* breathing room above and below the dialog */
 }
 
 .dialog {
-  background: #f5f2ed;
-  border: 1px solid #b0a898;
-  border-radius: 8px;
-  padding: 20px;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-dialog);
+  padding: var(--space-five);
   width: 320px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+  box-shadow: var(--shadow-dialog);
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-one);
   flex-shrink: 0;            /* don't let flexbox compress the dialog */
 }
 
 .title {
-  margin: 0 0 12px;
-  font-size: 15px;
-  font-weight: 600;
-  color: #222;
+  margin: 0 0 var(--space-three);
+  font-size: var(--font-size-title);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
 }
 
 .section {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 10px 0;
-  border-bottom: 1px solid #d8d5d0;
+  gap: var(--space-two);
+  padding: var(--space-three) 0;
+  border-bottom: 1px solid var(--color-border-subtle);
 }
 
 .section:last-of-type {
@@ -43,9 +43,9 @@
 }
 
 .sectionTitle {
-  font-size: 11px;
-  font-weight: 600;
-  color: #888;
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-bottom: 2px;
@@ -54,9 +54,9 @@
 .row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: #333;
+  gap: var(--space-two);
+  font-size: var(--font-size-body);
+  color: var(--color-text-primary);
   cursor: pointer;
 }
 
@@ -65,23 +65,23 @@
   height: 14px;
   flex-shrink: 0;
   cursor: pointer;
-  accent-color: #808040;
+  accent-color: var(--color-selection-strong);
 }
 
 .colorInput {
   width: 36px;
   height: 24px;
-  border: 1px solid #b0a898;
-  border-radius: 4px;
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-control);
   padding: 1px 2px;
   cursor: pointer;
-  background: #fff;
+  background: var(--color-surface-field);
   margin-left: auto;
 }
 
 .lastFile {
-  font-size: 11px;
-  color: #999;
+  font-size: var(--font-size-label);
+  color: var(--color-text-disabled);
   padding-left: 22px;
   white-space: nowrap;
   overflow: hidden;
@@ -91,12 +91,13 @@
 .sizeInput {
   width: 48px;
   padding: 2px 4px;
-  border: 1px solid #b0a898;
-  border-radius: 4px;
-  background: #fff;
-  font-size: 13px;
+  min-height: var(--size-control);
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-control);
+  background: var(--color-surface-field);
+  font-size: var(--font-size-body);
   font-family: inherit;
-  color: #333;
+  color: var(--color-text-primary);
   text-align: right;
   margin-left: auto;
 }
@@ -105,19 +106,20 @@
    and .sizeInput, so every value in the dialog lines up on one edge. */
 .selectInput {
   padding: 2px 4px;
-  border: 1px solid #b0a898;
-  border-radius: 4px;
-  background: #fff;
-  font-size: 13px;
+  min-height: var(--size-control);
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-control);
+  background: var(--color-surface-field);
+  font-size: var(--font-size-body);
   font-family: inherit;
-  color: #333;
+  color: var(--color-text-primary);
   margin-left: auto;
   cursor: pointer;
 }
 
 .sizeUnit {
-  font-size: 11px;
-  color: #888;
+  font-size: var(--font-size-label);
+  color: var(--color-text-muted);
   margin-left: 2px;
 }
 
@@ -125,22 +127,22 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 13px;
-  color: #333;
+  font-size: var(--font-size-body);
+  color: var(--color-text-primary);
 }
 
 .kbd {
   display: inline-block;
   min-width: 32px;
   padding: 2px 6px;
-  border: 1px solid #b0a898;
+  border: 1px solid var(--color-border-control);
   border-bottom-width: 2px;
-  border-radius: 4px;
-  background: #e8e5e0;
-  font-size: 11px;
+  border-radius: var(--radius-control);
+  background: var(--color-surface-hover);
+  font-size: var(--font-size-label);
   font-family: inherit;
   text-align: center;
-  color: #444;
+  color: var(--color-text-secondary);
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -149,19 +151,20 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 8px;
+  gap: var(--space-two);
   margin-top: 14px;
 }
 
 .btnCancel {
   padding: 5px 14px;
-  border: 1px solid #b0a898;
-  border-radius: 4px;
-  background: #e0ddd8;
-  font-size: 13px;
+  min-height: var(--size-control);
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-control);
+  background: var(--color-surface-chrome);
+  font-size: var(--font-size-body);
   font-family: inherit;
   cursor: pointer;
-  color: #444;
+  color: var(--color-text-secondary);
 }
 
-.btnCancel:hover { background: #d0cdc8; }
+.btnCancel:hover { background: var(--color-surface-hover); }

@@ -4,17 +4,17 @@
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  background: #f0ede8;
-  color: #222;
+  background: var(--color-surface-app);
+  color: var(--color-text-primary);
 }
 
 /* Assess deliberately borrows the Map sidebar's visual grammar without
-   borrowing its component or fixed width. The full-bleed rules, quiet olive
-   headings, flat rows, and white action buttons make the two control surfaces
+   borrowing its component or fixed width. The full-bleed rules, quiet
+   headings, flat rows, and restrained action buttons make the two surfaces
    feel related while their behavior remains independent. */
 .section {
-  padding: 8px 16px 10px;
-  border-bottom: 1px solid var(--chrome-rule);
+  padding: var(--space-two) var(--space-four) 10px;
+  border-bottom: 1px solid var(--color-border-subtle);
   min-width: 0;
 }
 
@@ -22,11 +22,11 @@
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-two);
   margin: 6px 0;
-  font-size: var(--type-section);
-  font-weight: 700;
-  color: #808040;
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   overflow-wrap: anywhere;
@@ -34,7 +34,7 @@
 
 .sectionCount {
   flex: none;
-  color: #7b746a;
+  color: var(--color-text-muted);
   font-variant-numeric: tabular-nums;
 }
 
@@ -45,7 +45,7 @@
   min-height: 132px;
   padding-right: 12.5%;
   padding-left: 12.5%;
-  background: #fff;
+  background: var(--color-surface-canvas);
 }
 
 .scoreKey {
@@ -54,10 +54,10 @@
   flex-wrap: wrap;
   justify-content: center;
   gap: 6px 18px;
-  padding: 5px 12px;
-  border-bottom: 1px solid var(--chrome-rule);
-  color: #6f6a61;
-  font-size: 10px;
+  padding: 5px var(--space-three);
+  border-bottom: 1px solid var(--color-border-subtle);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-meta);
 }
 
 .scoreKey > span {
@@ -68,8 +68,8 @@
 
 .keySymbol {
   width: 12px;
-  color: #4f4b45;
-  font-size: 11px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-label);
   text-align: center;
 }
 
@@ -91,13 +91,13 @@
 .resizeHandle {
   width: 5px;
   flex: none;
-  border-left: 1px solid var(--control-border);
+  border-left: 1px solid var(--color-border-control);
   background: transparent;
   cursor: col-resize;
 }
 
 .resizeHandle:hover {
-  border-color: #808040;
+  border-color: var(--color-focus);
 }
 
 .controlRail {
@@ -131,46 +131,46 @@
 }
 
 .list:focus-visible {
-  outline: 2px solid rgba(128, 128, 64, 0.5);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 1px;
-  border-radius: 2px;
+  border-radius: var(--radius-subtle);
 }
 
 .listItem {
   display: flex;
   align-items: center;
   gap: 7px;
-  min-height: 24px;
+  min-height: var(--size-list-row);
   margin: 0 -4px;
   padding: 3px 8px;
-  font-size: 12px;
+  font-size: var(--font-size-control);
   cursor: pointer;
 }
 
 .listItem:hover {
-  background: rgba(255, 255, 255, 0.45);
+  background: var(--color-white-wash);
 }
 
 .multiSelected {
-  background: rgba(200, 160, 80, 0.25);
+  background: var(--color-selection-soft);
 }
 
 .selected,
 .selected:hover {
-  background: #c8a050;
-  color: #fff;
+  background: var(--color-selection-strong);
+  color: var(--color-text-inverse);
 }
 
 .indicator {
   width: 12px;
   flex: none;
-  color: #6f6a61;
-  font-size: 11px;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-label);
   text-align: center;
 }
 
 .selected .indicator {
-  color: #fff;
+  color: var(--color-text-inverse);
 }
 
 .rowName {
@@ -187,10 +187,10 @@
   padding: 0;
   border: none;
   background: none;
-  color: #808040;
+  color: var(--color-text-secondary);
   font-family: inherit;
-  font-size: 10px;
-  font-weight: 700;
+  font-size: var(--font-size-meta);
+  font-weight: var(--font-weight-semibold);
   letter-spacing: 0.04em;
   text-transform: uppercase;
   cursor: pointer;
@@ -201,7 +201,7 @@
 }
 
 .linkBtn:focus-visible {
-  outline: 2px solid rgba(128, 128, 64, 0.5);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
@@ -212,27 +212,27 @@
   justify-content: space-between;
   gap: 10px;
   margin: 2px 0 0;
-  color: #7b746a;
-  font-size: 11px;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-label);
 }
 
 .empty {
-  color: #7b746a;
+  color: var(--color-text-muted);
   margin: 2px 0 0;
-  font-size: 11px;
-  line-height: 1.4;
+  font-size: var(--font-size-label);
+  line-height: var(--line-height-interface);
 }
 
 .multiScoreMessage {
   width: 100%;
   margin: 0;
-  color: #7b746a;
-  font-size: 12px;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-control);
   text-align: center;
 }
 
 .listDisabled .listItem {
-  color: #8c877f;
+  color: var(--color-text-disabled);
   cursor: default;
 }
 
@@ -242,9 +242,9 @@
 
 .targetCount {
   margin-left: 6px;
-  color: #7b746a;
-  font-size: 9px;
-  font-weight: 600;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-meta);
+  font-weight: var(--font-weight-semibold);
   letter-spacing: 0.02em;
   white-space: normal;
   overflow-wrap: anywhere;
@@ -267,9 +267,9 @@
 .sliderElementName {
   margin-bottom: 3px;
   overflow: hidden;
-  color: #222;
-  font-size: 14px;
-  font-weight: 700;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-title);
+  font-weight: var(--font-weight-semibold);
   text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -285,9 +285,9 @@
 .poleLabel {
   min-width: 0;
   overflow: hidden;
-  color: #222;
-  font-size: 12px;
-  font-weight: 500;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-control);
+  font-weight: var(--font-weight-medium);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -305,7 +305,7 @@
 }
 
 .sliderTrack:focus-visible {
-  outline: 2px solid rgba(128, 128, 64, 0.55);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 3px;
   border-radius: 2px;
 }
@@ -319,14 +319,14 @@
   right: 0;
   left: 0;
   height: 1px;
-  background: #666;
+  background: var(--color-text-secondary);
 }
 
 .tick {
   position: absolute;
   width: 1px;
   height: 8px;
-  background: #888;
+  background: var(--color-text-muted);
   transform: translateX(-50%);
 }
 
@@ -335,9 +335,9 @@
   z-index: 1;
   width: 16px;
   height: 16px;
-  border: 2px solid #a88010;
+  border: 2px solid var(--color-selection-strong);
   border-radius: 50%;
-  background: #e8c020;
+  background: var(--color-selection-strong);
   cursor: grab;
   transform: translateX(-50%);
 }

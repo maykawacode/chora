@@ -10,8 +10,8 @@
   display: flex;
   flex-direction: column;
   flex: 1;
-  padding: 8px;
-  gap: 6px;
+  padding: var(--space-two);
+  gap: var(--space-two);
 }
 
 /* Rows and their add control share one scroll flow, so the input always occupies
@@ -20,15 +20,15 @@
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-two);
   min-height: 0;
   overflow-y: auto;
 }
 
 .listHeader {
-  font-weight: 600;
-  font-size: var(--type-section);
-  color: #555;
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-label);
+  color: var(--color-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   overflow-wrap: anywhere;
@@ -44,32 +44,32 @@
   justify-content: space-between;
   width: 100%;
   box-sizing: border-box;
-  font-weight: 600;
-  font-size: var(--type-section);
-  color: #555;
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-label);
+  color: var(--color-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   cursor: pointer;
-  border-radius: 3px;
+  border-radius: var(--radius-small);
   padding: 1px 2px;
 }
 
 .listHeaderBtn:hover {
-  background: #e0ddd8;
-  color: #333;
+  background: var(--color-surface-chrome);
+  color: var(--color-text-primary);
 }
 
 /* Sort indicator chip shown at the right of the header button */
 .sortBadge {
-  font-size: 10px;
-  font-weight: 500;
+  font-size: var(--font-size-meta);
+  font-weight: var(--font-weight-medium);
   letter-spacing: 0;
   text-transform: none;
-  color: #888;
-  background: #d8d5d0;
-  border-radius: 3px;
-  padding: 1px 4px;
-  line-height: 1.4;
+  color: var(--color-text-muted);
+  background: var(--color-surface-chrome-strong);
+  border-radius: var(--radius-small);
+  padding: 1px var(--space-one);
+  line-height: var(--line-height-interface);
 }
 
 .list {
@@ -87,12 +87,12 @@
   gap: 6px;
   padding: 3px 6px;
   cursor: pointer;
-  border-radius: 3px;
-  min-height: 22px;
+  border-radius: var(--radius-small);
+  min-height: var(--size-list-row);
 }
 
 .listItem:hover {
-  background: #e0ddd8;
+  background: var(--color-surface-chrome);
 }
 
 /* Two levels of highlight. .multiSelected marks every row in a multi-selection;
@@ -100,23 +100,23 @@
    move from. The anchor is always inside the multi-selection, so both classes
    land on it — the !important is what keeps the anchor distinguishable there. */
 .selected {
-  background: #c8a050 !important;
-  color: #fff;
+  background: var(--color-selection-strong) !important;
+  color: var(--color-text-inverse);
 }
 
 .multiSelected {
-  background: #e6cd9a;
-  color: #3a3226;
+  background: var(--color-selection-soft);
+  color: var(--color-text-primary);
 }
 
 /* .listItem:hover outranks .multiSelected on specificity alone and would grey
    out a highlighted row on the way past. Darken instead of dropping the tint. */
 .listItem.multiSelected:hover {
-  background: #dcbf85;
+  background: var(--color-selection-soft-hover);
 }
 
 .shapeIcon {
-  font-size: 12px;
+  font-size: var(--font-size-control);
   flex-shrink: 0;
   line-height: 1;
   width: 14px;
@@ -137,8 +137,8 @@
   white-space: normal;
   overflow: visible;
   text-overflow: unset;
-  background: rgba(255,255,255,0.3);
-  border-radius: 2px;
+  background: var(--color-white-wash);
+  border-radius: var(--radius-subtle);
   padding: 0 2px;
 }
 
@@ -154,7 +154,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  line-height: 1.35;
+  line-height: var(--line-height-interface);
 }
 
 .dimensionMeasure {
@@ -184,62 +184,65 @@
 .addRow {
   display: flex;
   flex: none;
-  gap: 4px;
+  gap: var(--space-one);
 }
 
 .addInput {
   flex: 1;
   min-width: 0;
-  padding: 4px 6px;
-  border: 1px solid #b0a898;
-  border-radius: 4px;
-  background: #fff;
-  font-size: 12px;
+  min-height: var(--size-control);
+  padding: var(--space-one) 6px;
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-control);
+  background: var(--color-surface-field);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-control);
   font-family: inherit;
 }
 
 .addInput:focus {
   outline: none;
-  border-color: #808040;
-  box-shadow: 0 0 0 2px rgba(128,128,64,0.2);
+  border-color: var(--color-focus);
+  box-shadow: 0 0 0 2px var(--color-focus-ring);
 }
 
 .starterBtn {
-  width: 26px;
-  height: 26px;
+  width: var(--size-control);
+  height: var(--size-control);
   flex-shrink: 0;
-  border: 1px solid #b0a898;
-  border-radius: 4px;
-  background: #e0ddd8;
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-control);
+  background: var(--color-surface-chrome);
   cursor: pointer;
-  font-size: 14px;
+  font-size: var(--font-size-title);
   line-height: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: inherit;
-  color: #555;
+  color: var(--color-text-secondary);
 }
 
 .starterBtn:hover {
-  background: #d0cdc8;
+  background: var(--color-surface-hover);
 }
 
 /* Full-width action under the add row for operations on the whole list. */
 .bulkBtn {
-  padding: 4px 8px;
-  border: 1px solid #b0a898;
-  border-radius: 4px;
-  background: #e0ddd8;
+  min-height: var(--size-control);
+  padding: var(--space-one) var(--space-two);
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-control);
+  background: var(--color-surface-chrome);
   cursor: pointer;
-  font-size: 11px;
+  font-size: var(--font-size-label);
   font-family: inherit;
-  color: #555;
+  color: var(--color-text-secondary);
 }
 
 .bulkBtn:hover {
-  background: #d0cdc8;
-  color: #333;
+  background: var(--color-surface-hover);
+  color: var(--color-text-primary);
 }
 
 /* Drag handle between list and detail panes */
@@ -248,12 +251,12 @@
   flex-shrink: 0;
   cursor: col-resize;
   background: transparent;
-  border-left: 1px solid #b0a898;
+  border-left: 1px solid var(--color-border-control);
   transition: border-color 0.15s;
 }
 
 .resizeHandle:hover {
-  border-color: #808040;
+  border-color: var(--color-focus);
 }
 
 /* Detail pane (right side). */
@@ -262,8 +265,8 @@
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  padding: 28px 8px 8px;
-  gap: 8px;
+  padding: 28px var(--space-two) var(--space-two);
+  gap: var(--space-two);
   overflow-x: hidden;
   overflow-y: auto;
 }
@@ -295,8 +298,8 @@
    ("Weight"), and the same number does the job on the Collections and
    Dimensions tabs, whose labels are all shorter still ("Pole A", "Pole B"). */
 .label {
-  font-size: var(--type-label);
-  color: #555;
+  font-size: var(--font-size-control);
+  color: var(--color-text-secondary);
   width: 48px;
   max-width: 100%;
   min-width: 0;
@@ -316,22 +319,22 @@
 .shapeBtn {
   width: 22px;
   height: 22px;
-  border: 1px solid #b0a898;
-  border-radius: 3px;
-  background: #e8e5e0;
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-small);
+  background: var(--color-surface-hover);
   cursor: pointer;
-  font-size: 13px;
+  font-size: var(--font-size-body);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #444;
+  color: var(--color-text-secondary);
   padding: 0;
   font-family: inherit;
   line-height: 1;
 }
 
 .shapeBtn:hover:not(:disabled) {
-  background: #d8d5d0;
+  background: var(--color-surface-chrome-strong);
 }
 
 .shapeBtn:disabled {
@@ -340,9 +343,9 @@
 }
 
 .shapeBtnActive {
-  background: #808040 !important;
-  border-color: #808040;
-  color: #fff;
+  background: var(--color-selection-strong) !important;
+  border-color: var(--color-selection-strong);
+  color: var(--color-text-inverse);
 }
 
 /* Collection color marker in the Collections tab list. */
@@ -359,11 +362,11 @@
   max-width: 100%;
   min-width: 0;
   height: 22px;
-  border: 1px solid #b0a898;
-  border-radius: 4px;
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-control);
   padding: 1px 2px;
   cursor: pointer;
-  background: #fff;
+  background: var(--color-surface-field);
 }
 
 .colorInput:disabled {
@@ -375,49 +378,53 @@
   flex: 1;
   max-width: 100%;
   min-width: 0;
+  min-height: var(--size-control);
   padding: 3px 5px;
-  border: 1px solid #b0a898;
-  border-radius: 4px;
-  background: #fff;
-  font-size: 12px;
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-control);
+  background: var(--color-surface-field);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-control);
   font-family: inherit;
 }
 
 .poleInput:focus {
   outline: none;
-  border-color: #808040;
+  border-color: var(--color-focus);
 }
 
 .poleInput:disabled {
-  background: #e8e5e0;
-  color: #999;
+  background: var(--color-surface-disabled);
+  color: var(--color-text-disabled);
 }
 
 .weightInput {
   width: 56px;
   max-width: 100%;
   min-width: 0;
+  min-height: var(--size-control);
   padding: 3px 5px;
-  border: 1px solid #b0a898;
-  border-radius: 4px;
-  background: #fff;
-  font-size: 12px;
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-control);
+  background: var(--color-surface-field);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-control);
   font-family: inherit;
 }
 
 .weightInput:focus {
   outline: none;
-  border-color: #808040;
+  border-color: var(--color-focus);
 }
 
 .weightInput:disabled {
-  background: #e8e5e0;
-  color: #999;
+  background: var(--color-surface-disabled);
+  color: var(--color-text-disabled);
 }
 
 .range {
-  color: #888;
-  font-size: 11px;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-label);
   font-variant-numeric: tabular-nums;
 }
 
@@ -428,21 +435,21 @@
   min-width: 0;
   height: 160px;
   resize: none;
-  border: 1px solid #b0a898;
-  border-radius: 4px;
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-control);
   padding: 5px;
-  font-size: 12px;
+  font-size: var(--font-size-control);
   font-family: inherit;
-  background: #fff;
-  color: #333;
+  background: var(--color-surface-field);
+  color: var(--color-text-primary);
 }
 
 .description:focus {
   outline: none;
-  border-color: #808040;
+  border-color: var(--color-focus);
 }
 
 .description:disabled {
-  background: #e8e5e0;
-  color: #999;
+  background: var(--color-surface-disabled);
+  color: var(--color-text-disabled);
 }

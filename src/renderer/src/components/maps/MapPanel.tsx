@@ -16,6 +16,7 @@ import { BulkEditModal } from './BulkEditModal'
 import { MapSidebar } from './MapSidebar'
 import { MapWindowChrome } from './MapWindowChrome'
 import { ModalShell } from '../ModalShell'
+import { uiTheme } from '../../design/theme'
 import styles from './MapPanel.module.css'
 import { cartesianElements } from './collections'
 import {
@@ -256,7 +257,7 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
     if (lassoRef.current) {
       const { x1, y1, x2, y2 } = lassoRef.current
       ctx.save()
-      ctx.strokeStyle = '#4488ff'
+      ctx.strokeStyle = uiTheme.map.drag
       ctx.lineWidth = 1
       ctx.setLineDash([4, 3])
       ctx.strokeRect(x1, y1, x2 - x1, y2 - y1)

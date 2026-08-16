@@ -1,7 +1,7 @@
 .backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.45);
+  background: var(--color-backdrop-strong);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -9,11 +9,11 @@
 }
 
 .card {
-  background: #f0ede8;
-  border: 1px solid #b0a898;
-  border-radius: 10px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  padding: 36px 48px 32px;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-welcome);
+  box-shadow: var(--shadow-dialog-strong);
+  padding: 36px 48px var(--space-six);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -21,55 +21,57 @@
 }
 
 .title {
-  font-size: 20px;
-  font-weight: 700;
-  color: #222;
+  font-size: var(--font-size-display);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
   margin: 0 0 6px;
   letter-spacing: -0.02em;
 }
 
 .subtitle {
-  font-size: 12px;
-  color: #888;
+  font-size: var(--font-size-control);
+  color: var(--color-text-muted);
   margin: 0 0 28px;
 }
 
 .buttons {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-three);
   width: 100%;
 }
 
 .btnPrimary {
   padding: 8px 0;
-  background: #808040;
-  color: #fff;
+  min-height: var(--size-control);
+  background: var(--color-selection-strong);
+  color: var(--color-text-inverse);
   border: none;
-  border-radius: 5px;
-  font-size: 13px;
+  border-radius: var(--radius-control);
+  font-size: var(--font-size-body);
   font-family: inherit;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   cursor: pointer;
   width: 100%;
 }
 
 .btnPrimary:hover {
-  background: #707038;
+  background: var(--color-selection-hover);
 }
 
 .btnSecondary {
   padding: 8px 0;
-  background: #d8d5d0;
-  color: #333;
-  border: 1px solid #b0a898;
-  border-radius: 5px;
-  font-size: 13px;
+  min-height: var(--size-control);
+  background: var(--color-surface-chrome-strong);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-control);
+  font-size: var(--font-size-body);
   font-family: inherit;
   cursor: pointer;
   width: 100%;
 }
 
 .btnSecondary:hover {
-  background: #c8c5c0;
+  background: var(--color-surface-hover);
 }

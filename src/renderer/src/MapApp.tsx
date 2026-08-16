@@ -22,6 +22,7 @@ import { deserializeSession } from './lib/parser'
 import { MapPanel } from './components/maps/MapPanel'
 import type { CartesianMapConfig, SemanticMapConfig } from './lib/types'
 import { decodeMapStateEnvelope, mergePreferences } from '../../shared/contracts'
+import { uiTheme } from './design/theme'
 
 export function MapApp(): React.JSX.Element {
   const [mapId, setMapId]   = useState<string | null>(null)
@@ -111,7 +112,8 @@ export function MapApp(): React.JSX.Element {
   if (!mapId) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    height: '100vh', color: '#888', fontFamily: 'system-ui', fontSize: 13 }}>
+                    height: '100vh', color: uiTheme.color.textMuted,
+                    fontFamily: uiTheme.fontFamily.ui, fontSize: uiTheme.fontSize.body }}>
         Loading…
       </div>
     )

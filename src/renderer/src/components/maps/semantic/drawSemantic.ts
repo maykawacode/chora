@@ -16,8 +16,9 @@ import type { SemanticMapConfig, Element, Collection, Dimension, ScoreMap } from
 import { labelFont, LABEL_SIZE_DEFAULT } from '../cartesian/drawCartesian'
 import { resolveElementColor } from '../color'
 import { shownCollections } from '../collections'
-import { drawMark, markShapeIndex } from '../shape'
+import { drawMark, drawSelectionRing, markShapeIndex } from '../shape'
 import { normalizeInRange, numericRange, type NumericRange } from '../../../lib/numericRange'
+import { uiTheme } from '../../../design/theme'
 
 // Horizontal margin — space reserved on each side for pole labels
 export const SEM_MARGIN_H = 96
@@ -118,12 +119,12 @@ export function drawSemantic(
 
   ctx.clearRect(0, 0, W, H)
 
-  ctx.fillStyle = '#ffffff'
+  ctx.fillStyle = uiTheme.map.background
   ctx.fillRect(0, 0, W, H)
 
   if (dims.length === 0) {
     // Placeholder when no dimensions are selected
-    ctx.fillStyle = '#999'
+    ctx.fillStyle = uiTheme.map.labelMuted
     ctx.font = '13px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif'
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
@@ -149,7 +150,7 @@ export function drawSemantic(
     const y   = axisYs[i]
 
     // Axis line
-    ctx.strokeStyle = '#aaa'
+    ctx.strokeStyle = uiTheme.map.grid
     ctx.lineWidth = 1
     ctx.beginPath()
     ctx.moveTo(axisLeft, y)
@@ -167,7 +168,7 @@ export function drawSemantic(
     const leftLabel  = isFlipped ? dim.poleB : dim.poleA
     const rightLabel = isFlipped ? dim.poleA : dim.poleB
 
-    ctx.fillStyle = '#333'
+    ctx.fillStyle = uiTheme.map.label
     ctx.textAlign = 'right'; ctx.textBaseline = 'middle'
     ctx.fillText(leftLabel,  axisLeft  - LABEL_GAP, y)
     ctx.textAlign = 'left'
@@ -175,7 +176,7 @@ export function drawSemantic(
   }
 
   if (elements.length === 0) {
-    ctx.fillStyle = '#999'
+    ctx.fillStyle = uiTheme.map.labelMuted
     ctx.font = '13px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif'
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
@@ -189,7 +190,7 @@ export function drawSemantic(
   // when a selection caused it: a session with no elements at all draws empty
   // for a reason the user is not in the middle of doing something about.
   if (els.length === 0 && config.shownCollectionIds.length > 0) {
-    ctx.fillStyle = '#999'
+    ctx.fillStyle = uiTheme.map.labelMuted
     ctx.font = '13px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif'
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
@@ -204,7 +205,7 @@ export function drawSemantic(
     dims.map(dimension => dimension.id),
     scores
   )) {
-    ctx.fillStyle = '#999'
+    ctx.fillStyle = uiTheme.map.labelMuted
     ctx.font = '13px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif'
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
@@ -275,15 +276,12 @@ export function drawSemantic(
         drawMark(ctx, shapeIndex, pt.x, pt.y, dotR)
         ctx.fillStyle = color
         ctx.fill()
-        ctx.strokeStyle = '#ffffff'
+        ctx.strokeStyle = uiTheme.map.outline
         ctx.lineWidth = 1.5
         ctx.stroke()
 
         if (isSelected) {
-          drawMark(ctx, shapeIndex, pt.x, pt.y, dotR + 3)
-          ctx.strokeStyle = '#e8c040'
-          ctx.lineWidth = 2
-          ctx.stroke()
+          drawSelectionRing(ctx, shapeIndex, pt.x, pt.y, dotR)
         }
       }
     }
@@ -308,7 +306,7 @@ export function drawSemantic(
       ctx.save()
       ctx.translate(top.x, top.y - dotR - 3)
       ctx.rotate(-Math.PI / 4)
-      ctx.fillStyle = '#222'
+      ctx.fillStyle = uiTheme.map.label
       ctx.textAlign = 'left'
       ctx.textBaseline = 'bottom'
       ctx.fillText(label, 0, 0)

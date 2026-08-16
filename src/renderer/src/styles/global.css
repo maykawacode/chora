@@ -1,22 +1,25 @@
-/* Chrome tokens — the non-canvas control sidebar and the rules within it.
-   The map title bar follows the white field except above an open sidebar,
-   where the gray chrome continues to the top edge. Currently consumed by the
-   map window chrome (MapPanel and MapSidebar); other stylesheets still carry
-   literal hexes.
+@font-face {
+  font-family: 'IBM Plex Sans';
+  src: url('../assets/fonts/IBMPlexSans-Regular.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
 
-   One rule colour serves the whole chrome — the edge against the canvas is no
-   heavier than a divider between sections, so the panel reads as a single
-   surface rather than a set of boxed-in regions. Controls sitting ON that
-   surface are a separate concept and keep their own, darker border. */
-:root {
-  --chrome-bg: #e0ddd8;        /* control sidebar surface */
-  --chrome-rule: #d0ccc4;      /* every rule in the chrome: outer edges + section dividers */
-  --control-border: #b0a898;   /* buttons and inputs sitting on the chrome */
-  --type-title: 13px;
-  --type-tab: 12px;
-  --type-section: 11px;
-  --type-label: 12px;
-  --type-body: 13px;
+@font-face {
+  font-family: 'IBM Plex Sans';
+  src: url('../assets/fonts/IBMPlexSans-Medium.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'IBM Plex Sans';
+  src: url('../assets/fonts/IBMPlexSans-SemiBold.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
 }
 
 *, *::before, *::after {
@@ -31,23 +34,24 @@ html, body, #root {
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
-  font-size: 13px;
-  color: #222;
-  background: #d8d5d0;
+  font-family: var(--font-family-ui);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--line-height-interface);
+  color: var(--color-text-primary);
+  background: var(--color-surface-chrome-strong);
   -webkit-font-smoothing: antialiased;
 }
 
-button {
-  font-family: inherit;
-}
-
-input, textarea {
+button,
+input,
+select,
+textarea {
   font-family: inherit;
 }
 
 :focus-visible {
-  outline: 2px solid #808040;
+  outline: 2px solid var(--color-focus);
   outline-offset: 1px;
 }
 
@@ -63,9 +67,9 @@ input, textarea {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px;
+  padding: var(--space-four);
   border-radius: inherit;
-  background: rgba(25, 24, 22, 0.46);
+  background: var(--color-backdrop-confirmation);
 }
 
 .confirmationOverlayFixed {
@@ -84,20 +88,20 @@ input, textarea {
   justify-content: center;
   padding: 0;
   overflow: hidden;
-  border: 1px solid #aaa296;
+  border: 1px solid var(--color-border-strong);
   border-radius: 50%;
-  background: #f5f2ed;
+  background: var(--color-surface-raised);
   box-shadow:
-    0 14px 38px rgba(0, 0, 0, 0.28),
-    inset 0 0 0 5px rgba(255, 255, 255, 0.28);
-  color: #333;
-  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+    var(--shadow-confirmation),
+    inset 0 0 0 5px var(--color-confirmation-inset);
+  color: var(--color-text-primary);
+  font-family: var(--font-family-ui);
   text-align: center;
 }
 
 .modalZoomEnter {
   transform-origin: center;
-  animation: modalZoomEnter 180ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: modalZoomEnter var(--motion-duration-enter) var(--motion-ease-standard) both;
 }
 
 @keyframes modalZoomEnter {
@@ -126,17 +130,17 @@ input, textarea {
 
 .confirmationTitle {
   margin: 0;
-  font-size: 15px;
-  font-weight: 600;
-  line-height: 1.28;
-  color: #292824;
+  font-size: var(--font-size-title);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-compact);
+  color: var(--color-text-primary);
 }
 
 .confirmationDetail {
-  margin: 7px 0 0;
-  font-size: 12px;
-  line-height: 1.35;
-  color: #6d6962;
+  margin: var(--space-two) 0 0;
+  font-size: var(--font-size-control);
+  line-height: var(--line-height-interface);
+  color: var(--color-text-secondary);
 }
 
 .confirmationAction {
@@ -149,13 +153,13 @@ input, textarea {
   transform: translateY(-50%);
   border: 0;
   border-radius: 50%;
-  background: #367a4a;
-  color: #fff;
+  background: var(--color-confirmation);
+  color: var(--color-text-inverse);
   cursor: pointer;
 }
 
 .confirmationAction:hover {
-  background: #2d683f;
+  background: var(--color-confirmation-hover);
 }
 
 .confirmationActionLabelVisuallyHidden {
@@ -195,13 +199,13 @@ input, textarea {
   padding: 0;
   border: 0;
   border-radius: 50%;
-  background: #367a4a;
-  color: #fff;
+  background: var(--color-confirmation);
+  color: var(--color-text-inverse);
   cursor: pointer;
 }
 
 .forwardActionButton:hover:not(:disabled) {
-  background: #2d683f;
+  background: var(--color-confirmation-hover);
 }
 
 .forwardActionButton:disabled {

@@ -15,6 +15,7 @@
 // wraps naturally. ELEMENT_SHAPES in lib/types.ts fixes that order.
 
 import type { Element, MarkMode } from '../../lib/types'
+import { uiTheme } from '../../design/theme'
 
 // Element.shape → the index drawMark expects.
 export const SHAPE_INDEX: Record<string, number> = { circle: 0, square: 1, triangle: 2, diamond: 3 }
@@ -83,4 +84,23 @@ export function drawMark(
       ctx.closePath()
       break
   }
+}
+
+/** White halo plus graphite outline shared by both map renderers. */
+export function drawSelectionRing(
+  ctx: CanvasRenderingContext2D,
+  shapeIndex: number,
+  cx: number,
+  cy: number,
+  r: number
+): void {
+  drawMark(ctx, shapeIndex, cx, cy, r + 3)
+  ctx.strokeStyle = uiTheme.map.outline
+  ctx.lineWidth = 4
+  ctx.stroke()
+
+  drawMark(ctx, shapeIndex, cx, cy, r + 3)
+  ctx.strokeStyle = uiTheme.map.selection
+  ctx.lineWidth = 2
+  ctx.stroke()
 }
