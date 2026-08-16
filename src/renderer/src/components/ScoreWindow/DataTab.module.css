@@ -122,6 +122,25 @@
   text-align: center;
 }
 
+.shapeIcon[data-shape='triangle'] {
+  font-size: calc(var(--font-size-control) + 1.2px);
+}
+
+.shapeBtn[data-shape='triangle'] {
+  font-size: calc(var(--font-size-body) + 1.3px);
+}
+
+.shapeGlyph {
+  display: inline-block;
+  line-height: 1;
+}
+
+.shapeIcon[data-shape='diamond'] .shapeGlyph,
+.shapeBtn[data-shape='diamond'] .shapeGlyph {
+  font-size: calc(var(--font-size-title) + 3.15px);
+  transform: translateY(-1px);
+}
+
 .name {
   flex: 1;
   outline: none;

@@ -217,7 +217,9 @@ export function ElementsTab(): React.JSX.Element {
                     aria-selected={inGroup || el.id === selectedId}
                     onClick={e => handleRowClick(e, el.id)}
                   >
-                    <span className={styles.shapeIcon} style={{ color: el.color }}>{ELEMENT_SHAPE_SYMBOLS[el.shape]}</span>
+                    <span className={styles.shapeIcon} data-shape={el.shape} style={{ color: el.color }}>
+                      <span className={styles.shapeGlyph}>{ELEMENT_SHAPE_SYMBOLS[el.shape]}</span>
+                    </span>
                     <span className={styles.name}>{el.name}</span>
                   </li>
                 )
@@ -280,11 +282,12 @@ export function ElementsTab(): React.JSX.Element {
               <button
                 key={shape}
                 className={`${styles.shapeBtn} ${selected?.shape === shape ? styles.shapeBtnActive : ''}`}
+                data-shape={shape}
                 disabled={!selected}
                 onClick={() => selected && updateElement(selected.id, { shape })}
                 title={shape.charAt(0).toUpperCase() + shape.slice(1)}
               >
-                {ELEMENT_SHAPE_SYMBOLS[shape]}
+                <span className={styles.shapeGlyph}>{ELEMENT_SHAPE_SYMBOLS[shape]}</span>
               </button>
             ))}
           </div>
