@@ -282,3 +282,62 @@ describe('Colors are constrained to hex at the file boundary', () => {
     expect(state.collections[0].color).toBe('#4080c0')
   })
 })
+
+// ── Scores from an untrusted document ─────────────────────────────────────────
+//
+// Every other field here is type-checked; the score map used to be cast and
+// trusted. The consequence was a confusing one: a bad value drew as a NaN
+// coordinate and then threw at export, where `.toFixed()` meets a string — so a
+// malformed *import* presented as a broken *export*.
+
+describe('Scores are constrained to finite numbers', () => {
+  const withScores = (scores: unknown): string => JSON.stringify({
+    version: '5.0',
+    elements: [{ id: 'e1', name: 'One', color: '#123456' }],
+    collections: [],
+    dimensions: [{ id: 'd1', label: 'A–B' }],
+    scores,
+    maps: []
+  })
+
+  it('drops values that are not numbers', () => {
+    const state = deserializeSession(withScores({
+      e1: { d1: '0.5', d2: null, d3: { valueOf: 1 }, d4: [0.5], d5: true }
+    }))
+    expect(state.scores.e1).toEqual({})
+  })
+
+  it('drops NaN and infinities', () => {
+    // JSON has no literal for these, so they arrive as the strings a
+    // hand-editor or a sloppy generator would leave behind.
+    const state = deserializeSession(withScores({ e1: { d1: 'NaN', d2: 'Infinity' } }))
+    expect(state.scores.e1).toEqual({})
+  })
+
+  it('keeps genuine numbers, including ones outside 0–1', () => {
+    // Not clamped: a number at least means something, and rewriting it would
+    // silently alter a real analysis.
+    const state = deserializeSession(withScores({ e1: { d1: 0.25, d2: 0, d3: 1, d4: 1.5 } }))
+    expect(state.scores.e1).toEqual({ d1: 0.25, d2: 0, d3: 1, d4: 1.5 })
+  })
+
+  it('survives a score map that is not an object', () => {
+    for (const bad of ['nope', 42, null, true]) {
+      expect(deserializeSession(withScores(bad)).scores).toEqual({})
+    }
+  })
+
+  it('survives a score row that is not an object', () => {
+    const state = deserializeSession(withScores({ e1: 'not a row', e2: 7 }))
+    expect(state.scores).toEqual({})
+  })
+
+  it('does not let a score key reach the prototype', () => {
+    const state = deserializeSession(withScores(
+      JSON.parse('{"__proto__":{"d1":0.5},"e1":{"__proto__":{"x":1},"d1":0.5}}')
+    ))
+    expect(state.scores.e1).toEqual({ d1: 0.5 })
+    expect(Object.getPrototypeOf(state.scores)).toBe(Object.prototype)
+    expect(({} as Record<string, unknown>).d1).toBeUndefined()
+  })
+})

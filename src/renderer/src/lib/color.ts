@@ -25,24 +25,18 @@ import type { Element, Collection } from './types'
 // `url(...)`: a color-shaped string is a place a document can hide a request to
 // a remote server, which would fire the moment a swatch is drawn. Colors are
 // therefore validated on the way in, not on the way out to the screen.
-
-const HEX_COLOR = /^#[0-9a-fA-F]{6}$/
-
-/** True only for a literal '#rrggbb' string. */
-export function isHexColor(value: unknown): value is string {
-  return typeof value === 'string' && HEX_COLOR.test(value)
-}
-
-/**
- * A color from an untrusted document, or `fallback` if it is anything else.
- *
- * Deliberately silent: a file carrying a bad color is far more likely to be
- * hand-edited or written by an older tool than hostile, and either way the
- * sensible repair is the same one the importer has always made.
- */
-export function readHexColor(value: unknown, fallback: string): string {
-  return isHexColor(value) ? value : fallback
-}
+//
+// The definition lives in shared/contracts.ts because the main process needs the
+// same rule when it merges preferences, before any renderer exists. It is
+// imported rather than re-exported straight through so the arithmetic below can
+// use it too, and re-exported so document code reaches it with the other color
+// helpers.
+//
+// Applying it is deliberately silent: a file carrying a bad color is far more
+// likely to be hand-edited or written by an older tool than hostile, and either
+// way the sensible repair is the same one the importer has always made.
+import { isHexColor, readHexColor } from '../../../shared/contracts'
+export { isHexColor, readHexColor }
 
 // ── Collection palette ────────────────────────────────────────────────────────
 

@@ -46,16 +46,91 @@ type StoredPreferences = Partial<Preferences> & {
   confirmDeleteElement?: boolean
 }
 
+// ── The one accepted color format ─────────────────────────────────────────────
+//
+// '#rrggbb' and nothing else, for documents and for preferences alike. It lives
+// here rather than beside the renderer's color math because both processes need
+// it: the main process merges preferences before any window exists, and the
+// renderer validates colors read out of a session file.
+//
+// A color is not just decoration — it is written into a CSS background, and CSS
+// backgrounds accept `url(...)`, so a color-shaped string is a place a request
+// to a remote server can hide. See lib/color.ts, which re-exports these.
+
+const HEX_COLOR = /^#[0-9a-fA-F]{6}$/
+
+/** True only for a literal '#rrggbb' string. */
+export function isHexColor(value: unknown): value is string {
+  return typeof value === 'string' && HEX_COLOR.test(value)
+}
+
+/** A color from an untrusted source, or `fallback` if it is anything else. */
+export function readHexColor(value: unknown, fallback: string): string {
+  return isHexColor(value) ? value : fallback
+}
+
+// ── Reading stored preferences ────────────────────────────────────────────────
+
+const bool = (value: unknown, fallback: boolean): boolean =>
+  typeof value === 'boolean' ? value : fallback
+
+const finite = (value: unknown, fallback: number): number =>
+  typeof value === 'number' && Number.isFinite(value) ? value : fallback
+
+const finiteOrNull = (value: unknown, fallback: number | null): number | null => {
+  if (value === null) return null
+  return typeof value === 'number' && Number.isFinite(value) ? value : fallback
+}
+
+const oneOf = <T extends string>(value: unknown, allowed: readonly T[], fallback: T): T =>
+  allowed.includes(value as T) ? value as T : fallback
+
+const MARK_MODES: readonly MarkMode[] = ['none', 'circle', 'element']
+const SHAPES: readonly ElementShape[] = ['circle', 'square', 'triangle', 'diamond']
+
+/**
+ * Builds a complete Preferences from whatever was on disk.
+ *
+ * Every field is checked against its own type rather than spread over the
+ * defaults. preferences.json is an ordinary user-writable file that a partial
+ * write, a hand edit, or an older version can leave malformed, and the values
+ * are used without further checking: window geometry goes straight to
+ * setBounds, the colors reach CSS, and lastFilePath is handed to readFile at
+ * startup. A wrong type used to travel all the way to the point of use.
+ */
 export function mergePreferences(raw: StoredPreferences = {}): Preferences {
-  const { confirmDeleteElement, ...current } = raw
+  const stored = (raw ?? {}) as Record<string, unknown>
+  const d = DEFAULT_PREFERENCES
+
   return {
-    ...DEFAULT_PREFERENCES,
-    ...current,
-    confirmDeleteData: typeof current.confirmDeleteData === 'boolean'
-      ? current.confirmDeleteData
-      : typeof confirmDeleteElement === 'boolean'
-        ? confirmDeleteElement
-        : DEFAULT_PREFERENCES.confirmDeleteData
+    rememberWindowPositions: bool(stored.rememberWindowPositions, d.rememberWindowPositions),
+    defaultMarks:            oneOf(stored.defaultMarks, MARK_MODES, d.defaultMarks),
+    defaultShowLabels:       bool(stored.defaultShowLabels, d.defaultShowLabels),
+    defaultElementColor:     readHexColor(stored.defaultElementColor, d.defaultElementColor),
+    defaultElementShape:     oneOf(stored.defaultElementShape, SHAPES, d.defaultElementShape),
+    reopenLastFile:          bool(stored.reopenLastFile, d.reopenLastFile),
+
+    // Renamed when deletion confirmation stopped being element-specific; a file
+    // written before that still carries the old name and is honored.
+    confirmDeleteData: bool(
+      stored.confirmDeleteData,
+      bool(stored.confirmDeleteElement, d.confirmDeleteData)
+    ),
+
+    // Only a string is a usable path. Anything else means "no file to reopen".
+    lastFilePath: typeof stored.lastFilePath === 'string' ? stored.lastFilePath : null,
+
+    elementLabelSize:   finite(stored.elementLabelSize, d.elementLabelSize),
+    dimensionLabelSize: finite(stored.dimensionLabelSize, d.dimensionLabelSize),
+    dotDefaultSize:     finite(stored.dotDefaultSize, d.dotDefaultSize),
+    dimColorLow:        readHexColor(stored.dimColorLow, d.dimColorLow),
+    dimColorHigh:       readHexColor(stored.dimColorHigh, d.dimColorHigh),
+
+    // Null is meaningful for x/y: it means "never positioned, so center".
+    mainWindowX:      finiteOrNull(stored.mainWindowX, d.mainWindowX),
+    mainWindowY:      finiteOrNull(stored.mainWindowY, d.mainWindowY),
+    mainWindowWidth:  finite(stored.mainWindowWidth, d.mainWindowWidth),
+    mainWindowHeight: finite(stored.mainWindowHeight, d.mainWindowHeight)
   }
 }
 

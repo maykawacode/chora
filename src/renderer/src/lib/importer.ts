@@ -30,7 +30,7 @@
 import type { Element, Dimension, ScoreMap, SessionMeta, Collection } from './types'
 import { defaultCategories, defaultSessionMeta, parsePoles } from './types'
 import { MEMBERSHIP_CUTOFF } from './parser'
-import { COLLECTION_SEPARATOR } from './exporter'
+import { COLLECTION_SEPARATOR, isFormulaEscaped } from './exporter'
 import { openWeight } from './numericRange'
 import { DEFAULT_COLLECTION_COLOR, DEFAULT_ELEMENT_COLOR, readHexColor } from './color'
 
@@ -40,9 +40,23 @@ function stripQuotes(s: string): string {
   return s
 }
 
-// Trim whitespace then strip surrounding quotes from a raw cell value.
+/**
+ * Removes the apostrophe the exporter adds to a cell a spreadsheet would
+ * otherwise evaluate. The exact inverse of escapeFormula in exporter.ts — see
+ * the note there for why only some leading apostrophes are removed.
+ *
+ * Applied to text read from any spreadsheet, not only ones Chora wrote, which
+ * is why it is conservative: a hand-typed name beginning with an apostrophe is
+ * left alone unless what follows is something that would have been escaped.
+ */
+function unescapeFormula(s: string): string {
+  return isFormulaEscaped(s) ? s.slice(1) : s
+}
+
+// Trim whitespace, strip surrounding quotes, then undo formula escaping.
+// The reverse of the exporter's order, so a round-trip is lossless.
 function tc(raw: string | undefined): string {
-  return stripQuotes((raw ?? '').trim())
+  return unescapeFormula(stripQuotes((raw ?? '').trim()))
 }
 
 export interface ImportResult {
@@ -57,10 +71,36 @@ export interface ImportResult {
   warnings:    string[]
 }
 
+// A qualitative analysis is a human-scale thing: tens or hundreds of elements,
+// a handful of dimensions. These ceilings are far above any real session and
+// exist only so that a corrupt, generated, or hostile file fails immediately
+// with something a person can read, instead of hanging the window or dying
+// somewhere further in with a stack overflow.
+const MAX_IMPORT_CHARACTERS = 8_000_000
+const MAX_IMPORT_ROWS = 100_000
+
 export function parseSpreadsheet(text: string): ImportResult {
+  if (text.length > MAX_IMPORT_CHARACTERS) {
+    throw new Error(
+      `This file is too large to import (${Math.round(text.length / 1_000_000)} MB). ` +
+      `The limit is ${MAX_IMPORT_CHARACTERS / 1_000_000} MB.`
+    )
+  }
   return text.trimStart().startsWith('##')
     ? parseFullSpreadsheet(text)
     : parseSimpleSpreadsheet(text)
+}
+
+/** Splits into lines, refusing a file with an implausible number of them. */
+function splitLines(text: string): string[] {
+  const lines = text.split(/\r?\n/)
+  if (lines.length > MAX_IMPORT_ROWS) {
+    throw new Error(
+      `This file has too many rows to import (${lines.length}). ` +
+      `The limit is ${MAX_IMPORT_ROWS}.`
+    )
+  }
+  return lines
 }
 
 // ── Full format parser ────────────────────────────────────────────────────────
@@ -150,7 +190,9 @@ function parseFullSpreadsheet(text: string): ImportResult {
                       ? rawShape as Element['shape'] : 'circle',
         collectionIds: rawColls
           .split(COLLECTION_SEPARATOR)
-          .map(n => n.trim())
+          // Each name carries its own escaping: tc() above only unescaped the
+          // start of the joined cell, not the names after the separator.
+          .map(n => unescapeFormula(n.trim()))
           .filter(n => n !== '')
           .map(n => ensureCollection(n).id)
       })
@@ -212,7 +254,9 @@ function parseFullSpreadsheet(text: string): ImportResult {
   const declaredMembership = [...elementsByName.values()].some(el => el.collectionIds.length > 0)
 
   if (legacyRows.length >= 2 && !declaredMembership) {
-    const colHeaders = legacyRows[0].slice(1).map(h => h.trim())
+    // Unescaped like any other text: when there is no ##TYPES section these
+    // headers name the collections rather than merely labelling the columns.
+    const colHeaders = legacyRows[0].slice(1).map(h => unescapeFormula(h.trim()))
     // With a ##TYPES section present, columns are matched to it by position and
     // the headers are read as human-readable labels only; without one, the
     // header names the collection.
@@ -251,7 +295,9 @@ function parseFullSpreadsheet(text: string): ImportResult {
   // When ##DIMENSIONS was absent, fall back to name-based find-or-create.
   const dimScoreRows = sections['DIMENSION_SCORES'] ?? []
   if (dimScoreRows.length >= 2) {
-    const colHeaders = dimScoreRows[0].slice(1).map(h => h.trim())
+    // Same reason as above: without a ##DIMENSIONS section these headers are
+    // the dimension names, not just labels for columns matched by position.
+    const colHeaders = dimScoreRows[0].slice(1).map(h => unescapeFormula(h.trim()))
     const dimList = [...dimensionsByName.values()]
     const usePositional = sections['DIMENSIONS'] !== undefined
 
@@ -305,7 +351,7 @@ function parseFullSpreadsheet(text: string): ImportResult {
 
 function parseSimpleSpreadsheet(text: string): ImportResult {
   const sep  = text.includes('\t') ? '\t' : ','
-  const rows = text.split(/\r?\n/).map(l => l.split(sep))
+  const rows = splitLines(text).map(l => l.split(sep))
 
   const headerIdx = rows.findIndex(r => r.filter(c => c.trim()).length > 1)
   if (headerIdx === -1) throw new Error('No header row found. The first row should contain dimension names.')
@@ -356,9 +402,20 @@ function parseSimpleSpreadsheet(text: string): ImportResult {
     throw new Error('No elements found. Rows after the header should start with an element name.')
   }
 
-  const allValues = rawScores.flat().filter((v): v is number => v !== null)
-  const maxVal    = allValues.length > 0 ? Math.max(...allValues) : 1
-  const minVal    = allValues.length > 0 ? Math.min(...allValues) : 0
+  // Folded rather than spread. `Math.max(...values)` passes every score as a
+  // separate argument, which overflows the call stack somewhere around a
+  // hundred thousand of them — a crash that scales with the user's own data,
+  // not with anything hostile.
+  let maxVal = -Infinity
+  let minVal = Infinity
+  for (const row of rawScores) {
+    for (const value of row) {
+      if (value === null) continue
+      if (value > maxVal) maxVal = value
+      if (value < minVal) minVal = value
+    }
+  }
+  if (!Number.isFinite(maxVal)) { maxVal = 1; minVal = 0 }
 
   let scaleNote: string
   let normalizedScores: (number | null)[][]
@@ -406,7 +463,7 @@ function splitSections(text: string): Record<string, string[][]> {
   let currentName: string | null = null
   let currentRows: string[][] = []
 
-  for (const line of text.split(/\r?\n/)) {
+  for (const line of splitLines(text)) {
     if (line.startsWith('##')) {
       if (currentName !== null) result[currentName] = currentRows
       currentName = line.slice(2).trim()

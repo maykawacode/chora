@@ -329,7 +329,7 @@ export function deserializeSession(json: string): AppState {
   // Pre-5.0 files carry membership as scores; 5.0 files already have it on the
   // elements, where re-running the lift would find no collection keys to move
   // and hand back empty memberships.
-  const rawScores = (raw.scores as AppState['scores']) ?? {}
+  const rawScores = readScores(raw.scores)
   const migrated = version === FORMAT_VERSION
     ? { elements, scores: rawScores }
     : liftMemberships(elements, collections, rawScores)
@@ -364,6 +364,41 @@ export function deserializeBundledExample(json: string): AppState {
 }
 
 // ── Private helpers ───────────────────────────────────────────────────────────
+
+/**
+ * Reads the score map, keeping only finite numbers.
+ *
+ * Every other field in this file is type-checked; this one used to be cast and
+ * trusted, which let a hand-edited or malformed document put strings and objects
+ * into the store. The symptom was misleading: drawing quietly produced NaN
+ * coordinates, and the failure surfaced later at export, where `.toFixed()`
+ * throws on a non-number — so a bad *import* looked like a broken *export*.
+ *
+ * Out-of-range numbers are kept as they are. Clamping them here would silently
+ * rewrite a real analysis, and unlike a string a number at least means something.
+ *
+ * '__proto__' is skipped on both levels. JSON.parse makes it an ordinary own
+ * property rather than a prototype write, but the assignments below would turn
+ * it back into one, and nothing legitimate is named that.
+ */
+function readScores(raw: unknown): AppState['scores'] {
+  if (!raw || typeof raw !== 'object') return {}
+
+  const scores: AppState['scores'] = {}
+  for (const [elementId, row] of Object.entries(raw as Record<string, unknown>)) {
+    if (elementId === '__proto__' || !row || typeof row !== 'object') continue
+
+    const dimensionScores: Record<string, number | undefined> = {}
+    for (const [dimensionId, value] of Object.entries(row as Record<string, unknown>)) {
+      if (dimensionId === '__proto__') continue
+      if (typeof value === 'number' && Number.isFinite(value)) {
+        dimensionScores[dimensionId] = value
+      }
+    }
+    scores[elementId] = dimensionScores
+  }
+  return scores
+}
 
 /** Throws a descriptive error if a required string field is missing or empty. */
 function requireString(val: unknown, field: string): string {
