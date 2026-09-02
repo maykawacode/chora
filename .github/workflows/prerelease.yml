@@ -5,8 +5,9 @@ on:
     tags:
       - 'v*.*.*-beta.*'
 
-permissions:
-  contents: write
+# Deny by default. Each job opts in to exactly the scope it needs, so the
+# permissions of one job are never inherited by another.
+permissions: {}
 
 concurrency:
   group: prerelease-${{ github.ref }}
@@ -17,10 +18,20 @@ jobs:
     name: Build ad-hoc-signed Apple-silicon DMG
     runs-on: macos-15
     timeout-minutes: 30
+    # Read-only: this is the job that runs third-party build tooling, so it must
+    # not be able to write to the repository or publish a release.
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.version.outputs.version }}
 
     steps:
       - name: Check out tagged source
         uses: actions/checkout@v6
+        with:
+          # Nothing after checkout talks to git; leaving a credential in the
+          # runner's git config would only widen what a build script could reach.
+          persist-credentials: false
 
       - name: Set up Node.js
         uses: actions/setup-node@v6
@@ -29,16 +40,25 @@ jobs:
           cache: npm
 
       - name: Require an exact version tag
+        id: version
         shell: bash
         run: |
-          expected_tag="v$(node -p "require('./package.json').version")"
+          version="$(node -p "require('./package.json').version")"
+          expected_tag="v${version}"
           if [[ "$GITHUB_REF_NAME" != "$expected_tag" ]]; then
             echo "::error::Tag $GITHUB_REF_NAME does not match package version $expected_tag"
             exit 1
           fi
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
 
       - name: Install dependencies
-        run: npm ci
+        # Lifecycle scripts are the main way a compromised transitive dependency
+        # would get code execution in this pipeline, and Chora does not need
+        # them: of the whole tree only esbuild, fsevents and electron-winstaller
+        # declare one, and none is required to test or build a macOS DMG.
+        # Electron itself declares no install script, so electron-builder
+        # resolves its binary exactly as it did before.
+        run: npm ci --ignore-scripts
 
       - name: Run tests
         run: npm test
@@ -51,34 +71,65 @@ jobs:
 
       - name: Generate SHA-256 checksum
         shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
-          version="$(node -p "require('./package.json').version")"
-          artifact="Chora-${version}-arm64.dmg"
+          artifact="Chora-${VERSION}-arm64.dmg"
           test -f "dist/${artifact}"
           cd dist
           shasum -a 256 "$artifact" > SHA256SUMS.txt
+
+      - name: Hand the DMG to the publishing job
+        uses: actions/upload-artifact@v7
+        with:
+          name: chora-dmg
+          path: |
+            dist/Chora-${{ steps.version.outputs.version }}-arm64.dmg
+            dist/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: Create or refresh draft prerelease
+    needs: package
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # This job holds the only write-scoped token in the workflow, and it
+    # deliberately runs no project code: no checkout, no dependency install, no
+    # build tooling. It moves an already-built file to a draft release.
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download the built DMG
+        uses: actions/download-artifact@v8
+        with:
+          name: chora-dmg
+          path: dist
 
       - name: Create or refresh draft prerelease
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.package.outputs.version }}
         run: |
-          version="$(node -p "require('./package.json').version")"
-          artifact="dist/Chora-${version}-arm64.dmg"
+          artifact="dist/Chora-${VERSION}-arm64.dmg"
+          test -f "$artifact"
+          test -f dist/SHA256SUMS.txt
           if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release upload "$GITHUB_REF_NAME" \
-              "$artifact#Chora ${version} for Apple silicon" \
+              "$artifact#Chora ${VERSION} for Apple silicon" \
               "dist/SHA256SUMS.txt#SHA-256 checksums" \
               --clobber \
               --repo "$GITHUB_REPOSITORY"
           else
             gh release create "$GITHUB_REF_NAME" \
-              "$artifact#Chora ${version} for Apple silicon" \
+              "$artifact#Chora ${VERSION} for Apple silicon" \
               "dist/SHA256SUMS.txt#SHA-256 checksums" \
               --verify-tag \
               --draft \
               --prerelease \
-              --title "Chora ${version}" \
+              --title "Chora ${VERSION}" \
               --generate-notes \
               --repo "$GITHUB_REPOSITORY"
           fi

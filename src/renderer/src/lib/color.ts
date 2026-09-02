@@ -13,6 +13,37 @@
 
 import type { Element, Collection } from './types'
 
+// ── The one accepted color format ─────────────────────────────────────────────
+//
+// '#rrggbb' and nothing else. Every place a color can enter the app already
+// enforced this — the two color pickers, both hex text fields, and the
+// spreadsheet importer each carried their own copy of the pattern — so this is
+// that shared rule given one name rather than a new restriction.
+//
+// It matters at the file boundary in particular. A color read from a .chora or
+// .tsv file is written into a CSS `background`, and CSS backgrounds accept
+// `url(...)`: a color-shaped string is a place a document can hide a request to
+// a remote server, which would fire the moment a swatch is drawn. Colors are
+// therefore validated on the way in, not on the way out to the screen.
+
+const HEX_COLOR = /^#[0-9a-fA-F]{6}$/
+
+/** True only for a literal '#rrggbb' string. */
+export function isHexColor(value: unknown): value is string {
+  return typeof value === 'string' && HEX_COLOR.test(value)
+}
+
+/**
+ * A color from an untrusted document, or `fallback` if it is anything else.
+ *
+ * Deliberately silent: a file carrying a bad color is far more likely to be
+ * hand-edited or written by an older tool than hostile, and either way the
+ * sensible repair is the same one the importer has always made.
+ */
+export function readHexColor(value: unknown, fallback: string): string {
+  return isHexColor(value) ? value : fallback
+}
+
 // ── Collection palette ────────────────────────────────────────────────────────
 
 // The color every collection was created with before the palette existed. Still
@@ -20,6 +51,10 @@ import type { Element, Collection } from './types'
 // "the user has not chosen a color yet" — see
 // assignPaletteToUncoloredCollections in the store.
 export const DEFAULT_COLLECTION_COLOR = '#808080'
+
+// The color a new element is given, and the fallback for one whose stored color
+// cannot be read.
+export const DEFAULT_ELEMENT_COLOR = '#9d9d53'
 
 // Assigned round-robin as collections are created, so a new session has visually
 // distinct collections without anyone opening a color picker. Mid-saturation
@@ -46,9 +81,8 @@ export function paletteColor(index: number): string {
 // Parses a '#rrggbb' hex string into an [r, g, b] triple, or null if the string
 // doesn't match that exact format.
 function hexToRgb(hex: string): [number, number, number] | null {
-  const m = /^#([0-9a-fA-F]{6})$/.exec(hex)
-  if (!m) return null
-  const n = parseInt(m[1], 16)
+  if (!isHexColor(hex)) return null
+  const n = parseInt(hex.slice(1), 16)
   return [(n >> 16) & 0xff, (n >> 8) & 0xff, n & 0xff]
 }
 

@@ -17,6 +17,7 @@ import { app, BrowserWindow } from 'electron'
 import { join } from 'path'
 import { getCachedPreferences } from './prefs'
 import { clearHistoryModalOwner } from './menu'
+import { applyWindowSecurity } from './windowSecurity'
 import { decodeMapStateEnvelope, type MapWindowBounds } from '../shared/contracts'
 
 // Active map windows, keyed by the map ID (UUID from MapConfig)
@@ -95,6 +96,10 @@ export function openMapWindow(mapId: string, stateJson: string): void {
       sandbox: false
     }
   })
+
+  // Map windows had no navigation policy of their own and fell back to
+  // Electron's defaults; they now carry the same one as the Score Window.
+  applyWindowSecurity(win)
 
   mapWindows.set(mapId, win)
 

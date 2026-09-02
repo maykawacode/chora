@@ -32,6 +32,7 @@
 import type { AppState, ColorMode, MarkMode, Element, Collection, Dimension, MapConfig, SessionMeta } from './types'
 import { defaultCategories, defaultSessionMeta, parsePoles } from './types'
 import { openWeight } from './numericRange'
+import { DEFAULT_COLLECTION_COLOR, DEFAULT_ELEMENT_COLOR, readHexColor } from './color'
 
 const FORMAT_VERSION = '5.0'
 
@@ -217,7 +218,9 @@ export function deserializeSession(json: string): AppState {
     id:         requireString(c.id, 'collection.id'),
     name:       typeof c.name       === 'string' ? c.name       : '',
     definition: typeof c.definition === 'string' ? c.definition : '',
-    color:      typeof c.color      === 'string' ? c.color      : '#808080'
+    // Not merely "is it a string": see readHexColor. A stored color reaches a
+    // CSS background, so a non-hex one is dropped rather than passed through.
+    color:      readHexColor(c.color, DEFAULT_COLLECTION_COLOR)
   }))
 
   const knownCollectionIds = new Set(collections.map(c => c.id))
@@ -230,7 +233,7 @@ export function deserializeSession(json: string): AppState {
     definition: typeof e.definition === 'string' ? e.definition
                 : typeof e.description === 'string' ? e.description : '',
     weight:     openWeight(e.weight, 1),
-    color:      typeof e.color  === 'string' ? e.color  : '#9d9d53',
+    color:      readHexColor(e.color, DEFAULT_ELEMENT_COLOR),
     shape:      (['circle', 'square', 'triangle', 'diamond'].includes(e.shape as string)
                   ? e.shape : 'circle') as Element['shape'],
     // Present only in 5.0 files; pre-5.0 elements get theirs from

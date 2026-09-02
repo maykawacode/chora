@@ -92,3 +92,46 @@ describe('legacy TSV', () => {
     expect(r.elements[0].collectionIds).toHaveLength(2)
   })
 })
+
+// ── Colors from an untrusted spreadsheet ──────────────────────────────────────
+//
+// The element column was already checked against '#rrggbb'; the collection
+// column was not, and a spreadsheet is the easier of the two files to hand
+// someone. Both now go through the same reader — see lib/color.ts for why a
+// color is a place a remote request can hide.
+
+describe('Colors are constrained to hex on import', () => {
+  const tsv = (elementColor: string, collectionColor: string): string => [
+    '##COLLECTIONS',
+    'Name\tDefinition\tColor',
+    `Group\t\t${collectionColor}`,
+    '',
+    '##ELEMENTS',
+    'Name\tDefinition\tColor\tWeight\tShape\tCollections',
+    `One\t\t${elementColor}\t1\tcircle\tGroup`
+  ].join('\n')
+
+  it('refuses a url() smuggled into either color column', () => {
+    const result = parseSpreadsheet(tsv(
+      'url(https://attacker.example/b.png)',
+      'url(https://attacker.example/b.png)'
+    ))
+    expect(result.elements[0].color).toBe('#9d9d53')
+    expect(result.collections[0].color).toBe('#808080')
+  })
+
+  it('refuses named and short-form CSS colors in the collection column', () => {
+    for (const color of ['red', '#abc', 'rgb(1,2,3)']) {
+      const result = parseSpreadsheet(tsv('#123456', color))
+      expect(result.collections[0].color).toBe('#808080')
+      // The valid element color alongside it is still kept.
+      expect(result.elements[0].color).toBe('#123456')
+    }
+  })
+
+  it('keeps real hex colors in both columns', () => {
+    const result = parseSpreadsheet(tsv('#AbCdEf', '#4080c0'))
+    expect(result.elements[0].color).toBe('#AbCdEf')
+    expect(result.collections[0].color).toBe('#4080c0')
+  })
+})

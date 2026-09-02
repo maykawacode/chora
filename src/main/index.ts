@@ -4,11 +4,12 @@
 // acts as the application shell. Map windows are created on demand by
 // windowManager.ts whenever the renderer requests them via IPC.
 
-import { app, shell, BrowserWindow } from 'electron'
+import { app, BrowserWindow } from 'electron'
 import { join } from 'path'
 import { registerIpcHandlers } from './ipc'
 import { buildMenu, setMainWindowForMenu, setCloseWindowEnabled } from './menu'
 import { setScoreWindow } from './windowManager'
+import { applyWindowSecurity } from './windowSecurity'
 import { loadPreferences, getCachedPreferences, savePreferences, savePreferencesSync } from './prefs'
 
 // Lock the development and packaged runtime identity before Electron resolves
@@ -65,12 +66,9 @@ function createWindow(): void {
     mainWindow!.show()
   })
 
-  // Intercept any attempt to open a new browser window and redirect to
-  // the system browser — we never want Electron to spawn extra windows itself
-  mainWindow.webContents.setWindowOpenHandler((details) => {
-    shell.openExternal(details.url)
-    return { action: 'deny' }
-  })
+  // Refuse navigation and new windows; hand https links to the system browser.
+  // See windowSecurity.ts for why the scheme is checked before openExternal.
+  applyWindowSecurity(mainWindow)
 
   if (!app.isPackaged && process.env['ELECTRON_RENDERER_URL']) {
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])

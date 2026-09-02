@@ -32,6 +32,7 @@ import { defaultCategories, defaultSessionMeta, parsePoles } from './types'
 import { MEMBERSHIP_CUTOFF } from './parser'
 import { COLLECTION_SEPARATOR } from './exporter'
 import { openWeight } from './numericRange'
+import { DEFAULT_COLLECTION_COLOR, DEFAULT_ELEMENT_COLOR, readHexColor } from './color'
 
 // Strip surrounding double-quotes and unescape "" → " (standard TSV/CSV quoting).
 function stripQuotes(s: string): string {
@@ -101,7 +102,7 @@ function parseFullSpreadsheet(text: string): ImportResult {
         id:         crypto.randomUUID(),
         name,
         definition: defCol   >= 0 ? tc(row[defCol])   : '',
-        color:      colorCol >= 0 ? tc(row[colorCol]) || '#808080' : '#808080'
+        color:      readHexColor(colorCol >= 0 ? tc(row[colorCol]) : '', DEFAULT_COLLECTION_COLOR)
       })
     }
   }
@@ -112,7 +113,7 @@ function parseFullSpreadsheet(text: string): ImportResult {
   function ensureCollection(name: string): Collection {
     const existing = collectionsByName.get(name)
     if (existing) return existing
-    const created: Collection = { id: crypto.randomUUID(), name, definition: '', color: '#808080' }
+    const created: Collection = { id: crypto.randomUUID(), name, definition: '', color: DEFAULT_COLLECTION_COLOR }
     collectionsByName.set(name, created)
     return created
   }
@@ -141,7 +142,7 @@ function parseFullSpreadsheet(text: string): ImportResult {
         id:         crypto.randomUUID(),
         name,
         definition: defCol >= 0 ? tc(row[defCol]) : '',
-        color:      /^#[0-9a-fA-F]{6}$/.test(rawColor) ? rawColor : '#9d9d53',
+        color:      readHexColor(rawColor, DEFAULT_ELEMENT_COLOR),
         weight:     weightCol >= 0 && rawWeight !== ''
           ? openWeight(Number(rawWeight), 1)
           : 1,
@@ -192,7 +193,7 @@ function parseFullSpreadsheet(text: string): ImportResult {
   function ensureElement(name: string): Element {
     if (!elementsByName.has(name)) {
       elementsByName.set(name, {
-        id: crypto.randomUUID(), name, definition: '', color: '#9d9d53', weight: 1,
+        id: crypto.randomUUID(), name, definition: '', color: DEFAULT_ELEMENT_COLOR, weight: 1,
         shape: 'circle', collectionIds: []
       })
     }
@@ -375,7 +376,7 @@ function parseSimpleSpreadsheet(text: string): ImportResult {
 
   const elements: Element[] = elementNames.map((name, i) => ({
     id: crypto.randomUUID(), name, definition: elementDefinitions[i] ?? '', weight: 1,
-    color: '#9d9d53', shape: 'circle' as const, collectionIds: []
+    color: DEFAULT_ELEMENT_COLOR, shape: 'circle' as const, collectionIds: []
   }))
 
   const dimensions: Dimension[] = dimLabels.map(label => {
