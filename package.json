@@ -1,7 +1,7 @@
 {
   "name": "chora",
   "productName": "Chora",
-  "version": "0.1.0-beta.3",
+  "version": "0.1.0-beta.4",
   "private": true,
   "description": "Spatial reasoning for qualitative data",
   "main": "./out/main/index.js",
