@@ -15,5 +15,5 @@ copies them beside the application archive under `process.resourcesPath`.
 Renderer code must never construct either path.
 
 Only redistributable, public content belongs here.
-`resources/examples/campus-study-spaces.mtda` is the P6-06 first-run example,
+`resources/examples/sample-dataset.chora` is the first-run example,
 and `resources/help/orientation.md` is the P5-15 two-minute orientation.

@@ -1,0 +1,617 @@
+{
+  "version": "5.0",
+  "sessionMeta": {
+    "id": "23ffbf4c-ce85-496e-be99-f1a5ed2e4cab",
+    "name": "Vegetables — Example Comparison",
+    "definition": "Synthetic comparison of 20 common vegetables scored on flavor, texture, cooking, raw-eating, everyday-vs-specialty use, and storage life. Scores are illustrative culinary judgments, not measurements."
+  },
+  "elements": [
+    {
+      "id": "f7c98ac2-a342-4e4d-b8fa-4d190d55c2dc",
+      "name": "Carrot",
+      "definition": "A root vegetable with a firm, crunchy texture and a naturally sweet flavor, eaten raw or cooked.",
+      "weight": 1,
+      "color": "#9C755F",
+      "shape": "circle",
+      "collectionIds": [
+        "9fa55ec3-6473-4fcc-b113-ef53d828bbe2"
+      ]
+    },
+    {
+      "id": "55639978-e8b9-46a8-a408-5ae3bfa6adb6",
+      "name": "Potato",
+      "definition": "A starchy tuber that dominates when cooked, from mashed to roasted to fried, and is rarely eaten raw.",
+      "weight": 1,
+      "color": "#9C755F",
+      "shape": "circle",
+      "collectionIds": [
+        "9fa55ec3-6473-4fcc-b113-ef53d828bbe2",
+        "0169bb5f-4f7a-4524-8243-ccc2b8442a48"
+      ]
+    },
+    {
+      "id": "54d0772f-9d7d-484e-b238-497752233e9b",
+      "name": "Sweet potato",
+      "definition": "A starchy root with a moist, dense texture and a naturally sweet flavor when cooked.",
+      "weight": 1,
+      "color": "#9C755F",
+      "shape": "circle",
+      "collectionIds": [
+        "9fa55ec3-6473-4fcc-b113-ef53d828bbe2"
+      ]
+    },
+    {
+      "id": "467687ca-78fd-48f9-8b4d-685425d330cc",
+      "name": "Beet",
+      "definition": "A root vegetable with an earthy, faintly sweet flavor and a firm texture, eaten roasted, boiled, or raw and shredded.",
+      "weight": 1,
+      "color": "#9C755F",
+      "shape": "circle",
+      "collectionIds": [
+        "9fa55ec3-6473-4fcc-b113-ef53d828bbe2"
+      ]
+    },
+    {
+      "id": "8580b1c7-f955-4560-bd2e-04e3283cbb9a",
+      "name": "Onion",
+      "definition": "A pungent allium bulb that turns sweet and soft when cooked, used raw or cooked in nearly every savory dish.",
+      "weight": 1,
+      "color": "#EDC948",
+      "shape": "circle",
+      "collectionIds": [
+        "4364c555-ea87-4712-9fc3-f041c74c5a9a"
+      ]
+    },
+    {
+      "id": "d9604090-16fe-4e03-a6ca-d0d0130ec53a",
+      "name": "Garlic",
+      "definition": "A small, intensely pungent allium bulb used in small quantities, raw or cooked, to season other food.",
+      "weight": 1,
+      "color": "#EDC948",
+      "shape": "circle",
+      "collectionIds": [
+        "4364c555-ea87-4712-9fc3-f041c74c5a9a"
+      ]
+    },
+    {
+      "id": "01648625-5cf3-44b1-8ac6-b77000d00d84",
+      "name": "Tomato",
+      "definition": "A juicy, acidic fruit used as a vegetable, eaten raw or cooked, with a soft texture even before cooking.",
+      "weight": 1,
+      "color": "#E15759",
+      "shape": "circle",
+      "collectionIds": [
+        "0169bb5f-4f7a-4524-8243-ccc2b8442a48"
+      ]
+    },
+    {
+      "id": "6753fa0c-9be8-4679-99ca-1ea74af79b6c",
+      "name": "Bell pepper",
+      "definition": "A crisp, mild-flavored fruit used as a vegetable, eaten raw or cooked, available in several colors.",
+      "weight": 1,
+      "color": "#E15759",
+      "shape": "circle",
+      "collectionIds": [
+        "0169bb5f-4f7a-4524-8243-ccc2b8442a48"
+      ]
+    },
+    {
+      "id": "0d4e213c-506f-4dff-8054-685c9b779f4a",
+      "name": "Eggplant",
+      "definition": "A spongy nightshade that is rarely eaten raw and absorbs the flavor and texture of how it's cooked.",
+      "weight": 1,
+      "color": "#E15759",
+      "shape": "circle",
+      "collectionIds": [
+        "0169bb5f-4f7a-4524-8243-ccc2b8442a48"
+      ]
+    },
+    {
+      "id": "bb3250fb-0872-4e05-813f-d17cf710d310",
+      "name": "Broccoli",
+      "definition": "A cruciferous vegetable with a firm stalk and tight flower clusters, eaten raw or lightly cooked.",
+      "weight": 1,
+      "color": "#59A14F",
+      "shape": "circle",
+      "collectionIds": [
+        "9121aa5f-2672-417d-ba33-a1690c38a7b8"
+      ]
+    },
+    {
+      "id": "3615f100-82d1-4b9e-b5bf-68e086ca779c",
+      "name": "Cauliflower",
+      "definition": "A dense, mild cruciferous vegetable that takes on the character of how it's prepared, from raw and crisp to roasted or pureed smooth.",
+      "weight": 1,
+      "color": "#59A14F",
+      "shape": "circle",
+      "collectionIds": [
+        "9121aa5f-2672-417d-ba33-a1690c38a7b8"
+      ]
+    },
+    {
+      "id": "0c8a062e-2368-4a62-93b7-9cbde2bcc57f",
+      "name": "Kale",
+      "definition": "A sturdy, slightly bitter leafy green in the cabbage family, eaten raw (often massaged to soften) or cooked.",
+      "weight": 1,
+      "color": "#59A14F",
+      "shape": "circle",
+      "collectionIds": [
+        "9121aa5f-2672-417d-ba33-a1690c38a7b8",
+        "1c568061-fc73-40c3-be82-b861e8b1fdcf"
+      ]
+    },
+    {
+      "id": "59630642-70e4-409a-9a57-fd3b71dbfe52",
+      "name": "Brussels sprouts",
+      "definition": "Small, dense cruciferous buds with a mildly bitter flavor that mellows and turns crisp-edged when roasted.",
+      "weight": 1,
+      "color": "#59A14F",
+      "shape": "circle",
+      "collectionIds": [
+        "9121aa5f-2672-417d-ba33-a1690c38a7b8"
+      ]
+    },
+    {
+      "id": "b76fec1d-db56-4c51-89f1-125e249d899d",
+      "name": "Spinach",
+      "definition": "A tender, mild leafy green that wilts quickly when cooked and is common raw in salads.",
+      "weight": 1,
+      "color": "#76B7B2",
+      "shape": "circle",
+      "collectionIds": [
+        "1c568061-fc73-40c3-be82-b861e8b1fdcf"
+      ]
+    },
+    {
+      "id": "137db08e-67fe-443d-a549-0a40ed363ee8",
+      "name": "Romaine lettuce",
+      "definition": "A crisp, mild leafy green eaten almost exclusively raw.",
+      "weight": 1,
+      "color": "#76B7B2",
+      "shape": "circle",
+      "collectionIds": [
+        "1c568061-fc73-40c3-be82-b861e8b1fdcf"
+      ]
+    },
+    {
+      "id": "17d1d7c1-f4a5-4a39-abad-2a6477d31e1a",
+      "name": "Cucumber",
+      "definition": "A crisp, watery, mild-flavored vegetable eaten almost exclusively raw.",
+      "weight": 1,
+      "color": "#4E79A7",
+      "shape": "circle",
+      "collectionIds": [
+        "fe488525-f3f1-4fd1-bd42-91c7b6a942fb"
+      ]
+    },
+    {
+      "id": "9effb31f-3b41-4452-8616-f4d3300c540c",
+      "name": "Zucchini",
+      "definition": "A soft-fleshed summer squash with a mild flavor, eaten raw thinly sliced or cooked quickly.",
+      "weight": 1,
+      "color": "#4E79A7",
+      "shape": "circle",
+      "collectionIds": [
+        "fe488525-f3f1-4fd1-bd42-91c7b6a942fb"
+      ]
+    },
+    {
+      "id": "401613a9-f5d3-4fab-9a55-da1c0a2e9f8c",
+      "name": "Butternut squash",
+      "definition": "A dense winter squash with firm flesh and a sweet flavor that requires slow cooking to soften.",
+      "weight": 1,
+      "color": "#4E79A7",
+      "shape": "circle",
+      "collectionIds": [
+        "fe488525-f3f1-4fd1-bd42-91c7b6a942fb"
+      ]
+    },
+    {
+      "id": "0308f953-b433-4ffc-9d5b-837a99ba5320",
+      "name": "Asparagus",
+      "definition": "A stalk vegetable with a firm, fibrous texture and a distinct grassy flavor, quick to cook and rarely eaten raw.",
+      "weight": 1,
+      "color": "#BAB0AC",
+      "shape": "circle",
+      "collectionIds": []
+    },
+    {
+      "id": "28c054ac-3672-4d38-ae89-6a9e60a0c52b",
+      "name": "Celery",
+      "definition": "A very crisp, watery, mild stalk vegetable eaten raw or as a cooking base, and among the longest-storing common vegetables in a refrigerator.",
+      "weight": 1,
+      "color": "#BAB0AC",
+      "shape": "circle",
+      "collectionIds": []
+    }
+  ],
+  "collections": [
+    {
+      "id": "9fa55ec3-6473-4fcc-b113-ef53d828bbe2",
+      "name": "Root vegetables",
+      "definition": "The edible part is an underground root or tuber.",
+      "color": "#9C755F"
+    },
+    {
+      "id": "4364c555-ea87-4712-9fc3-f041c74c5a9a",
+      "name": "Alliums",
+      "definition": "Onion-family bulbs, used mainly as an aromatic base.",
+      "color": "#EDC948"
+    },
+    {
+      "id": "0169bb5f-4f7a-4524-8243-ccc2b8442a48",
+      "name": "Nightshades",
+      "definition": "Members of the Solanaceae family.",
+      "color": "#E15759"
+    },
+    {
+      "id": "9121aa5f-2672-417d-ba33-a1690c38a7b8",
+      "name": "Cruciferous (Brassicas)",
+      "definition": "Members of the cabbage family.",
+      "color": "#59A14F"
+    },
+    {
+      "id": "1c568061-fc73-40c3-be82-b861e8b1fdcf",
+      "name": "Leafy greens",
+      "definition": "Eaten primarily for their leaves.",
+      "color": "#76B7B2"
+    },
+    {
+      "id": "fe488525-f3f1-4fd1-bd42-91c7b6a942fb",
+      "name": "Cucurbits (squash family)",
+      "definition": "Members of the gourd family.",
+      "color": "#4E79A7"
+    }
+  ],
+  "dimensions": [
+    {
+      "id": "677a047a-e84f-47a5-83e6-9a0e28b45ad5",
+      "label": "Mild–Pungent",
+      "poleA": "Mild",
+      "poleB": "Pungent",
+      "definition": "0 has little flavor of its own and takes on other flavors; 1 has a strong, assertive flavor that dominates a dish.",
+      "weight": 1,
+      "categories": {
+        "evaluative": false,
+        "potency": false,
+        "activity": false,
+        "utility": false,
+        "socialMeaning": false,
+        "aesthetics": false
+      }
+    },
+    {
+      "id": "5c97211c-d9ac-49c6-b83f-093320ca32a5",
+      "label": "Soft–Crisp",
+      "poleA": "Soft",
+      "poleB": "Crisp",
+      "definition": "0 has a yielding or tender texture in its typical form; 1 has a firm, crunchy texture in its typical form.",
+      "weight": 1,
+      "categories": {
+        "evaluative": false,
+        "potency": false,
+        "activity": false,
+        "utility": false,
+        "socialMeaning": false,
+        "aesthetics": false
+      }
+    },
+    {
+      "id": "c9d70429-aa9a-46f2-81e0-04d560b3bb88",
+      "label": "Quick-cooking–Slow-cooking",
+      "poleA": "Quick-cooking",
+      "poleB": "Slow-cooking",
+      "definition": "0 becomes tender in a few minutes of heat; 1 needs sustained cooking (roasting, braising, boiling) to become tender.",
+      "weight": 1,
+      "categories": {
+        "evaluative": false,
+        "potency": false,
+        "activity": false,
+        "utility": false,
+        "socialMeaning": false,
+        "aesthetics": false
+      }
+    },
+    {
+      "id": "f38e94c0-c63a-43d2-a1b9-90cb9d318fd9",
+      "label": "Raw-friendly–Cooked-only",
+      "poleA": "Raw-friendly",
+      "poleB": "Cooked-only",
+      "definition": "0 is commonly and pleasantly eaten raw; 1 is rarely eaten raw and is prepared cooked in ordinary use.",
+      "weight": 1,
+      "categories": {
+        "evaluative": false,
+        "potency": false,
+        "activity": false,
+        "utility": false,
+        "socialMeaning": false,
+        "aesthetics": false
+      }
+    },
+    {
+      "id": "5c04080f-0325-4b5d-95bb-6eedf9413c6c",
+      "label": "Everyday–Specialty",
+      "poleA": "Everyday",
+      "poleB": "Specialty",
+      "definition": "0 is a staple stocked in almost any grocery store and used often; 1 is less routinely bought or cooked, closer to an occasional or seasonal choice.",
+      "weight": 1,
+      "categories": {
+        "evaluative": false,
+        "potency": false,
+        "activity": false,
+        "utility": false,
+        "socialMeaning": false,
+        "aesthetics": false
+      }
+    },
+    {
+      "id": "26355267-ef6b-48e4-be1f-8881f1cd1ae9",
+      "label": "Perishable–Long-storing",
+      "poleA": "Perishable",
+      "poleB": "Long-storing",
+      "definition": "0 should be used within a few days of purchase; 1 keeps for weeks under ordinary refrigeration or storage.",
+      "weight": 1,
+      "categories": {
+        "evaluative": false,
+        "potency": false,
+        "activity": false,
+        "utility": false,
+        "socialMeaning": false,
+        "aesthetics": false
+      }
+    }
+  ],
+  "scores": {
+    "f7c98ac2-a342-4e4d-b8fa-4d190d55c2dc": {
+      "677a047a-e84f-47a5-83e6-9a0e28b45ad5": 0.18200620475698037,
+      "5c97211c-d9ac-49c6-b83f-093320ca32a5": 0.8165137614678899,
+      "c9d70429-aa9a-46f2-81e0-04d560b3bb88": 0.5841176470588236,
+      "f38e94c0-c63a-43d2-a1b9-90cb9d318fd9": 0.16680455015511894,
+      "5c04080f-0325-4b5d-95bb-6eedf9413c6c": 0.19648397104446746,
+      "26355267-ef6b-48e4-be1f-8881f1cd1ae9": 0.8
+    },
+    "55639978-e8b9-46a8-a408-5ae3bfa6adb6": {
+      "677a047a-e84f-47a5-83e6-9a0e28b45ad5": 0.07032057911065148,
+      "5c97211c-d9ac-49c6-b83f-093320ca32a5": 0.17711171662125336,
+      "c9d70429-aa9a-46f2-81e0-04d560b3bb88": 0.8811764705882353,
+      "f38e94c0-c63a-43d2-a1b9-90cb9d318fd9": 0.95,
+      "5c04080f-0325-4b5d-95bb-6eedf9413c6c": 0.11997363216875412,
+      "26355267-ef6b-48e4-be1f-8881f1cd1ae9": 0.9
+    },
+    "54d0772f-9d7d-484e-b238-497752233e9b": {
+      "677a047a-e84f-47a5-83e6-9a0e28b45ad5": 0.1861427094105481,
+      "5c97211c-d9ac-49c6-b83f-093320ca32a5": 0.2599388379204893,
+      "c9d70429-aa9a-46f2-81e0-04d560b3bb88": 0.8105882352941176,
+      "f38e94c0-c63a-43d2-a1b9-90cb9d318fd9": 0.9,
+      "5c04080f-0325-4b5d-95bb-6eedf9413c6c": 0.5062623599208965,
+      "26355267-ef6b-48e4-be1f-8881f1cd1ae9": 0.75
+    },
+    "467687ca-78fd-48f9-8b4d-685425d330cc": {
+      "677a047a-e84f-47a5-83e6-9a0e28b45ad5": 0.35,
+      "5c97211c-d9ac-49c6-b83f-093320ca32a5": 0.5,
+      "c9d70429-aa9a-46f2-81e0-04d560b3bb88": 0.75,
+      "f38e94c0-c63a-43d2-a1b9-90cb9d318fd9": 0.5,
+      "5c04080f-0325-4b5d-95bb-6eedf9413c6c": 0.775807514831905,
+      "26355267-ef6b-48e4-be1f-8881f1cd1ae9": 0.7
+    },
+    "8580b1c7-f955-4560-bd2e-04e3283cbb9a": {
+      "677a047a-e84f-47a5-83e6-9a0e28b45ad5": 0.85,
+      "5c97211c-d9ac-49c6-b83f-093320ca32a5": 0.6158038147138964,
+      "c9d70429-aa9a-46f2-81e0-04d560b3bb88": 0.6452947259565667,
+      "f38e94c0-c63a-43d2-a1b9-90cb9d318fd9": 0.4,
+      "5c04080f-0325-4b5d-95bb-6eedf9413c6c": 0.12920237310481208,
+      "26355267-ef6b-48e4-be1f-8881f1cd1ae9": 0.85
+    },
+    "d9604090-16fe-4e03-a6ca-d0d0130ec53a": {
+      "677a047a-e84f-47a5-83e6-9a0e28b45ad5": 0.95,
+      "5c97211c-d9ac-49c6-b83f-093320ca32a5": 0.3828337874659401,
+      "c9d70429-aa9a-46f2-81e0-04d560b3bb88": 0.3305882352941176,
+      "f38e94c0-c63a-43d2-a1b9-90cb9d318fd9": 0.55,
+      "5c04080f-0325-4b5d-95bb-6eedf9413c6c": 0.16653922214897826,
+      "26355267-ef6b-48e4-be1f-8881f1cd1ae9": 0.95
+    },
+    "01648625-5cf3-44b1-8ac6-b77000d00d84": {
+      "677a047a-e84f-47a5-83e6-9a0e28b45ad5": 0.25,
+      "5c97211c-d9ac-49c6-b83f-093320ca32a5": 0.11852861035422346,
+      "c9d70429-aa9a-46f2-81e0-04d560b3bb88": 0.3505882352941176,
+      "f38e94c0-c63a-43d2-a1b9-90cb9d318fd9": 0.1,
+      "5c04080f-0325-4b5d-95bb-6eedf9413c6c": 0.1929070533948583,
+      "26355267-ef6b-48e4-be1f-8881f1cd1ae9": 0.16339193381592554
+    },
+    "6753fa0c-9be8-4679-99ca-1ea74af79b6c": {
+      "677a047a-e84f-47a5-83e6-9a0e28b45ad5": 0.15,
+      "5c97211c-d9ac-49c6-b83f-093320ca32a5": 0.7920489296636085,
+      "c9d70429-aa9a-46f2-81e0-04d560b3bb88": 0.29058823529411754,
+      "f38e94c0-c63a-43d2-a1b9-90cb9d318fd9": 0.26680455015511895,
+      "5c04080f-0325-4b5d-95bb-6eedf9413c6c": 0.37514172709294663,
+      "26355267-ef6b-48e4-be1f-8881f1cd1ae9": 0.4
+    },
+    "0d4e213c-506f-4dff-8054-685c9b779f4a": {
+      "677a047a-e84f-47a5-83e6-9a0e28b45ad5": 0.2,
+      "5c97211c-d9ac-49c6-b83f-093320ca32a5": 0.07493188010899188,
+      "c9d70429-aa9a-46f2-81e0-04d560b3bb88": 0.7,
+      "f38e94c0-c63a-43d2-a1b9-90cb9d318fd9": 0.9,
+      "5c04080f-0325-4b5d-95bb-6eedf9413c6c": 0.8258075148319051,
+      "26355267-ef6b-48e4-be1f-8881f1cd1ae9": 0.31339193381592556
+    },
+    "bb3250fb-0872-4e05-813f-d17cf710d310": {
+      "677a047a-e84f-47a5-83e6-9a0e28b45ad5": 0.35,
+      "5c97211c-d9ac-49c6-b83f-093320ca32a5": 0.65,
+      "c9d70429-aa9a-46f2-81e0-04d560b3bb88": 0.3294117647058823,
+      "f38e94c0-c63a-43d2-a1b9-90cb9d318fd9": 0.45,
+      "5c04080f-0325-4b5d-95bb-6eedf9413c6c": 0.34452208305866844,
+      "26355267-ef6b-48e4-be1f-8881f1cd1ae9": 0.35
+    },
+    "3615f100-82d1-4b9e-b5bf-68e086ca779c": {
+      "677a047a-e84f-47a5-83e6-9a0e28b45ad5": 0.2,
+      "5c97211c-d9ac-49c6-b83f-093320ca32a5": 0.5844686648501363,
+      "c9d70429-aa9a-46f2-81e0-04d560b3bb88": 0.6135294117647058,
+      "f38e94c0-c63a-43d2-a1b9-90cb9d318fd9": 0.5,
+      "5c04080f-0325-4b5d-95bb-6eedf9413c6c": 0.4654911008569545,
+      "26355267-ef6b-48e4-be1f-8881f1cd1ae9": 0.4343329886246122
+    },
+    "0c8a062e-2368-4a62-93b7-9cbde2bcc57f": {
+      "677a047a-e84f-47a5-83e6-9a0e28b45ad5": 0.4,
+      "5c97211c-d9ac-49c6-b83f-093320ca32a5": 0.55,
+      "c9d70429-aa9a-46f2-81e0-04d560b3bb88": 0.35,
+      "f38e94c0-c63a-43d2-a1b9-90cb9d318fd9": 0.45,
+      "5c04080f-0325-4b5d-95bb-6eedf9413c6c": 0.8758075148319051,
+      "26355267-ef6b-48e4-be1f-8881f1cd1ae9": 0.4
+    },
+    "59630642-70e4-409a-9a57-fd3b71dbfe52": {
+      "677a047a-e84f-47a5-83e6-9a0e28b45ad5": 0.5,
+      "5c97211c-d9ac-49c6-b83f-093320ca32a5": 0.5640326975476839,
+      "c9d70429-aa9a-46f2-81e0-04d560b3bb88": 0.7,
+      "f38e94c0-c63a-43d2-a1b9-90cb9d318fd9": 0.8148914167528438,
+      "5c04080f-0325-4b5d-95bb-6eedf9413c6c": 0.8758075148319051,
+      "26355267-ef6b-48e4-be1f-8881f1cd1ae9": 0.38262668045501547
+    },
+    "b76fec1d-db56-4c51-89f1-125e249d899d": {
+      "677a047a-e84f-47a5-83e6-9a0e28b45ad5": 0.1,
+      "5c97211c-d9ac-49c6-b83f-093320ca32a5": 0.09480122324159021,
+      "c9d70429-aa9a-46f2-81e0-04d560b3bb88": 0.06058823529411757,
+      "f38e94c0-c63a-43d2-a1b9-90cb9d318fd9": 0.15,
+      "5c04080f-0325-4b5d-95bb-6eedf9413c6c": 0.40626235992089654,
+      "26355267-ef6b-48e4-be1f-8881f1cd1ae9": 0.11339193381592555
+    },
+    "137db08e-67fe-443d-a549-0a40ed363ee8": {
+      "677a047a-e84f-47a5-83e6-9a0e28b45ad5": 0.05,
+      "5c97211c-d9ac-49c6-b83f-093320ca32a5": 0.9155313351498637,
+      "c9d70429-aa9a-46f2-81e0-04d560b3bb88": 0.09927611168562567,
+      "f38e94c0-c63a-43d2-a1b9-90cb9d318fd9": 0.11437435367114784,
+      "5c04080f-0325-4b5d-95bb-6eedf9413c6c": 0.19997363216875413,
+      "26355267-ef6b-48e4-be1f-8881f1cd1ae9": 0.25
+    },
+    "17d1d7c1-f4a5-4a39-abad-2a6477d31e1a": {
+      "677a047a-e84f-47a5-83e6-9a0e28b45ad5": 0.07238883143743535,
+      "5c97211c-d9ac-49c6-b83f-093320ca32a5": 0.845565749235474,
+      "c9d70429-aa9a-46f2-81e0-04d560b3bb88": 0.06352941176470588,
+      "f38e94c0-c63a-43d2-a1b9-90cb9d318fd9": 0.08680455015511894,
+      "5c04080f-0325-4b5d-95bb-6eedf9413c6c": 0.16743572841133814,
+      "26355267-ef6b-48e4-be1f-8881f1cd1ae9": 0.2
+    },
+    "9effb31f-3b41-4452-8616-f4d3300c540c": {
+      "677a047a-e84f-47a5-83e6-9a0e28b45ad5": 0.15,
+      "5c97211c-d9ac-49c6-b83f-093320ca32a5": 0.4,
+      "c9d70429-aa9a-46f2-81e0-04d560b3bb88": 0.24058823529411752,
+      "f38e94c0-c63a-43d2-a1b9-90cb9d318fd9": 0.4,
+      "5c04080f-0325-4b5d-95bb-6eedf9413c6c": 0.5251417270929466,
+      "26355267-ef6b-48e4-be1f-8881f1cd1ae9": 0.25
+    },
+    "401613a9-f5d3-4fab-9a55-da1c0a2e9f8c": {
+      "677a047a-e84f-47a5-83e6-9a0e28b45ad5": 0.15,
+      "5c97211c-d9ac-49c6-b83f-093320ca32a5": 0.19877675840978593,
+      "c9d70429-aa9a-46f2-81e0-04d560b3bb88": 0.85,
+      "f38e94c0-c63a-43d2-a1b9-90cb9d318fd9": 0.8624612202688728,
+      "5c04080f-0325-4b5d-95bb-6eedf9413c6c": 0.775807514831905,
+      "26355267-ef6b-48e4-be1f-8881f1cd1ae9": 0.85
+    },
+    "0308f953-b433-4ffc-9d5b-837a99ba5320": {
+      "677a047a-e84f-47a5-83e6-9a0e28b45ad5": 0.4,
+      "5c97211c-d9ac-49c6-b83f-093320ca32a5": 0.6,
+      "c9d70429-aa9a-46f2-81e0-04d560b3bb88": 0.2,
+      "f38e94c0-c63a-43d2-a1b9-90cb9d318fd9": 0.85,
+      "5c04080f-0325-4b5d-95bb-6eedf9413c6c": 0.775807514831905,
+      "26355267-ef6b-48e4-be1f-8881f1cd1ae9": 0.1
+    },
+    "28c054ac-3672-4d38-ae89-6a9e60a0c52b": {
+      "677a047a-e84f-47a5-83e6-9a0e28b45ad5": 0.1,
+      "5c97211c-d9ac-49c6-b83f-093320ca32a5": 0.8920489296636085,
+      "c9d70429-aa9a-46f2-81e0-04d560b3bb88": 0.5641176470588235,
+      "f38e94c0-c63a-43d2-a1b9-90cb9d318fd9": 0.21680455015511893,
+      "5c04080f-0325-4b5d-95bb-6eedf9413c6c": 0.22808174027686223,
+      "26355267-ef6b-48e4-be1f-8881f1cd1ae9": 0.85
+    }
+  },
+  "maps": [
+    {
+      "id": "0f74bd5a-03c4-4eef-b567-02b7c1c21944",
+      "showLabels": true,
+      "marks": "element",
+      "sizeByWeight": true,
+      "colorMode": "element",
+      "windowX": 2146,
+      "windowY": 157,
+      "windowWidth": 1196,
+      "windowHeight": 815,
+      "type": "cartesian",
+      "onlySelectedCollections": true,
+      "title": "Map 1",
+      "xDimensionId": "c9d70429-aa9a-46f2-81e0-04d560b3bb88",
+      "yDimensionId": "5c04080f-0325-4b5d-95bb-6eedf9413c6c",
+      "xFlipped": false,
+      "yFlipped": false,
+      "shownCollectionIds": [
+        "0169bb5f-4f7a-4524-8243-ccc2b8442a48",
+        "1c568061-fc73-40c3-be82-b861e8b1fdcf"
+      ]
+    },
+    {
+      "id": "f38ed2eb-2bfd-4491-8300-2324ae9aeccc",
+      "showLabels": true,
+      "marks": "circle",
+      "sizeByWeight": true,
+      "colorMode": "element",
+      "windowX": 63,
+      "windowY": 88,
+      "windowWidth": 856,
+      "windowHeight": 549,
+      "type": "cartesian",
+      "onlySelectedCollections": false,
+      "title": "Map 2",
+      "xDimensionId": "5c97211c-d9ac-49c6-b83f-093320ca32a5",
+      "yDimensionId": "26355267-ef6b-48e4-be1f-8881f1cd1ae9",
+      "xFlipped": false,
+      "yFlipped": false,
+      "shownCollectionIds": []
+    },
+    {
+      "id": "12b8bbc1-5615-4947-8049-80f75e8023e9",
+      "type": "semantic",
+      "title": "Semantic Map 1",
+      "elementIds": [
+        "f7c98ac2-a342-4e4d-b8fa-4d190d55c2dc",
+        "55639978-e8b9-46a8-a408-5ae3bfa6adb6",
+        "54d0772f-9d7d-484e-b238-497752233e9b",
+        "467687ca-78fd-48f9-8b4d-685425d330cc",
+        "8580b1c7-f955-4560-bd2e-04e3283cbb9a",
+        "d9604090-16fe-4e03-a6ca-d0d0130ec53a",
+        "01648625-5cf3-44b1-8ac6-b77000d00d84",
+        "6753fa0c-9be8-4679-99ca-1ea74af79b6c",
+        "0d4e213c-506f-4dff-8054-685c9b779f4a",
+        "bb3250fb-0872-4e05-813f-d17cf710d310",
+        "3615f100-82d1-4b9e-b5bf-68e086ca779c",
+        "0c8a062e-2368-4a62-93b7-9cbde2bcc57f",
+        "59630642-70e4-409a-9a57-fd3b71dbfe52",
+        "b76fec1d-db56-4c51-89f1-125e249d899d",
+        "137db08e-67fe-443d-a549-0a40ed363ee8",
+        "17d1d7c1-f4a5-4a39-abad-2a6477d31e1a",
+        "9effb31f-3b41-4452-8616-f4d3300c540c",
+        "401613a9-f5d3-4fab-9a55-da1c0a2e9f8c",
+        "0308f953-b433-4ffc-9d5b-837a99ba5320",
+        "28c054ac-3672-4d38-ae89-6a9e60a0c52b"
+      ],
+      "dimensionIds": [
+        "5c97211c-d9ac-49c6-b83f-093320ca32a5",
+        "f38e94c0-c63a-43d2-a1b9-90cb9d318fd9",
+        "26355267-ef6b-48e4-be1f-8881f1cd1ae9",
+        "c9d70429-aa9a-46f2-81e0-04d560b3bb88"
+      ],
+      "flippedDimensionIds": [
+        "5c97211c-d9ac-49c6-b83f-093320ca32a5"
+      ],
+      "sizeByWeight": false,
+      "colorMode": "element",
+      "shownCollectionIds": [
+        "9fa55ec3-6473-4fcc-b113-ef53d828bbe2",
+        "fe488525-f3f1-4fd1-bd42-91c7b6a942fb"
+      ],
+      "showLabels": true,
+      "marks": "circle",
+      "windowX": 197,
+      "windowY": 610,
+      "windowWidth": 926,
+      "windowHeight": 455
+    }
+  ]
+}

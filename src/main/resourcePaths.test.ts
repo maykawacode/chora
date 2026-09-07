@@ -21,8 +21,8 @@ describe('bundledResourceRoot', () => {
 
 describe('resolveBundledResourcePath', () => {
   it('resolves examples and Help inside their fixed directories', () => {
-    expect(resolveBundledResourcePath('example', 'campus-study-spaces.mtda', development))
-      .toBe('/workspace/chora/resources/examples/campus-study-spaces.mtda')
+    expect(resolveBundledResourcePath('example', 'sample-dataset.chora', development))
+      .toBe('/workspace/chora/resources/examples/sample-dataset.chora')
     expect(resolveBundledResourcePath('help', 'orientation.md', packaged))
       .toBe('/Applications/Chora.app/Contents/Resources/help/orientation.md')
   })

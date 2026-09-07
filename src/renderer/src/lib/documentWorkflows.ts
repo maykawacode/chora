@@ -57,7 +57,7 @@ export async function openDocument(): Promise<boolean> {
 
 export async function openBundledExample(): Promise<boolean> {
   try {
-    const json = await window.api.readBundledExample('campus-study-spaces.mtda')
+    const json = await window.api.readBundledExample('sample-dataset.chora')
     const state = deserializeBundledExample(json)
     history.replaceUnsavedDocument(() => {
       const store = useAppStore.getState()

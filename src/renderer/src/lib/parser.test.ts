@@ -27,7 +27,7 @@ import { deserializeBundledExample, deserializeSession, serializeSession } from 
 const DATA_DIR = resolve(process.cwd(), '../Data')
 const BUNDLED_EXAMPLE = resolve(
   process.cwd(),
-  'resources/examples/campus-study-spaces.mtda'
+  'resources/examples/sample-dataset.chora'
 )
 const BUNDLED_ORIENTATION = resolve(process.cwd(), 'resources/help/orientation.md')
 
@@ -39,11 +39,11 @@ describe('Bundled example', () => {
   it('meets the release-plan content bounds and has both map types', () => {
     const state = deserializeSession(readFileSync(BUNDLED_EXAMPLE, 'utf8'))
 
-    expect(state.sessionMeta.name).toBe('Finding a place to study on campus')
-    expect(state.elements).toHaveLength(18)
+    expect(state.sessionMeta.name).toBe('Vegetables — Example Comparison')
+    expect(state.elements).toHaveLength(20)
     expect(state.dimensions).toHaveLength(6)
-    expect(state.collections).toHaveLength(3)
-    expect(state.maps.map(map => map.type).sort()).toEqual(['cartesian', 'semantic'])
+    expect(state.collections).toHaveLength(6)
+    expect(state.maps.map(map => map.type).sort()).toEqual(['cartesian', 'cartesian', 'semantic'])
     for (const element of state.elements) {
       expect(Object.keys(state.scores[element.id] ?? {})).toHaveLength(6)
     }
