@@ -102,6 +102,19 @@ describe('Cartesian collection filtering', () => {
   })
 })
 
+describe('sessionMeta.notes', () => {
+  it('preserves a saved value and defaults a missing one to empty', () => {
+    const parseNotes = (notes?: string) => deserializeSession(JSON.stringify({
+      version: '5.0',
+      sessionMeta: { id: 's', name: 'S', definition: '', notes },
+      elements: [], collections: [], dimensions: [], scores: {}, maps: []
+    })).sessionMeta.notes
+
+    expect(parseNotes('<div>Some notes</div>')).toBe('<div>Some notes</div>')
+    expect(parseNotes()).toBe('')
+  })
+})
+
 describe('4.0 → 5.0 membership migration', () => {
   if (sessionFiles.length === 0) {
     it.skip('no .mtda files in Data/ to migrate', () => {})

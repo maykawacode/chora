@@ -54,7 +54,7 @@ function importedState(name: string): AppState {
   return {
     filePath: null,
     isDirty: true,
-    sessionMeta: { id: `session-${name}`, name, definition: '' },
+    sessionMeta: { id: `session-${name}`, name, definition: '', notes: '' },
     elements: [{
       id: `element-${name}`,
       name,

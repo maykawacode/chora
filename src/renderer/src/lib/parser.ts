@@ -28,6 +28,7 @@
 //               selected, which draws exactly as it did.
 //   within 5.0: cartesian map.onlySelectedCollections added. Missing defaults
 //               to false, preserving the previous all-elements view.
+//   within 5.0: sessionMeta.notes added. Missing defaults to ''.
 
 import type { AppState, ColorMode, MarkMode, Element, Collection, Dimension, MapConfig, SessionMeta } from './types'
 import { defaultCategories, defaultSessionMeta, parsePoles } from './types'
@@ -207,7 +208,8 @@ export function deserializeSession(json: string): AppState {
     ? {
         id:         raw.sessionMeta.id         ?? crypto.randomUUID(),
         name:       raw.sessionMeta.name        ?? '',
-        definition: raw.sessionMeta.definition  ?? ''
+        definition: raw.sessionMeta.definition  ?? '',
+        notes:      raw.sessionMeta.notes       ?? ''
       }
     : defaultSessionMeta()
 
@@ -346,7 +348,7 @@ export function deserializeSession(json: string): AppState {
     selectedElementId: null,
     selectedDimensionId: null,
     selectedCollectionId: null,
-    activeTab: 'elements'
+    activeTab: 'notes'
   }
 }
 

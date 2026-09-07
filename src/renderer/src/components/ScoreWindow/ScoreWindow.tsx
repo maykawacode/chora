@@ -1,12 +1,13 @@
 // ── ScoreWindow ───────────────────────────────────────────────────────────────
 //
 // Top-level shell of the main application window. Renders the tab bar and
-// delegates to one of five tab components based on the active tab in the store.
+// delegates to one of six tab components based on the active tab in the store.
 // Dialog callbacks bubble up to App.tsx, which owns all modal state. The
 // internal `scores` key remains unchanged even though its user-facing label is
 // Assess, avoiding unrelated runtime state and type churn.
 
 import { useAppStore } from '../../store/appStore'
+import { NotesTab } from './NotesTab'
 import { ElementsTab } from './ElementsTab'
 import { DimensionsTab } from './DimensionsTab'
 import { AssessTab } from './ScoresTab'
@@ -19,6 +20,7 @@ import styles from './ScoreWindow.module.css'
 // Keep runtime keys decoupled from presentation labels. In particular, the
 // long-standing `scores` key now presents the broader Assess workspace.
 const TAB_LABELS: Record<AppState['activeTab'], string> = {
+  notes:       'Notes',
   elements:    'Elements',
   collections: 'Collections',
   dimensions:  'Dimensions',
@@ -27,6 +29,7 @@ const TAB_LABELS: Record<AppState['activeTab'], string> = {
 }
 
 const TAB_ACCESSIBLE_LABELS: Record<AppState['activeTab'], string> = {
+  notes:       'Notes',
   elements:    'Elements',
   collections: 'Collections',
   dimensions:  'Dimensions',
@@ -71,7 +74,7 @@ export function ScoreWindow({ onOpenStarterPicker, statusOverride }: Props): Rea
       </div>
 
       <div className={styles.tabBar}>
-        {(['elements', 'dimensions', 'collections', 'scores', 'conversions'] as const).map(tab => (
+        {(['notes', 'elements', 'dimensions', 'collections', 'scores', 'conversions'] as const).map(tab => (
           <button
             key={tab}
             className={[
@@ -90,6 +93,7 @@ export function ScoreWindow({ onOpenStarterPicker, statusOverride }: Props): Rea
       </div>
 
       <div className={styles.tabContent}>
+        {activeTab === 'notes'       && <NotesTab />}
         {activeTab === 'elements'    && <ElementsTab />}
         {activeTab === 'collections' && <CollectionsTab />}
         {activeTab === 'dimensions'  && <DimensionsTab onOpenStarterPicker={onOpenStarterPicker} />}

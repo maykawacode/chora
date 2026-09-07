@@ -23,6 +23,7 @@ export interface SessionMeta {
   id: string          // UUID, generated once at session creation, never changed
   name: string        // human name for this analysis
   definition: string  // what this dataset represents / what is being analyzed
+  notes: string       // freeform running notes on the work, stored as HTML
 }
 
 export interface Element {
@@ -187,7 +188,7 @@ export interface AppState {
   selectedElementId: string | null
   selectedDimensionId: string | null
   selectedCollectionId: string | null
-  activeTab: 'elements' | 'dimensions' | 'scores' | 'collections' | 'conversions'
+  activeTab: 'notes' | 'elements' | 'dimensions' | 'scores' | 'collections' | 'conversions'
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -206,7 +207,7 @@ export function defaultCategories(): DimensionCategories {
 
 /** Returns a SessionMeta with a fresh UUID and empty strings. */
 export function defaultSessionMeta(): SessionMeta {
-  return { id: crypto.randomUUID(), name: '', definition: '' }
+  return { id: crypto.randomUUID(), name: '', definition: '', notes: '' }
 }
 
 /**

@@ -3,7 +3,7 @@
 // Writes the current session as a tab-separated (TSV) file using the full
 // ##SECTION format. Covers all analysis data for a lossless round-trip:
 //
-//   ##SESSION        — name and definition of the analysis
+//   ##SESSION        — name, definition, and notes for the analysis
 //   ##ELEMENTS       — name, definition, color, weight, shape, collections
 //   ##COLLECTIONS    — name, definition and color per collection
 //   ##DIMENSIONS     — label, poles, definition, weight per dimension
@@ -89,8 +89,8 @@ export function exportSpreadsheet(state: AppState): string {
   // ── ##SESSION — header row then one data row ────────────────────────────────
   sections.push([
     '##SESSION',
-    'Name\tPurpose of Analysis',
-    `${cell(sessionMeta.name)}\t${cell(sessionMeta.definition)}`
+    'Name\tPurpose of Analysis\tNotes',
+    `${cell(sessionMeta.name)}\t${cell(sessionMeta.definition)}\t${quoted(sessionMeta.notes)}`
   ].join('\n'))
 
   // ── ##ELEMENTS ─────────────────────────────────────────────────────────────

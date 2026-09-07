@@ -1,0 +1,106 @@
+/* Grid rows/height come from useResizableSplitPaneVertical's inline
+   containerStyle; this only sets the padding around it. */
+.tab {
+  padding: var(--space-four);
+  overflow: hidden;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  gap: var(--space-one);
+  padding-bottom: var(--space-two);
+}
+
+.notesSection {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  gap: var(--space-one);
+  padding-top: var(--space-two);
+}
+
+.label {
+  font-size: var(--font-size-control);
+  color: var(--color-text-secondary);
+  flex: none;
+}
+
+/* Divider between Intent and Notes, dragged via useResizableSplitPaneVertical. */
+.resizeHandle {
+  height: 5px;
+  flex-shrink: 0;
+  cursor: row-resize;
+  background: transparent;
+  border-top: 1px solid var(--color-border-control);
+  transition: border-color 0.15s;
+}
+
+.resizeHandle:hover {
+  border-color: var(--color-focus);
+}
+
+.intentField {
+  resize: none;
+  flex: 1;
+  /* One line, floor for content-box height (padding is additional) — the
+     content-level half of the one-line-minimum guarantee; see
+     PANE_MIN_HEIGHT in useResizableSplitPaneVertical.ts for the other. */
+  min-height: 1.4em;
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-control);
+  padding: var(--space-two);
+  font-size: var(--font-size-body);
+  font-family: inherit;
+  background: var(--color-surface-field);
+  color: var(--color-text-primary);
+}
+
+.intentField:focus {
+  outline: none;
+  border-color: var(--color-focus);
+}
+
+.notesEditor {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+/* Trix elements are built and appended to .notesEditor imperatively (see
+   NotesTab.tsx), so they are styled here via plain descendant selectors
+   rather than through CSS-module class names. */
+.notesEditor :global(trix-toolbar) {
+  border: 1px solid var(--color-border-control);
+  border-bottom: none;
+  border-radius: var(--radius-control) var(--radius-control) 0 0;
+  background: var(--color-surface-chrome);
+  padding: var(--space-one);
+  flex: none;
+}
+
+.notesEditor :global(trix-editor) {
+  flex: 1;
+  /* One line, floor for content-box height — see .intentField above. */
+  min-height: 1.4em;
+  overflow-y: auto;
+  border: 1px solid var(--color-border-control);
+  border-radius: 0 0 var(--radius-control) var(--radius-control);
+  padding: var(--space-two);
+  font-size: var(--font-size-body);
+  font-family: inherit;
+  background: var(--color-surface-field);
+  color: var(--color-text-primary);
+}
+
+.notesEditor :global(trix-editor:focus) {
+  outline: none;
+  border-color: var(--color-focus);
+}
+
+.notesEditor :global(trix-editor a) {
+  color: var(--color-focus);
+  cursor: pointer;
+}

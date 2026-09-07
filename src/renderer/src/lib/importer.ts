@@ -8,7 +8,7 @@
 // referenced in score sections but absent from their entity section are
 // created automatically with defaults.
 //
-//   ##SESSION        — Name, Definition (key/value rows)
+//   ##SESSION        — Name, Definition, Notes (key/value rows)
 //   ##ELEMENTS       — Name, Definition, Color, Weight, Shape, Collections
 //   ##COLLECTIONS    — Name, Definition, Color
 //   ##DIMENSIONS     — Label, Pole A, Pole B, Definition, Weight
@@ -112,15 +112,19 @@ function parseFullSpreadsheet(text: string): ImportResult {
   // ── Session ────────────────────────────────────────────────────────────────
   // Format: header row (Name | <definition label>) then one data row.
   const sessionRows = sections['SESSION'] ?? []
-  const sessionMeta: SessionMeta = { id: crypto.randomUUID(), name: '', definition: '' }
+  const sessionMeta: SessionMeta = { id: crypto.randomUUID(), name: '', definition: '', notes: '' }
   if (sessionRows.length >= 2) {
     const hdr  = sessionRows[0].map(h => h.trim().toLowerCase())
     const data = sessionRows[1]
-    const nameCol = Math.max(0, hdr.indexOf('name'))
+    const nameCol  = Math.max(0, hdr.indexOf('name'))
     // definition lives in the first column that isn't 'name'
-    const defCol  = hdr.findIndex((h, i) => i !== nameCol && h !== '')
+    const defCol   = hdr.findIndex((h, i) => i !== nameCol && h !== '')
+    // named explicitly, unlike defCol's positional fallback, so adding this
+    // column can't be mistaken for the definition column above
+    const notesCol = hdr.indexOf('notes')
     sessionMeta.name       = tc(data[nameCol])
-    sessionMeta.definition = defCol >= 0 ? tc(data[defCol]) : ''
+    sessionMeta.definition = defCol   >= 0 ? tc(data[defCol])   : ''
+    sessionMeta.notes      = notesCol >= 0 ? tc(data[notesCol]) : ''
   }
 
   // ── Collections ────────────────────────────────────────────────────────────

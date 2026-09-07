@@ -128,7 +128,7 @@ const emptyState: AppState = {
   selectedElementId: null,
   selectedDimensionId: null,
   selectedCollectionId: null,
-  activeTab: 'elements'
+  activeTab: 'notes'
 }
 
 // ── Shape / color conversion helpers ─────────────────────────────────────────

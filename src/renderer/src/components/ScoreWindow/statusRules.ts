@@ -14,6 +14,9 @@ type StatusState = Pick<
 
 export function resolveStatusMessage(state: StatusState): string {
   switch (state.activeTab) {
+    case 'notes':
+      return STATUS_MESSAGES.notes.ready
+
     case 'elements':
       if (state.elements.length === 0) return STATUS_MESSAGES.elements.empty
       return state.selectedElementId

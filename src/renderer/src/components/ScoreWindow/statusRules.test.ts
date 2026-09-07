@@ -23,6 +23,11 @@ function state(changes: Partial<StatusState> = {}): StatusState {
 }
 
 describe('resolveStatusMessage', () => {
+  it('resolves the Notes state', () => {
+    expect(resolveStatusMessage(state({ activeTab: 'notes' })))
+      .toBe(STATUS_MESSAGES.notes.ready)
+  })
+
   it('resolves Element states', () => {
     expect(resolveStatusMessage(state())).toBe(STATUS_MESSAGES.elements.empty)
     expect(resolveStatusMessage(state({ elements: [element] }))).toBe(STATUS_MESSAGES.elements.noSelection)

@@ -146,7 +146,7 @@ describe('Colors are constrained to hex on import', () => {
 
 describe('Formula injection on export', () => {
   const stateWith = (name: string, definition = ''): never => ({
-    sessionMeta: { id: 's', name: 'S', definition: '' },
+    sessionMeta: { id: 's', name: 'S', definition: '', notes: '' },
     elements: [{ id: 'e1', name, definition, color: '#123456', weight: 1,
                  shape: 'circle', collectionIds: [] }],
     collections: [],
@@ -187,7 +187,7 @@ describe('Formula injection on export', () => {
 describe('Formula escaping round-trips', () => {
   const roundTrip = (name: string): string => {
     const state = {
-      sessionMeta: { id: 's', name: 'S', definition: '' },
+      sessionMeta: { id: 's', name: 'S', definition: '', notes: '' },
       elements: [{ id: 'e1', name, definition: '', color: '#123456', weight: 1,
                    shape: 'circle', collectionIds: ['c1'] }],
       collections: [{ id: 'c1', name, definition: '', color: '#808080' }],
@@ -213,7 +213,7 @@ describe('Formula escaping round-trips', () => {
 
   it('restores an escaped collection name in the membership column', () => {
     const state = {
-      sessionMeta: { id: 's', name: 'S', definition: '' },
+      sessionMeta: { id: 's', name: 'S', definition: '', notes: '' },
       elements: [{ id: 'e1', name: 'Item', definition: '', color: '#123456',
                    weight: 1, shape: 'circle', collectionIds: ['c1', 'c2'] }],
       collections: [
@@ -236,6 +236,38 @@ describe('Formula escaping round-trips', () => {
       "'Tis the season\t\t#123456\t1\tcircle\t"
     ].join('\n')
     expect(parseSpreadsheet(tsv).elements[0].name).toBe("'Tis the season")
+  })
+})
+
+describe('##SESSION round-trip', () => {
+  it('survives export → import, including a Notes value with an embedded quote', () => {
+    const state = {
+      sessionMeta: {
+        id: 's',
+        name: 'Campus study spaces',
+        definition: 'What makes a good place to study?',
+        notes: '<div>Ran a first pass — <strong>library carrels</strong> scored highest so far. Says "quiet".</div>'
+      },
+      elements: [],
+      collections: [],
+      dimensions: [],
+      scores: {}
+    } as never
+    const back = parseSpreadsheet(exportSpreadsheet(state))
+
+    expect(back.sessionMeta.name).toBe('Campus study spaces')
+    expect(back.sessionMeta.definition).toBe('What makes a good place to study?')
+    expect(back.sessionMeta.notes).toBe(
+      '<div>Ran a first pass — <strong>library carrels</strong> scored highest so far. Says "quiet".</div>'
+    )
+  })
+
+  it('defaults Notes to empty when the column is absent (older export)', () => {
+    const tsv = ['##SESSION', 'Name\tPurpose of Analysis', 'Old Session\tSome purpose'].join('\n')
+    const back = parseSpreadsheet(tsv)
+    expect(back.sessionMeta.name).toBe('Old Session')
+    expect(back.sessionMeta.definition).toBe('Some purpose')
+    expect(back.sessionMeta.notes).toBe('')
   })
 })
 

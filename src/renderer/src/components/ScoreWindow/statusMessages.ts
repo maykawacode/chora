@@ -1,6 +1,10 @@
 // Edit status-bar wording here. The nested property names describe when each
 // message appears; changing message text does not require changing any rules.
 export const STATUS_MESSAGES = {
+  notes: {
+    ready: 'Capture the intent of this study and any running notes.'
+  },
+
   elements: {
     empty: 'Add an element to begin.',
     noSelection: 'Select an element to edit.',
