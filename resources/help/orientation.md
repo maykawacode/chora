@@ -1,61 +1,56 @@
 # Chora in two minutes
 
-Chora helps you compare qualitative material spatially. It does not discover
-objective facts: the maps show the judgments recorded in the current session so
-you can inspect patterns, exceptions, and questions worth revisiting.
+Chora compares a set of items — ideas, insights, competitors, places, documents,
+or any other units of analysis — by placing them in space. It runs entirely on
+your machine and has no AI or algorithm that infers relationships for you. The
+maps show the judgments you recorded: your own thinking made inspectable, not an
+objective finding.
 
-## Four building blocks
+Nothing is locked. Rename a dimension, change its poles, or add and remove
+elements as the set changes — terms often come clear only after a few things
+have been placed. Adding leaves existing work in place; removing takes only its
+own information with it. Every open map redraws as you go.
 
-- **Elements** are the things being compared: places, statements, interviews,
-  documents, images, cases, or other units of analysis.
-- **Dimensions** are paired ideas used to compare every element, such as
-  Quiet–Lively or Private–Social.
-- **Scores** place an element between the two poles of a dimension. A score near
-  0 sits toward the first pole; a score near 1 sits toward the second.
+## The parts
+
+- **Elements** are the things being compared. Each has a name and definition,
+  plus a color, shape, and weight.
+- **Dimensions** are the paired qualities every element is compared on, such as
+  Quiet–Lively or Private–Social. Each has two poles, a definition, and a weight.
+- **Scores** place an element between a dimension's poles. A score near 0 sits
+  toward the first pole; a score near 1 sits toward the second. Record one with
+  the sliders in Assess, or by moving an element on a map.
 - **Collections** are named groups. Membership is yes or no, and an element can
-  belong to more than one Collection.
+  belong to more than one.
+- **Conversions** turn one scale into another — a dimension of size can drive
+  element weight, a dimension of intensity can drive element color, and back.
+- **Intent and Notes** open the study: what the comparison is for, and a running
+  log of what you decide and why.
 
-## The basic sequence
+## A working sequence
 
-**Elements → Dimensions → Collections → Assess → Maps**
+**Intent → Elements → Dimensions → Collections → Assess → Maps**
 
-Define what you are comparing, define the questions you will ask of it, add any
-useful groups, then use Assess to record scores and Collection membership. Open
-maps from the Maps menu whenever you want to inspect the emerging structure.
+Say what the study is for, list what you are comparing, name the qualities you
+will compare them on, add any groups worth tracking, then use Assess to record
+scores and membership. Open maps from the Maps menu at any point, and return to
+any step at any time.
 
 ## Reading the maps
 
-- A **Cartesian map** uses two dimensions as axes. Elements with similar scores
-  appear near one another. Collection outlines reveal how named groups overlap
-  the scored space; proximity is a prompt to interpret, not proof of a cause.
-- A **Semantic map** shows each element as a profile across several dimensions.
-  Lines that follow similar paths have similar profiles. Use Collection focus to
-  reduce the view when the full set becomes crowded.
+- A **Cartesian map** uses two dimensions as its axes, so elements with similar
+  scores sit near one another and clusters and outliers stand out. Proximity is
+  a prompt to interpret, not proof of a cause.
+- A **Semantic map** shows each element as a line across several dimensions at
+  once. Similar paths mean similar elements, and where two lines separate shows
+  which quality distinguishes them.
 
-## Three things to try in the campus example
-
-### 1. Explain the clusters
-
-In **Study-space clusters**, compare the quiet, private spaces at one end with
-the lively, social spaces at the other. Toggle Collection outlines in the map
-sidebar and notice the partly overlapping Restorative group.
-
-### 2. Compare two profiles
-
-In **Profiles of campus study spaces**, compare Silent-floor carrel with
-Residence hall lounge. Trace where their lines diverge, then use Collection
-focus to narrow the view.
-
-### 3. Change one judgment
-
-In Assess, select Outdoor courtyard table and move one score. Watch both open
-maps update, then choose **Edit → Undo**. Save As creates your own editable copy;
-the bundled example itself is never overwritten.
+Both are live: dragging an element changes the score that position represents,
+and Assess and every other open map update immediately. Any map exports as SVG.
 
 ## Keyboard shortcuts
 
-- **Command-D** on macOS or **Ctrl-D** on Windows and Linux duplicates the
-  selected element.
+- **Command-D** duplicates the selected element in the Elements tab.
 - **Up Arrow / Down Arrow** navigates element, dimension, and Collection lists.
 - **Delete** removes the selected element, dimension, or Collection. Chora may
   ask for confirmation when that deletion would remove related data.

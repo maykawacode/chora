@@ -58,14 +58,29 @@ describe('Bundled example', () => {
 })
 
 describe('Bundled orientation', () => {
-  it('covers the core concepts, both maps, and three example activities', () => {
+  it('covers the core concepts, both maps, and the working sequence', () => {
     const markdown = readFileSync(BUNDLED_ORIENTATION, 'utf8')
 
-    for (const term of ['Elements', 'Dimensions', 'Scores', 'Collections', 'Cartesian map', 'Semantic map']) {
+    for (const term of [
+      'Elements', 'Dimensions', 'Scores', 'Collections', 'Conversions',
+      'Intent and Notes', 'Cartesian map', 'Semantic map'
+    ]) {
       expect(markdown).toContain(term)
     }
-    expect(markdown.match(/^### \d\./gm)).toHaveLength(3)
-    expect(markdown).toContain('Elements → Dimensions → Collections → Assess → Maps')
+    expect(markdown).toContain('Intent → Elements → Dimensions → Collections → Assess → Maps')
+  })
+
+  it('uses only the Markdown subset OrientationDialog can render', () => {
+    const markdown = readFileSync(BUNDLED_ORIENTATION, 'utf8')
+
+    for (const line of markdown.split('\n')) {
+      // Anything that is not a heading or a bullet renders as a paragraph, so
+      // ordered lists, links, and code fences would reach the user as literal
+      // syntax. See OrientationDocument in OrientationDialog.tsx.
+      expect(line).not.toMatch(/^\s*\d+\. /)
+      expect(line).not.toMatch(/^\s*(```|>|\|)/)
+      expect(line).not.toMatch(/\[[^\]]*\]\([^)]*\)/)
+    }
   })
 })
 
