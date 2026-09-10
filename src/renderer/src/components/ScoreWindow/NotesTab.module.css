@@ -21,9 +21,12 @@
   padding-top: var(--space-two);
 }
 
+/* Section heading, matching the uppercase label recipe the other tabs use. */
 .label {
-  font-size: var(--font-size-control);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-semibold);
   color: var(--color-text-secondary);
+  text-transform: uppercase;
   flex: none;
 }
 

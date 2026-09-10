@@ -24,6 +24,15 @@ import { drawMark, drawSelectionRing, markShapeIndex } from '../shape'
 import { normalizeInRange, numericRange, type NumericRange } from '../../../lib/numericRange'
 import { uiTheme } from '../../../design/theme'
 
+// Element labels are truncated to a pixel budget rather than a character count.
+// These two are one calibrated pair: 88px of room was judged right for labels
+// drawn at 11px, and the ratio between them scales the budget with whatever size
+// the user picks, so a larger label is not clipped harder just for being larger.
+// The calibration size records what the budget was measured against — it is not
+// the default label size, and must not be updated when that default changes.
+const LABEL_WIDTH_BUDGET = 88
+const LABEL_WIDTH_CALIBRATION_SIZE = 11
+
 // Horizontal margin — space reserved on each side for pole labels
 export const SEM_MARGIN_H = 96
 
@@ -299,10 +308,8 @@ export function drawSemantic(
     // Element name label — 45° upward from the topmost scored dot
     if (config.showLabels) {
       const top = points[0]
-      // Scale the truncation budget proportionally with font size so labels
-      // don't get clipped more aggressively just because the user made them
-      // larger. Base budget of 88px is calibrated for the default 11px size.
-      const MAX_LABEL_W = 88 * (elementLabelSize / LABEL_SIZE_DEFAULT)
+      const MAX_LABEL_W =
+        LABEL_WIDTH_BUDGET * (elementLabelSize / LABEL_WIDTH_CALIBRATION_SIZE)
       ctx.font = labelFont(elementLabelSize)
 
       let label = el.name

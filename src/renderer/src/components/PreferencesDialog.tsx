@@ -161,7 +161,7 @@ export function PreferencesDialog({ onClose }: Props): React.JSX.Element {
                   className={styles.sizeInput}
                   min={8} max={24} step={1}
                   value={draft.elementLabelSize}
-                  onChange={e => setDraft(d => ({ ...d, elementLabelSize: Math.max(8, Math.min(24, +e.target.value || 11)) }))}
+                  onChange={e => setDraft(d => ({ ...d, elementLabelSize: Math.max(8, Math.min(24, +e.target.value || DEFAULT_PREFERENCES.elementLabelSize)) }))}
                 />
                 <span className={styles.sizeUnit}>px</span>
               </span>
@@ -174,7 +174,7 @@ export function PreferencesDialog({ onClose }: Props): React.JSX.Element {
                   className={styles.sizeInput}
                   min={8} max={24} step={1}
                   value={draft.dimensionLabelSize}
-                  onChange={e => setDraft(d => ({ ...d, dimensionLabelSize: Math.max(8, Math.min(24, +e.target.value || 11)) }))}
+                  onChange={e => setDraft(d => ({ ...d, dimensionLabelSize: Math.max(8, Math.min(24, +e.target.value || DEFAULT_PREFERENCES.dimensionLabelSize)) }))}
                 />
                 <span className={styles.sizeUnit}>px</span>
               </span>
@@ -187,7 +187,7 @@ export function PreferencesDialog({ onClose }: Props): React.JSX.Element {
                   className={styles.sizeInput}
                   min={3} max={16} step={1}
                   value={draft.dotDefaultSize}
-                  onChange={e => setDraft(d => ({ ...d, dotDefaultSize: Math.max(3, Math.min(16, +e.target.value || 6)) }))}
+                  onChange={e => setDraft(d => ({ ...d, dotDefaultSize: Math.max(3, Math.min(16, +e.target.value || DEFAULT_PREFERENCES.dotDefaultSize)) }))}
                 />
                 <span className={styles.sizeUnit}>px</span>
               </span>

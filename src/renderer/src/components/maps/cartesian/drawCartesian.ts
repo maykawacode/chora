@@ -61,8 +61,10 @@ export function cartesianDotRadius(
 // Gap between dot edge and element name label
 const LABEL_OFFSET = 3
 
-// Default label size used when callers don't supply an explicit size.
-export const LABEL_SIZE_DEFAULT = 11
+// Fallback label size for callers that omit one; mirrors the elementLabelSize
+// and dimensionLabelSize preference defaults. MapPanel always passes the user's
+// chosen sizes, so this is a floor for future callers, not a live default.
+export const LABEL_SIZE_DEFAULT = 13
 
 // Builds the canvas font string for any given pixel size. Map labels remain
 // deliberately independent of interface typography so a future preference can
