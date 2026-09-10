@@ -11,7 +11,7 @@
 
 import { ipcMain, dialog, app, BrowserWindow } from 'electron'
 import { readFile } from 'fs/promises'
-import { getMainWindow, setQuitConfirmed } from './index'
+import { getMainWindow, setQuitConfirmed, restoreMainWindowBounds } from './index'
 import {
   openMapWindow,
   closeMapWindowSilent,
@@ -193,18 +193,10 @@ export function registerIpcHandlers(): void {
 
   // Renderer calls this once a session is established (file opened or new session
   // started) to move the main window from its centered launch position to its
-  // last saved position and size. No-op if no bounds have been saved yet.
+  // last saved position and size. The window owns the decision — see
+  // restoreMainWindowBounds() for when a saved position is declined.
   ipcMain.on('window:restore-main-bounds', () => {
-    const win = getMainWindow()
-    if (!win || win.isDestroyed()) return
-    const prefs = getCachedPreferences()
-    if (!prefs.rememberWindowPositions || prefs.mainWindowX == null || prefs.mainWindowY == null) return
-    win.setBounds({
-      x:      prefs.mainWindowX,
-      y:      prefs.mainWindowY,
-      width:  prefs.mainWindowWidth,
-      height: prefs.mainWindowHeight
-    }, true)  // true = animate on macOS
+    restoreMainWindowBounds()
   })
 
   // ── State relay ───────────────────────────────────────────────────────────────
