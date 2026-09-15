@@ -10,12 +10,19 @@ import type { Plugin } from 'vite'
 // that tries to reach the network is refused by the renderer itself rather than
 // relying on every future line of code to keep the promise.
 //
-// The directive doing the real work is `img-src 'none'`. A CSS background
+// The directive doing the real work is `img-src data:`. A CSS background
 // accepts `url(...)`, so any untrusted string that reaches a style — an element
 // or collection color out of a shared .chora file, say — is a potential request
 // to a remote server that fires when the swatch is painted. Colors are
 // validated at the file boundary (see lib/color.ts), and this is the second
 // line: even a color that somehow got through cannot fetch anything.
+//
+// `data:` is the single source allowed, and it opens no network path — a data
+// URI carries its own bytes and reaches nothing off the machine, so the promise
+// above is unchanged. It is listed for the Notes tab: Trix ships its toolbar
+// icons as data-URI backgrounds inside trix.css, and under the `'none'` this
+// replaced they were refused, leaving working buttons with no icons on them.
+// Those fifteen icons are the only images the renderer loads at all.
 //
 // `file:` is listed alongside 'self' deliberately. A packaged renderer is loaded
 // over file://, where a document's origin is opaque and 'self' is not reliably
@@ -27,8 +34,8 @@ import type { Plugin } from 'vite'
 // silently unstyled window if a build ever emits an inline <style>. Scripts get
 // no such latitude.
 // `default-src 'none'` already denies every fetch type, so most directives
-// would be redundant. The three kept explicit are the ones the app actually
-// needs, plus img-src and connect-src — redundant today, but named so that
+// would be redundant. The four kept explicit are the ones the app actually
+// needs, plus connect-src — redundant today, but named so that
 // loosening default-src later cannot silently reopen the network path this
 // policy exists to close. The tag is injected first in <head>, ahead of the
 // module script it governs, which keeps <meta charset> inside the first 1024
@@ -38,7 +45,7 @@ const CONTENT_SECURITY_POLICY = [
   "script-src 'self' file:",
   "style-src 'self' file: 'unsafe-inline'",
   "font-src 'self' file:",
-  "img-src 'none'",
+  "img-src data:",
   "connect-src 'none'",
   "base-uri 'none'",
   "form-action 'none'"
