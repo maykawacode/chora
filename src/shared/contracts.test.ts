@@ -68,7 +68,9 @@ describe('preferences are read defensively', () => {
     dotDefaultSize: Infinity,
     mainWindowWidth: {},
     mainWindowHeight: [],
-    lastFilePath: 42
+    lastFilePath: 42,
+    checkForUpdatesOnLaunch: 'sometimes',
+    dismissedNoticeId: 99
   }
 
   it('falls back to the default for every mistyped field', () => {
@@ -111,11 +113,17 @@ describe('preferences are read defensively', () => {
       defaultElementShape: 'diamond' as const,
       defaultElementColor: '#123456',
       lastFilePath: '/tmp/session.chora',
+      checkForUpdatesOnLaunch: false,
+      dismissedNoticeId: '2026-09-20-beta7',
       mainWindowX: 12,
       mainWindowY: 34,
       elementLabelSize: 18
     }
     expect(mergePreferences(good)).toEqual(good)
+  })
+
+  it('forgets a dismissed notice that is not a string, rather than suppressing one', () => {
+    expect(mergePreferences({ dismissedNoticeId: { id: 'x' } } as never).dismissedNoticeId).toBeNull()
   })
 
   it('ignores a prototype-polluting key', () => {

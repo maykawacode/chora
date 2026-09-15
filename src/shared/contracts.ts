@@ -1,3 +1,5 @@
+import type { UpdateNotice } from './updateNotice'
+
 export type MarkMode = 'none' | 'circle' | 'element'
 export type ElementShape = 'circle' | 'square' | 'triangle' | 'diamond'
 
@@ -9,7 +11,10 @@ export interface Preferences {
   defaultElementShape: ElementShape
   reopenLastFile: boolean
   confirmDeleteData: boolean
+  checkForUpdatesOnLaunch: boolean
   lastFilePath: string | null
+  /** id of the last update notice the user dismissed, so it stays dismissed. */
+  dismissedNoticeId: string | null
   elementLabelSize: number
   dimensionLabelSize: number
   dotDefaultSize: number
@@ -29,7 +34,9 @@ export const DEFAULT_PREFERENCES: Preferences = {
   defaultElementShape: 'circle',
   reopenLastFile: false,
   confirmDeleteData: true,
+  checkForUpdatesOnLaunch: true,
   lastFilePath: null,
+  dismissedNoticeId: null,
   elementLabelSize: 13,
   dimensionLabelSize: 13,
   dotDefaultSize: 7,
@@ -117,8 +124,14 @@ export function mergePreferences(raw: StoredPreferences = {}): Preferences {
       bool(stored.confirmDeleteElement, d.confirmDeleteData)
     ),
 
+    checkForUpdatesOnLaunch: bool(stored.checkForUpdatesOnLaunch, d.checkForUpdatesOnLaunch),
+
     // Only a string is a usable path. Anything else means "no file to reopen".
     lastFilePath: typeof stored.lastFilePath === 'string' ? stored.lastFilePath : null,
+
+    // Anything but a string means nothing has been dismissed, which shows the
+    // notice again rather than suppressing one the user never saw.
+    dismissedNoticeId: typeof stored.dismissedNoticeId === 'string' ? stored.dismissedNoticeId : null,
 
     elementLabelSize:   finite(stored.elementLabelSize, d.elementLabelSize),
     dimensionLabelSize: finite(stored.dimensionLabelSize, d.dimensionLabelSize),
@@ -187,6 +200,7 @@ export interface ChoraApi {
   readBundledExample: (fileName: string) => Promise<string>
   readHelpDocument: (fileName: string) => Promise<string>
   getAppVersion: () => string
+  getUpdateNotice: () => Promise<UpdateNotice | null>
   onMenuAction: (cb: (action: MenuAction) => void) => () => void
   openMap: (mapId: string, stateJson: string) => void
   closeMap: (mapId: string) => void

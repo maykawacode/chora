@@ -27,12 +27,18 @@ export function PreferencesDialog({ onClose }: Props): React.JSX.Element {
   }
 
   function handleSave(): void {
-    setPrefs(draft)
-    window.api?.savePreferences(draft)
+    // The draft was copied when this dialog opened, so it can be stale for
+    // values that change behind it. Dismissing an update notice while Settings
+    // sits open is the reachable case: saving a draft captured beforehand
+    // would resurrect a notice the user has already closed.
+    const next: Preferences = { ...draft, dismissedNoticeId: prefs.dismissedNoticeId }
+
+    setPrefs(next)
+    window.api?.savePreferences(next)
     // Push updated prefs to all open map BrowserWindows. Each has its own
     // renderer process with its own prefsStore, so they won't see the change
     // unless we explicitly relay it over IPC.
-    window.api?.broadcastPrefs(draft)
+    window.api?.broadcastPrefs(next)
     onClose()
   }
 
@@ -49,9 +55,11 @@ export function PreferencesDialog({ onClose }: Props): React.JSX.Element {
     setDraft(current => ({
       ...DEFAULT_PREFERENCES,
       // These values are application state rather than choices shown in this
-      // screen. Restoring defaults must not forget the last document or move
-      // the main window the next time Settings is saved.
+      // screen. Restoring defaults must not forget the last document, move the
+      // main window, or bring back a notice the user has already dismissed,
+      // the next time Settings is saved.
       lastFilePath: current.lastFilePath,
+      dismissedNoticeId: current.dismissedNoticeId,
       mainWindowX: current.mainWindowX,
       mainWindowY: current.mainWindowY,
       mainWindowWidth: current.mainWindowWidth,
@@ -92,6 +100,11 @@ export function PreferencesDialog({ onClose }: Props): React.JSX.Element {
               <input type="checkbox" checked={draft.rememberWindowPositions}
                 onChange={() => toggle('rememberWindowPositions')} />
               <span>Remember window positions</span>
+            </label>
+            <label className={styles.row}>
+              <input type="checkbox" checked={draft.checkForUpdatesOnLaunch}
+                onChange={() => toggle('checkForUpdatesOnLaunch')} />
+              <span>Check for updates on launch</span>
             </label>
           </section>
 

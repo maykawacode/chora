@@ -21,6 +21,7 @@ import {
   type MenuAction,
   type Preferences
 } from '../shared/contracts'
+import type { UpdateNotice } from '../shared/updateNotice'
 
 const api = {
 
@@ -40,6 +41,7 @@ const api = {
   readHelpDocument: (fileName: string): Promise<string> =>
     ipcRenderer.invoke('resource:read-help', fileName),
   getAppVersion: (): string => ipcRenderer.sendSync('app:get-version'),
+  getUpdateNotice: (): Promise<UpdateNotice | null> => ipcRenderer.invoke('update:get-notice'),
 
   // ── Menu actions (Score Window only) ─────────────────────────────────────────
   //

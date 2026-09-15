@@ -1,0 +1,62 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  /* Above every other modal surface: the app's overlays sit at 100, with
+     Orientation and About at 210. The notice layers over the Welcome dialog
+     rather than depending on DOM order. */
+  z-index: 220;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-five);
+  background: var(--color-backdrop-strong);
+}
+
+.dialog {
+  width: min(360px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-dialog);
+  box-shadow: var(--shadow-dialog-strong);
+  color: var(--color-text-primary);
+}
+
+.header {
+  flex: 0 0 auto;
+  padding: var(--space-three) var(--space-four);
+  border-bottom: 1px solid var(--color-border-subtle);
+  background: var(--color-surface-chrome);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-interface);
+}
+
+.content {
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-four);
+}
+
+.detail {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-reading);
+}
+
+/* Empty when the notice carries no detail; the footer keeps the panel from
+   collapsing onto the header. */
+.content:empty {
+  padding: var(--space-two) 0 0;
+}
+
+.footer {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 var(--space-four) var(--space-four);
+}

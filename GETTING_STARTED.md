@@ -223,6 +223,22 @@ screenshot to a public GitHub post unless you have permission to publish all of
 its contents. Reproduce a problem with a small invented dataset whenever
 possible.
 
+### Checking for updates
+
+When Chora starts, it fetches one small file from the project's GitHub
+repository to see whether there is a message for the version you are running —
+usually that a newer build is available. If there is, a short notice appears
+with a link; if not, nothing happens.
+
+Nothing about you, your session, or how you use Chora is sent. The request is
+an ordinary download of a public file, and the only thing GitHub learns is that
+someone at your IP address opened the app. Chora never downloads or installs an
+update on its own; the link opens the releases page in your browser and the
+rest is up to you.
+
+To switch this off, uncheck **Check for updates on launch** in
+**Chora → Settings**. With it off, no request is made at all.
+
 ## Help, questions, and feedback
 
 - Choose **Help → Chora Orientation** for the short guide included in the app.

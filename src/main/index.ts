@@ -11,6 +11,7 @@ import { buildMenu, setMainWindowForMenu, setCloseWindowEnabled } from './menu'
 import { setScoreWindow } from './windowManager'
 import { applyWindowSecurity } from './windowSecurity'
 import { loadPreferences, getCachedPreferences, savePreferences, savePreferencesSync } from './prefs'
+import { startUpdateNoticeCheck } from './updateNotice'
 import { fitSize, isRestorable } from './windowGeometry'
 
 // Lock the development and packaged runtime identity before Electron resolves
@@ -103,7 +104,11 @@ function createWindow(): void {
 app.whenReady().then(async () => {
   // Warm the prefs cache before the window opens so the renderer can read
   // preferences synchronously via the prefs:get-sync IPC channel
-  await loadPreferences()
+  const prefs = await loadPreferences()
+
+  // Fire and forget, in parallel with window creation: by the time the
+  // renderer asks, the answer is usually already here. Nothing waits on it.
+  startUpdateNoticeCheck(app.getVersion(), prefs.checkForUpdatesOnLaunch)
 
   registerIpcHandlers()
   buildMenu()

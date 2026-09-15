@@ -24,6 +24,7 @@ import { PreferencesDialog } from './components/PreferencesDialog'
 import { WelcomeDialog } from './components/WelcomeDialog'
 import { ConfirmationDisc } from './components/ConfirmationDisc'
 import { OrientationDialog } from './components/OrientationDialog'
+import { UpdateNoticeDialog } from './components/UpdateNoticeDialog'
 import { CANCEL_MODAL_EVENT, ModalShell } from './components/ModalShell'
 import { serializeSession } from './lib/parser'
 import {
@@ -39,6 +40,7 @@ import {
 import type { CartesianMapConfig, SemanticMapConfig, Element } from './lib/types'
 import styles from './App.module.css'
 import { encodeMapStateEnvelope } from '../../shared/contracts'
+import type { UpdateNotice } from '../../shared/updateNotice'
 
 type StoreState = ReturnType<typeof useAppStore.getState>
 
@@ -106,12 +108,14 @@ export function App(): React.JSX.Element {
   const [showAbout,            setShowAbout]            = useState(false)
   const [orientationMarkdown, setOrientationMarkdown] = useState<string | null>(null)
   const [importPreview,        setImportPreview]        = useState<ImportPreviewData | null>(null)
+  const [updateNotice,         setUpdateNotice]         = useState<UpdateNotice | null>(null)
 
   // True while any modal is open — used to bring the Score Window to the front
   // so it is not obscured by map BrowserWindows
   const isModalOpen = showWelcome || showChooseDimensions || showCreateSemantic ||
                       showStarterPicker || showPreferences || showAbout || showQuitConfirm || showDiscardConfirm ||
-                      showImportReplaceConfirm || orientationMarkdown !== null || importPreview !== null
+                      showImportReplaceConfirm || orientationMarkdown !== null || importPreview !== null ||
+                      updateNotice !== null
 
   // ── suppressBroadcast ref ─────────────────────────────────────────────────────
   //
@@ -128,6 +132,12 @@ export function App(): React.JSX.Element {
   const saveInFlight = useRef<Promise<boolean> | null>(null)
   // New/Open await the user's decision without falling back to a native dialog.
   const discardConfirmationResolver = useRef<((confirmed: boolean) => void) | null>(null)
+
+  // Modal state read from inside the update-notice callback, which resolves
+  // long after the render that scheduled it. Seeded with the first render's
+  // values so it is correct even if the answer arrives immediately.
+  const modalSnapshot = useRef({ showWelcome, isModalOpen })
+  const welcomeAtLaunch = useRef(showWelcome)
 
   useEffect(() => () => {
     discardConfirmationResolver.current?.(false)
@@ -178,6 +188,32 @@ export function App(): React.JSX.Element {
         if (!loaded) setShowWelcome(true)
       })
     }
+  }, [])  // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Update notice ────────────────────────────────────────────────────────────
+  //
+  // The check runs in the main process from app.whenReady(), so asking for it
+  // here usually costs nothing. The Welcome dialog is never held waiting on it:
+  // a notice that arrives late simply layers above whatever is already there.
+
+  useEffect(() => {
+    let cancelled = false
+
+    void window.api.getUpdateNotice().then(notice => {
+      if (cancelled || !notice) return
+      if (notice.id === usePrefsStore.getState().prefs.dismissedNoticeId) return
+
+      // Only interrupt a launch that is still sitting where it started. If the
+      // user has already picked a file, opened Settings, or begun an import,
+      // the moment for a notice has passed and it waits for the next launch.
+      const { showWelcome: welcomeOpen, isModalOpen: anyModalOpen } = modalSnapshot.current
+      if (anyModalOpen && !welcomeOpen) return
+      if (welcomeAtLaunch.current && !welcomeOpen) return
+
+      setUpdateNotice(notice)
+    })
+
+    return () => { cancelled = true }
   }, [])  // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── State broadcast to map windows ───────────────────────────────────────────
@@ -333,6 +369,10 @@ export function App(): React.JSX.Element {
     window.api?.setModalOpen?.(isModalOpen)
   }, [isModalOpen])
 
+  useEffect(() => {
+    modalSnapshot.current = { showWelcome, isModalOpen }
+  }, [showWelcome, isModalOpen])
+
   // ── Title bar ─────────────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -368,6 +408,20 @@ export function App(): React.JSX.Element {
   }, [filePath, isDirty])   // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── File handlers ─────────────────────────────────────────────────────────────
+
+  /**
+   * Records the notice as seen and closes it.
+   *
+   * Following the link counts as seeing it too: someone who has already opened
+   * the releases page does not need telling again on the next launch.
+   */
+  function dismissUpdateNotice(notice: UpdateNotice): void {
+    const updated = { ...usePrefsStore.getState().prefs, dismissedNoticeId: notice.id }
+    usePrefsStore.getState().setPrefs(updated)
+    window.api.savePreferences(updated)
+    window.api.broadcastPrefs(updated)
+    setUpdateNotice(null)
+  }
 
   async function handleNew(): Promise<void> {
     if (isDirty && !await confirmDiscard()) return
@@ -520,6 +574,20 @@ export function App(): React.JSX.Element {
             const loaded = await handleOpen()
             if (loaded) setShowWelcome(false)
           }}
+        />
+      )}
+
+      {updateNotice && (
+        <UpdateNoticeDialog
+          notice={updateNotice}
+          onOpen={() => {
+            // window.open is refused by windowSecurity.ts and handed to the
+            // system browser, which re-checks the https scheme the notice
+            // parser already required.
+            window.open(updateNotice.url, '_blank')
+            dismissUpdateNotice(updateNotice)
+          }}
+          onDismiss={() => dismissUpdateNotice(updateNotice)}
         />
       )}
     </div>

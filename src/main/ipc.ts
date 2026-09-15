@@ -25,6 +25,7 @@ import { loadPreferences, savePreferences, getCachedPreferences } from './prefs'
 import { setHistoryAvailability, setHistoryModalOpen } from './menu'
 import { writeFileAtomically } from './atomicWrite'
 import { resolveBundledResourcePath } from './resourcePaths'
+import { getUpdateNotice } from './updateNotice'
 
 export function registerIpcHandlers(): void {
 
@@ -105,6 +106,10 @@ export function registerIpcHandlers(): void {
   ipcMain.on('app:get-version', (event) => {
     event.returnValue = app.getVersion()
   })
+
+  // Resolves to null for every kind of nothing — no message, no network, the
+  // preference turned off — so the renderer has one case to handle.
+  ipcMain.handle('update:get-notice', () => getUpdateNotice())
 
   // ── Map window lifecycle ──────────────────────────────────────────────────────
 
