@@ -27,7 +27,7 @@
 }
 
 .fileName {
-  margin: 0 0 16px;
+  margin: 0 0 var(--space-four);
   font-size: var(--font-size-control);
   color: var(--color-text-secondary);
   white-space: nowrap;
@@ -43,7 +43,7 @@
   margin-bottom: var(--space-three);
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: var(--space-one);
 }
 
 .summaryRow {
@@ -64,8 +64,8 @@
 }
 
 .warnings {
-  margin: 0 0 12px;
-  padding: 8px 12px 8px 24px;
+  margin: 0 0 var(--space-three);
+  padding: var(--space-two) var(--space-three) var(--space-two) var(--space-five);
   background: var(--color-warning-surface);
   border: 1px solid var(--color-warning-border);
   border-radius: var(--radius-control);
@@ -79,7 +79,7 @@
 }
 
 .caution {
-  margin: 0 0 16px;
+  margin: 0 0 var(--space-four);
   font-size: var(--font-size-control);
   color: var(--color-text-muted);
 }
@@ -92,7 +92,7 @@
 }
 
 .btnCancel {
-  padding: 5px 16px;
+  padding: var(--space-one) var(--space-four);
   min-height: var(--size-control);
   border: 1px solid var(--color-border-control);
   border-radius: var(--radius-control);

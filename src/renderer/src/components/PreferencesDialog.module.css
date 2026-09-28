@@ -18,7 +18,7 @@
 
 .header {
   flex: none;
-  padding: var(--space-four) 19px var(--space-three);
+  padding: var(--space-four) var(--space-four) var(--space-three);
   -webkit-app-region: drag;
 }
 
@@ -33,7 +33,7 @@
 .content {
   min-height: 0;
   overflow-y: auto;
-  padding: var(--space-four) 19px;
+  padding: var(--space-four);
 }
 
 .settingsGrid {
@@ -47,7 +47,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-two);
   padding: var(--space-three);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-sharp);
@@ -155,7 +155,7 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-two);
-  padding: var(--space-three) 19px;
+  padding: var(--space-three) var(--space-four);
   -webkit-app-region: no-drag;
 }
 

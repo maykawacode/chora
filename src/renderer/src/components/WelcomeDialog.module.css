@@ -51,13 +51,13 @@
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: var(--space-two);
-  margin: 20px 38px 0;
+  margin: var(--space-five) 38px 0;
 }
 
 .action {
   display: grid;
   justify-items: center;
-  gap: 10px;
+  gap: var(--space-three);
   min-width: 0;
   padding: 0;
   border: 0;
