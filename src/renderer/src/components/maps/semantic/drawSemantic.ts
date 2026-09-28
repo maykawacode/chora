@@ -21,6 +21,7 @@ import {
 import { resolveElementColor } from '../color'
 import { shownCollections } from '../collections'
 import { drawMark, drawSelectionRing, markShapeIndex } from '../shape'
+import { beginLayer } from '../svgExport'
 import { normalizeInRange, numericRange, type NumericRange } from '../../../lib/numericRange'
 import { uiTheme } from '../../../design/theme'
 
@@ -162,6 +163,7 @@ export function drawSemantic(
 
   // ── Draw axes ─────────────────────────────────────────────────────────────────
 
+  beginLayer(ctx, 'axes')
   ctx.font = labelFont(dimensionLabelSize)
 
   for (let i = 0; i < dims.length; i++) {
@@ -193,6 +195,7 @@ export function drawSemantic(
     ctx.textAlign = 'left'
     ctx.fillText(rightLabel, axisRight + LABEL_GAP, y)
   }
+  ctx.restore()
 
   if (elements.length === 0) {
     ctx.fillStyle = uiTheme.map.labelMuted
@@ -262,6 +265,7 @@ export function drawSemantic(
     ? shownCollections(config, collections)
     : []
 
+  beginLayer(ctx, 'elements')
   for (const el of drawOrder) {
     const shapeIndex = markShapeIndex(config.marks, el)
     const color      = resolveElementColor(config.colorMode, el, collections, claiming)
@@ -276,6 +280,7 @@ export function drawSemantic(
     }
 
     if (points.length === 0) continue   // element has no scores — nothing to draw
+    ctx.save()
 
     // Polyline — 2x weight while this element is being dragged
     ctx.strokeStyle = color
@@ -329,5 +334,7 @@ export function drawSemantic(
       ctx.fillText(label, 0, 0)
       ctx.restore()
     }
+    ctx.restore()
   }
+  ctx.restore()
 }

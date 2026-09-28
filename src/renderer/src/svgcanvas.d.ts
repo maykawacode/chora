@@ -1,7 +1,8 @@
-declare module 'canvas2svg' {
-  class C2S extends CanvasRenderingContext2D {
+declare module 'svgcanvas' {
+  export class Context {
     constructor(width: number, height: number)
+    font: string
+    getSvg(): SVGSVGElement
     getSerializedSvg(fixNamedEntities?: boolean): string
   }
-  export default C2S
 }

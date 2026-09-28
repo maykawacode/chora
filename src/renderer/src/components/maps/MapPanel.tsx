@@ -8,7 +8,7 @@ import { useRef, useEffect, useCallback, useState } from 'react'
 import { useAppStore, type ScoreEntry } from '../../store/appStore'
 import { usePrefsStore } from '../../store/prefsStore'
 import type { CartesianMapConfig, SemanticMapConfig, Dimension } from '../../lib/types'
-import C2S from 'canvas2svg'
+import { buildMapSvg } from './svgExport'
 import { drawCartesian, MARGIN } from './cartesian/drawCartesian'
 import { drawSemantic, semanticElements, SEM_MARGIN_H } from './semantic/drawSemantic'
 import { ElementDetailModal } from './ElementDetailModal'
@@ -205,22 +205,16 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
     const wrapper = wrapperRef.current
     if (!wrapper || !config) return
     const rect = wrapper.getBoundingClientRect()
-    const cssW = rect.width
-    const cssH = rect.height
-    const ctx = new C2S(cssW, cssH)
-    // canvas2svg v1.0.16 omits setLineDash — patch a no-op so draw functions
-    // don't throw; dashed lines simply render as solid in the SVG output
-    ;(ctx as unknown as Record<string, unknown>).setLineDash = (): void => {}
-    if (config.type === 'cartesian') {
-      drawCartesian(ctx, cssW, cssH, config, elements, collections, dimensions, scores,
-        selectedElementId ?? undefined, elementLabelSize, dimensionLabelSize,
-        selectedElementIds, defaultDotRadius)
-    } else {
-      drawSemantic(ctx, cssW, cssH, config, elements, collections, dimensions, scores,
-        undefined, selectedElementId ?? undefined, elementLabelSize, dimensionLabelSize,
-        selectedElementIds, defaultDotRadius)
-    }
-    const svg = ctx.getSerializedSvg(true)
+    // Exports leave out selection highlights.
+    const svg = buildMapSvg(rect.width, rect.height, (ctx, w, h) => {
+      if (config.type === 'cartesian') {
+        drawCartesian(ctx, w, h, config, elements, collections, dimensions, scores,
+          undefined, elementLabelSize, dimensionLabelSize, [], defaultDotRadius)
+      } else {
+        drawSemantic(ctx, w, h, config, elements, collections, dimensions, scores,
+          undefined, undefined, elementLabelSize, dimensionLabelSize, [], defaultDotRadius)
+      }
+    })
     const blob = new Blob([svg], { type: 'image/svg+xml' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')

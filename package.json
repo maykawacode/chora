@@ -28,7 +28,7 @@
     "dist": "npm run build && electron-builder --mac dmg --publish never"
   },
   "dependencies": {
-    "canvas2svg": "^1.0.16",
+    "svgcanvas": "^2.6.0",
     "trix": "^2.1.19",
     "zustand": "^5.0.0"
   },

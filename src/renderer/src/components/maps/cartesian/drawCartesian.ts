@@ -24,6 +24,7 @@ import { blobPadding, setBlobPath, type BlobPoint, type Pt } from '../blob'
 import { resolveElementColor } from '../color'
 import { cartesianElements, shownCollections } from '../collections'
 import { drawMark, drawSelectionRing, markShapeIndex } from '../shape'
+import { beginLayer } from '../svgExport'
 import { normalizeInRange, numericRange, type NumericRange } from '../../../lib/numericRange'
 import { uiTheme } from '../../../design/theme'
 
@@ -161,6 +162,7 @@ export function drawCartesian(
 
   // ── Plot border ───────────────────────────────────────────────────────────────
 
+  beginLayer(ctx, 'axes')
   ctx.strokeStyle = uiTheme.map.axis
   ctx.lineWidth = 1
   ctx.strokeRect(plotLeft, plotTop, plotW, plotH)
@@ -206,6 +208,7 @@ export function drawCartesian(
     drawPoleLabel(ctx, topLabel,    midX, plotTop    - POLE_LABEL_OFFSET, 0)
     drawPoleLabel(ctx, bottomLabel, midX, plotBottom + POLE_LABEL_OFFSET, 0)
   }
+  ctx.restore()
 
   if (!xDim || !yDim) return
 
@@ -322,7 +325,9 @@ export function drawCartesian(
     ? [...visibleElements].sort((a, b) => b.weight - a.weight)
     : visibleElements
 
+  beginLayer(ctx, 'elements')
   for (const el of sorted) {
+    ctx.save()
     const xScore = scores[el.id]?.[xDim.id]
     const yScore = scores[el.id]?.[yDim.id]
 
@@ -369,7 +374,11 @@ export function drawCartesian(
       ctx.textBaseline = 'middle'
       ctx.fillText(el.name, cx + baseDotRadius + LABEL_OFFSET, cy)
     }
+    ctx.restore()
   }
+  ctx.restore()
 
+  beginLayer(ctx, 'collections')
   drawCollectionBlobs()
+  ctx.restore()
 }
