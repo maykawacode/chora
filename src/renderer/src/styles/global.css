@@ -59,7 +59,7 @@ textarea {
 .unsavedBadge {
   flex: none;
   margin-left: 2px;
-  padding: 1px 6px;
+  padding: 1px var(--space-two);
   transform: translateY(-1px);
   border: none;
   border-radius: var(--radius-small);

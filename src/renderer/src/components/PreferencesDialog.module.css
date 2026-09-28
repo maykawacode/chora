@@ -141,7 +141,7 @@
 
 .lastFile {
   min-width: 0;
-  margin: -2px 0 0 22px;
+  margin: -2px 0 0 22px; /* raw: aligns with the checkbox label text */
   overflow: hidden;
   color: var(--color-text-disabled);
   font-size: var(--font-size-label);

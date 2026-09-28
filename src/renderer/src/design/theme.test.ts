@@ -5,6 +5,8 @@ import { themeVariables, uiTheme } from './theme'
 
 const rendererRoot = resolve(process.cwd(), 'src/renderer/src')
 const rawColor = /#[0-9a-f]{3,8}\b|rgba?\(/i
+const spacingValue = /(?:padding|margin|gap)[a-z-]*\s*:\s*([^;}]*)/g
+const pixelValue = /(?<![\w.-])(\d+(?:\.\d+)?)px/g
 
 function filesUnder(directory: string): string[] {
   return readdirSync(directory, { withFileTypes: true }).flatMap(entry => {
@@ -46,6 +48,27 @@ describe('interface theme', () => {
             ? [`${relative(rendererRoot, path)}:${index + 1}`]
             : []
         )
+    )
+
+    expect(violations).toEqual([])
+  })
+
+  // 4–32px spacing belongs on the --space-* scale. Sub-4px nudges, negative
+  // offsets, calc(), and larger layout offsets stay raw, as does any line
+  // marked with a `/* raw: reason */` comment.
+  it('keeps 4–32px spacing on the space tokens', () => {
+    const cssFiles = filesUnder(rendererRoot).filter(path => path.endsWith('.css'))
+    const violations = cssFiles.flatMap(path =>
+      readFileSync(path, 'utf8')
+        .split('\n')
+        .flatMap((line, index) => {
+          if (line.includes('/* raw:')) return []
+          const offScale = [...line.matchAll(spacingValue)]
+            .filter(([, value]) => !value.includes('calc('))
+            .some(([, value]) => [...value.matchAll(pixelValue)]
+              .some(([, px]) => Number(px) >= 4 && Number(px) <= 32))
+          return offScale ? [`${relative(rendererRoot, path)}:${index + 1}`] : []
+        })
     )
 
     expect(violations).toEqual([])

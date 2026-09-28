@@ -177,7 +177,7 @@
   overflow: hidden;
 }
 
-.bulkCollectionsSection { margin-top: 12px; }
+.bulkCollectionsSection { margin-top: var(--space-three); }
 
 .collectionsLabel {
   display: block;

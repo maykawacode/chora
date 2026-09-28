@@ -85,7 +85,7 @@
 
 .orientationContent {
   overflow-y: auto;
-  padding: var(--space-five) 28px 28px;
+  padding: var(--space-five) var(--space-six) var(--space-six);
   font-size: var(--font-size-body);
   line-height: var(--line-height-reading);
 }
@@ -105,20 +105,20 @@
 }
 
 .orientationContent h3 {
-  margin: 18px 0 var(--space-one);
+  margin: var(--space-four) 0 var(--space-one);
   font-size: var(--font-size-body);
   line-height: var(--line-height-interface);
   color: var(--color-text-primary);
 }
 
-.orientationContent p { margin: 0 0 10px; }
+.orientationContent p { margin: 0 0 var(--space-three); }
 
 .orientationContent ul {
-  margin: 8px 0 12px;
-  padding-left: 22px;
+  margin: var(--space-two) 0 var(--space-three);
+  padding-left: var(--space-five);
 }
 
-.orientationContent li { margin: 0 0 7px; }
+.orientationContent li { margin: 0 0 var(--space-two); }
 
 /* ── About ───────────────────────────────────────────────────────────────── */
 
