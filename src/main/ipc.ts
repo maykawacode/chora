@@ -292,6 +292,15 @@ export function registerIpcHandlers(): void {
     }
   })
 
+  // Dimension property change from a map window's right-click modal — relayed
+  // the same way as element updates.
+  ipcMain.on('dimension:update', (event, dimensionId: string, changes: unknown) => {
+    const scoreWin = getMainWindow()
+    if (scoreWin && !scoreWin.isDestroyed() && scoreWin.webContents.id !== event.sender.id) {
+      scoreWin.webContents.send('dimension:update', dimensionId, changes)
+    }
+  })
+
   // New collection created inline from a map window modal — relay to Score
   // Window. Score Window adds it under the same UUID so the memberships that
   // arrive with the following element update refer to a collection it knows.

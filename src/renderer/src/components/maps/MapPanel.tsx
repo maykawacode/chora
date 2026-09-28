@@ -13,6 +13,7 @@ import { drawCartesian, MARGIN } from './cartesian/drawCartesian'
 import { drawSemantic, semanticElements, SEM_MARGIN_H } from './semantic/drawSemantic'
 import { ElementDetailModal } from './ElementDetailModal'
 import { BulkEditModal } from './BulkEditModal'
+import { DimensionDetailModal } from './DimensionDetailModal'
 import { MapSidebar } from './MapSidebar'
 import { MapWindowChrome } from './MapWindowChrome'
 import { ModalShell } from '../ModalShell'
@@ -72,6 +73,7 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
   const clearElementSelection  = useAppStore(s => s.clearElementSelection)
   const updateMapConfig     = useAppStore(s => s.updateMapConfig)
   const updateElement       = useAppStore(s => s.updateElement)
+  const updateDimension     = useAppStore(s => s.updateDimension)
   const setScores           = useAppStore(s => s.setScores)
 
   // Label sizes come from user preferences so they update live when the
@@ -113,6 +115,7 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
   const [semanticPicker, setSemanticPicker] = useState<SemanticPickerState | null>(null)
   const [elementModal,   setElementModal]   = useState<string | null>(null)
   const [bulkModalIds,   setBulkModalIds]   = useState<string[]>([])
+  const [dimensionModal, setDimensionModal] = useState<string | null>(null)
   const [cursor,         setCursor]         = useState('default')
   // Sidebar visibility lives here, not in MapSidebar, because the toggle that
   // drives it sits in the title bar. Deliberately not persisted.
@@ -120,7 +123,8 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
 
   // A map modal owns keyboard interaction while it is visible. Tell main to
   // gate native Undo/Redo; cleanup also releases a block if this renderer exits.
-  const historyModalOpen = elementModal !== null || bulkModalIds.length > 0
+  const historyModalOpen =
+    elementModal !== null || bulkModalIds.length > 0 || dimensionModal !== null
   useEffect(() => {
     window.api.setHistoryModalOpen(historyModalOpen)
     return () => {
@@ -621,6 +625,22 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
       } else {
         setElementModal(hitId)
       }
+      return
+    }
+
+    // No dot under the pointer: an axis opens its dimension instead.
+    let dimensionId: string | undefined
+    if (config.type === 'cartesian') {
+      const edge = cartesianHitEdge(x, y, W, H)
+      if (edge) dimensionId = edge === 'left' || edge === 'right' ? config.xDimensionId : config.yDimensionId
+    } else {
+      const dimIds = config.dimensionIds.filter(id => dimensions.some(d => d.id === id))
+      dimensionId = dimIds[semanticHitRow(y, H, dimIds.length)]
+    }
+    if (dimensionId && dimensions.some(d => d.id === dimensionId)) {
+      setAxisPicker(null)
+      setSemanticPicker(null)
+      setDimensionModal(dimensionId)
     }
   }
 
@@ -730,6 +750,20 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
                 window.api?.broadcastElement(elementModal, changes as Record<string, unknown>)
               }
               setElementModal(null)
+            }}
+          />
+        )}
+
+        {/* Dimension detail modal — shown on right-click of an axis */}
+        {dimensionModal && (
+          <DimensionDetailModal
+            dimensionId={dimensionModal}
+            onClose={(changes) => {
+              if (changes) {
+                updateDimension(dimensionModal, changes)
+                window.api?.broadcastDimension(dimensionModal, changes as Record<string, unknown>)
+              }
+              setDimensionModal(null)
             }}
           />
         )}

@@ -37,7 +37,7 @@ import {
   saveDocument,
   type ImportPreviewData
 } from './lib/documentWorkflows'
-import type { CartesianMapConfig, SemanticMapConfig, Element } from './lib/types'
+import type { CartesianMapConfig, SemanticMapConfig, Element, Dimension } from './lib/types'
 import styles from './App.module.css'
 import { encodeMapStateEnvelope } from '../../shared/contracts'
 import type { UpdateNotice } from '../../shared/updateNotice'
@@ -294,6 +294,15 @@ export function App(): React.JSX.Element {
       window.api.broadcastState(encodeStateEnvelope(s))
     })
 
+    // Dimension property change from a map window's right-click modal, applied
+    // the same way as element updates.
+    const removeDimensionUpdate = window.api.onDimensionUpdate((dimensionId, changes) => {
+      const before = useAppStore.getState()
+      if (!before.dimensions.some(dimension => dimension.id === dimensionId)) return
+      withoutStateBroadcast(() => before.updateDimension(dimensionId, changes as Partial<Dimension>))
+      window.api.broadcastState(encodeStateEnvelope(useAppStore.getState()))
+    })
+
     // New collection created inline from a map window modal. It persists at the
     // moment the user clicks Add, so broadcast it immediately even if the modal
     // is later cancelled and no element update follows.
@@ -322,6 +331,7 @@ export function App(): React.JSX.Element {
       removeConfig()
       removeMapClosed()
       removeElementUpdate()
+      removeDimensionUpdate()
       removeCollectionAdd()
       removeCancelModals()
       removeQuitRequested()
