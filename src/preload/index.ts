@@ -126,6 +126,9 @@ const api = {
   // Element property change from the right-click detail modal in a map window
   broadcastElement: (elementId: string, changes: Record<string, unknown>): void =>
                       ipcRenderer.send('element:update', elementId, changes),
+  // Dimension property change from the right-click axis modal in a map window
+  broadcastDimension: (dimensionId: string, changes: Record<string, unknown>): void =>
+                        ipcRenderer.send('dimension:update', dimensionId, changes),
   // New collection created inline from a map window modal
   broadcastNewCollection: (id: string, name: string): void =>
                             ipcRenderer.send('collection:add', id, name),
@@ -184,6 +187,14 @@ const api = {
       cb(elementId, changes)
     ipcRenderer.on('element:update', handler)
     return () => ipcRenderer.removeListener('element:update', handler)
+  },
+
+  // Dimension property update relayed from a map window's right-click modal
+  onDimensionUpdate: (cb: (dimensionId: string, changes: Record<string, unknown>) => void): (() => void) => {
+    const handler = (_: IpcRendererEvent, dimensionId: string, changes: Record<string, unknown>): void =>
+      cb(dimensionId, changes)
+    ipcRenderer.on('dimension:update', handler)
+    return () => ipcRenderer.removeListener('dimension:update', handler)
   },
 
   // New collection created inline from a map window modal

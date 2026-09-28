@@ -103,6 +103,8 @@
   color: var(--color-text-primary);
 }
 
+.poleInput { font-family: inherit; }
+
 .hexInput::placeholder,
 .weightInput::placeholder {
   color: var(--color-text-disabled);

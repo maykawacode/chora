@@ -222,6 +222,7 @@ export interface ChoraApi {
   broadcastScore: (elementId: string, dimensionId: string, value: number) => void
   broadcastMapConfig: (mapId: string, changes: Record<string, unknown>) => void
   broadcastElement: (elementId: string, changes: Record<string, unknown>) => void
+  broadcastDimension: (dimensionId: string, changes: Record<string, unknown>) => void
   broadcastNewCollection: (id: string, name: string) => void
   broadcastSelection: (elementId: string | null, clearDimension?: boolean) => void
   broadcastMultiSelection: (ids: string[]) => void
@@ -233,6 +234,7 @@ export interface ChoraApi {
   onMapConfig: (cb: (mapId: string, changes: Record<string, unknown>) => void) => () => void
   onMapClosed: (cb: (mapId: string) => void) => () => void
   onElementUpdate: (cb: (elementId: string, changes: Record<string, unknown>) => void) => () => void
+  onDimensionUpdate: (cb: (dimensionId: string, changes: Record<string, unknown>) => void) => () => void
   onCollectionAdd: (cb: (id: string, name: string) => void) => () => void
   onSelection: (cb: (elementId: string | null, clearDimension: boolean) => void) => () => void
   onMultiSelection: (cb: (ids: string[]) => void) => () => void
