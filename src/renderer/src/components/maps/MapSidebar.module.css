@@ -154,7 +154,7 @@
   align-items: center;
   gap: var(--space-two);
   width: 100%;
-  padding: 3px 10px 3px var(--space-three);
+  padding: 3px var(--space-three);
   min-height: var(--size-control);
   font-size: var(--font-size-control);
   font-family: inherit;

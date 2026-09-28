@@ -17,7 +17,7 @@
   align-items: center;
   justify-content: space-between;
   background: var(--map-background);
-  padding: 4px 38px 4px 78px;
+  padding: var(--space-one) 38px var(--space-one) 78px;
   overflow: hidden;
   transition: margin-right var(--map-sidebar-motion);
   user-select: none;
@@ -31,7 +31,7 @@
   transform: translateY(-50%);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-two);
   z-index: 1;
   -webkit-app-region: no-drag;
 }
@@ -66,7 +66,7 @@
   position: relative;
   display: flex;
   align-items: baseline;
-  gap: 6px;
+  gap: var(--space-two);
   min-width: 0;
   z-index: 1;
   -webkit-app-region: no-drag;
@@ -98,7 +98,7 @@
   background: var(--color-surface-field);
   border: 1px solid var(--color-focus);
   border-radius: var(--radius-small);
-  padding: 1px 5px;
+  padding: 1px var(--space-one);
   font-family: inherit;
   outline: none;
   min-width: 80px;
@@ -134,7 +134,7 @@
   box-shadow: var(--shadow-dialog);
   min-width: 180px;
   max-width: 220px;
-  padding: 14px 16px 16px;
+  padding: var(--space-four);
   overflow: hidden;
   font-family: var(--font-family-ui);
   font-size: var(--font-size-body);
@@ -148,7 +148,7 @@
 }
 
 .axisPickerTitle {
-  margin: 0 0 10px;
+  margin: 0 0 var(--space-three);
   font-size: var(--font-size-title);
   font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
@@ -156,7 +156,7 @@
 
 .axisPickerList {
   list-style: none;
-  margin: 4px 0 0;
+  margin: var(--space-one) 0 0;
   padding: 0;
   border: 1px solid var(--color-border-control);
   background: var(--color-surface-field);
@@ -165,7 +165,7 @@
 }
 
 .axisPickerItem {
-  padding: 6px 10px;
+  padding: var(--space-one) var(--space-three);
   min-height: var(--size-control);
   font-size: var(--font-size-control);
   cursor: pointer;
@@ -191,7 +191,7 @@
 .axisPickerFlipBtn {
   display: block;
   width: 100%;
-  padding: 7px 10px;
+  padding: var(--space-two) var(--space-three);
   min-height: var(--size-control);
   font-size: var(--font-size-control);
   font-weight: var(--font-weight-semibold);
@@ -214,7 +214,7 @@
   color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  margin-top: 14px;
+  margin-top: var(--space-four);
 }
 
 /* The white map field yields exactly the same distance that the single,

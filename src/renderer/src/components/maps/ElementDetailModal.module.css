@@ -24,13 +24,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-five) var(--space-five) 10px;
+  padding: var(--space-five) var(--space-five) var(--space-three);
 }
 
 .nameInput {
   width: 100%;
   min-width: 0;
-  padding: 5px 8px;
+  padding: var(--space-one) var(--space-two);
   min-height: var(--size-control);
   border: 1px solid var(--color-border-control);
   border-radius: var(--radius-control);
@@ -62,8 +62,8 @@
 .fieldRow {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px var(--space-five) 0;
+  gap: var(--space-three);
+  padding: var(--space-three) var(--space-five) 0;
 }
 
 .label {
@@ -76,7 +76,7 @@
 .colorRow {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-two);
   flex: 1;
 }
 
@@ -93,7 +93,7 @@
 
 .hexInput {
   flex: 1;
-  padding: 2px 6px;
+  padding: 2px var(--space-two);
   min-height: var(--size-control);
   border: 1px solid var(--color-border-control);
   border-radius: var(--radius-control);
@@ -115,11 +115,11 @@
 
 .shapePicker {
   display: flex;
-  gap: 4px;
+  gap: var(--space-one);
 }
 
 .shapeBtn {
-  padding: 3px 9px;
+  padding: 3px var(--space-two);
   border: 1px solid var(--color-border-control);
   border-radius: var(--radius-control);
   background: var(--color-surface-hover);
@@ -140,7 +140,7 @@
 
 .weightInput {
   width: 60px;
-  padding: 2px 6px;
+  padding: 2px var(--space-two);
   min-height: var(--size-control);
   border: 1px solid var(--color-border-control);
   border-radius: var(--radius-control);
@@ -157,8 +157,8 @@
 }
 
 .description {
-  margin: 12px 24px 8px;
-  padding: 8px;
+  margin: var(--space-three) var(--space-five) var(--space-two);
+  padding: var(--space-two);
   border: 1px solid var(--color-border-control);
   border-radius: var(--radius-control);
   font-size: var(--font-size-control);
@@ -170,7 +170,7 @@
 }
 
 .collectionsSection {
-  margin: 4px 24px 10px;
+  margin: var(--space-one) var(--space-five) var(--space-three);
   border: 1px solid var(--color-border-control);
   border-radius: var(--radius-control);
   background: var(--color-surface-field);
@@ -186,7 +186,7 @@
   color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  padding: 3px 8px 2px;
+  padding: 3px var(--space-two) 2px;
   border-bottom: 1px solid var(--color-border-subtle);
   background: var(--color-surface-raised);
 }
@@ -196,7 +196,7 @@
   font-size: var(--font-size-label);
   color: var(--color-text-disabled);
   font-style: italic;
-  padding: 4px 8px;
+  padding: var(--space-one) var(--space-two);
 }
 
 .collectionList {
@@ -205,8 +205,8 @@
 }
 
 .collectionList > button {
-  padding-right: 8px;
-  padding-left: 8px;
+  padding-right: var(--space-two);
+  padding-left: var(--space-two);
 }
 
 .newCollectionRow {
@@ -216,7 +216,7 @@
 
 .newCollectionInput {
   flex: 1;
-  padding: 3px 6px;
+  padding: 3px var(--space-two);
   border: none;
   border-right: 1px solid var(--color-border-subtle);
   font-size: var(--font-size-label);
@@ -229,7 +229,7 @@
 .newCollectionInput::placeholder { color: var(--color-text-disabled); font-style: italic; }
 
 .addCollectionBtn {
-  padding: 3px 8px;
+  padding: 3px var(--space-two);
   border: none;
   background: transparent;
   font-size: var(--font-size-label);

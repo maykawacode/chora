@@ -30,14 +30,14 @@
 }
 
 .title {
-  margin: 0 0 4px;
+  margin: 0 0 var(--space-one);
   font-size: var(--font-size-title);
   font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
 }
 
 .subtitle {
-  margin: 0 0 12px;
+  margin: 0 0 var(--space-three);
   color: var(--color-text-secondary);
   font-size: var(--font-size-control);
 }
@@ -45,12 +45,12 @@
 .warning {
   color: var(--color-warning-text);
   font-size: var(--font-size-control);
-  margin: 0 0 8px;
+  margin: 0 0 var(--space-two);
 }
 
 .list {
   list-style: none;
-  margin: 0 0 16px;
+  margin: 0 0 var(--space-four);
   padding: 0;
   border: 1px solid var(--color-border-control);
   border-radius: var(--radius-control);
@@ -62,8 +62,8 @@
 .item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 5px 10px;
+  gap: var(--space-two);
+  padding: var(--space-one) var(--space-three);
   cursor: pointer;
   min-height: var(--size-list-row);
 }
@@ -99,7 +99,7 @@
 }
 
 .btnCancel {
-  padding: 5px 16px;
+  padding: var(--space-one) var(--space-four);
   min-height: var(--size-control);
   border: 1px solid var(--color-border-control);
   border-radius: var(--radius-control);
@@ -117,14 +117,14 @@
 /* ── Pole direction toggle (AdvancedTransform dim-to-weight / weight-to-dim) ── */
 
 .poleSection {
-  margin: 0 0 14px;
+  margin: 0 0 var(--space-four);
 }
 
 /* Small uppercase label above the segment control */
 .poleSectionLabel {
   font-size: var(--font-size-label);
   color: var(--color-text-muted);
-  margin: 0 0 4px;
+  margin: 0 0 var(--space-one);
   font-weight: var(--font-weight-semibold);
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -140,7 +140,7 @@
 
 .poleBtn {
   flex: 1;
-  padding: 5px 8px;
+  padding: var(--space-one) var(--space-two);
   min-height: var(--size-control);
   font-size: var(--font-size-control);
   font-family: inherit;
