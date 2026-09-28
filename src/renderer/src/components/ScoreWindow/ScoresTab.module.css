@@ -13,7 +13,7 @@
    headings, flat rows, and restrained action buttons make the two surfaces
    feel related while their behavior remains independent. */
 .section {
-  padding: var(--space-two) var(--space-four) 10px;
+  padding: var(--space-two) var(--space-four) var(--space-three);
   border-bottom: 1px solid var(--color-border-subtle);
   min-width: 0;
 }
@@ -23,7 +23,7 @@
   align-items: baseline;
   justify-content: space-between;
   gap: var(--space-two);
-  margin: 6px 0;
+  margin: var(--space-two) 0;
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-semibold);
   color: var(--color-text-secondary);
@@ -47,8 +47,8 @@
   flex: none;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 6px 18px;
-  padding: 5px var(--space-three);
+  gap: var(--space-two) var(--space-four);
+  padding: var(--space-one) var(--space-three);
   border-bottom: 1px solid var(--color-border-subtle);
   color: var(--color-text-muted);
   font-size: var(--font-size-meta);
@@ -57,7 +57,7 @@
 .scoreKey > span {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-one);
 }
 
 .keySymbol {
@@ -118,7 +118,7 @@
   flex: 1;
   min-height: 0;
   margin: 0 -4px;
-  padding: 0 4px;
+  padding: 0 var(--space-one);
   overflow-y: auto;
   outline: none;
   list-style: none;
@@ -133,10 +133,10 @@
 .listItem {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: var(--space-two);
   min-height: var(--size-list-row);
   margin: 0 -4px;
-  padding: 3px 8px;
+  padding: 3px var(--space-two);
   font-size: var(--font-size-control);
   cursor: pointer;
 }
@@ -204,7 +204,7 @@
   flex-wrap: wrap;
   align-items: baseline;
   justify-content: space-between;
-  gap: 10px;
+  gap: var(--space-three);
   margin: 2px 0 0;
   color: var(--color-text-muted);
   font-size: var(--font-size-label);
@@ -235,7 +235,7 @@
 }
 
 .targetCount {
-  margin-left: 6px;
+  margin-left: var(--space-two);
   color: var(--color-text-muted);
   font-size: var(--font-size-meta);
   font-weight: var(--font-weight-semibold);
@@ -272,7 +272,7 @@
 .sliderPoles {
   display: flex;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-three);
   margin-bottom: -1px;
 }
 
@@ -301,7 +301,7 @@
 .sliderTrack:focus-visible {
   outline: 2px solid var(--color-focus-ring);
   outline-offset: 3px;
-  border-radius: 2px;
+  border-radius: var(--radius-subtle);
 }
 
 .sliderTrackInactive {
@@ -345,7 +345,7 @@
 @media (max-width: 420px) {
   .scoreSection {
     min-height: 132px;
-    padding-right: 18px;
-    padding-left: 18px;
+    padding-right: var(--space-four);
+    padding-left: var(--space-four);
   }
 }

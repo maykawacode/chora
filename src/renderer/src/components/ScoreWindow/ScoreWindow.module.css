@@ -27,7 +27,7 @@
 .titleLine {
   display: flex;
   align-items: baseline;
-  gap: 6px;
+  gap: var(--space-two);
   min-width: 0;
   transform: translateY(5px);
 }
@@ -49,7 +49,7 @@
 .titleGroup {
   display: flex;
   align-items: baseline;
-  gap: 6px;
+  gap: var(--space-two);
   min-width: 0;
 }
 
@@ -122,8 +122,8 @@
 
 .tabIcon {
   flex: 0 0 auto;
-  padding-right: 7px;
-  padding-left: 7px;
+  padding-right: var(--space-two);
+  padding-left: var(--space-two);
   font-size: 16px;
   line-height: 1;
 }
@@ -147,7 +147,7 @@
   width: 100%;
   min-width: 0;
   min-height: 0;
-  padding-top: 5px;
+  padding-top: var(--space-one);
   overflow: hidden;
   display: flex;
   flex-direction: column;

@@ -83,8 +83,8 @@
 .listItem {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 3px 6px;
+  gap: var(--space-two);
+  padding: 3px var(--space-two);
   cursor: pointer;
   border-radius: var(--radius-small);
   min-height: var(--size-list-row);
@@ -203,7 +203,7 @@
   flex: 1;
   min-width: 0;
   min-height: var(--size-control);
-  padding: var(--space-one) 6px;
+  padding: var(--space-one) var(--space-two);
   border: 1px solid var(--color-border-control);
   border-radius: var(--radius-control);
   background: var(--color-surface-field);
@@ -277,7 +277,7 @@
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  padding: 30px var(--space-two) var(--space-two);
+  padding: var(--space-six) var(--space-two) var(--space-two);
   gap: var(--space-two);
   overflow-x: hidden;
   overflow-y: auto;
@@ -294,7 +294,7 @@
   flex-wrap: wrap;
   width: 100%;
   min-width: 0;
-  gap: 6px;
+  gap: var(--space-two);
   flex-shrink: 0;
 }
 
@@ -385,7 +385,7 @@
   max-width: 100%;
   min-width: 0;
   min-height: var(--size-control);
-  padding: 3px 5px;
+  padding: 3px var(--space-one);
   border: 1px solid var(--color-border-control);
   border-radius: var(--radius-control);
   background: var(--color-surface-field);
@@ -409,7 +409,7 @@
   max-width: 100%;
   min-width: 0;
   min-height: var(--size-control);
-  padding: 3px 5px;
+  padding: 3px var(--space-one);
   border: 1px solid var(--color-border-control);
   border-radius: var(--radius-control);
   background: var(--color-surface-field);
@@ -443,7 +443,7 @@
   resize: none;
   border: 1px solid var(--color-border-control);
   border-radius: var(--radius-control);
-  padding: 5px;
+  padding: var(--space-one);
   font-size: var(--font-size-control);
   font-family: inherit;
   background: var(--color-surface-field);

@@ -37,7 +37,7 @@
   padding: var(--space-three);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-two);
 }
 
 .sectionLabel {
@@ -52,7 +52,7 @@
 
 .select {
   width: 100%;
-  padding: 5px 8px;
+  padding: var(--space-one) var(--space-two);
   min-height: var(--size-control);
   border: 1px solid var(--color-border-control);
   border-radius: var(--radius-control);
@@ -72,7 +72,7 @@
 .subControl {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-one);
 }
 
 .subLabel {
@@ -100,13 +100,13 @@
 
 .colorRow {
   display: flex;
-  gap: 12px;
+  gap: var(--space-three);
 }
 
 .colorField {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-one);
   cursor: pointer;
 }
 
@@ -126,7 +126,7 @@
   text-align: center;
   font-size: var(--font-size-title);
   color: var(--color-border-control);
-  padding: 6px 0;
+  padding: var(--space-two) 0;
   flex-shrink: 0;
   user-select: none;
 }
@@ -142,7 +142,7 @@
 
 .poleBtn {
   flex: 1;
-  padding: 5px 8px;
+  padding: var(--space-one) var(--space-two);
   font-size: var(--font-size-control);
   font-family: inherit;
   background: var(--color-surface-field);
@@ -172,10 +172,10 @@
 /* ── Footer: summary, warning, apply button ──────────────────────────────── */
 
 .footer {
-  padding-top: 12px;
+  padding-top: var(--space-three);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-two);
 }
 
 .summary {
@@ -186,7 +186,7 @@
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-control);
-  padding: 8px 10px;
+  padding: var(--space-two) var(--space-three);
 }
 
 .warning {
@@ -195,13 +195,13 @@
   background: var(--color-warning-surface);
   border: 1px solid var(--color-warning-border);
   border-radius: var(--radius-control);
-  padding: 8px 10px;
+  padding: var(--space-two) var(--space-three);
   margin: 0;
   line-height: var(--line-height-interface);
 }
 
 .applyBtn {
-  padding: 7px 16px;
+  padding: var(--space-two) var(--space-four);
   border: 1px solid var(--color-action-strong);
   border-radius: var(--radius-control);
   background: var(--color-action-strong);
@@ -219,7 +219,7 @@
 }
 
 .applyBtnDone {
-  padding: 7px 16px;
+  padding: var(--space-two) var(--space-four);
   border: 1px solid var(--color-border-control);
   border-radius: var(--radius-control);
   background: var(--color-surface-chrome-strong);
@@ -232,7 +232,7 @@
 }
 
 .applyBtnOverwrite {
-  padding: 7px 16px;
+  padding: var(--space-two) var(--space-four);
   border: 1px solid var(--color-destructive-hover);
   border-radius: var(--radius-control);
   background: var(--color-destructive);
