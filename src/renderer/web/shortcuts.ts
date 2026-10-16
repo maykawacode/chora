@@ -1,13 +1,17 @@
 import { history } from '@renderer/store/history'
 import { overlayOpen } from '@renderer/lib/overlayStack'
+import { dispatchMenuAction } from './browserApi'
 import { historyLocked } from './interaction'
 
-// Undo/Redo keys. On the desktop these are menu accelerators, which take the
-// key even inside text fields so every edit goes through Score history; the
-// browser keeps that convention. Ctrl+Y is the extra Redo outside Apple systems.
-// Refused while a map modal holds its lock or any dialog is open over the page.
+// Keyboard shortcuts the browser leaves to the page. On the desktop these are
+// menu accelerators, which take the key even inside text fields so every edit
+// goes through Score history; the browser keeps that convention. Ctrl+Y is the
+// extra Redo outside Apple systems. Desktop shortcuts the browser reserves or
+// commonly claims (New, Close, Import's Ctrl+Shift+I, map creation, Settings)
+// are left to the browser; their commands are in the menu bar.
+// Everything here is refused while a dialog or menu is open over the page.
 
-const isApple = /Mac|iPhone|iPad/.test(navigator.platform)
+export const isApple = /Mac|iPhone|iPad/.test(navigator.platform)
 
 export function installShortcuts(): void {
   window.addEventListener('keydown', (e) => {
@@ -16,10 +20,15 @@ export function installShortcuts(): void {
     const key = e.key.toLowerCase()
     const undo = key === 'z' && !e.shiftKey
     const redo = (key === 'z' && e.shiftKey) || (!isApple && key === 'y' && !e.shiftKey)
-    if (!undo && !redo) return
+    const open = key === 'o' && !e.shiftKey
+    const save = key === 's'
+    if (!undo && !redo && !open && !save) return
     e.preventDefault()
-    if (historyLocked() || overlayOpen()) return
-    if (undo) history.undo()
+    if (overlayOpen()) return
+    if (open) dispatchMenuAction('open')
+    else if (save) dispatchMenuAction('save')
+    else if (historyLocked()) return
+    else if (undo) history.undo()
     else history.redo()
   }, { capture: true })
 }

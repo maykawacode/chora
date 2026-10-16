@@ -12,6 +12,7 @@ import { DEFAULT_PREFERENCES, type Preferences } from '../lib/preferences'
 import type { ElementShape, MarkMode } from '../lib/types'
 import { ForwardActionButton } from './ConfirmationDisc'
 import { ModalShell } from './ModalShell'
+import { hostCapabilities } from '../lib/host'
 import styles from './PreferencesDialog.module.css'
 
 interface Props { onClose: () => void }
@@ -84,6 +85,7 @@ export function PreferencesDialog({ onClose }: Props): React.JSX.Element {
 
       <div className={styles.content}>
         <div className={styles.settingsGrid}>
+          {hostCapabilities().kind === 'desktop' && (
           <section className={styles.section} aria-labelledby="preferences-startup">
             <h3 className={styles.sectionTitle} id="preferences-startup">Startup &amp; Windows</h3>
             <label className={styles.row}>
@@ -107,6 +109,7 @@ export function PreferencesDialog({ onClose }: Props): React.JSX.Element {
               <span>Check for updates on launch</span>
             </label>
           </section>
+          )}
 
           <section className={styles.section} aria-labelledby="preferences-new-maps">
             <h3 className={styles.sectionTitle} id="preferences-new-maps">New Maps</h3>

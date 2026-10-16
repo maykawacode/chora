@@ -33,11 +33,14 @@ import {
   openBundledExample,
   openDocument,
   openOrientationDocument,
+  downloadDocument,
+  downloadSpreadsheet,
   reopenLastDocument,
   saveDocument,
   type ImportPreviewData
 } from './lib/documentWorkflows'
 import type { CartesianMapConfig, SemanticMapConfig, Element, Dimension } from './lib/types'
+import { hostCapabilities } from './lib/host'
 import styles from './App.module.css'
 import { encodeMapStateEnvelope } from '../../shared/contracts'
 import type { UpdateNotice } from '../../shared/updateNotice'
@@ -45,6 +48,7 @@ import type { UpdateNotice } from '../../shared/updateNotice'
 type StoreState = ReturnType<typeof useAppStore.getState>
 
 const REPOSITORY_URL = 'https://github.com/maykawacode/chora'
+const RELEASES_URL = 'https://github.com/maykawacode/chora/releases'
 
 function AboutDialog({ version, onClose }: { version: string; onClose: () => void }): React.JSX.Element {
   return (
@@ -56,11 +60,18 @@ function AboutDialog({ version, onClose }: { version: string; onClose: () => voi
     >
       <h1 className={styles.aboutTitle} id="about-dialog-title">Chora</h1>
       <p className={styles.aboutTagline}>Spatial reasoning for qualitative data</p>
-      <p className={styles.aboutVersion}>Version {version}</p>
+      <p className={styles.aboutVersion}>
+        Version {version}{hostCapabilities().kind === 'browser' ? ' (web)' : ''}
+      </p>
       <p className={styles.aboutCopyright}>Copyright © 2026 Matt Mayfield</p>
       <a className={styles.aboutLink} href={REPOSITORY_URL} target="_blank" rel="noreferrer">
         github.com/maykawacode/chora
       </a>
+      {hostCapabilities().kind === 'browser' && (
+        <a className={styles.aboutLink} href={RELEASES_URL} target="_blank" rel="noreferrer">
+          Get Chora for Mac
+        </a>
+      )}
     </ModalShell>
   )
 }
@@ -135,6 +146,15 @@ export function App({ workspace }: AppProps = {}): React.JSX.Element {
   // one in-flight result; after it settles, a later request can capture a fresh
   // frame if changes remain.
   const saveInFlight = useRef<Promise<boolean> | null>(null)
+
+  // Brief status-bar message (browser downloads); replaces the contextual hint.
+  const [notice, setNotice] = useState<string | null>(null)
+  const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  function showNotice(message: string): void {
+    if (noticeTimer.current) clearTimeout(noticeTimer.current)
+    setNotice(message)
+    noticeTimer.current = setTimeout(() => setNotice(null), 4000)
+  }
   // New/Open await the user's decision without falling back to a native dialog.
   const discardConfirmationResolver = useRef<((confirmed: boolean) => void) | null>(null)
 
@@ -455,6 +475,11 @@ export function App({ workspace }: AppProps = {}): React.JSX.Element {
   }
 
   async function handleSave(forceDialog: boolean): Promise<boolean> {
+    // The browser saves by downloading; the download counts as the save.
+    if (hostCapabilities().documentSave === 'download') {
+      showNotice(`Download started: ${downloadDocument()}`)
+      return true
+    }
     const pending = saveInFlight.current
     if (pending) return pending
 
@@ -473,6 +498,10 @@ export function App({ workspace }: AppProps = {}): React.JSX.Element {
   }
 
   async function handleExport(): Promise<void> {
+    if (hostCapabilities().documentSave === 'download') {
+      showNotice(`Download started: ${downloadSpreadsheet()}`)
+      return
+    }
     await exportDocument()
   }
 
@@ -517,7 +546,7 @@ export function App({ workspace }: AppProps = {}): React.JSX.Element {
 
   return (
     <div className={styles.root}>
-      <ScoreWindow onOpenStarterPicker={() => setShowStarterPicker(true)} />
+      <ScoreWindow onOpenStarterPicker={() => setShowStarterPicker(true)} statusOverride={notice} />
       {workspace}
 
       {importPreview && (

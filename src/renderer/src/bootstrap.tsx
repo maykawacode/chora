@@ -11,7 +11,7 @@ import './styles/global.css'
  * Shared Score Window startup for the desktop renderer and the browser build.
  * The host's `window.api` must be installed before this runs.
  */
-export async function startApp(options: { workspace?: ReactNode } = {}): Promise<void> {
+export async function startApp(options: { header?: ReactNode; workspace?: ReactNode } = {}): Promise<void> {
   applyUiTheme()
 
   // Load preferences BEFORE React mounts so every component sees the correct
@@ -29,6 +29,7 @@ export async function startApp(options: { workspace?: ReactNode } = {}): Promise
 
   ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
+      {options.header}
       <App workspace={options.workspace} />
     </React.StrictMode>
   )

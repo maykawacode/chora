@@ -5,7 +5,6 @@
 .workspace {
   flex: 0 0 clamp(360px, calc(100% - var(--score-width, 23%)), calc(100% - var(--score-min-width)));
   min-width: 0;
-  height: 100vh;
   display: grid;
   /* As many columns as fit a readable map (2 × 58px plot margins + 160px plot,
      plus title-bar room); a single map fills the area. Rows scroll rather

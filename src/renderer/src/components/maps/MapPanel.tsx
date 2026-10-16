@@ -26,6 +26,7 @@ import { cartesianElements } from './collections'
 // plot, and the control sidebar's width (MapPanel.module.css --map-sidebar-width).
 const MIN_MAP_WIDTH = 2 * MARGIN + 160
 const SIDEBAR_WIDTH = 230
+import { downloadText } from '../../lib/download'
 import {
   cartesianDragStart,
   cartesianHitDot,
@@ -235,13 +236,7 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
           undefined, undefined, elementLabelSize, dimensionLabelSize, [], defaultDotRadius)
       }
     })
-    const blob = new Blob([svg], { type: 'image/svg+xml' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `${config.title ?? 'map'}.svg`
-    a.click()
-    URL.revokeObjectURL(url)
+    downloadText(`${config.title ?? 'map'}.svg`, svg, 'image/svg+xml')
   }
 
   // ── Canvas drawing ────────────────────────────────────────────────────────────

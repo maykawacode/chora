@@ -1,7 +1,8 @@
-import type { ChoraApi, HistoryPhase, Preferences } from '../../shared/contracts'
+import type { ChoraApi, HistoryPhase, MenuAction, Preferences } from '../../shared/contracts'
 import { mergePreferences } from '../../shared/contracts'
 import sampleDataset from '../../../resources/examples/sample-dataset.chora?raw'
 import orientationHelp from '../../../resources/help/orientation.md?raw'
+import { pickFile, readHeldFile } from './files'
 
 // Browser implementation of the desktop preload bridge.
 //
@@ -21,6 +22,20 @@ const HELP_DOCUMENTS: Record<string, string> = { 'orientation.md': orientationHe
 type HistoryListener = (ownerId: number, phase: HistoryPhase) => void
 const historyListeners = new Set<HistoryListener>()
 
+// The browser menu bar and shortcuts stand in for the desktop application menu.
+type MenuListener = (action: MenuAction) => void
+const menuListeners = new Set<MenuListener>()
+let availability = { canUndo: false, canRedo: false }
+
+export function dispatchMenuAction(action: MenuAction): void {
+  for (const cb of menuListeners) cb(action)
+}
+
+/** Undo/Redo availability as last reported by App (desktop: menu enablement). */
+export function historyAvailability(): { canUndo: boolean; canRedo: boolean } {
+  return availability
+}
+
 function listen<T>(set: Set<T>, cb: T): () => void {
   set.add(cb)
   return () => { set.delete(cb) }
@@ -29,13 +44,22 @@ function listen<T>(set: Set<T>, cb: T): () => void {
 const noop = (): void => {}
 const noSubscription = (): (() => void) => noop
 
+// Desktop-only behaviour stays off in the browser whatever was stored: there
+// is no last file to reopen, no window to position, and no update check.
+const BROWSER_OVERRIDES: Partial<Preferences> = {
+  reopenLastFile: false,
+  lastFilePath: null,
+  rememberWindowPositions: false,
+  checkForUpdatesOnLaunch: false
+}
+
 function readStoredPreferences(): Preferences {
+  let stored = {}
   try {
     const raw = localStorage.getItem(PREFS_KEY)
-    return mergePreferences(raw ? JSON.parse(raw) : {})
-  } catch {
-    return mergePreferences()
-  }
+    if (raw) stored = JSON.parse(raw)
+  } catch { /* unreadable or blocked storage: defaults */ }
+  return { ...mergePreferences(stored), ...BROWSER_OVERRIDES }
 }
 
 function bundled(table: Record<string, string>, fileName: string): Promise<string> {
@@ -50,19 +74,21 @@ function emitHistory(phase: HistoryPhase): void {
 }
 
 export const browserApi: ChoraApi = {
-  // Files: pickers and writes arrive in phase 2. Null is the desktop "cancelled" result.
-  openFile:           () => Promise.resolve(null),
+  // Files open through the browser picker. Saving and export are downloads
+  // (lib/host.ts documentSave), so the save dialogs report "cancelled" and
+  // writeFile is never reached.
+  openFile:           () => pickFile('.chora,.mtda'),
   showSaveDialog:     () => Promise.resolve(null),
-  openCsvFile:        () => Promise.resolve(null),
+  openCsvFile:        () => pickFile('.tsv,.csv,.txt'),
   showCsvSaveDialog:  () => Promise.resolve(null),
-  readFile:           () => Promise.reject(new Error('File access is not available in the browser yet')),
-  writeFile:          () => Promise.reject(new Error('File access is not available in the browser yet')),
+  readFile:           readHeldFile,
+  writeFile:          () => Promise.reject(new Error('The browser version saves by downloading')),
   readBundledExample: (fileName) => bundled(BUNDLED_EXAMPLES, fileName),
   readHelpDocument:   (fileName) => bundled(HELP_DOCUMENTS, fileName),
 
   getAppVersion:   () => __CHORA_VERSION__,
   getUpdateNotice: () => Promise.resolve(null),
-  onMenuAction:    noSubscription,
+  onMenuAction:    (cb) => listen(menuListeners, cb),
 
   // Map windows: tiled layout arrives in step 1c.
   openMap:          noop,
@@ -76,7 +102,7 @@ export const browserApi: ChoraApi = {
   historyEnd:            () => emitHistory('end'),
   setHistoryModalOpen:   noop,
   onHistoryTransaction:  (cb) => listen(historyListeners, cb),
-  setHistoryAvailability: noop,
+  setHistoryAvailability: (canUndo, canRedo) => { availability = { canUndo, canRedo } },
 
   getPrefsSync:    readStoredPreferences,
   loadPreferences: () => Promise.resolve(readStoredPreferences()),

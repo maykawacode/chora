@@ -4,6 +4,7 @@ import { history } from '../store/history'
 import { exportSpreadsheet } from './exporter'
 import { parseSpreadsheet, type ImportResult } from './importer'
 import { deserializeBundledExample, deserializeSession } from './parser'
+import { downloadText } from './download'
 
 export interface ImportPreviewData {
   fileName: string
@@ -125,6 +126,34 @@ export async function saveDocument(
     await showError('Could not save file', error)
     return false
   }
+}
+
+/** Base name of a document path, or the given fallback for an unsaved one. */
+function documentName(fallback: string): string {
+  const filePath = useAppStore.getState().filePath
+  return filePath ? (filePath.split('/').pop() || fallback) : fallback
+}
+
+/**
+ * Browser Save: downloads a snapshot of the current document and treats it as
+ * saved (owner decision 2026-10-15), so the Unsaved badge clears and leaving
+ * the page stops warning. The browser cannot confirm the write; the status
+ * message says the download started. Returns the downloaded name.
+ */
+export function downloadDocument(): string {
+  const name = documentName('Untitled.chora').replace(/\.mtda$/i, '.chora')
+  const fileName = /\.chora$/i.test(name) ? name : `${name}.chora`
+  const saveToken = history.captureSave()
+  downloadText(fileName, saveToken.frame.session, 'application/json')
+  history.markSaved(saveToken, useAppStore.getState().filePath ?? `browser:/download/${fileName}`)
+  return fileName
+}
+
+/** Browser Export: downloads the spreadsheet as tab-separated values. */
+export function downloadSpreadsheet(): string {
+  const fileName = 'chora-export.tsv'
+  downloadText(fileName, exportSpreadsheet(useAppStore.getState()), 'text/tab-separated-values')
+  return fileName
 }
 
 export async function chooseSpreadsheetImport(): Promise<ImportPreviewData | null> {
