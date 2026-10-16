@@ -90,9 +90,11 @@ function encodeStateEnvelope(state: StoreState): string {
 interface AppProps {
   /** Host-supplied surface beside the Score Window (the browser's map tiles). */
   workspace?: ReactNode
+  /** Host wrapper around the Score Window (the browser's collapsible dock). */
+  scoreFrame?: (score: ReactNode) => ReactNode
 }
 
-export function App({ workspace }: AppProps = {}): React.JSX.Element {
+export function App({ workspace, scoreFrame }: AppProps = {}): React.JSX.Element {
   const [appVersion] = useState(() => window.api.getAppVersion())
   const filePath      = useAppStore(s => s.filePath)
   const isDirty       = useAppStore(s => s.isDirty)
@@ -549,7 +551,9 @@ export function App({ workspace }: AppProps = {}): React.JSX.Element {
 
   return (
     <div className={styles.root}>
-      <ScoreWindow onOpenStarterPicker={() => setShowStarterPicker(true)} statusOverride={notice} />
+      {(scoreFrame ?? (score => score))(
+        <ScoreWindow onOpenStarterPicker={() => setShowStarterPicker(true)} statusOverride={notice} />
+      )}
       {workspace}
 
       {importPreview && (

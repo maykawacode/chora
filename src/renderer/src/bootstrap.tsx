@@ -14,6 +14,7 @@ import './styles/global.css'
 export async function startApp(options: {
   header?: ReactNode
   workspace?: ReactNode
+  scoreFrame?: (score: ReactNode) => ReactNode
   /** Runs once history has started and before React mounts (browser recovery). */
   beforeMount?: () => void
 } = {}): Promise<void> {
@@ -36,7 +37,7 @@ export async function startApp(options: {
   ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
       {options.header}
-      <App workspace={options.workspace} />
+      <App workspace={options.workspace} scoreFrame={options.scoreFrame} />
     </React.StrictMode>
   )
 }

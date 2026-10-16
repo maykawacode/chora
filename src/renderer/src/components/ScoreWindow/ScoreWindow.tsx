@@ -28,7 +28,7 @@ const TAB_LABELS: Record<AppState['activeTab'], string> = {
   conversions: '…'
 }
 
-const TAB_ACCESSIBLE_LABELS: Record<AppState['activeTab'], string> = {
+export const TAB_ACCESSIBLE_LABELS: Record<AppState['activeTab'], string> = {
   notes:       'Notes',
   elements:    'Elements',
   collections: 'Collections',
@@ -36,6 +36,8 @@ const TAB_ACCESSIBLE_LABELS: Record<AppState['activeTab'], string> = {
   scores:      'Assess',
   conversions: 'Conversions'
 }
+
+export const TAB_ORDER = ['notes', 'elements', 'dimensions', 'collections', 'scores', 'conversions'] as const
 
 interface Props {
   onOpenStarterPicker: () => void
@@ -74,7 +76,7 @@ export function ScoreWindow({ onOpenStarterPicker, statusOverride }: Props): Rea
       </div>
 
       <div className={styles.tabBar}>
-        {(['notes', 'elements', 'dimensions', 'collections', 'scores', 'conversions'] as const).map(tab => (
+        {TAB_ORDER.map(tab => (
           <button
             key={tab}
             className={[

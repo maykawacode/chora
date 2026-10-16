@@ -6,6 +6,7 @@ import {
   activateSurface, activeSurface, beginTransaction, endTransaction, releaseSurface, setModalLock
 } from './interaction'
 import { PANE_MIN_WIDTH } from '@renderer/components/ScoreWindow/useResizableSplitPane'
+import { STRIP_WIDTH, useScoreLayout } from './scoreLayout'
 import styles from './BrowserWorkspace.module.css'
 
 // Browser map area beside the Score Window: one tile per map in the session.
@@ -98,16 +99,18 @@ function useSurfaceTracking(): void {
 
 // Score's two side-by-side panes (list and detail) at their own minimums.
 const SCORE_MIN_WIDTH = 2 * PANE_MIN_WIDTH
+// Everything left of the splitter: the tab strip plus Score.
+const LEFT_MIN_WIDTH = STRIP_WIDTH + SCORE_MIN_WIDTH
 const WORKSPACE_MIN_WIDTH = 360
 const KEY_STEP = 16
 
 const clampScoreWidth = (width: number): number =>
-  Math.round(Math.max(SCORE_MIN_WIDTH, Math.min(width, window.innerWidth - WORKSPACE_MIN_WIDTH)))
+  Math.round(Math.max(LEFT_MIN_WIDTH, Math.min(width, window.innerWidth - WORKSPACE_MIN_WIDTH)))
 
 /**
  * Divider on Score's right edge. Drag, or focus it and use the arrow keys, to
- * resize Score; double-click returns to the default share. Score starts at the
- * page's left edge, so its width is the divider's x position.
+ * resize Score; double-click returns to the default share. The strip and Score
+ * start at the page's left edge, so their width is the divider's x position.
  */
 function Splitter({ width, onChange }: { width: number | null; onChange: (w: number | null) => void }): React.JSX.Element {
   return (
@@ -116,7 +119,7 @@ function Splitter({ width, onChange }: { width: number | null; onChange: (w: num
       role="separator"
       aria-orientation="vertical"
       aria-label="Resize Score"
-      aria-valuemin={SCORE_MIN_WIDTH}
+      aria-valuemin={LEFT_MIN_WIDTH}
       aria-valuenow={width ?? undefined}
       tabIndex={0}
       onPointerDown={(e) => {
@@ -145,6 +148,8 @@ export function BrowserWorkspace(): React.JSX.Element | null {
   const [scoreWidth, setScoreWidth] = useState<number | null>(null)
   const mapIds = useAppStore(s => s.maps.map(m => m.id).join('\n'))
   const [maximizedId, setMaximizedId] = useState<string | null>(null)
+  const scoreCollapsed = useScoreLayout(s => s.collapsed)
+  const scoreMotion = useScoreLayout(s => s.animating)
 
   const ids = mapIds ? mapIds.split('\n') : []
   if (ids.length === 0) return null
@@ -154,11 +159,20 @@ export function BrowserWorkspace(): React.JSX.Element | null {
 
   return (
     <>
-    <Splitter width={scoreWidth} onChange={setScoreWidth} />
+    {!scoreCollapsed && <Splitter width={scoreWidth} onChange={setScoreWidth} />}
     <main
-      className={`${styles.workspace} ${maximized ? styles.maximized : ''}`}
+      className={[
+        styles.workspace,
+        maximized ? styles.maximized : '',
+        scoreCollapsed ? styles.scoreCollapsed : '',
+        scoreMotion ? styles.scoreMotion : ''
+      ].filter(Boolean).join(' ')}
+      onTransitionEnd={(e) => {
+        if (e.target === e.currentTarget && e.propertyName === 'flex-basis') useScoreLayout.getState().endAnimation()
+      }}
       style={{
-        '--score-min-width': `${SCORE_MIN_WIDTH}px`,
+        '--score-min-width': `${LEFT_MIN_WIDTH}px`,
+        '--strip-width': `${STRIP_WIDTH}px`,
         ...(scoreWidth === null ? {} : { '--score-width': `${scoreWidth}px` })
       } as React.CSSProperties}
     >

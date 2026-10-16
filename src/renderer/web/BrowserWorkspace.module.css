@@ -1,9 +1,10 @@
-/* Map tiles to the right of the Score Window. Score defaults to about 23% of
-   the width; the splitter sets --score-width once dragged. Score keeps at
-   least --score-min-width (its two panes' minimums, set from
-   BrowserWorkspace.tsx) and the map area at least one 360px tile. */
+/* Map tiles to the right of the tab strip and Score Window. Score defaults to
+   about 23% of the width; the splitter sets --score-width (strip included)
+   once dragged. Strip plus Score keep at least --score-min-width (the strip
+   and Score's two panes' minimums, set from BrowserWorkspace.tsx) and the map
+   area at least one 360px tile. */
 .workspace {
-  flex: 0 0 clamp(360px, calc(100% - var(--score-width, 23%)), calc(100% - var(--score-min-width)));
+  flex: 0 0 clamp(360px, calc(100% - var(--score-width, calc(23% + var(--strip-width)))), calc(100% - var(--score-min-width)));
   min-width: 0;
   display: grid;
   /* As many columns as fit a readable map (2 × 58px plot margins + 160px plot,
@@ -14,6 +15,23 @@
   gap: 1px;
   overflow: auto;
   background: var(--color-border-subtle);
+}
+
+/* Score collapsed to its icon strip: the maps take the rest of the page. */
+.workspace.scoreCollapsed {
+  flex-basis: calc(100% - var(--strip-width));
+}
+
+/* Only a collapse or expand animates, with the map sidebar's motion; splitter
+   drags and window resizes stay immediate. */
+.workspace.scoreMotion {
+  transition: flex-basis var(--motion-duration-enter) var(--motion-ease-standard);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workspace.scoreMotion {
+    transition: none;
+  }
 }
 
 .workspace.maximized {

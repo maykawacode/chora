@@ -1,6 +1,8 @@
 import { browserApi } from './browserApi'
 import { startApp } from '@renderer/bootstrap'
 import { BrowserWorkspace } from './BrowserWorkspace'
+import { ScoreDock } from './ScoreDock'
+import { useScoreLayout } from './scoreLayout'
 import { MenuBar } from './MenuBar'
 import { DeviceNotice } from './DeviceNotice'
 import './browser.css'
@@ -14,10 +16,12 @@ import { clearRecovery, installLeaveWarning } from './recovery'
 window.api = browserApi
 setHostCapabilities({ kind: 'browser', documentSave: 'download' })
 installShortcuts()
-setScoreSurfaceProbe(() => activeSurface() === 'score')
+// A collapsed Score keeps its tabs mounted; their keyboard handlers stand down.
+setScoreSurfaceProbe(() => activeSurface() === 'score' && !useScoreLayout.getState().collapsed)
 void startApp({
   header: <><MenuBar /><DeviceNotice /></>,
   workspace: <BrowserWorkspace />,
+  scoreFrame: score => <ScoreDock>{score}</ScoreDock>,
   // Restore-on-reload is parked (see recovery.ts); only the leave warning runs.
   beforeMount: () => {
     clearRecovery()
