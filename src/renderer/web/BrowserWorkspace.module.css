@@ -1,0 +1,35 @@
+/* Map tiles to the right of the Score Window. Score keeps at least 420px. */
+.workspace {
+  flex: 0 0 min(62%, calc(100% - 420px));
+  min-width: 0;
+  height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-auto-rows: minmax(320px, 1fr);
+  gap: 1px;
+  overflow: auto;
+  background: var(--color-border-subtle);
+}
+
+.workspace[data-count="2"],
+.workspace[data-count="3"],
+.workspace[data-count="4"] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.workspace.maximized {
+  grid-template-columns: 1fr;
+  grid-auto-rows: 1fr;
+}
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.tile[hidden] {
+  display: none;
+}

@@ -4,7 +4,8 @@
 // Pure geometry and hit testing live in mapGeometry; this component coordinates
 // React state, canvas painting, pointer gestures, and map-window controls.
 
-import { useRef, useEffect, useCallback, useState } from 'react'
+import { useRef, useEffect, useCallback, useContext, useState } from 'react'
+import { MapHostContext } from './mapHost'
 import { useAppStore, type ScoreEntry } from '../../store/appStore'
 import { usePrefsStore } from '../../store/prefsStore'
 import type { CartesianMapConfig, SemanticMapConfig, Dimension } from '../../lib/types'
@@ -121,16 +122,20 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
   // drives it sits in the title bar. Deliberately not persisted.
   const [sidebarOpen,    setSidebarOpen]    = useState(false)
 
+  // A browser tile supplies its own history bridge; a desktop map window uses IPC.
+  const mapHost = useContext(MapHostContext)
+  const historyBridge = mapHost?.history ?? window.api
+
   // A map modal owns keyboard interaction while it is visible. Tell main to
   // gate native Undo/Redo; cleanup also releases a block if this renderer exits.
   const historyModalOpen =
     elementModal !== null || bulkModalIds.length > 0 || dimensionModal !== null
   useEffect(() => {
-    window.api.setHistoryModalOpen(historyModalOpen)
+    historyBridge.setHistoryModalOpen(historyModalOpen)
     return () => {
-      if (historyModalOpen) window.api.setHistoryModalOpen(false)
+      if (historyModalOpen) historyBridge.setHistoryModalOpen(false)
     }
-  }, [historyModalOpen])
+  }, [historyModalOpen, historyBridge])
 
   // Map windows do not own history. They bracket gestures over IPC so the
   // authoritative Score Window captures one snapshot around every score drag or
@@ -141,14 +146,14 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
     // Reasserting before each drag write lets a gesture resume cleanly if Undo,
     // Redo, or Save finalized its Score-side transaction while the pointer was
     // still down.
-    window.api.historyBegin()
-  }, [])
+    historyBridge.historyBegin()
+  }, [historyBridge])
 
   const finishHistory = useCallback((): void => {
     if (!historyOpenRef.current) return
     historyOpenRef.current = false
-    window.api.historyEnd()
-  }, [])
+    historyBridge.historyEnd()
+  }, [historyBridge])
 
   // A gesture can end without a canvas mouseup when the window loses focus or
   // closes. Always close the remote transaction so it cannot absorb a later edit.
@@ -197,13 +202,14 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return
+      if (mapHost && !mapHost.isActive()) return
       setAxisPicker(null)
       setSemanticPicker(null)
       deselectAll()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [deselectAll])
+  }, [deselectAll, mapHost])
 
   function handleExportSvg(): void {
     const wrapper = wrapperRef.current

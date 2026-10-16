@@ -12,7 +12,7 @@
 // read-only displays — they send back only fine-grained score drags and config
 // changes. Every other mutation flows through this component.
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useAppStore } from './store/appStore'
 import { usePrefsStore } from './store/prefsStore'
 import { history } from './store/history'
@@ -76,7 +76,12 @@ function encodeStateEnvelope(state: StoreState): string {
   })
 }
 
-export function App(): React.JSX.Element {
+interface AppProps {
+  /** Host-supplied surface beside the Score Window (the browser's map tiles). */
+  workspace?: ReactNode
+}
+
+export function App({ workspace }: AppProps = {}): React.JSX.Element {
   const [appVersion] = useState(() => window.api.getAppVersion())
   const filePath      = useAppStore(s => s.filePath)
   const isDirty       = useAppStore(s => s.isDirty)
@@ -513,6 +518,7 @@ export function App(): React.JSX.Element {
   return (
     <div className={styles.root}>
       <ScoreWindow onOpenStarterPicker={() => setShowStarterPicker(true)} />
+      {workspace}
 
       {importPreview && (
         <ImportPreview

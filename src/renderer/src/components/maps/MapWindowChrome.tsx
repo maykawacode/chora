@@ -1,4 +1,5 @@
-import { useRef, useState } from 'react'
+import { useContext, useRef, useState } from 'react'
+import { MapHostContext } from './mapHost'
 import styles from './MapPanel.module.css'
 
 interface Props {
@@ -19,10 +20,11 @@ interface MapChromeButtonProps {
 }
 
 function MapChromeButton({ action, label, glyph }: MapChromeButtonProps): React.JSX.Element {
+  const host = useContext(MapHostContext)
   return (
     <button
       className={styles.windowControl}
-      onClick={() => window.api.controlMapWindow(action)}
+      onClick={() => host ? host.control(action) : window.api.controlMapWindow(action)}
       title={label}
       aria-label={`${label} window`}
     >
@@ -64,6 +66,7 @@ export function MapWindowChrome({
   onRename,
   onToggleSidebar
 }: Props): React.JSX.Element {
+  const host = useContext(MapHostContext)
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
@@ -85,8 +88,10 @@ export function MapWindowChrome({
       <div className={styles.titleBar}>
         <div className={styles.windowControls} aria-label="Window controls">
           <MapChromeButton action="close" label="Close" glyph="M3.5 3.5 8.5 8.5M8.5 3.5 3.5 8.5" />
-          <MapChromeButton action="minimize" label="Minimize" glyph="M3 6h6" />
-          <MapChromeButton action="zoom" label="Zoom" glyph="M3 6h6M6 3v6" />
+          {host?.minimizable !== false && (
+            <MapChromeButton action="minimize" label="Minimize" glyph="M3 6h6" />
+          )}
+          <MapChromeButton action="zoom" label={host?.zoomLabel ?? 'Zoom'} glyph="M3 6h6M6 3v6" />
         </div>
 
         <div className={styles.titleGroup}>

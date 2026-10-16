@@ -3,12 +3,15 @@
     "composite": true,
     "module": "ESNext",
     "moduleResolution": "bundler",
+    "resolveJsonModule": true,
     "skipLibCheck": true,
     "strict": true,
     "target": "ESNext"
   },
   "include": [
     "electron.vite.config.*",
+    "vite.web.config.*",
+    "build/**/*",
     "src/main/**/*",
     "src/preload/**/*"
   ]
