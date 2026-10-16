@@ -107,11 +107,14 @@ export function App({ workspace }: AppProps = {}): React.JSX.Element {
 
   // ── Modal visibility state ────────────────────────────────────────────────────
 
-  // Show the welcome dialog on startup unless a file will be auto-reopened.
+  // Show the welcome dialog on startup unless a file will be auto-reopened or
+  // the host already restored a document before mount (browser recovery).
   // Prefs are pre-loaded before React mounts so this initial value is stable.
   const [showWelcome, setShowWelcome] = useState(() => {
     const { prefs } = usePrefsStore.getState()
-    return !(prefs.reopenLastFile && !!prefs.lastFilePath)
+    const s = useAppStore.getState()
+    const restored = s.elements.length > 0 || s.dimensions.length > 0 || s.maps.length > 0
+    return !restored && !(prefs.reopenLastFile && !!prefs.lastFilePath)
   })
 
   const [showQuitConfirm,       setShowQuitConfirm]       = useState(false)

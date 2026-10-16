@@ -77,3 +77,26 @@
   margin: var(--space-one) 0;
   background: var(--color-border-subtle);
 }
+
+/* DeviceNotice: a slim strip under the menu bar. */
+.notice {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-three);
+  padding: var(--space-one) var(--space-three);
+  background: var(--color-surface-raised);
+  border-bottom: 1px solid var(--color-border-subtle);
+  color: var(--color-text-primary);
+  font-family: var(--font-family-ui);
+  font-size: var(--font-size-control);
+}
+
+.noticeDismiss {
+  margin-left: auto;
+  padding: 2px var(--space-two);
+  border: 1px solid var(--color-border-control);
+  background: var(--color-surface-app);
+  color: var(--color-text-primary);
+  font: inherit;
+}

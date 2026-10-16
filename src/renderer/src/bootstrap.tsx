@@ -11,7 +11,12 @@ import './styles/global.css'
  * Shared Score Window startup for the desktop renderer and the browser build.
  * The host's `window.api` must be installed before this runs.
  */
-export async function startApp(options: { header?: ReactNode; workspace?: ReactNode } = {}): Promise<void> {
+export async function startApp(options: {
+  header?: ReactNode
+  workspace?: ReactNode
+  /** Runs once history has started and before React mounts (browser recovery). */
+  beforeMount?: () => void
+} = {}): Promise<void> {
   applyUiTheme()
 
   // Load preferences BEFORE React mounts so every component sees the correct
@@ -26,6 +31,7 @@ export async function startApp(options: { header?: ReactNode; workspace?: ReactN
   // Only the Score Window owns session history. mapMain.tsx deliberately does
   // not start this controller, so map renderer stores remain disposable mirrors.
   history.start()
+  options.beforeMount?.()
 
   ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>

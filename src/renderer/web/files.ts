@@ -7,7 +7,7 @@ const MAX_HELD_FILES = 4
 const held = new Map<string, string>()
 let counter = 0
 
-function hold(name: string, text: string): string {
+export function holdFile(name: string, text: string): string {
   const path = `browser:/${++counter}/${name}`
   held.set(path, text)
   while (held.size > MAX_HELD_FILES) held.delete(held.keys().next().value!)
@@ -24,7 +24,7 @@ export function pickFile(accept: string): Promise<string | null> {
     input.addEventListener('change', () => {
       const file = input.files?.[0]
       if (!file) { resolve(null); return }
-      file.text().then(text => resolve(hold(file.name, text)), reject)
+      file.text().then(text => resolve(holdFile(file.name, text)), reject)
     })
     input.click()
   })
