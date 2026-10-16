@@ -118,7 +118,9 @@ export const uiTheme = {
     titleBar: '28px',
     statusBar: '74px',
     control: '28px',
-    listRow: '26px'
+    listRow: '26px',
+    /** Every circular dialog (Welcome, About, confirmation discs) shares this diameter. */
+    disc: '300px'
   },
   shadow: {
     dialog: '0 10px 30px rgba(41, 39, 37, 0.18)',

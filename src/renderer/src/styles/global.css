@@ -105,7 +105,7 @@ textarea {
 
 .confirmationDisc {
   position: relative;
-  width: min(250px, calc(100vw - 32px), calc(100vh - 32px));
+  width: min(var(--size-disc), calc(100vw - 32px), calc(100vh - 32px));
   aspect-ratio: 1;
   flex: none;
   display: flex;
