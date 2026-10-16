@@ -109,7 +109,6 @@ export const browserApi: ChoraApi = {
   onHistoryTransaction:  (cb) => listen(historyListeners, cb),
   setHistoryAvailability: (canUndo, canRedo) => { availability = { canUndo, canRedo } },
 
-  getPrefsSync:    readStoredPreferences,
   loadPreferences: () => Promise.resolve(readStoredPreferences()),
   savePreferences: (prefs) => {
     try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)) } catch { /* storage unavailable */ }

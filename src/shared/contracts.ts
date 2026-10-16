@@ -215,7 +215,6 @@ export interface ChoraApi {
   setHistoryModalOpen: (open: boolean) => void
   onHistoryTransaction: (cb: (ownerId: number, phase: HistoryPhase) => void) => () => void
   setHistoryAvailability: (canUndo: boolean, canRedo: boolean) => void
-  getPrefsSync: () => Preferences
   loadPreferences: () => Promise<Preferences>
   savePreferences: (prefs: Preferences) => void
   getMapWindowPositions: () => Promise<Record<string, MapWindowBounds>>

@@ -21,7 +21,6 @@ import { usePrefsStore } from './store/prefsStore'
 import { deserializeSession } from './lib/parser'
 import { MapPanel } from './components/maps/MapPanel'
 import { CANCEL_MODAL_EVENT } from './components/ModalShell'
-import type { CartesianMapConfig, SemanticMapConfig } from './lib/types'
 import { decodeMapStateEnvelope, mergePreferences } from '../../shared/contracts'
 import { uiTheme } from './design/theme'
 
@@ -30,7 +29,6 @@ export function MapApp(): React.JSX.Element {
   const loadSession         = useAppStore(s => s.loadSession)
   const selectElements      = useAppStore(s => s.selectElements)
   const setScore            = useAppStore(s => s.setScore)
-  const updateMapConfig     = useAppStore(s => s.updateMapConfig)
   const setPrefs            = usePrefsStore(s => s.setPrefs)
 
   // Sync OS window title to the map's title and file name
@@ -79,11 +77,6 @@ export function MapApp(): React.JSX.Element {
       setScore(elementId, dimensionId, value)
     })
 
-    // Config change relayed from Score Window (e.g. toggle-labels from menu)
-    const removeConfig = window.api.onMapConfig((mId, changes) => {
-      updateMapConfig(mId, changes as Partial<CartesianMapConfig> | Partial<SemanticMapConfig>)
-    })
-
     // Preference update pushed from the Score Window after the user saves the
     // Preferences dialog. Merging with defaults ensures any field not yet in
     // the stored prefs (newly added fields) gets a sensible fallback value.
@@ -102,11 +95,10 @@ export function MapApp(): React.JSX.Element {
       removeInit()
       removeState()
       removeScore()
-      removeConfig()
       removePrefs()
       removeCancelModals()
     }
-  }, [loadSession, selectElements, setScore, updateMapConfig])
+  }, [loadSession, selectElements, setScore])
 
   // ── OS window title sync ──────────────────────────────────────────────────
 

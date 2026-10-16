@@ -1,5 +1,6 @@
 import { useContext, useRef, useState } from 'react'
 import { MapHostContext } from './mapHost'
+import type { MapWindowAction } from '../../../../shared/contracts'
 import styles from './MapPanel.module.css'
 
 interface Props {
@@ -11,7 +12,6 @@ interface Props {
   onToggleSidebar: () => void
 }
 
-type MapWindowAction = 'close' | 'minimize' | 'zoom'
 
 interface MapChromeButtonProps {
   action: MapWindowAction
