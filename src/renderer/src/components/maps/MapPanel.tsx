@@ -253,10 +253,20 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
     // A hidden or collapsed host (minimized window, hidden tile) has no area to paint.
     if (cssW <= 0 || cssH <= 0) return
 
-    // Match canvas bitmap to CSS size × devicePixelRatio for sharp rendering
-    canvas.width  = cssW * window.devicePixelRatio
-    canvas.height = cssH * window.devicePixelRatio
-    ctx.scale(window.devicePixelRatio, window.devicePixelRatio)
+    // Match canvas bitmap to CSS size × devicePixelRatio for sharp rendering.
+    // The bitmap is reallocated only when that size changes; otherwise the
+    // frame is cleared, and save/restore keeps one frame's drawing state
+    // (dashes, alpha, transforms) out of the next.
+    const dpr = window.devicePixelRatio
+    const bitmapW = Math.trunc(cssW * dpr)
+    const bitmapH = Math.trunc(cssH * dpr)
+    if (canvas.width !== bitmapW || canvas.height !== bitmapH) {
+      canvas.width  = bitmapW
+      canvas.height = bitmapH
+    }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+    ctx.clearRect(0, 0, cssW, cssH)
+    ctx.save()
 
     if (config.type === 'cartesian') {
       drawCartesian(ctx, cssW, cssH, config, elements, collections, dimensions, scores,
@@ -278,22 +288,32 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
       ctx.strokeRect(x1, y1, x2 - x1, y2 - y1)
       ctx.restore()
     }
+    ctx.restore()
   // Selection and every map appearance preference must be dependencies:
   // any of them changing should immediately repaint the canvas.
   }, [config, elements, collections, dimensions, scores, selectedElementId,
     selectedElementIds, elementLabelSize, dimensionLabelSize, defaultDotRadius])
 
   // Redraw whenever any input data changes
-  useEffect(() => { redraw() }, [redraw])
+  const redrawRef = useRef(redraw)
+  useEffect(() => {
+    redrawRef.current = redraw
+    redraw()
+  }, [redraw])
 
-  // Redraw when the wrapper div is resized (window resize or layout change)
+  // Redraw when the wrapper div is resized (window resize or layout change).
+  // One observer while the canvas is mounted, calling the latest redraw:
+  // recreating it per data change would make its initial size report repaint
+  // each change a second time (Issue #5). The wrapper appears once the map's
+  // config arrives (a desktop map window starts without it).
+  const hasCanvas = !!config
   useEffect(() => {
     const wrapper = wrapperRef.current
     if (!wrapper) return
-    const observer = new ResizeObserver(() => redraw())
+    const observer = new ResizeObserver(() => redrawRef.current())
     observer.observe(wrapper)
     return () => observer.disconnect()
-  }, [redraw])
+  }, [hasCanvas])
 
   // ── Mouse event handlers ──────────────────────────────────────────────────────
 
