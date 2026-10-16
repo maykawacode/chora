@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useAppStore } from '@renderer/store/appStore'
 import { MapPanel } from '@renderer/components/maps/MapPanel'
 import { MapHostContext, type MapHost } from '@renderer/components/maps/mapHost'
 import {
   activateSurface, activeSurface, beginTransaction, endTransaction, releaseSurface, setModalLock
 } from './interaction'
+import { PANE_MIN_WIDTH } from '@renderer/components/ScoreWindow/useResizableSplitPane'
 import styles from './BrowserWorkspace.module.css'
 
 // Browser map area beside the Score Window: one tile per map in the session.
@@ -12,13 +13,23 @@ import styles from './BrowserWorkspace.module.css'
 // as closing a desktop map window does. Maximize keeps the other tiles
 // mounted but hidden and inert, so their state survives the round trip.
 
+// Smallest tile that holds the element, bulk and dimension editors without clipping.
+const MODAL_ROOM = { width: 560, height: 560 }
+
 function MapTile({ mapId, hidden, maximized, onToggleMaximize }: {
   mapId: string
   hidden: boolean
   maximized: boolean
   onToggleMaximize: () => void
 }): React.JSX.Element {
-  const host = useMemo<MapHost>(() => ({
+  const tileRef = useRef<HTMLElement>(null)
+  const host = useMemo<MapHost>(() => {
+    const ensureRoom = (minWidth: number, minHeight: number): void => {
+      const rect = tileRef.current?.getBoundingClientRect()
+      if (!rect || maximized) return
+      if (rect.width < minWidth || rect.height < minHeight) onToggleMaximize()
+    }
+    return {
     control: (action) => {
       if (action === 'close') useAppStore.getState().removeMap(mapId)
       else if (action === 'zoom') onToggleMaximize()
@@ -28,10 +39,16 @@ function MapTile({ mapId, hidden, maximized, onToggleMaximize }: {
     history: {
       historyBegin:        () => beginTransaction(mapId),
       historyEnd:          () => endTransaction(mapId),
-      setHistoryModalOpen: (open) => setModalLock(mapId, open)
+      setHistoryModalOpen: (open) => {
+        // Map editing dialogs are laid out within the tile; give them room.
+        if (open) ensureRoom(MODAL_ROOM.width, MODAL_ROOM.height)
+        setModalLock(mapId, open)
+      }
     },
+    ensureRoom,
     isActive: () => activeSurface() === mapId
-  }), [mapId, maximized, onToggleMaximize])
+    }
+  }, [mapId, maximized, onToggleMaximize])
 
   useEffect(() => () => releaseSurface(mapId), [mapId])
 
@@ -39,7 +56,7 @@ function MapTile({ mapId, hidden, maximized, onToggleMaximize }: {
   useEffect(() => { if (hidden) releaseSurface(mapId) }, [hidden, mapId])
 
   return (
-    <section className={styles.tile} hidden={hidden} inert={hidden} data-surface={mapId}>
+    <section ref={tileRef} className={styles.tile} hidden={hidden} inert={hidden} data-surface={mapId}>
       <MapHostContext.Provider value={host}>
         <MapPanel mapId={mapId} />
       </MapHostContext.Provider>
@@ -79,8 +96,53 @@ function useSurfaceTracking(): void {
   }, [])
 }
 
+// Score's two side-by-side panes (list and detail) at their own minimums.
+const SCORE_MIN_WIDTH = 2 * PANE_MIN_WIDTH
+const WORKSPACE_MIN_WIDTH = 360
+const KEY_STEP = 16
+
+const clampScoreWidth = (width: number): number =>
+  Math.round(Math.max(SCORE_MIN_WIDTH, Math.min(width, window.innerWidth - WORKSPACE_MIN_WIDTH)))
+
+/**
+ * Divider on Score's right edge. Drag, or focus it and use the arrow keys, to
+ * resize Score; double-click returns to the default share. Score starts at the
+ * page's left edge, so its width is the divider's x position.
+ */
+function Splitter({ width, onChange }: { width: number | null; onChange: (w: number | null) => void }): React.JSX.Element {
+  return (
+    <div
+      className={styles.splitter}
+      role="separator"
+      aria-orientation="vertical"
+      aria-label="Resize Score"
+      aria-valuemin={SCORE_MIN_WIDTH}
+      aria-valuenow={width ?? undefined}
+      tabIndex={0}
+      onPointerDown={(e) => {
+        e.preventDefault()
+        e.currentTarget.setPointerCapture(e.pointerId)
+      }}
+      onPointerMove={(e) => {
+        if (e.currentTarget.hasPointerCapture(e.pointerId)) onChange(clampScoreWidth(e.clientX))
+      }}
+      onDoubleClick={() => onChange(null)}
+      onKeyDown={(e) => {
+        if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return
+        e.preventDefault()
+        // Keep the arrows from also nudging the selected score (ScoresTab listens on window).
+        e.stopPropagation()
+        const left = e.currentTarget.getBoundingClientRect().left
+        onChange(clampScoreWidth(left + (e.key === 'ArrowLeft' ? -KEY_STEP : KEY_STEP)))
+      }}
+    />
+  )
+}
+
 export function BrowserWorkspace(): React.JSX.Element | null {
   useSurfaceTracking()
+  // Null keeps the default proportional width; session-only until layout persistence (phase 3).
+  const [scoreWidth, setScoreWidth] = useState<number | null>(null)
   const mapIds = useAppStore(s => s.maps.map(m => m.id).join('\n'))
   const [maximizedId, setMaximizedId] = useState<string | null>(null)
 
@@ -91,7 +153,15 @@ export function BrowserWorkspace(): React.JSX.Element | null {
   const maximized = maximizedId !== null && ids.includes(maximizedId) ? maximizedId : null
 
   return (
-    <main className={`${styles.workspace} ${maximized ? styles.maximized : ''}`} data-count={Math.min(ids.length, 4)}>
+    <>
+    <Splitter width={scoreWidth} onChange={setScoreWidth} />
+    <main
+      className={`${styles.workspace} ${maximized ? styles.maximized : ''}`}
+      style={{
+        '--score-min-width': `${SCORE_MIN_WIDTH}px`,
+        ...(scoreWidth === null ? {} : { '--score-width': `${scoreWidth}px` })
+      } as React.CSSProperties}
+    >
       {ids.map(id => (
         <MapTile
           key={id}
@@ -102,5 +172,6 @@ export function BrowserWorkspace(): React.JSX.Element | null {
         />
       ))}
     </main>
+    </>
   )
 }

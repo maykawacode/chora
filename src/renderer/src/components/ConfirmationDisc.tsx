@@ -1,4 +1,5 @@
-import { useEffect, useId, type ReactNode } from 'react'
+import { useEffect, useId, useRef, type ReactNode } from 'react'
+import { useOverlay } from '../lib/overlayStack'
 import { CANCEL_MODAL_EVENT } from './ModalShell'
 
 interface ConfirmationDiscProps {
@@ -65,19 +66,17 @@ export function ConfirmationDisc({
   const id = useId()
   const titleId = `${id}-title`
   const detailId = `${id}-detail`
+  const discRef = useRef<HTMLDivElement>(null)
+
+  // Focus lands on the disc itself, never the action, so Enter cannot confirm
+  // a destructive choice the moment it appears.
+  useOverlay(onCancel, discRef)
 
   useEffect(() => {
     window.api?.setModalOpen?.(true)
-    const closeOnEscape = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape') onCancel()
-    }
     const closeOnAppQuit = (): void => onCancel()
-    window.addEventListener('keydown', closeOnEscape)
     window.addEventListener(CANCEL_MODAL_EVENT, closeOnAppQuit)
-    return () => {
-      window.removeEventListener('keydown', closeOnEscape)
-      window.removeEventListener(CANCEL_MODAL_EVENT, closeOnAppQuit)
-    }
+    return () => window.removeEventListener(CANCEL_MODAL_EVENT, closeOnAppQuit)
   }, [onCancel])
 
   return (
@@ -86,6 +85,8 @@ export function ConfirmationDisc({
       onClick={onCancel}
     >
       <div
+        ref={discRef}
+        tabIndex={-1}
         className="confirmationDisc modalZoomEnter"
         role="alertdialog"
         aria-modal="true"

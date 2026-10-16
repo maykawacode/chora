@@ -13,6 +13,8 @@ export interface MapHost {
   zoomLabel: string
   /** Per-tile history bridge, so transactions and locks carry this tile as owner. */
   history: Pick<ChoraApi, 'historyBegin' | 'historyEnd' | 'setHistoryModalOpen'>
+  /** Maximizes the host when it is smaller than the given size; 0 ignores an axis. */
+  ensureRoom: (minWidth: number, minHeight: number) => void
   /** Whether this tile is the surface that receives page-wide keys such as Escape. */
   isActive: () => boolean
 }

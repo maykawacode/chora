@@ -21,6 +21,11 @@ import { ModalShell } from '../ModalShell'
 import { uiTheme } from '../../design/theme'
 import styles from './MapPanel.module.css'
 import { cartesianElements } from './collections'
+
+// Room a map needs to stay readable: plot margins on both sides plus a small
+// plot, and the control sidebar's width (MapPanel.module.css --map-sidebar-width).
+const MIN_MAP_WIDTH = 2 * MARGIN + 160
+const SIDEBAR_WIDTH = 230
 import {
   cartesianDragStart,
   cartesianHitDot,
@@ -203,18 +208,23 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return
       if (mapHost && !mapHost.isActive()) return
-      setAxisPicker(null)
-      setSemanticPicker(null)
+      // One Escape, one interaction: an open picker closes before selection clears.
+      if (axisPicker || semanticPicker) {
+        setAxisPicker(null)
+        setSemanticPicker(null)
+        return
+      }
       deselectAll()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [deselectAll, mapHost])
+  }, [deselectAll, mapHost, axisPicker, semanticPicker])
 
   function handleExportSvg(): void {
     const wrapper = wrapperRef.current
     if (!wrapper || !config) return
     const rect = wrapper.getBoundingClientRect()
+    if (rect.width <= 0 || rect.height <= 0) return
     // Exports leave out selection highlights.
     const svg = buildMapSvg(rect.width, rect.height, (ctx, w, h) => {
       if (config.type === 'cartesian') {
@@ -245,6 +255,8 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
     const rect = wrapper.getBoundingClientRect()
     const cssW = rect.width
     const cssH = rect.height
+    // A hidden or collapsed host (minimized window, hidden tile) has no area to paint.
+    if (cssW <= 0 || cssH <= 0) return
 
     // Match canvas bitmap to CSS size × devicePixelRatio for sharp rendering
     canvas.width  = cssW * window.devicePixelRatio
@@ -721,7 +733,11 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
         isDirty={isDirty}
         sidebarOpen={sidebarOpen}
         onRename={title => updateConfig({ title })}
-        onToggleSidebar={() => setSidebarOpen(open => !open)}
+        onToggleSidebar={() => {
+          // A browser tile too narrow for controls plus a useful plot maximizes first.
+          if (!sidebarOpen) mapHost?.ensureRoom(SIDEBAR_WIDTH + MIN_MAP_WIDTH, 0)
+          setSidebarOpen(open => !open)
+        }}
       />
 
       {/* Body — canvas on the left, collapsible control sidebar on the right */}
@@ -915,6 +931,7 @@ function AxisPicker({ edge, clickX, clickY, currentId, isFlipped, dimensions, on
   return (
     <ModalShell
       overlayClassName={styles.axisPickerBackdrop}
+      clampToOverlay
       dialogClassName={styles.axisPicker}
       onClose={onClose}
       label={`${axis} options`}
@@ -972,6 +989,7 @@ function SemanticAxisPicker({ currentDimId, isFlipped, dimensions, clickX, click
   return (
     <ModalShell
       overlayClassName={styles.axisPickerBackdrop}
+      clampToOverlay
       dialogClassName={styles.axisPicker}
       onClose={onClose}
       label="Dimension options"

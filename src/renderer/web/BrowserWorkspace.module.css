@@ -1,20 +1,20 @@
-/* Map tiles to the right of the Score Window. Score keeps at least 420px. */
+/* Map tiles to the right of the Score Window. Score defaults to about 23% of
+   the width; the splitter sets --score-width once dragged. Score keeps at
+   least --score-min-width (its two panes' minimums, set from
+   BrowserWorkspace.tsx) and the map area at least one 360px tile. */
 .workspace {
-  flex: 0 0 min(62%, calc(100% - 420px));
+  flex: 0 0 clamp(360px, calc(100% - var(--score-width, 23%)), calc(100% - var(--score-min-width)));
   min-width: 0;
   height: 100vh;
   display: grid;
-  grid-template-columns: 1fr;
-  grid-auto-rows: minmax(320px, 1fr);
+  /* As many columns as fit a readable map (2 × 58px plot margins + 160px plot,
+     plus title-bar room); a single map fills the area. Rows scroll rather
+     than compress a plot below that size. */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
+  grid-auto-rows: minmax(360px, 1fr);
   gap: 1px;
   overflow: auto;
   background: var(--color-border-subtle);
-}
-
-.workspace[data-count="2"],
-.workspace[data-count="3"],
-.workspace[data-count="4"] {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .workspace.maximized {
@@ -22,14 +22,40 @@
   grid-auto-rows: 1fr;
 }
 
+/* Layout containment makes the tile the containing block for its fixed
+   overlays (picker backdrops, map dialogs), so they cover and position within
+   the tile exactly as they do within a desktop map window. */
 .tile {
   display: flex;
   flex-direction: column;
   min-width: 0;
   min-height: 0;
   overflow: hidden;
+  contain: layout;
 }
 
 .tile[hidden] {
   display: none;
+}
+
+/* Draggable divider between Score and the maps; the 1px line matches the map
+   sidebar's edge, with a wider invisible hit area for the pointer. */
+.splitter {
+  flex: 0 0 1px;
+  position: relative;
+  z-index: 2;
+  background: var(--color-border-subtle);
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.splitter::after {
+  content: '';
+  position: absolute;
+  inset: 0 -3px;
+}
+
+.splitter:focus-visible {
+  outline: none;
+  background: var(--color-border-control);
 }

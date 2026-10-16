@@ -14,6 +14,7 @@ import { scoreStatus } from '../../lib/types'
 import { useResizableSplitPane } from './useResizableSplitPane'
 import styles from './ScoresTab.module.css'
 import { CollectionChoiceRow } from '../CollectionChoiceRow'
+import { scoreOwnsKeys } from '../../lib/overlayStack'
 import { memberCount } from '../maps/collections'
 
 type Membership = 'all' | 'none' | 'mixed'
@@ -81,6 +82,7 @@ export function AssessTab(): React.JSX.Element {
     const onKeyDown = (event: globalThis.KeyboardEvent): void => {
       if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return
       if (event.metaKey || event.ctrlKey || event.altKey) return
+      if (!scoreOwnsKeys()) return
 
       const state = useAppStore.getState()
       if (!state.elements.some(element => element.id === selectedElId) ||

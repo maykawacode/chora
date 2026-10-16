@@ -26,6 +26,7 @@ import { ELEMENT_SHAPES, ELEMENT_SHAPE_SYMBOLS } from '../../lib/types'
 import { useResizableSplitPane } from './useResizableSplitPane'
 import { formatRange, numericRange, openWeight } from '../../lib/numericRange'
 import { ConfirmationDisc } from '../ConfirmationDisc'
+import { scoreOwnsKeys } from '../../lib/overlayStack'
 import styles from './DataTab.module.css'
 
 export function ElementsTab(): React.JSX.Element {
@@ -68,7 +69,8 @@ export function ElementsTab(): React.JSX.Element {
       // Match the unmodified application shortcut exactly. In particular,
       // Cmd/Ctrl+Shift+D belongs to New Semantic Map and must not also create
       // a duplicate in this renderer-level handler.
-      if (e.metaKey !== e.ctrlKey && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'd' && selectedId) {
+      if (e.metaKey !== e.ctrlKey && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'd' && selectedId &&
+          scoreOwnsKeys()) {
         e.preventDefault()   // prevent browser "add to bookmarks" default
         // The shortcut is intentionally active inside detail fields. Split it
         // from any focus-to-blur edit so Duplicate remains its own Undo step.
