@@ -1,4 +1,4 @@
-/* Map tiles to the right of the tab strip and Score Window. Score defaults to
+/* Map area to the right of the tab strip and Score Window. Score defaults to
    about 23% of the width; the splitter sets --score-width (strip included)
    once dragged. Strip plus Score keep at least --score-min-width (the strip
    and Score's two panes' minimums, set from BrowserWorkspace.tsx) and the map
@@ -6,15 +6,25 @@
 .workspace {
   flex: 0 0 clamp(360px, calc(100% - var(--score-width, calc(23% + var(--strip-width)))), calc(100% - var(--score-min-width)));
   min-width: 0;
-  display: grid;
-  /* As many columns as fit a readable map (2 × 58px plot margins + 160px plot,
-     plus title-bar room); a single map fills the area. Rows scroll rather
-     than compress a plot below that size. */
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
-  grid-auto-rows: minmax(360px, 1fr);
-  gap: 1px;
   overflow: auto;
+}
+
+/* Tiles and dividers are placed absolutely from the split tree (tileLayout.ts).
+   The 1px gaps between tiles show this background as the dividing lines. The
+   area grows past the visible size, and scrolls, only when tiles would fall
+   below their minimum. */
+.area {
+  position: relative;
   background: var(--color-border-subtle);
+}
+
+.areaDragging {
+  cursor: grabbing;
+}
+
+/* While a tile is being moved, maps ignore the pointer passing over them. */
+.areaDragging .tile {
+  pointer-events: none;
 }
 
 /* Score collapsed to its icon strip: the maps take the rest of the page. */
@@ -34,15 +44,11 @@
   }
 }
 
-.workspace.maximized {
-  grid-template-columns: 1fr;
-  grid-auto-rows: 1fr;
-}
-
 /* Layout containment makes the tile the containing block for its fixed
    overlays (picker backdrops, map dialogs), so they cover and position within
    the tile exactly as they do within a desktop map window. */
 .tile {
+  position: absolute;
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -51,8 +57,65 @@
   contain: layout;
 }
 
+.placeholder {
+  inset: 0;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface-canvas);
+  color: var(--color-text-muted);
+  font-family: var(--font-family-ui);
+  font-size: var(--font-size-body);
+  user-select: none;
+}
+
 .tile[hidden] {
   display: none;
+}
+
+.tileDragging {
+  opacity: 0.55;
+}
+
+/* Lines between tiles: invisible hit areas over the 1px gaps. */
+.divider {
+  position: absolute;
+  z-index: 2;
+  touch-action: none;
+}
+
+.divider::after {
+  content: '';
+  position: absolute;
+}
+
+.dividerColumn {
+  cursor: col-resize;
+}
+
+.dividerColumn::after {
+  inset: 0 -3px;
+}
+
+.dividerRow {
+  cursor: row-resize;
+}
+
+.dividerRow::after {
+  inset: -3px 0;
+}
+
+.divider:focus-visible {
+  outline: none;
+  background: var(--color-border-control);
+}
+
+/* Where a moved tile will land: the half of the target nearest the pointer. */
+.dropTarget {
+  position: absolute;
+  z-index: 3;
+  border: 2px solid var(--color-focus);
+  background: var(--color-focus-ring);
+  pointer-events: none;
 }
 
 /* Draggable divider between Score and the maps; the 1px line matches the map

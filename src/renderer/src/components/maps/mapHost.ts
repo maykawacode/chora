@@ -17,6 +17,8 @@ export interface MapHost {
   ensureRoom: (minWidth: number, minHeight: number) => void
   /** Whether this tile is the surface that receives page-wide keys such as Escape. */
   isActive: () => boolean
+  /** Pointer down on the title bar; the browser starts moving the tile from here. */
+  beginTileMove?: (event: React.PointerEvent) => void
 }
 
 export const MapHostContext = createContext<MapHost | null>(null)

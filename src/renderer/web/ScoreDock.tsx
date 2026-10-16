@@ -69,11 +69,8 @@ export function ScoreDock({ children }: { children: ReactNode }): React.JSX.Elem
   const openWidth = useRef(0)
   const activeTab = useAppStore(s => s.activeTab)
   const setActiveTab = useAppStore(s => s.setActiveTab)
-  const hasMaps = useAppStore(s => s.maps.length > 0)
 
-  // With no maps there is nothing to widen; Score reopens. A tab change from
-  // elsewhere (Import, a menu command) also brings Score back into view.
-  useEffect(() => { if (!hasMaps) expand() }, [hasMaps, expand])
+  // A tab change from elsewhere (Import, a menu command) brings Score back into view.
   useEffect(() => useAppStore.subscribe((s, prev) => {
     if (s.activeTab !== prev.activeTab) useScoreLayout.getState().expand()
   }), [])
@@ -96,10 +93,9 @@ export function ScoreDock({ children }: { children: ReactNode }): React.JSX.Elem
       <nav className={styles.strip} aria-label="Score tabs">
         <button
           className={styles.stripButton}
-          title={hasMaps ? toggleLabel : 'Collapse Score (needs a map)'}
+          title={toggleLabel}
           aria-label={toggleLabel}
           aria-expanded={!collapsed}
-          disabled={!hasMaps}
           onClick={collapsed ? expand : collapse}
         >
           <PanelGlyph filled={!collapsed} />

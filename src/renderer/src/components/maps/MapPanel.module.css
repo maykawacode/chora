@@ -24,6 +24,11 @@
   -webkit-app-region: drag;
 }
 
+/* A browser tile moves by dragging its title bar. */
+.titleBar[data-movable] {
+  cursor: grab;
+}
+
 .windowControls {
   position: absolute;
   left: 12px;

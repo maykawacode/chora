@@ -7,7 +7,7 @@ export const STRIP_WIDTH = 40
 // Session-only until layout persistence (phase 3d). `animating` holds while a
 // collapse or expand plays, so only those changes animate (not splitter drags
 // or window resizes). The map area's transitionend ends it; the timer covers
-// reduced motion and the no-maps case, where nothing transitions.
+// reduced motion and interrupted transitions, which fire no transitionend.
 
 const MOTION_FALLBACK_MS = 400
 

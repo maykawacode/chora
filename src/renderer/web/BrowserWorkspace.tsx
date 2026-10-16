@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useAppStore } from '@renderer/store/appStore'
 import { MapPanel } from '@renderer/components/maps/MapPanel'
 import { MapHostContext, type MapHost } from '@renderer/components/maps/mapHost'
@@ -7,9 +7,16 @@ import {
 } from './interaction'
 import { PANE_MIN_WIDTH } from '@renderer/components/ScoreWindow/useResizableSplitPane'
 import { STRIP_WIDTH, useScoreLayout } from './scoreLayout'
+import {
+  columnsFor, computeArrangement, findSplit, minSize, moveTile, reconcile, setSplitSizes, useTileLayout,
+  type Arrangement, type Divider, type Rect, type Side
+} from './tileLayout'
 import styles from './BrowserWorkspace.module.css'
 
-// Browser map area beside the Score Window: one tile per map in the session.
+// Browser map area beside the Score Window: one tile per map in the session,
+// or a "No maps" placeholder tile when there are none. Tiles are placed by the
+// split tree in tileLayout.ts but rendered flat and absolutely positioned, so
+// moving a tile to another split never remounts its map.
 // Tiles render straight from the shared store; closing one removes the map,
 // as closing a desktop map window does. Maximize keeps the other tiles
 // mounted but hidden and inert, so their state survives the round trip.
@@ -17,11 +24,14 @@ import styles from './BrowserWorkspace.module.css'
 // Smallest tile that holds the element, bulk and dimension editors without clipping.
 const MODAL_ROOM = { width: 560, height: 560 }
 
-function MapTile({ mapId, hidden, maximized, onToggleMaximize }: {
+function MapTile({ mapId, rect, hidden, maximized, dragging, onToggleMaximize, onBeginMove }: {
   mapId: string
+  rect: Rect | undefined
   hidden: boolean
   maximized: boolean
+  dragging: boolean
   onToggleMaximize: () => void
+  onBeginMove: (mapId: string, e: React.PointerEvent) => void
 }): React.JSX.Element {
   const tileRef = useRef<HTMLElement>(null)
   const host = useMemo<MapHost>(() => {
@@ -47,9 +57,10 @@ function MapTile({ mapId, hidden, maximized, onToggleMaximize }: {
       }
     },
     ensureRoom,
-    isActive: () => activeSurface() === mapId
+    isActive: () => activeSurface() === mapId,
+    beginTileMove: (e) => onBeginMove(mapId, e)
     }
-  }, [mapId, maximized, onToggleMaximize])
+  }, [mapId, maximized, onToggleMaximize, onBeginMove])
 
   useEffect(() => () => releaseSurface(mapId), [mapId])
 
@@ -57,7 +68,14 @@ function MapTile({ mapId, hidden, maximized, onToggleMaximize }: {
   useEffect(() => { if (hidden) releaseSurface(mapId) }, [hidden, mapId])
 
   return (
-    <section ref={tileRef} className={styles.tile} hidden={hidden} inert={hidden} data-surface={mapId}>
+    <section
+      ref={tileRef}
+      className={`${styles.tile} ${dragging ? styles.tileDragging : ''}`}
+      style={rect ? { left: rect.x, top: rect.y, width: rect.width, height: rect.height } : undefined}
+      hidden={hidden || !rect}
+      inert={hidden}
+      data-surface={mapId}
+    >
       <MapHostContext.Provider value={host}>
         <MapPanel mapId={mapId} />
       </MapHostContext.Provider>
@@ -142,7 +160,159 @@ function Splitter({ width, onChange }: { width: number | null; onChange: (w: num
   )
 }
 
-export function BrowserWorkspace(): React.JSX.Element | null {
+const DRAG_THRESHOLD = 4
+
+interface DropTarget { targetId: string; side: Side; rect: Rect }
+
+/** Half of `r` on `side`, where a dropped tile will land. */
+function halfRect(r: Rect, side: Side): Rect {
+  switch (side) {
+    case 'left':   return { ...r, width: r.width / 2 }
+    case 'right':  return { ...r, x: r.x + r.width / 2, width: r.width / 2 }
+    case 'top':    return { ...r, height: r.height / 2 }
+    case 'bottom': return { ...r, y: r.y + r.height / 2, height: r.height / 2 }
+  }
+}
+
+/** The tile under an area-space point other than the dragged one, and its nearest edge. */
+function hitTest(arrangement: Arrangement, dragId: string, x: number, y: number): DropTarget | null {
+  for (const [id, r] of arrangement.tiles) {
+    if (id === dragId || x < r.x || x > r.x + r.width || y < r.y || y > r.y + r.height) continue
+    const edges: [Side, number][] = [
+      ['left', (x - r.x) / r.width], ['right', (r.x + r.width - x) / r.width],
+      ['top', (y - r.y) / r.height], ['bottom', (r.y + r.height - y) / r.height]
+    ]
+    const side = edges.reduce((a, b) => (b[1] < a[1] ? b : a))[0]
+    return { targetId: id, side, rect: halfRect(r, side) }
+  }
+  return null
+}
+
+/**
+ * Moving a tile by its title bar. The drag starts after a few pixels, so
+ * clicks, double-click rename and the window buttons behave as before; Escape
+ * or a release away from another tile cancels.
+ */
+function useTileDrag(areaRef: React.RefObject<HTMLDivElement | null>, arrangementRef: React.RefObject<Arrangement>) {
+  const [dragId, setDragId] = useState<string | null>(null)
+  const [drop, setDrop] = useState<DropTarget | null>(null)
+
+  const begin = useCallback((id: string, e: React.PointerEvent) => {
+    if (e.button !== 0 || (e.target as Element).closest('button, input')) return
+    const startX = e.clientX
+    const startY = e.clientY
+    let active = false
+    let target: DropTarget | null = null
+
+    const onMove = (ev: PointerEvent): void => {
+      if (!active) {
+        if (Math.hypot(ev.clientX - startX, ev.clientY - startY) < DRAG_THRESHOLD) return
+        active = true
+        setDragId(id)
+      }
+      ev.preventDefault()
+      const area = areaRef.current?.getBoundingClientRect()
+      target = area ? hitTest(arrangementRef.current, id, ev.clientX - area.left, ev.clientY - area.top) : null
+      setDrop(target)
+    }
+    const finish = (commit: boolean): void => {
+      window.removeEventListener('pointermove', onMove, true)
+      window.removeEventListener('pointerup', onUp, true)
+      window.removeEventListener('pointercancel', onCancel, true)
+      window.removeEventListener('keydown', onKey, true)
+      if (active) {
+        // The release would otherwise click whatever lies under the pointer.
+        window.addEventListener('click', stopClick, true)
+        setTimeout(() => window.removeEventListener('click', stopClick, true), 0)
+      }
+      if (commit && active && target) {
+        const { root, set } = useTileLayout.getState()
+        set(moveTile(root, id, target.targetId, target.side))
+      }
+      setDragId(null)
+      setDrop(null)
+    }
+    const stopClick = (c: MouseEvent): void => c.stopPropagation()
+    const onUp = (): void => finish(true)
+    const onCancel = (): void => finish(false)
+    const onKey = (ev: KeyboardEvent): void => {
+      if (ev.key !== 'Escape' || !active) return
+      ev.preventDefault()
+      ev.stopPropagation()
+      finish(false)
+    }
+    window.addEventListener('pointermove', onMove, true)
+    window.addEventListener('pointerup', onUp, true)
+    window.addEventListener('pointercancel', onCancel, true)
+    window.addEventListener('keydown', onKey, true)
+  }, [areaRef, arrangementRef])
+
+  return { dragId, drop, begin }
+}
+
+/** Line between two neighbouring tiles: drag or arrow keys resize them, double-click evens the split. */
+function TileDivider({ divider, arrangementRef }: {
+  divider: Divider
+  arrangementRef: React.RefObject<Arrangement>
+}): React.JSX.Element {
+  const { splitId, index, dir, rect } = divider
+  const horizontal = dir === 'row'
+  const drag = useRef<{ pointerId: number; start: number; lengths: number[] } | null>(null)
+
+  const resizeBy = (delta: number, from?: number[]): void => {
+    const info = arrangementRef.current.splits.get(splitId)
+    if (!info) return
+    const lengths = [...(from ?? info.lengths)]
+    const pair = lengths[index] + lengths[index + 1]
+    const a = Math.max(info.mins[index], Math.min(lengths[index] + delta, pair - info.mins[index + 1]))
+    lengths[index] = a
+    lengths[index + 1] = pair - a
+    const { root, set } = useTileLayout.getState()
+    set(setSplitSizes(root, splitId, lengths))
+  }
+
+  return (
+    <div
+      className={`${styles.divider} ${horizontal ? styles.dividerColumn : styles.dividerRow}`}
+      style={{ left: rect.x, top: rect.y, width: rect.width, height: rect.height }}
+      role="separator"
+      aria-orientation={horizontal ? 'vertical' : 'horizontal'}
+      aria-label="Resize maps"
+      tabIndex={0}
+      onPointerDown={(e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        const info = arrangementRef.current.splits.get(splitId)
+        if (!info) return
+        drag.current = { pointerId: e.pointerId, start: horizontal ? e.clientX : e.clientY, lengths: info.lengths }
+        e.currentTarget.setPointerCapture(e.pointerId)
+      }}
+      onPointerMove={(e) => {
+        const d = drag.current
+        if (!d || d.pointerId !== e.pointerId) return
+        resizeBy((horizontal ? e.clientX : e.clientY) - d.start, d.lengths)
+      }}
+      onPointerUp={() => { drag.current = null }}
+      onPointerCancel={() => { drag.current = null }}
+      onDoubleClick={() => {
+        const { root, set } = useTileLayout.getState()
+        const node = findSplit(root, splitId)
+        if (node) set(setSplitSizes(root, splitId, node.children.map(() => 1)))
+      }}
+      onKeyDown={(e) => {
+        const back = horizontal ? 'ArrowLeft' : 'ArrowUp'
+        const forward = horizontal ? 'ArrowRight' : 'ArrowDown'
+        if (e.key !== back && e.key !== forward) return
+        e.preventDefault()
+        // Keep the arrows from also nudging the selected score (ScoresTab listens on window).
+        e.stopPropagation()
+        resizeBy(e.key === back ? -KEY_STEP : KEY_STEP)
+      }}
+    />
+  )
+}
+
+export function BrowserWorkspace(): React.JSX.Element {
   useSurfaceTracking()
   // Null keeps the default proportional width; session-only until layout persistence (phase 3).
   const [scoreWidth, setScoreWidth] = useState<number | null>(null)
@@ -150,20 +320,55 @@ export function BrowserWorkspace(): React.JSX.Element | null {
   const [maximizedId, setMaximizedId] = useState<string | null>(null)
   const scoreCollapsed = useScoreLayout(s => s.collapsed)
   const scoreMotion = useScoreLayout(s => s.animating)
+  const root = useTileLayout(s => s.root)
+  const columns = useTileLayout(s => s.columns)
 
-  const ids = mapIds ? mapIds.split('\n') : []
-  if (ids.length === 0) return null
+  const workspaceRef = useRef<HTMLElement>(null)
+  const areaRef = useRef<HTMLDivElement>(null)
+  const [view, setView] = useState({ width: 0, height: 0 })
+
+  const ids = useMemo(() => (mapIds ? mapIds.split('\n') : []), [mapIds])
+
+  // The visible map area's size; new maps are placed for the columns it fits.
+  useEffect(() => {
+    const el = workspaceRef.current
+    if (!el) return
+    const observer = new ResizeObserver(() => {
+      setView({ width: el.clientWidth, height: el.clientHeight })
+      useTileLayout.getState().setColumns(columnsFor(el.clientWidth))
+    })
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+
+  // Keep the arrangement in step with the study's maps before the frame paints.
+  useLayoutEffect(() => {
+    const { root, set } = useTileLayout.getState()
+    const next = reconcile(root, ids, columns)
+    if (next !== root) set(next)
+  }, [ids, columns])
 
   // A maximized map that was closed or undone away no longer holds the view.
   const maximized = maximizedId !== null && ids.includes(maximizedId) ? maximizedId : null
+
+  // When the tiles cannot all reach their minimums, the area grows and scrolls.
+  const min = root ? minSize(root) : { width: 0, height: 0 }
+  const area = maximized
+    ? { x: 0, y: 0, width: view.width, height: view.height }
+    : { x: 0, y: 0, width: Math.max(view.width, min.width), height: Math.max(view.height, min.height) }
+  const arrangement = useMemo(() => computeArrangement(root, area), [root, area.width, area.height])
+  const arrangementRef = useRef(arrangement)
+  arrangementRef.current = arrangement
+
+  const { dragId, drop, begin } = useTileDrag(areaRef, arrangementRef)
 
   return (
     <>
     {!scoreCollapsed && <Splitter width={scoreWidth} onChange={setScoreWidth} />}
     <main
+      ref={workspaceRef}
       className={[
         styles.workspace,
-        maximized ? styles.maximized : '',
         scoreCollapsed ? styles.scoreCollapsed : '',
         scoreMotion ? styles.scoreMotion : ''
       ].filter(Boolean).join(' ')}
@@ -176,15 +381,35 @@ export function BrowserWorkspace(): React.JSX.Element | null {
         ...(scoreWidth === null ? {} : { '--score-width': `${scoreWidth}px` })
       } as React.CSSProperties}
     >
-      {ids.map(id => (
-        <MapTile
-          key={id}
-          mapId={id}
-          hidden={maximized !== null && maximized !== id}
-          maximized={maximized === id}
-          onToggleMaximize={() => setMaximizedId(current => current === id ? null : id)}
-        />
-      ))}
+      <div
+        ref={areaRef}
+        className={`${styles.area} ${dragId ? styles.areaDragging : ''}`}
+        style={{ width: area.width, height: area.height }}
+      >
+        {/* With no maps the area keeps its place, so Score's width does not jump. */}
+        {ids.length === 0 && <section className={`${styles.tile} ${styles.placeholder}`}>No maps</section>}
+        {ids.map(id => (
+          <MapTile
+            key={id}
+            mapId={id}
+            rect={maximized === id ? area : arrangement.tiles.get(id)}
+            hidden={maximized !== null && maximized !== id}
+            maximized={maximized === id}
+            dragging={dragId === id}
+            onToggleMaximize={() => setMaximizedId(current => current === id ? null : id)}
+            onBeginMove={begin}
+          />
+        ))}
+        {!maximized && arrangement.dividers.map(d => (
+          <TileDivider key={`${d.splitId}:${d.index}`} divider={d} arrangementRef={arrangementRef} />
+        ))}
+        {drop && (
+          <div
+            className={styles.dropTarget}
+            style={{ left: drop.rect.x, top: drop.rect.y, width: drop.rect.width, height: drop.rect.height }}
+          />
+        )}
+      </div>
     </main>
     </>
   )

@@ -85,7 +85,11 @@ export function MapWindowChrome({
 
   return (
     <>
-      <div className={styles.titleBar}>
+      <div
+        className={styles.titleBar}
+        data-movable={host?.beginTileMove ? '' : undefined}
+        onPointerDown={host?.beginTileMove}
+      >
         <div className={styles.windowControls} aria-label="Window controls">
           <MapChromeButton action="close" label="Close" glyph="M3.5 3.5 8.5 8.5M8.5 3.5 3.5 8.5" />
           {host?.minimizable !== false && (

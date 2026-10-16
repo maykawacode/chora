@@ -4,6 +4,8 @@ import { useOverlay } from '@renderer/lib/overlayStack'
 import { dispatchMenuAction, historyAvailability } from './browserApi'
 import { historyLocked } from './interaction'
 import { isApple } from './shortcuts'
+import { useAppStore } from '@renderer/store/appStore'
+import { arrangeMapsInGrid } from './tileLayout'
 import styles from './MenuBar.module.css'
 
 // Browser menu bar: the desktop application menu's commands, dispatched
@@ -16,6 +18,8 @@ const FEEDBACK_URL = 'https://github.com/maykawacode/chora/discussions'
 type Item =
   | { label: string; action: MenuAction; keys?: string; enabled?: () => boolean }
   | { label: string; href: string }
+  /** Browser-only layout command, outside the shared MenuAction path. */
+  | { label: string; run: () => void; enabled?: () => boolean }
   | 'separator'
 
 const mod = isApple ? '⌘' : 'Ctrl+'
@@ -40,7 +44,9 @@ const MENUS: { label: string; items: Item[] }[] = [
   ] },
   { label: 'Maps', items: [
     { label: 'New Cartesian Map…', action: 'create-cartesian' },
-    { label: 'New Semantic Map…', action: 'create-semantic' }
+    { label: 'New Semantic Map…', action: 'create-semantic' },
+    'separator',
+    { label: 'Arrange Maps in Grid', run: arrangeMapsInGrid, enabled: () => useAppStore.getState().maps.length > 1 }
   ] },
   { label: 'Help', items: [
     { label: 'Open Example Data', action: 'open-example' },
@@ -93,8 +99,8 @@ function MenuPopup({ menuIndex, onClose, onMove }: {
         if (item === 'separator') return <div key={i} className={styles.separator} role="separator" />
         const run = 'href' in item
           ? () => openExternal(item.href)
-          : () => dispatchMenuAction(item.action)
-        const enabled = 'action' in item ? (item.enabled?.() ?? true) : true
+          : 'run' in item ? item.run : () => dispatchMenuAction(item.action)
+        const enabled = 'href' in item ? true : (item.enabled?.() ?? true)
         return (
           <button
             key={item.label}
