@@ -11,10 +11,11 @@ import { setScoreSurfaceProbe } from '@renderer/lib/overlayStack'
 import { activeSurface } from './interaction'
 import { setHostCapabilities } from '@renderer/lib/host'
 import { clearRecovery, installLeaveWarning } from './recovery'
+import { inPlaceSaving } from './fileAccess'
 
 // Browser entry: install the browser host before the shared startup reads it.
 window.api = browserApi
-setHostCapabilities({ kind: 'browser', documentSave: 'download' })
+setHostCapabilities({ kind: 'browser', documentSave: inPlaceSaving ? 'file' : 'download' })
 installShortcuts()
 // A collapsed Score keeps its tabs mounted; their keyboard handlers stand down.
 setScoreSurfaceProbe(() => activeSurface() === 'score' && !useScoreLayout.getState().collapsed)

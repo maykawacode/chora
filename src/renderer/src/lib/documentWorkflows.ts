@@ -3,7 +3,7 @@ import { usePrefsStore } from '../store/prefsStore'
 import { history } from '../store/history'
 import { exportSpreadsheet } from './exporter'
 import { parseSpreadsheet, type ImportResult } from './importer'
-import { deserializeBundledExample, deserializeSession } from './parser'
+import { deserializeBundledExample, deserializeSession, serializeSession } from './parser'
 import { downloadText } from './download'
 
 export interface ImportPreviewData {
@@ -134,6 +134,12 @@ function documentName(fallback: string): string {
   return filePath ? (filePath.split('/').pop() || fallback) : fallback
 }
 
+/** The document's name as a .chora file (legacy .mtda becomes .chora). */
+export function choraFileName(): string {
+  const name = documentName('Untitled.chora').replace(/\.mtda$/i, '.chora')
+  return /\.chora$/i.test(name) ? name : `${name}.chora`
+}
+
 /**
  * Browser Save: downloads a snapshot of the current document and treats it as
  * saved (owner decision 2026-10-15), so the Unsaved badge clears and leaving
@@ -141,11 +147,20 @@ function documentName(fallback: string): string {
  * message says the download started. Returns the downloaded name.
  */
 export function downloadDocument(): string {
-  const name = documentName('Untitled.chora').replace(/\.mtda$/i, '.chora')
-  const fileName = /\.chora$/i.test(name) ? name : `${name}.chora`
+  const fileName = choraFileName()
   const saveToken = history.captureSave()
   downloadText(fileName, saveToken.frame.session, 'application/json')
   history.markSaved(saveToken, useAppStore.getState().filePath ?? `browser:/download/${fileName}`)
+  return fileName
+}
+
+/**
+ * Browser Download a Copy: a snapshot of the current document that leaves its
+ * save target, savepoint and Unsaved state untouched. Returns the name.
+ */
+export function downloadDocumentCopy(): string {
+  const fileName = choraFileName()
+  downloadText(fileName, serializeSession(useAppStore.getState()), 'application/json')
   return fileName
 }
 

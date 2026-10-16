@@ -150,6 +150,8 @@ export function mergePreferences(raw: StoredPreferences = {}): Preferences {
 export const MENU_ACTIONS = [
   'undo', 'redo',
   'new', 'open', 'open-example', 'save', 'save-as',
+  // Browser menu only: saves a snapshot without changing the save target.
+  'download-copy',
   'import-spreadsheet', 'export-spreadsheet',
   'create-cartesian', 'create-semantic',
   'preferences', 'orientation', 'about'

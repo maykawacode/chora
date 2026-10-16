@@ -4,6 +4,7 @@ import { useOverlay } from '@renderer/lib/overlayStack'
 import { dispatchMenuAction, historyAvailability } from './browserApi'
 import { historyLocked } from './interaction'
 import { isApple } from './shortcuts'
+import { inPlaceSaving } from './fileAccess'
 import { useAppStore } from '@renderer/store/appStore'
 import { arrangeMapsInGrid } from './tileLayout'
 import styles from './MenuBar.module.css'
@@ -31,7 +32,14 @@ const MENUS: { label: string; items: Item[] }[] = [
     { label: 'New', action: 'new' },
     { label: 'Open…', action: 'open', keys: `${mod}O` },
     'separator',
-    { label: 'Save (Download)', action: 'save', keys: `${mod}S` },
+    // Where Save writes in place, Save As and Download a Copy join it.
+    ...(inPlaceSaving
+      ? [
+          { label: 'Save', action: 'save', keys: `${mod}S` },
+          { label: 'Save As…', action: 'save-as', keys: `${mod}${shift}S` },
+          { label: 'Download a Copy', action: 'download-copy' }
+        ] satisfies Item[]
+      : [{ label: 'Save (Download)', action: 'save', keys: `${mod}S` }] satisfies Item[]),
     'separator',
     { label: 'Import Spreadsheet…', action: 'import-spreadsheet' },
     { label: 'Export Spreadsheet', action: 'export-spreadsheet' }

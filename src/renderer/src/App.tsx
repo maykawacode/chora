@@ -34,6 +34,7 @@ import {
   openDocument,
   openOrientationDocument,
   downloadDocument,
+  downloadDocumentCopy,
   downloadSpreadsheet,
   reopenLastDocument,
   saveDocument,
@@ -434,6 +435,7 @@ export function App({ workspace, scoreFrame }: AppProps = {}): React.JSX.Element
           break
         case 'save':               await handleSave(false);       break
         case 'save-as':            await handleSave(true);        break
+        case 'download-copy':      showNotice(`Download started: ${downloadDocumentCopy()}`); break
         case 'import-spreadsheet': await handleImport();          break
         case 'export-spreadsheet': await handleExport();          break
         case 'create-cartesian':   setShowChooseDimensions(true); break
@@ -503,7 +505,8 @@ export function App({ workspace, scoreFrame }: AppProps = {}): React.JSX.Element
   }
 
   async function handleExport(): Promise<void> {
-    if (hostCapabilities().documentSave === 'download') {
+    // The browser always exports by download, also where Save writes in place.
+    if (hostCapabilities().kind === 'browser') {
       showNotice(`Download started: ${downloadSpreadsheet()}`)
       return
     }

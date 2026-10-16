@@ -7,7 +7,7 @@ vi.mock('./download', () => ({
 
 import { useAppStore } from '../store/appStore'
 import { history } from '../store/history'
-import { downloadDocument, downloadSpreadsheet } from './documentWorkflows'
+import { downloadDocument, downloadDocumentCopy, downloadSpreadsheet } from './documentWorkflows'
 
 describe('browser download workflows', () => {
   beforeEach(() => {
@@ -30,6 +30,14 @@ describe('browser download workflows', () => {
     expect(downloadDocument()).toBe('study.chora')
     expect(useAppStore.getState().filePath).toBe('browser:/3/study.mtda')
     expect(useAppStore.getState().isDirty).toBe(false)
+  })
+
+  it('Download a Copy leaves the save target and Unsaved state alone', () => {
+    useAppStore.setState({ filePath: 'browser:/5/study.chora', isDirty: true })
+    expect(downloadDocumentCopy()).toBe('study.chora')
+    expect(downloads[0].type).toBe('application/json')
+    expect(useAppStore.getState().filePath).toBe('browser:/5/study.chora')
+    expect(useAppStore.getState().isDirty).toBe(true)
   })
 
   it('exports the spreadsheet as TSV without touching saved state', () => {

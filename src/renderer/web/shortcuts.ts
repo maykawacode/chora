@@ -2,6 +2,7 @@ import { history } from '@renderer/store/history'
 import { overlayOpen } from '@renderer/lib/overlayStack'
 import { dispatchMenuAction } from './browserApi'
 import { historyLocked } from './interaction'
+import { inPlaceSaving } from './fileAccess'
 
 // Keyboard shortcuts the browser leaves to the page. On the desktop these are
 // menu accelerators, which take the key even inside text fields so every edit
@@ -26,7 +27,7 @@ export function installShortcuts(): void {
     e.preventDefault()
     if (overlayOpen()) return
     if (open) dispatchMenuAction('open')
-    else if (save) dispatchMenuAction('save')
+    else if (save) dispatchMenuAction(e.shiftKey && inPlaceSaving ? 'save-as' : 'save')
     else if (historyLocked()) return
     else if (undo) history.undo()
     else history.redo()

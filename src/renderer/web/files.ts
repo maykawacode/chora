@@ -7,8 +7,13 @@ const MAX_HELD_FILES = 4
 const held = new Map<string, string>()
 let counter = 0
 
+/** A fresh pseudo-path ending in `name`, as the shared workflows show file names. */
+export function pseudoPath(name: string): string {
+  return `browser:/${++counter}/${name}`
+}
+
 export function holdFile(name: string, text: string): string {
-  const path = `browser:/${++counter}/${name}`
+  const path = pseudoPath(name)
   held.set(path, text)
   while (held.size > MAX_HELD_FILES) held.delete(held.keys().next().value!)
   return path

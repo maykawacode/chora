@@ -3,6 +3,8 @@ import { mergePreferences } from '../../shared/contracts'
 import sampleDataset from '../../../resources/examples/sample-dataset.chora?raw'
 import orientationHelp from '../../../resources/help/orientation.md?raw'
 import { pickFile, readHeldFile } from './files'
+import { chooseSaveTarget, hasHandle, inPlaceSaving, openStudyWithHandle, writeToHandle } from './fileAccess'
+import { choraFileName } from '@renderer/lib/documentWorkflows'
 
 // Browser implementation of the desktop preload bridge.
 //
@@ -74,15 +76,18 @@ function emitHistory(phase: HistoryPhase): void {
 }
 
 export const browserApi: ChoraApi = {
-  // Files open through the browser picker. Saving and export are downloads
-  // (lib/host.ts documentSave), so the save dialogs report "cancelled" and
-  // writeFile is never reached.
-  openFile:           () => pickFile('.chora,.mtda'),
-  showSaveDialog:     () => Promise.resolve(null),
+  // Files open through the browser picker. Where the browser offers writable
+  // file handles (fileAccess.ts) Save and Save As write in place; elsewhere
+  // saving is a download (lib/host.ts documentSave) and the save dialog is
+  // never reached. Spreadsheet export is always a download.
+  openFile:           () => inPlaceSaving ? openStudyWithHandle() : pickFile('.chora,.mtda'),
+  showSaveDialog:     () => inPlaceSaving ? chooseSaveTarget(choraFileName()) : Promise.resolve(null),
   openCsvFile:        () => pickFile('.tsv,.csv,.txt'),
   showCsvSaveDialog:  () => Promise.resolve(null),
   readFile:           readHeldFile,
-  writeFile:          () => Promise.reject(new Error('The browser version saves by downloading')),
+  writeFile:          (path, text) => hasHandle(path)
+    ? writeToHandle(path, text)
+    : Promise.reject(new Error('This browser saves by downloading.')),
   readBundledExample: (fileName) => bundled(BUNDLED_EXAMPLES, fileName),
   readHelpDocument:   (fileName) => bundled(HELP_DOCUMENTS, fileName),
 
