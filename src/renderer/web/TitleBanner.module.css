@@ -32,6 +32,11 @@
   color: var(--color-text-secondary);
 }
 
+/* The product name in the primary text colour, like the file name. */
+.productName {
+  color: var(--color-text-primary);
+}
+
 .divider {
   color: var(--color-border-strong);
 }
