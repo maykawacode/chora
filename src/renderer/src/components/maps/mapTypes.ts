@@ -4,11 +4,14 @@
 // reads from here, so a new map type is described once.
 
 import type { CartesianMapConfig, Element, MapConfig, MapType, MarkMode, SemanticMapConfig } from '../../lib/types'
+import type { MenuAction } from '../../../../shared/contracts'
 
 export interface MapTypeInfo {
   type: MapType
   label: string
   description: string
+  /** The menu command that creates one (Maps › New <label>…). */
+  menuAction: MenuAction
   /** Dimensions a new map asks for: exactly two, or any two or more. */
   dimensions: 'pair' | 'several'
   /** The dimension picker's heading, hint and create action. */
@@ -20,6 +23,7 @@ export const MAP_TYPES: readonly MapTypeInfo[] = [
     type: 'cartesian',
     label: 'Cartesian Map',
     description: 'Places elements on two dimensions at right angles. Collections can be drawn as regions.',
+    menuAction: 'create-cartesian',
     dimensions: 'pair',
     picker: {
       title: 'Choose Dimensions',
@@ -31,6 +35,7 @@ export const MAP_TYPES: readonly MapTypeInfo[] = [
     type: 'semantic',
     label: 'Semantic Map',
     description: 'Compares elements across many dimensions as lines over stacked axes.',
+    menuAction: 'create-semantic',
     dimensions: 'several',
     picker: {
       title: 'Create Semantic Map',

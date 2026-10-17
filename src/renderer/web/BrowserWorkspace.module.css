@@ -60,11 +60,12 @@
   contain: layout;
 }
 
+/* A few shades darker than a map's white, so an empty area reads as empty. */
 .placeholder {
   inset: 0;
   align-items: center;
   justify-content: center;
-  background: var(--color-surface-canvas);
+  background: var(--color-surface-hover);
   color: var(--color-text-muted);
   font-family: var(--font-family-ui);
   font-size: var(--font-size-body);

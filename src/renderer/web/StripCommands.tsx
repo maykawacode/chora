@@ -6,6 +6,7 @@ import { isApple } from './shortcuts'
 import { inPlaceSaving } from './fileAccess'
 import { useAppStore } from '@renderer/store/appStore'
 import { arrangeMapsInGrid } from './tileLayout'
+import { MAP_TYPES } from '@renderer/components/maps/mapTypes'
 import { Glyph } from './Glyph'
 import { promptRename } from './documentName'
 import { useScoreLayout } from './scoreLayout'
@@ -56,8 +57,7 @@ const MENUS: Menu[] = [
   { label: 'Maps',
     glyph: <path d="M1.5 3.5 5.5 2l5 1.5 4-1.5v10.5l-4 1.5-5-1.5-4 1.5zM5.5 2v10.5M10.5 3.5V14" />,
     items: [
-      { label: 'New Cartesian Map…', action: 'create-cartesian' },
-      { label: 'New Semantic Map…', action: 'create-semantic' },
+      ...MAP_TYPES.map(t => ({ label: `New ${t.label}…`, action: t.menuAction })),
       'separator',
       { label: 'Arrange Maps in Grid', run: arrangeMapsInGrid, enabled: () => useAppStore.getState().maps.length > 1 }
     ] },
