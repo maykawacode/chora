@@ -41,8 +41,16 @@ function strokeDotted(ctx: CanvasRenderingContext2D): void {
   ctx.restore()
 }
 
-// Space reserved on each side of the canvas for pole labels
+// Space reserved on each side of the canvas for pole labels. The top is
+// narrower: the map's title bar already sits above it, so a full margin would
+// leave a gap between the title and the top label.
 export const MARGIN = 58
+const MARGIN_TOP = 44
+
+/** The plot area inside the pole-label margins; drawing and hit-testing share it. */
+export function cartesianPlot(W: number, H: number): { left: number; top: number; right: number; bottom: number } {
+  return { left: MARGIN, top: MARGIN_TOP, right: W - MARGIN, bottom: H - MARGIN }
+}
 
 // Dot radius range — the current lightest Element → min, heaviest → max.
 export const DOT_MIN_RADIUS = 6
@@ -92,16 +100,15 @@ export function labelFont(size: number): string {
 // ── Pole label geometry ───────────────────────────────────────────────────────
 //
 // All four pole labels are placed by one rule: centered on the midpoint of
-// their plot edge, and centered within the MARGIN band between that edge and
-// the canvas edge. Only the anchor point and, on the vertical edges, a quarter
+// their plot edge, a fixed distance out from it. Only the anchor point and, on the vertical edges, a quarter
 // turn vary. That uniformity is the point — every label ends up the same
 // distance from the plot border, and because each one now runs parallel to its
 // own edge, none of them can grow inward and crowd the plot the way an
 // unrotated horizontal label did.
 
-// Distance from a plot edge out to the center line of its label. Half the
-// margin puts the text midway between plot border and canvas edge on all sides.
-const POLE_LABEL_OFFSET = MARGIN / 2
+// Distance from a plot edge out to the center line of its label: 6px nearer
+// the plot than the middle of the margin, so each label reads with its edge.
+const POLE_LABEL_OFFSET = MARGIN / 2 - 6
 
 // Quarter turns for the vertical pair. Canvas rotation is clockwise (y grows
 // downward), so TURN_CW points glyph tops to the right. The two turns are
@@ -157,10 +164,7 @@ export function drawCartesian(
   defaultDotRadius: number = DOT_DEFAULT_RADIUS
 ): void {
   const baseDotRadius = normalizeDefaultDotRadius(defaultDotRadius)
-  const plotLeft   = MARGIN
-  const plotTop    = MARGIN
-  const plotRight  = W - MARGIN
-  const plotBottom = H - MARGIN
+  const { left: plotLeft, top: plotTop, right: plotRight, bottom: plotBottom } = cartesianPlot(W, H)
   const plotW      = plotRight - plotLeft
   const plotH      = plotBottom - plotTop
 

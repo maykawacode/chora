@@ -84,8 +84,9 @@ describe('map geometry', () => {
   })
 
   it('distinguishes all four cartesian axis halves', () => {
-    expect(cartesianHitEdge(100, 150, 400, 300)).toBe('left')
-    expect(cartesianHitEdge(300, 150, 400, 300)).toBe('right')
+    // The plot's middle sits at y 143: a 44px top margin, 58px elsewhere.
+    expect(cartesianHitEdge(100, 143, 400, 300)).toBe('left')
+    expect(cartesianHitEdge(300, 143, 400, 300)).toBe('right')
     expect(cartesianHitEdge(200, 100, 400, 300)).toBe('top')
     expect(cartesianHitEdge(200, 200, 400, 300)).toBe('bottom')
   })

@@ -10,7 +10,7 @@ import { useAppStore, type ScoreEntry } from '../../store/appStore'
 import { usePrefsStore } from '../../store/prefsStore'
 import type { CartesianMapConfig, SemanticMapConfig, Dimension } from '../../lib/types'
 import { buildMapSvg } from './svgExport'
-import { drawCartesian, MARGIN } from './cartesian/drawCartesian'
+import { cartesianPlot, drawCartesian, MARGIN } from './cartesian/drawCartesian'
 import { drawSemantic, semanticElements } from './semantic/drawSemantic'
 import { scoreAtX, semanticLayout, type SemanticLayout } from './semantic/semanticLayout'
 import { ElementDetailModal } from './ElementDetailModal'
@@ -422,8 +422,7 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
         if (dx < 4 && dy < 4) { setCursor('grabbing'); return }
       }
 
-      const plotLeft = MARGIN, plotRight  = W - MARGIN
-      const plotTop  = MARGIN, plotBottom = H - MARGIN
+      const { left: plotLeft, top: plotTop, right: plotRight, bottom: plotBottom } = cartesianPlot(W, H)
       const plotW    = plotRight - plotLeft
       const plotH    = plotBottom - plotTop
 

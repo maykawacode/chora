@@ -7,7 +7,7 @@ import type {
 } from '../../lib/types'
 import { numericRange } from '../../lib/numericRange'
 import { cartesianElements } from './collections'
-import { MARGIN, POLE_LABEL_HIT_SPAN, cartesianDotRadius } from './cartesian/drawCartesian'
+import { POLE_LABEL_HIT_SPAN, cartesianDotRadius, cartesianPlot } from './cartesian/drawCartesian'
 import { SEM_DOT_MAX_R, semDotRadius, semanticElements } from './semantic/drawSemantic'
 import { axisX, type SemanticLayout } from './semantic/semanticLayout'
 
@@ -100,16 +100,15 @@ export function cartesianHitEdge(
   width: number,
   height: number
 ): Edge | null {
-  const midX = width / 2
-  const midY = height / 2
-  const right = width - MARGIN
-  const bottom = height - MARGIN
+  const { left, top, right, bottom } = cartesianPlot(width, height)
+  const midX = (left + right) / 2
+  const midY = (top + bottom) / 2
 
-  if (Math.abs(y - midY) <= 6 && x >= MARGIN && x <= right) return x < midX ? 'left' : 'right'
-  if (Math.abs(x - midX) <= 6 && y >= MARGIN && y <= bottom) return y < midY ? 'top' : 'bottom'
-  if (x < MARGIN && Math.abs(y - midY) <= POLE_LABEL_HIT_SPAN) return 'left'
+  if (Math.abs(y - midY) <= 6 && x >= left && x <= right) return x < midX ? 'left' : 'right'
+  if (Math.abs(x - midX) <= 6 && y >= top && y <= bottom) return y < midY ? 'top' : 'bottom'
+  if (x < left && Math.abs(y - midY) <= POLE_LABEL_HIT_SPAN) return 'left'
   if (x > right && Math.abs(y - midY) <= POLE_LABEL_HIT_SPAN) return 'right'
-  if (y < MARGIN && Math.abs(x - midX) <= POLE_LABEL_HIT_SPAN) return 'top'
+  if (y < top && Math.abs(x - midX) <= POLE_LABEL_HIT_SPAN) return 'top'
   if (y > bottom && Math.abs(x - midX) <= POLE_LABEL_HIT_SPAN) return 'bottom'
   return null
 }
@@ -121,11 +120,10 @@ export function cartesianProject(
   xScore: number,
   yScore: number
 ): { x: number; y: number } {
-  const plotWidth = width - 2 * MARGIN
-  const plotHeight = height - 2 * MARGIN
+  const { left, top, right, bottom } = cartesianPlot(width, height)
   return {
-    x: MARGIN + (config.xFlipped ? 1 - xScore : xScore) * plotWidth,
-    y: MARGIN + (1 - (config.yFlipped ? 1 - yScore : yScore)) * plotHeight
+    x: left + (config.xFlipped ? 1 - xScore : xScore) * (right - left),
+    y: top + (1 - (config.yFlipped ? 1 - yScore : yScore)) * (bottom - top)
   }
 }
 
