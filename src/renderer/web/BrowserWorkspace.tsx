@@ -7,8 +7,8 @@ import {
 } from './interaction'
 import { MAP_AREA_MIN_WIDTH, SCORE_MIN_WIDTH, STRIP_WIDTH, useScoreLayout } from './scoreLayout'
 import {
-  columnsFor, computeArrangement, findSplit, minSize, moveTile, reconcile, setSplitSizes, useTileLayout,
-  type Arrangement, type Divider, type Rect, type Side
+  FILL, columnsFor, computeArrangement, findSplit, minSize, moveTile, reconcile, setSplitSizes, useTileLayout,
+  type Arrangement, type Divider, type FluidRect, type Rect, type Side, type Span
 } from './tileLayout'
 import styles from './BrowserWorkspace.module.css'
 
@@ -23,9 +23,16 @@ import styles from './BrowserWorkspace.module.css'
 // Smallest tile that holds the element, bulk and dimension editors without clipping.
 const MODAL_ROOM = { width: 560, height: 560 }
 
-function MapTile({ mapId, rect, hidden, maximized, dragging, onToggleMaximize, onBeginMove }: {
+const cssLength = ({ frac, px }: Span): string => `calc(${frac * 100}% + ${px}px)`
+
+/** Absolute placement that the browser keeps in step with the area's size. */
+function placement(f: FluidRect): React.CSSProperties {
+  return { left: cssLength(f.x), top: cssLength(f.y), width: cssLength(f.width), height: cssLength(f.height) }
+}
+
+function MapTile({ mapId, place, hidden, maximized, dragging, onToggleMaximize, onBeginMove }: {
   mapId: string
-  rect: Rect | undefined
+  place: FluidRect | undefined
   hidden: boolean
   maximized: boolean
   dragging: boolean
@@ -69,8 +76,8 @@ function MapTile({ mapId, rect, hidden, maximized, dragging, onToggleMaximize, o
     <section
       ref={tileRef}
       className={`${styles.tile} ${dragging ? styles.tileDragging : ''}`}
-      style={rect ? { left: rect.x, top: rect.y, width: rect.width, height: rect.height } : undefined}
-      hidden={hidden || !rect}
+      style={place ? placement(place) : undefined}
+      hidden={hidden || !place}
       inert={hidden}
       data-surface={mapId}
     >
@@ -250,7 +257,7 @@ function TileDivider({ divider, arrangementRef }: {
   divider: Divider
   arrangementRef: React.RefObject<Arrangement>
 }): React.JSX.Element {
-  const { splitId, index, dir, rect } = divider
+  const { splitId, index, dir } = divider
   const horizontal = dir === 'row'
   const drag = useRef<{ pointerId: number; start: number; lengths: number[] } | null>(null)
 
@@ -269,7 +276,7 @@ function TileDivider({ divider, arrangementRef }: {
   return (
     <div
       className={`${styles.divider} ${horizontal ? styles.dividerColumn : styles.dividerRow}`}
-      style={{ left: rect.x, top: rect.y, width: rect.width, height: rect.height }}
+      style={placement(divider.fluid)}
       role="separator"
       aria-orientation={horizontal ? 'vertical' : 'horizontal'}
       aria-label="Resize maps"
@@ -348,7 +355,9 @@ export function BrowserWorkspace(): React.JSX.Element {
   const maximized = maximizedId !== null && ids.includes(maximizedId) ? maximizedId : null
 
   // When the tiles cannot all reach their minimums, the area grows and scrolls.
-  const min = root ? minSize(root) : { width: 0, height: 0 }
+  // CSS sizes the area and places the tiles; the measured size only decides
+  // which tiles are held at their minimum and serves hit-testing and drags.
+  const min = root && !maximized ? minSize(root) : { width: 0, height: 0 }
   const area = maximized
     ? { x: 0, y: 0, width: view.width, height: view.height }
     : { x: 0, y: 0, width: Math.max(view.width, min.width), height: Math.max(view.height, min.height) }
@@ -380,7 +389,7 @@ export function BrowserWorkspace(): React.JSX.Element {
       <div
         ref={areaRef}
         className={`${styles.area} ${dragId ? styles.areaDragging : ''}`}
-        style={{ width: area.width, height: area.height }}
+        style={{ minWidth: min.width, minHeight: min.height }}
       >
         {/* With no maps the area keeps its place, so Score's width does not jump. */}
         {ids.length === 0 && <section className={`${styles.tile} ${styles.placeholder}`}>No maps</section>}
@@ -388,7 +397,7 @@ export function BrowserWorkspace(): React.JSX.Element {
           <MapTile
             key={id}
             mapId={id}
-            rect={maximized === id ? area : arrangement.tiles.get(id)}
+            place={maximized === id ? FILL : arrangement.fluid.get(id)}
             hidden={maximized !== null && maximized !== id}
             maximized={maximized === id}
             dragging={dragId === id}

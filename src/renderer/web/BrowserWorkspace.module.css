@@ -5,16 +5,19 @@
    area at least one 360px tile. */
 .workspace {
   flex: 0 0 clamp(360px, calc(100% - var(--score-width, calc(23% + var(--strip-width)))), calc(100% - var(--score-min-width)));
+  display: flex;
   min-width: 0;
   overflow: auto;
 }
 
-/* Tiles and dividers are placed absolutely from the split tree (tileLayout.ts).
+/* Tiles and dividers are placed absolutely from the split tree (tileLayout.ts),
+   in lengths relative to this area, so they follow it as the window resizes.
    The 1px gaps between tiles show this background as the dividing lines. The
-   area grows past the visible size, and scrolls, only when tiles would fall
-   below their minimum. */
+   area fills the workspace, and grows past it (scrolling) only when tiles
+   would fall below their minimum. */
 .area {
   position: relative;
+  flex: 1 0 0;
   background: var(--color-border-subtle);
 }
 

@@ -17,16 +17,47 @@ export type LayoutNode = TileNode | SplitNode
 
 export interface Rect { x: number; y: number; width: number; height: number }
 
+/**
+ * A length that follows the area's size: `frac` of the area's width (for x
+ * and width) or height (for y and height), plus `px` pixels. Tiles are placed
+ * in CSS with these, so the browser keeps them in step with a resizing window
+ * in the same frame, without waiting for React to measure and re-render.
+ */
+export interface Span { frac: number; px: number }
+export interface FluidRect { x: Span; y: Span; width: Span; height: Span }
+
+const fixed = (px: number): Span => ({ frac: 0, px })
+const addSpan = (a: Span, b: Span): Span => ({ frac: a.frac + b.frac, px: a.px + b.px })
+const scaleSpan = (a: Span, k: number): Span => ({ frac: a.frac * k, px: a.px * k })
+const spanAt = (a: Span, size: number): number => a.frac * size + a.px
+
+/** The whole area. */
+export const FILL: FluidRect = { x: fixed(0), y: fixed(0), width: { frac: 1, px: 0 }, height: { frac: 1, px: 0 } }
+
+/** Pixel rect of `f` in an area of the given size. */
+export function resolveRect(f: FluidRect, area: Rect): Rect {
+  return {
+    x: area.x + spanAt(f.x, area.width),
+    y: area.y + spanAt(f.y, area.height),
+    width: spanAt(f.width, area.width),
+    height: spanAt(f.height, area.height)
+  }
+}
+
 export interface Divider {
   splitId: string
   /** The divider sits between children `index` and `index + 1`. */
   index: number
   dir: Dir
   rect: Rect
+  fluid: FluidRect
 }
 
 export interface Arrangement {
+  /** Pixel rects at the measured size, for hit-testing and drags. */
   tiles: Map<string, Rect>
+  /** The same rects as they follow the area's size, for placing tiles in CSS. */
+  fluid: Map<string, FluidRect>
   dividers: Divider[]
   /** Pixel length along `dir` of each split's children, for divider drags. */
   splits: Map<string, { dir: Dir; lengths: number[]; mins: number[] }>
@@ -187,54 +218,62 @@ export function minSize(node: LayoutNode): { width: number; height: number } {
     : { width: Math.max(...mins.map(m => m.width)), height: mins.reduce((a, m) => a + m.height, 0) + gaps }
 }
 
-/** Splits `length` by `shares`, giving each part at least its minimum. */
-export function allocate(length: number, shares: number[], mins: number[]): number[] {
-  const out = shares.map(() => 0)
+/**
+ * Splits `total` by `shares`, giving each part at least its minimum. Which
+ * parts are held at their minimum is decided at `size`, the area's current
+ * length; the others keep following it.
+ */
+function allocateSpans(total: Span, size: number, shares: number[], mins: number[]): Span[] {
+  const out = shares.map(() => fixed(0))
   let free = shares.map((_, i) => i)
-  let remaining = length
+  let remaining = total
   // Pin parts that would fall below their minimum, then share the rest again.
   for (;;) {
     const share = free.reduce((a, i) => a + shares[i], 0)
-    const short = free.filter(i => (share > 0 ? remaining * shares[i] / share : 0) < mins[i])
+    const partOf = (i: number): number => (share > 0 ? shares[i] / share : 1 / free.length)
+    const short = free.filter(i => (share > 0 ? spanAt(remaining, size) * partOf(i) : 0) < mins[i])
     if (short.length === 0) {
-      free.forEach(i => { out[i] = share > 0 ? remaining * shares[i] / share : remaining / free.length })
+      free.forEach(i => { out[i] = scaleSpan(remaining, partOf(i)) })
       return out
     }
-    short.forEach(i => { out[i] = mins[i]; remaining -= mins[i] })
+    short.forEach(i => { out[i] = fixed(mins[i]); remaining = addSpan(remaining, fixed(-mins[i])) })
     free = free.filter(i => !short.includes(i))
     if (free.length === 0) return out
   }
 }
 
-/** Pixel rects for every tile and divider in an area of the given size. */
+/** Splits `length` by `shares`, giving each part at least its minimum. */
+export function allocate(length: number, shares: number[], mins: number[]): number[] {
+  return allocateSpans(fixed(length), 0, shares, mins).map(s => s.px)
+}
+
+/** Rects for every tile and divider in an area of the given size. */
 export function computeArrangement(root: LayoutNode | null, area: Rect): Arrangement {
-  const result: Arrangement = { tiles: new Map(), dividers: [], splits: new Map() }
-  const walk = (node: LayoutNode, r: Rect): void => {
-    if (node.kind === 'tile') { result.tiles.set(node.id, r); return }
+  const result: Arrangement = { tiles: new Map(), fluid: new Map(), dividers: [], splits: new Map() }
+  const walk = (node: LayoutNode, f: FluidRect): void => {
+    if (node.kind === 'tile') {
+      result.tiles.set(node.id, resolveRect(f, area))
+      result.fluid.set(node.id, f)
+      return
+    }
     const horizontal = node.dir === 'row'
+    const size = horizontal ? area.width : area.height
     const mins = node.children.map(c => horizontal ? minSize(c).width : minSize(c).height)
-    const total = (horizontal ? r.width : r.height) - DIVIDER * (node.children.length - 1)
-    const lengths = allocate(total, node.sizes, mins)
-    result.splits.set(node.id, { dir: node.dir, lengths, mins })
-    let at = horizontal ? r.x : r.y
+    const gaps = fixed(-DIVIDER * (node.children.length - 1))
+    const spans = allocateSpans(addSpan(horizontal ? f.width : f.height, gaps), size, node.sizes, mins)
+    result.splits.set(node.id, { dir: node.dir, lengths: spans.map(s => spanAt(s, size)), mins })
+    let at = horizontal ? f.x : f.y
     node.children.forEach((child, i) => {
-      const len = lengths[i]
-      walk(child, horizontal
-        ? { x: at, y: r.y, width: len, height: r.height }
-        : { x: r.x, y: at, width: r.width, height: len })
-      at += len
+      walk(child, horizontal ? { ...f, x: at, width: spans[i] } : { ...f, y: at, height: spans[i] })
+      at = addSpan(at, spans[i])
       if (i < node.children.length - 1) {
-        result.dividers.push({
-          splitId: node.id, index: i, dir: node.dir,
-          rect: horizontal
-            ? { x: at, y: r.y, width: DIVIDER, height: r.height }
-            : { x: r.x, y: at, width: r.width, height: DIVIDER }
-        })
-        at += DIVIDER
+        const line = horizontal ? { ...f, x: at, width: fixed(DIVIDER) } : { ...f, y: at, height: fixed(DIVIDER) }
+        result.dividers.push({ splitId: node.id, index: i, dir: node.dir, rect: resolveRect(line, area), fluid: line })
+        at = addSpan(at, fixed(DIVIDER))
       }
     })
   }
-  if (root) walk(root, area)
+  if (root) walk(root, FILL)
   return result
 }
 

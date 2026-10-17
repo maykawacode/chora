@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   addTile, allocate, arrangeGrid, columnsFor, computeArrangement, moveTile, reconcile, removeTile,
-  tileIds, TILE_MIN, type LayoutNode
+  resolveRect, tileIds, TILE_MIN, type LayoutNode
 } from './tileLayout'
 
 // Shape without generated split ids: tiles as ids, splits as { row|column: [...] }.
@@ -66,5 +66,26 @@ describe('tile layout', () => {
     expect(tiles.get('c')).toEqual({ x: 0, y: 301, width: 801, height: 300 })
     expect(dividers).toHaveLength(2)
     expect(TILE_MIN.width).toBeLessThanOrEqual(400)
+  })
+
+  it('places tiles in lengths that follow the area as it resizes', () => {
+    const root = arrangeGrid(['a', 'b', 'c'], 2)
+    const measured = computeArrangement(root, { x: 0, y: 0, width: 801, height: 601 })
+    const larger = { x: 0, y: 0, width: 1201, height: 901 }
+    const exact = computeArrangement(root, larger)
+    for (const id of ['a', 'b', 'c']) {
+      expect(resolveRect(measured.fluid.get(id)!, larger)).toEqual(exact.tiles.get(id))
+    }
+    expect(measured.dividers.map(d => resolveRect(d.fluid, larger))).toEqual(exact.dividers.map(d => d.rect))
+  })
+
+  it('holds a tile at its minimum width while its neighbour follows the area', () => {
+    const root: LayoutNode = {
+      kind: 'split', id: 'r', dir: 'row', sizes: [0.9, 0.1],
+      children: [{ kind: 'tile', id: 'a' }, { kind: 'tile', id: 'b' }]
+    }
+    const { fluid } = computeArrangement(root, { x: 0, y: 0, width: 1001, height: 400 })
+    expect(fluid.get('b')!.width).toEqual({ frac: 0, px: TILE_MIN.width })
+    expect(fluid.get('a')!.width).toEqual({ frac: 1, px: -1 - TILE_MIN.width })
   })
 })
