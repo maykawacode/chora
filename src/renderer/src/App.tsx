@@ -17,7 +17,7 @@ import { useAppStore } from './store/appStore'
 import { usePrefsStore } from './store/prefsStore'
 import { history } from './store/history'
 import { ScoreWindow } from './components/ScoreWindow/ScoreWindow'
-import { ChooseDimensions, CreateSemanticMap } from './components/maps/ChooseDimensions'
+import { CreateMapDialog } from './components/maps/CreateMap'
 import { StarterListPicker } from './components/ScoreWindow/StarterListPicker'
 import { ImportPreview } from './components/ImportPreview'
 import { PreferencesDialog } from './components/PreferencesDialog'
@@ -41,7 +41,7 @@ import {
   saveDocument,
   type ImportPreviewData
 } from './lib/documentWorkflows'
-import type { CartesianMapConfig, SemanticMapConfig, Element, Dimension } from './lib/types'
+import type { CartesianMapConfig, SemanticMapConfig, Element, Dimension, MapType } from './lib/types'
 import { hostCapabilities } from './lib/host'
 import styles from './App.module.css'
 import { encodeMapStateEnvelope } from '../../shared/contracts'
@@ -124,8 +124,7 @@ export function App({ workspace, scoreFrame }: AppProps = {}): React.JSX.Element
   const [showQuitConfirm,       setShowQuitConfirm]       = useState(false)
   const [showDiscardConfirm,    setShowDiscardConfirm]    = useState(false)
   const [showImportReplaceConfirm, setShowImportReplaceConfirm] = useState(false)
-  const [showChooseDimensions,    setShowChooseDimensions]    = useState(false)
-  const [showCreateSemantic,      setShowCreateSemantic]      = useState(false)
+  const [creatingMap,          setCreatingMap]          = useState<MapType | null>(null)
   const [showStarterPicker,    setShowStarterPicker]    = useState(false)
   const [showPreferences,      setShowPreferences]      = useState(false)
   const [showAbout,            setShowAbout]            = useState(false)
@@ -135,7 +134,7 @@ export function App({ workspace, scoreFrame }: AppProps = {}): React.JSX.Element
 
   // True while any modal is open — used to bring the Score Window to the front
   // so it is not obscured by map BrowserWindows
-  const isModalOpen = showWelcome || showChooseDimensions || showCreateSemantic ||
+  const isModalOpen = showWelcome || creatingMap !== null ||
                       showStarterPicker || showPreferences || showAbout || showQuitConfirm || showDiscardConfirm ||
                       showImportReplaceConfirm || orientationMarkdown !== null || importPreview !== null ||
                       updateNotice !== null
@@ -175,8 +174,7 @@ export function App({ workspace, scoreFrame }: AppProps = {}): React.JSX.Element
     setShowQuitConfirm(false)
     setShowDiscardConfirm(false)
     setShowImportReplaceConfirm(false)
-    setShowChooseDimensions(false)
-    setShowCreateSemantic(false)
+    setCreatingMap(null)
     setShowStarterPicker(false)
     setShowPreferences(false)
     setShowAbout(false)
@@ -435,8 +433,8 @@ export function App({ workspace, scoreFrame }: AppProps = {}): React.JSX.Element
         case 'download-copy':      showStatusNotice(`Download started: ${downloadDocumentCopy()}`); break
         case 'import-spreadsheet': await handleImport();          break
         case 'export-spreadsheet': await handleExport();          break
-        case 'create-cartesian':   setShowChooseDimensions(true); break
-        case 'create-semantic':    setShowCreateSemantic(true);   break
+        case 'create-cartesian':   setCreatingMap('cartesian');   break
+        case 'create-semantic':    setCreatingMap('semantic');    break
         case 'preferences':        setShowPreferences(true);      break
         case 'about':              setShowAbout(true);            break
         case 'orientation':
@@ -572,8 +570,7 @@ export function App({ workspace, scoreFrame }: AppProps = {}): React.JSX.Element
       )}
 
       {showStarterPicker      && <StarterListPicker       onClose={() => setShowStarterPicker(false)} />}
-      {showChooseDimensions   && <ChooseDimensions        onClose={() => setShowChooseDimensions(false)} />}
-      {showCreateSemantic     && <CreateSemanticMap       onClose={() => setShowCreateSemantic(false)} />}
+      {creatingMap            && <CreateMapDialog type={creatingMap} onClose={() => setCreatingMap(null)} />}
       {showPreferences      && <PreferencesDialog    onClose={() => setShowPreferences(false)} />}
 
       {orientationMarkdown !== null && (
