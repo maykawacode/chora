@@ -1,7 +1,6 @@
 import type {
   CartesianMapConfig,
   Collection,
-  Dimension,
   Element,
   ScoreMap,
   SemanticMapConfig
@@ -9,13 +8,8 @@ import type {
 import { numericRange } from '../../lib/numericRange'
 import { cartesianElements } from './collections'
 import { MARGIN, POLE_LABEL_HIT_SPAN, cartesianDotRadius } from './cartesian/drawCartesian'
-import {
-  SEM_DOT_MAX_R,
-  SEM_MARGIN_H,
-  SEM_MARGIN_V,
-  semDotRadius,
-  semanticElements
-} from './semantic/drawSemantic'
+import { SEM_DOT_MAX_R, semDotRadius, semanticElements } from './semantic/drawSemantic'
+import { axisX, type SemanticLayout } from './semantic/semanticLayout'
 
 export type Edge = 'left' | 'right' | 'top' | 'bottom'
 
@@ -95,17 +89,9 @@ export function semanticDragMembers(
   return members
 }
 
-export function semAxisYs(height: number, count: number): number[] {
-  if (count === 0) return []
-  if (count === 1) return [height / 2]
-  return Array.from({ length: count }, (_, index) =>
-    SEM_MARGIN_V + index * (height - 2 * SEM_MARGIN_V) / (count - 1)
-  )
-}
-
-export function semanticHitRow(y: number, height: number, dimCount: number): number {
-  const ys = semAxisYs(height, dimCount)
-  return ys.findIndex(axisY => Math.abs(y - axisY) <= 6)
+/** Index of the axis within 6px of `y`, or -1. */
+export function semanticHitRow(y: number, layout: SemanticLayout): number {
+  return layout.axes.findIndex(axis => Math.abs(y - axis.y) <= 6)
 }
 
 export function cartesianHitEdge(
@@ -186,34 +172,25 @@ export function cartesianHitDot(
 export function semanticHitDot(
   x: number,
   y: number,
-  width: number,
-  height: number,
+  layout: SemanticLayout,
   config: SemanticMapConfig,
   elements: Element[],
   collections: Collection[],
-  dimensions: Dimension[],
   scores: ScoreMap,
   defaultDotRadius?: number
 ): Pick<SemanticDragTarget, 'elementId' | 'dimId'> | null {
   if (config.marks === 'none') return null
 
-  const axisWidth = width - 2 * SEM_MARGIN_H
-  const dims = config.dimensionIds
-    .map(id => dimensions.find(dimension => dimension.id === id))
-    .filter((dimension): dimension is Dimension => dimension !== undefined)
   const visible = semanticElements(config, elements, collections)
-  const axisYs = semAxisYs(height, dims.length)
   const weightRange = numericRange(elements.map(element => element.weight))
 
-  for (let index = 0; index < dims.length; index++) {
-    const dimension = dims[index]
-    const axisY = axisYs[index]
+  for (const axis of layout.axes) {
+    const { dimension, y: axisY } = axis
     if (Math.abs(y - axisY) > Math.max(SEM_DOT_MAX_R, 8)) continue
     for (const element of visible) {
       const raw = scores[element.id]?.[dimension.id]
       if (raw === undefined) continue
-      const score = config.flippedDimensionIds.includes(dimension.id) ? 1 - raw : raw
-      const dotX = SEM_MARGIN_H + score * axisWidth
+      const dotX = axisX(layout, axis, raw)
       const hitRadius = Math.max(
         semDotRadius(config, element.weight, weightRange, defaultDotRadius),
         8
@@ -262,35 +239,25 @@ export function semanticHitRect(
   y1: number,
   x2: number,
   y2: number,
-  width: number,
-  height: number,
+  layout: SemanticLayout,
   config: SemanticMapConfig,
   elements: Element[],
   collections: Collection[],
-  dimensions: Dimension[],
   scores: ScoreMap
 ): string[] {
   const minX = Math.min(x1, x2)
   const maxX = Math.max(x1, x2)
   const minY = Math.min(y1, y2)
   const maxY = Math.max(y1, y2)
-  const axisWidth = width - 2 * SEM_MARGIN_H
-  const dims = config.dimensionIds
-    .map(id => dimensions.find(dimension => dimension.id === id))
-    .filter((dimension): dimension is Dimension => dimension !== undefined)
   const visible = semanticElements(config, elements, collections)
-  const axisYs = semAxisYs(height, dims.length)
   const hits = new Set<string>()
 
-  for (let index = 0; index < dims.length; index++) {
-    const axisY = axisYs[index]
-    if (axisY < minY || axisY > maxY) continue
-    const dimension = dims[index]
+  for (const axis of layout.axes) {
+    if (axis.y < minY || axis.y > maxY) continue
     for (const element of visible) {
-      const raw = scores[element.id]?.[dimension.id]
+      const raw = scores[element.id]?.[axis.dimension.id]
       if (raw === undefined) continue
-      const score = config.flippedDimensionIds.includes(dimension.id) ? 1 - raw : raw
-      const dotX = SEM_MARGIN_H + score * axisWidth
+      const dotX = axisX(layout, axis, raw)
       if (dotX >= minX && dotX <= maxX) hits.add(element.id)
     }
   }

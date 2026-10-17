@@ -11,7 +11,8 @@ import { usePrefsStore } from '../../store/prefsStore'
 import type { CartesianMapConfig, SemanticMapConfig, Dimension } from '../../lib/types'
 import { buildMapSvg } from './svgExport'
 import { drawCartesian, MARGIN } from './cartesian/drawCartesian'
-import { drawSemantic, semanticElements, SEM_MARGIN_H } from './semantic/drawSemantic'
+import { drawSemantic, semanticElements } from './semantic/drawSemantic'
+import { scoreAtX, semanticLayout, type SemanticLayout } from './semantic/semanticLayout'
 import { ElementDetailModal } from './ElementDetailModal'
 import { BulkEditModal } from './BulkEditModal'
 import { DimensionDetailModal } from './DimensionDetailModal'
@@ -317,6 +318,11 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
 
   // ── Mouse event handlers ──────────────────────────────────────────────────────
 
+  /** The semantic map's axes at a canvas size, exactly as drawSemantic lays them out. */
+  function semanticLayoutAt(width: number, height: number): SemanticLayout {
+    return semanticLayout(width, height, config as SemanticMapConfig, dimensions, dimensionLabelSize)
+  }
+
   function handleMouseDown(e: React.MouseEvent<HTMLDivElement>): void {
     if (e.button !== 0) return  // ignore right-click and middle-click
     const wrapper = wrapperRef.current
@@ -353,7 +359,7 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
       }
     } else {
       const hit = semanticHitDot(
-        x, y, rect.width, rect.height, config, elements, collections, dimensions, scores,
+        x, y, semanticLayoutAt(rect.width, rect.height), config, elements, collections, scores,
         defaultDotRadius
       )
       if (hit) {
@@ -484,13 +490,10 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
       }
 
       const { dimId } = semDrag
-      const semCfg    = config as SemanticMapConfig
-      const axisLeft  = SEM_MARGIN_H
-      const axisRight = W - SEM_MARGIN_H
-      const axisWidth = axisRight - axisLeft
-      const cx        = Math.max(axisLeft, Math.min(axisRight, x))
-      let score       = (cx - axisLeft) / axisWidth
-      if (semCfg.flippedDimensionIds.includes(dimId)) score = 1 - score
+      const layout = semanticLayoutAt(W, H)
+      const axis   = layout.axes.find(a => a.dimension.id === dimId)
+      if (!axis) return
+      const score  = scoreAtX(layout, axis, x)
 
       // Every member shares this axis and its flip state, so one delta in score
       // space moves them all — no need to re-flip per element.
@@ -528,11 +531,10 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
       if (cartesianHitEdge(x, y, W, H)) { setCursor('pointer'); return }
       setCursor(e.shiftKey ? 'crosshair' : 'default')
     } else {
-      const hit = semanticHitDot(
-        x, y, W, H, config, elements, collections, dimensions, scores, defaultDotRadius
-      )
+      const layout = semanticLayoutAt(W, H)
+      const hit = semanticHitDot(x, y, layout, config, elements, collections, scores, defaultDotRadius)
       if (hit) { setCursor(e.shiftKey ? 'copy' : 'grab'); return }
-      if (semanticHitRow(y, H, config.dimensionIds.length) >= 0) { setCursor('pointer'); return }
+      if (semanticHitRow(y, layout) >= 0) { setCursor('pointer'); return }
       setCursor(e.shiftKey ? 'crosshair' : 'default')
     }
   }
@@ -556,8 +558,8 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
             selectElements([...new Set([...existing, ...newIds])])
             window.api?.broadcastMultiSelection(useAppStore.getState().selectedElementIds)
           } else {
-            const newIds = semanticHitRect(x1, y1, x2, y2, width, height,
-              config, elements, collections, dimensions, scores)
+            const newIds = semanticHitRect(x1, y1, x2, y2, semanticLayoutAt(width, height),
+              config, elements, collections, scores)
             selectElements([...new Set([...existing, ...newIds])])
             window.api?.broadcastMultiSelection(useAppStore.getState().selectedElementIds)
             selectElement(null)
@@ -633,7 +635,7 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
       if (hit) hitId = hit.elementId
     } else {
       const hit = semanticHitDot(
-        x, y, W, H, config, elements, collections, dimensions, scores, defaultDotRadius
+        x, y, semanticLayoutAt(W, H), config, elements, collections, scores, defaultDotRadius
       )
       if (hit) hitId = hit.elementId
     }
@@ -661,8 +663,8 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
       const edge = cartesianHitEdge(x, y, W, H)
       if (edge) dimensionId = edge === 'left' || edge === 'right' ? config.xDimensionId : config.yDimensionId
     } else {
-      const dimIds = config.dimensionIds.filter(id => dimensions.some(d => d.id === id))
-      dimensionId = dimIds[semanticHitRow(y, H, dimIds.length)]
+      const layout = semanticLayoutAt(W, H)
+      dimensionId = layout.axes[semanticHitRow(y, layout)]?.dimension.id
     }
     if (dimensionId && dimensions.some(d => d.id === dimensionId)) {
       setAxisPicker(null)
@@ -707,9 +709,8 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
     } else {
       setAxisPicker(null)
       const semCfg = config
-      const hit = semanticHitDot(
-        x, y, W, H, semCfg, elements, collections, dimensions, scores, defaultDotRadius
-      )
+      const layout = semanticLayoutAt(W, H)
+      const hit = semanticHitDot(x, y, layout, semCfg, elements, collections, scores, defaultDotRadius)
       if (hit) {
         if (e.shiftKey) {
           toggleMapSelection(hit.elementId)
@@ -717,12 +718,9 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
         // Non-shift: mouseDown already called selectElements([id]) — nothing to do
         return
       }
-      const dims = semCfg.dimensionIds
-        .map(id => dimensions.find(d => d.id === id))
-        .filter((d): d is Dimension => d !== undefined)
-      const rowIdx = semanticHitRow(y, H, dims.length)
+      const rowIdx = semanticHitRow(y, layout)
       if (rowIdx >= 0) {
-        setSemanticPicker({ dimIndex: rowIdx, dimId: dims[rowIdx].id, clickX: x, clickY: y })
+        setSemanticPicker({ dimIndex: rowIdx, dimId: layout.axes[rowIdx].dimension.id, clickX: x, clickY: y })
       } else {
         // Open space: no dot, no axis row. Same as the cartesian case — the
         // click means "never mind", so the whole selection goes.

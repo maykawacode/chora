@@ -24,6 +24,7 @@ import { drawMark, drawSelectionRing, markShapeIndex } from '../shape'
 import { beginLayer } from '../svgExport'
 import { normalizeInRange, numericRange, type NumericRange } from '../../../lib/numericRange'
 import { uiTheme } from '../../../design/theme'
+import { EDGE_PAD, LABEL_GAP, SEM_MARGIN_V, axisX, fitText, semanticLayout } from './semanticLayout'
 
 // Element labels are truncated to a pixel budget rather than a character count.
 // These two are one calibrated pair: 88px of room was judged right for labels
@@ -33,13 +34,6 @@ import { uiTheme } from '../../../design/theme'
 // the default label size, and must not be updated when that default changes.
 const LABEL_WIDTH_BUDGET = 88
 const LABEL_WIDTH_CALIBRATION_SIZE = 11
-
-// Horizontal margin — space reserved on each side for pole labels
-export const SEM_MARGIN_H = 96
-
-// Vertical margin — space reserved above the first and below the last axis.
-// Top margin is sized to fit 45° element labels above the topmost axis dots.
-export const SEM_MARGIN_V = 85
 
 // Radius of the score dot drawn at each element × dimension intersection,
 // and the ceiling when config.sizeByWeight scales dots by element weight.
@@ -88,9 +82,10 @@ export function semanticElements(
   elements: Element[],
   collections: Collection[]
 ): Element[] {
+  const byId = new Map(elements.map(e => [e.id, e]))
   const listed = config.elementIds.length > 0
     ? config.elementIds
-        .map(id => elements.find(e => e.id === id))
+        .map(id => byId.get(id))
         .filter((e): e is Element => e !== undefined)
     : elements
 
@@ -98,9 +93,6 @@ export function semanticElements(
   if (shown.length === 0) return listed
   return listed.filter(el => shown.some(c => el.collectionIds.includes(c.id)))
 }
-
-// Gap between axis end and pole label text
-const LABEL_GAP = 6
 
 export function hasVisibleScores(
   elementIds: string[],
@@ -129,10 +121,8 @@ export function drawSemantic(
   defaultDotRadius: number = SEM_DOT_R
 ): void {
   const baseDotRadius = normalizeDefaultDotRadius(defaultDotRadius)
-  // Resolve dimension IDs to full objects, preserving config order
-  const dims = config.dimensionIds
-    .map(id => dimensions.find(d => d.id === id))
-    .filter((d): d is Dimension => d !== undefined)
+  const layout = semanticLayout(W, H, config, dimensions, dimensionLabelSize)
+  const { axisLeft, axisRight, axes } = layout
 
   const els = semanticElements(config, elements, collections)
   const weightRange = numericRange(elements.map(element => element.weight))
@@ -142,7 +132,7 @@ export function drawSemantic(
   ctx.fillStyle = uiTheme.map.background
   ctx.fillRect(0, 0, W, H)
 
-  if (dims.length === 0) {
+  if (axes.length === 0) {
     // Placeholder when no dimensions are selected
     ctx.fillStyle = uiTheme.map.labelMuted
     ctx.font = '13px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif'
@@ -152,24 +142,12 @@ export function drawSemantic(
     return
   }
 
-  const axisLeft  = SEM_MARGIN_H
-  const axisRight = W - SEM_MARGIN_H
-  const axisWidth = axisRight - axisLeft
-
-  // Evenly distribute axes vertically; single dimension gets centered
-  const axisYs: number[] = dims.length === 1
-    ? [H / 2]
-    : dims.map((_, i) => SEM_MARGIN_V + i * (H - 2 * SEM_MARGIN_V) / (dims.length - 1))
-
   // ── Draw axes ─────────────────────────────────────────────────────────────────
 
   beginLayer(ctx, 'axes')
   ctx.font = labelFont(dimensionLabelSize)
 
-  for (let i = 0; i < dims.length; i++) {
-    const dim = dims[i]
-    const y   = axisYs[i]
-
+  for (const { y, leftLabel, rightLabel } of axes) {
     // Axis line
     ctx.strokeStyle = uiTheme.map.grid
     ctx.lineWidth = 1
@@ -184,11 +162,7 @@ export function drawSemantic(
     ctx.moveTo(axisRight, y - 4); ctx.lineTo(axisRight, y + 4)
     ctx.stroke()
 
-    // Pole labels — swap sides when the dimension is flipped
-    const isFlipped  = config.flippedDimensionIds.includes(dim.id)
-    const leftLabel  = isFlipped ? dim.poleB : dim.poleA
-    const rightLabel = isFlipped ? dim.poleA : dim.poleB
-
+    // Pole labels — swapped when the dimension is flipped, fitted to their margin
     ctx.fillStyle = uiTheme.map.label
     ctx.textAlign = 'right'; ctx.textBaseline = 'middle'
     ctx.fillText(leftLabel,  axisLeft  - LABEL_GAP, y)
@@ -224,7 +198,7 @@ export function drawSemantic(
 
   if (els.length > 0 && !hasVisibleScores(
     els.map(element => element.id),
-    dims.map(dimension => dimension.id),
+    axes.map(axis => axis.dimension.id),
     scores
   )) {
     ctx.fillStyle = uiTheme.map.labelMuted
@@ -272,11 +246,10 @@ export function drawSemantic(
     const dotR       = semDotRadius(config, el.weight, weightRange, baseDotRadius)
     const points: Array<{ x: number; y: number }> = []
 
-    for (let i = 0; i < dims.length; i++) {
-      const raw = scores[el.id]?.[dims[i].id]
+    for (const axis of axes) {
+      const raw = scores[el.id]?.[axis.dimension.id]
       if (raw === undefined) continue   // element not scored on this dimension — skip
-      const score = config.flippedDimensionIds.includes(dims[i].id) ? 1 - raw : raw
-      points.push({ x: axisLeft + score * axisWidth, y: axisYs[i] })
+      points.push({ x: axisX(layout, axis, raw), y: axis.y })
     }
 
     if (points.length === 0) continue   // element has no scores — nothing to draw
@@ -310,23 +283,23 @@ export function drawSemantic(
       }
     }
 
-    // Element name label — 45° upward from the topmost scored dot
+    // Element name label — 45° upward from the topmost scored dot, shortened
+    // to its budget and to the room left before the map's top and right edges
+    // (the text's own height leans it up and back, hence the size term).
     if (config.showLabels) {
       const top = points[0]
-      const MAX_LABEL_W =
-        LABEL_WIDTH_BUDGET * (elementLabelSize / LABEL_WIDTH_CALIBRATION_SIZE)
-      ctx.font = labelFont(elementLabelSize)
-
-      let label = el.name
-      if (ctx.measureText(label).width > MAX_LABEL_W) {
-        while (label.length > 1 && ctx.measureText(label + '…').width > MAX_LABEL_W) {
-          label = label.slice(0, -1)
-        }
-        label += '…'
-      }
+      const anchorY = top.y - dotR - 3
+      const maxWidth = Math.min(
+        LABEL_WIDTH_BUDGET * (elementLabelSize / LABEL_WIDTH_CALIBRATION_SIZE),
+        (W - EDGE_PAD - top.x) * Math.SQRT2,
+        (anchorY - EDGE_PAD) * Math.SQRT2 - elementLabelSize
+      )
+      const font = labelFont(elementLabelSize)
+      ctx.font = font
+      const label = fitText(el.name, maxWidth, font)
 
       ctx.save()
-      ctx.translate(top.x, top.y - dotR - 3)
+      ctx.translate(top.x, anchorY)
       ctx.rotate(-Math.PI / 4)
       ctx.fillStyle = uiTheme.map.label
       ctx.textAlign = 'left'
