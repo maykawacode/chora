@@ -24,6 +24,13 @@
   -webkit-app-region: drag;
 }
 
+/* A browser tile has no controls on the left; Close, Zoom and the panel
+   toggle share the right (8px inset + 12 + 8 + 12 + 8 + 22px toggle + 8px). */
+.titleBarTile {
+  padding-left: var(--space-three);
+  padding-right: 78px; /* raw: control group width */
+}
+
 /* A browser tile moves by dragging its title bar. */
 .titleBar[data-movable] {
   cursor: grab;
@@ -127,6 +134,9 @@
   top: 4px;
   right: 8px;
   z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: var(--space-two);
   -webkit-app-region: no-drag;
 }
 

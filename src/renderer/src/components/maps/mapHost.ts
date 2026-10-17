@@ -8,8 +8,6 @@ import type { ChoraApi, MapWindowAction } from '../../../../shared/contracts'
  */
 export interface MapHost {
   control: (action: MapWindowAction) => void
-  /** False hides the Minimize button; a tile has nowhere to minimize to. */
-  minimizable: boolean
   zoomLabel: string
   /** Per-tile history bridge, so transactions and locks carry this tile as owner. */
   history: Pick<ChoraApi, 'historyBegin' | 'historyEnd' | 'setHistoryModalOpen'>

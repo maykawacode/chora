@@ -44,7 +44,6 @@ function MapTile({ mapId, rect, hidden, maximized, dragging, onToggleMaximize, o
       if (action === 'close') useAppStore.getState().removeMap(mapId)
       else if (action === 'zoom') onToggleMaximize()
     },
-    minimizable: false,
     zoomLabel: maximized ? 'Restore' : 'Maximize',
     history: {
       historyBegin:        () => beginTransaction(mapId),
