@@ -1,12 +1,17 @@
 import { useEffect, useRef, type ReactNode } from 'react'
 import { useAppStore } from '@renderer/store/appStore'
-import { TAB_ACCESSIBLE_LABELS, TAB_ORDER } from '@renderer/components/ScoreWindow/ScoreWindow'
+import { TAB_ACCESSIBLE_LABELS } from '@renderer/components/ScoreWindow/ScoreWindow'
 import type { AppState } from '@renderer/lib/types'
-import { useScoreLayout } from './scoreLayout'
+import { DEFAULT_SHARE, MAP_AREA_MIN_WIDTH, SCORE_MIN_WIDTH, STRIP_WIDTH, useScoreLayout } from './scoreLayout'
+import { Glyph } from './Glyph'
+import { useStripMenus } from './StripCommands'
 import styles from './ScoreDock.module.css'
 
-// Browser Score column: an always-visible strip (collapse toggle plus one icon
-// per tab) beside the Score Window. Collapsing hides the Score Window, still
+// Browser Score column: an always-visible strip beside the Score Window, the
+// page's anchor. One list from the top: File | Notes, Elements, Dimensions,
+// Collections | Assess, Conversions, Maps | Help, Settings (commands in
+// StripCommands.tsx). Choosing the tab already showing collapses Score and
+// clears the highlight; any tab icon while collapsed opens Score on that tab. Collapsing hides the Score Window, still
 // mounted so tab state and pending edits survive; choosing a tab icon opens
 // Score on that tab. The strip is meant to replace the tab bar eventually.
 
@@ -38,25 +43,15 @@ const TAB_GLYPHS: Record<Tab, ReactNode> = {
   </g>
 }
 
-function Glyph({ children }: { children: ReactNode }): React.JSX.Element {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
-      <g fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
-        {children}
-      </g>
-    </svg>
-  )
-}
-
-/** Panel outline, Score side filled while open (as the map sidebar toggle). */
-function PanelGlyph({ filled }: { filled: boolean }): React.JSX.Element {
-  return (
-    <Glyph>
-      {filled && <path d="M2 4a1 1 0 0 1 1-1h3v10H3a1 1 0 0 1-1-1z" fill="currentColor" stroke="none" />}
-      <rect x="1.5" y="2.5" width="13" height="11" rx="2" />
-      <path d="M6 2.5v11" />
-    </Glyph>
-  )
+/**
+ * Score's open width before it has been measured (the page loaded collapsed):
+ * the remembered width less the strip, or the default share, within the
+ * splitter's limits (BrowserWorkspace.tsx).
+ */
+function estimatedOpenWidth(): number {
+  const left = useScoreLayout.getState().scoreWidth ?? DEFAULT_SHARE * window.innerWidth + STRIP_WIDTH
+  const max = window.innerWidth - MAP_AREA_MIN_WIDTH - STRIP_WIDTH
+  return Math.round(Math.max(SCORE_MIN_WIDTH, Math.min(left - STRIP_WIDTH, max)))
 }
 
 export function ScoreDock({ children }: { children: ReactNode }): React.JSX.Element {
@@ -86,41 +81,49 @@ export function ScoreDock({ children }: { children: ReactNode }): React.JSX.Elem
     return () => observer.disconnect()
   }, [])
 
-  const toggleLabel = collapsed ? 'Expand Score' : 'Collapse Score'
+  const menus = useStripMenus()
+
+  const tabButton = (tab: Tab): React.JSX.Element => {
+    const label = TAB_ACCESSIBLE_LABELS[tab]
+    // Only the tab Score is showing is highlighted; collapsed, none is.
+    const showing = tab === activeTab && !collapsed
+    return (
+      <button
+        key={tab}
+        className={`${styles.stripButton} ${showing ? styles.stripButtonActive : ''}`}
+        title={showing ? `${label} (click to collapse Score)` : label}
+        aria-label={label}
+        aria-pressed={showing}
+        onClick={() => {
+          if (showing) return collapse()
+          setActiveTab(tab)
+          expand()
+        }}
+      >
+        <Glyph>{TAB_GLYPHS[tab]}</Glyph>
+      </button>
+    )
+  }
+  const divider = (key: string): React.JSX.Element => <div key={key} className={styles.stripDivider} />
 
   return (
     <>
-      <nav className={styles.strip} aria-label="Score tabs">
-        <button
-          className={styles.stripButton}
-          title={toggleLabel}
-          aria-label={toggleLabel}
-          aria-expanded={!collapsed}
-          onClick={collapsed ? expand : collapse}
-        >
-          <PanelGlyph filled={!collapsed} />
-        </button>
-        <div className={styles.stripDivider} />
-        {TAB_ORDER.map(tab => (
-          <button
-            key={tab}
-            className={`${styles.stripButton} ${tab === activeTab ? styles.stripButtonActive : ''}`}
-            title={TAB_ACCESSIBLE_LABELS[tab]}
-            aria-label={TAB_ACCESSIBLE_LABELS[tab]}
-            aria-pressed={tab === activeTab}
-            onClick={() => {
-              setActiveTab(tab)
-              expand()
-            }}
-          >
-            <Glyph>{TAB_GLYPHS[tab]}</Glyph>
-          </button>
-        ))}
+      <nav className={styles.strip} data-strip aria-label="Score tabs and commands">
+        {menus.menuButton('File')}
+        {divider('a')}
+        {(['notes', 'elements', 'dimensions', 'collections'] as const).map(tabButton)}
+        {divider('b')}
+        {(['scores', 'conversions'] as const).map(tabButton)}
+        {menus.menuButton('Maps')}
+        {divider('c')}
+        {menus.menuButton('Help')}
+        {menus.settingsButton}
+        {menus.flyout}
       </nav>
       <div ref={scoreRef} className={styles.score} hidden={collapsed && !animating} inert={collapsed}>
         <div
           className={styles.scoreInner}
-          style={animating && openWidth.current > 0 ? { flex: `0 0 ${openWidth.current}px` } : undefined}
+          style={animating ? { flex: `0 0 ${openWidth.current || estimatedOpenWidth()}px` } : undefined}
         >
           {children}
         </div>

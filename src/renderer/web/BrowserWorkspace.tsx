@@ -5,8 +5,7 @@ import { MapHostContext, type MapHost } from '@renderer/components/maps/mapHost'
 import {
   activateSurface, activeSurface, beginTransaction, endTransaction, releaseSurface, setModalLock
 } from './interaction'
-import { PANE_MIN_WIDTH } from '@renderer/components/ScoreWindow/useResizableSplitPane'
-import { STRIP_WIDTH, useScoreLayout } from './scoreLayout'
+import { MAP_AREA_MIN_WIDTH, SCORE_MIN_WIDTH, STRIP_WIDTH, useScoreLayout } from './scoreLayout'
 import {
   columnsFor, computeArrangement, findSplit, minSize, moveTile, reconcile, setSplitSizes, useTileLayout,
   type Arrangement, type Divider, type Rect, type Side
@@ -115,15 +114,12 @@ function useSurfaceTracking(): void {
   }, [])
 }
 
-// Score's two side-by-side panes (list and detail) at their own minimums.
-const SCORE_MIN_WIDTH = 2 * PANE_MIN_WIDTH
 // Everything left of the splitter: the tab strip plus Score.
 const LEFT_MIN_WIDTH = STRIP_WIDTH + SCORE_MIN_WIDTH
-const WORKSPACE_MIN_WIDTH = 360
 const KEY_STEP = 16
 
 const clampScoreWidth = (width: number): number =>
-  Math.round(Math.max(LEFT_MIN_WIDTH, Math.min(width, window.innerWidth - WORKSPACE_MIN_WIDTH)))
+  Math.round(Math.max(LEFT_MIN_WIDTH, Math.min(width, window.innerWidth - MAP_AREA_MIN_WIDTH)))
 
 /**
  * Divider on Score's right edge. Drag, or focus it and use the arrow keys, to
@@ -314,8 +310,9 @@ function TileDivider({ divider, arrangementRef }: {
 
 export function BrowserWorkspace(): React.JSX.Element {
   useSurfaceTracking()
-  // Null keeps the default proportional width; session-only until layout persistence (phase 3).
-  const [scoreWidth, setScoreWidth] = useState<number | null>(null)
+  // Null keeps the default proportional width; remembered across reloads (scoreLayout.ts).
+  const scoreWidth = useScoreLayout(s => s.scoreWidth)
+  const setScoreWidth = useScoreLayout(s => s.setScoreWidth)
   const mapIds = useAppStore(s => s.maps.map(m => m.id).join('\n'))
   const [maximizedId, setMaximizedId] = useState<string | null>(null)
   const scoreCollapsed = useScoreLayout(s => s.collapsed)

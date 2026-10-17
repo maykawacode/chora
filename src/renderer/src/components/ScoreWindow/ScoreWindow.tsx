@@ -15,6 +15,7 @@ import { CollectionsTab } from './CollectionsTab'
 import { ConversionsTab } from './ConversionsTab'
 import type { AppState } from '../../lib/types'
 import { resolveStatusMessage } from './statusRules'
+import { hostCapabilities } from '../../lib/host'
 import styles from './ScoreWindow.module.css'
 
 // Keep runtime keys decoupled from presentation labels. In particular, the
@@ -56,7 +57,8 @@ export function ScoreWindow({ onOpenStarterPicker, statusOverride }: Props): Rea
 
   return (
     <div className={styles.window}>
-      <div className={styles.titleBar}>
+      {/* The browser shows the title in its page banner (web/TitleBanner.tsx). */}
+      {hostCapabilities().kind === 'desktop' && <div className={styles.titleBar}>
         <div className={styles.titleLine}>
           <span className={styles.productName}>Chora</span>
           <span className={styles.titleDivider} aria-hidden="true">|</span>
@@ -65,7 +67,7 @@ export function ScoreWindow({ onOpenStarterPicker, statusOverride }: Props): Rea
             {isDirty && <span className="unsavedBadge">Unsaved</span>}
           </div>
         </div>
-      </div>
+      </div>}
 
       <div
         className={styles.statusBar}

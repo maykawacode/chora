@@ -24,18 +24,12 @@ const HELP_DOCUMENTS: Record<string, string> = { 'orientation.md': orientationHe
 type HistoryListener = (ownerId: number, phase: HistoryPhase) => void
 const historyListeners = new Set<HistoryListener>()
 
-// The browser menu bar and shortcuts stand in for the desktop application menu.
+// The strip's commands (StripCommands.tsx) and shortcuts stand in for the desktop application menu.
 type MenuListener = (action: MenuAction) => void
 const menuListeners = new Set<MenuListener>()
-let availability = { canUndo: false, canRedo: false }
 
 export function dispatchMenuAction(action: MenuAction): void {
   for (const cb of menuListeners) cb(action)
-}
-
-/** Undo/Redo availability as last reported by App (desktop: menu enablement). */
-export function historyAvailability(): { canUndo: boolean; canRedo: boolean } {
-  return availability
 }
 
 function listen<T>(set: Set<T>, cb: T): () => void {
@@ -107,7 +101,8 @@ export const browserApi: ChoraApi = {
   historyEnd:            () => emitHistory('end'),
   setHistoryModalOpen:   noop,
   onHistoryTransaction:  (cb) => listen(historyListeners, cb),
-  setHistoryAvailability: (canUndo, canRedo) => { availability = { canUndo, canRedo } },
+  // No Edit menu to enable; Undo and Redo are shortcuts only.
+  setHistoryAvailability: noop,
 
   loadPreferences: () => Promise.resolve(readStoredPreferences()),
   savePreferences: (prefs) => {

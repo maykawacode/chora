@@ -7,7 +7,7 @@
   width: 100%;
   min-width: 0;
   height: 100vh;
-  /* Lets a host column (the browser's menu bar above) shrink it to fit. */
+  /* Lets a host column (the browser's title banner above) shrink it to fit. */
   min-height: 0;
   overflow: hidden;
   background: var(--color-surface-app);

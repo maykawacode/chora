@@ -1,4 +1,4 @@
-/* Browser page: the menu bar sits above the app, which fills the rest. */
+/* Browser page: the title banner sits above the app, which fills the rest. */
 #root {
   display: flex;
   flex-direction: column;

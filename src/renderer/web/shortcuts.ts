@@ -9,7 +9,7 @@ import { inPlaceSaving } from './fileAccess'
 // goes through Score history; the browser keeps that convention. Ctrl+Y is the
 // extra Redo outside Apple systems. Desktop shortcuts the browser reserves or
 // commonly claims (New, Close, Import's Ctrl+Shift+I, map creation, Settings)
-// are left to the browser; their commands are in the menu bar.
+// are left to the browser; their commands are in the strip (StripCommands.tsx).
 // Everything here is refused while a dialog or menu is open over the page.
 
 export const isApple = /Mac|iPhone|iPad/.test(navigator.platform)

@@ -4,7 +4,9 @@ import { create } from 'zustand'
 // A row split lays its children left to right, a column split top to bottom;
 // `sizes` are the children's shares and sum to 1. The tree always fills the
 // area. It is browser layout, not study content: changing it never marks the
-// study dirty or enters history. Session-only until layout persistence (3d).
+// study dirty or enters history. Session-only: the tree names one study's
+// map IDs, so it is not carried across reloads (Score's width and collapse
+// state are; scoreLayout.ts).
 
 export type Dir = 'row' | 'column'
 export type Side = 'left' | 'right' | 'top' | 'bottom'
