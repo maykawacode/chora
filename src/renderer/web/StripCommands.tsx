@@ -12,7 +12,7 @@ import { useScoreLayout } from './scoreLayout'
 import dock from './ScoreDock.module.css'
 import styles from './StripCommands.module.css'
 
-// The browser's commands, as icons in the tab strip: File, Maps and Help open
+// The browser's commands, as icons in the tab strip: File, Maps and Info open
 // a menu beside the strip; the gear shows Settings in the Score column. They dispatch through
 // the desktop application menu's MenuAction path. Undo and Redo have no menu;
 // they stay on their shortcuts (shortcuts.ts). Shortcuts shown are only those
@@ -61,11 +61,11 @@ const MENUS: Menu[] = [
       'separator',
       { label: 'Arrange Maps in Grid', run: arrangeMapsInGrid, enabled: () => useAppStore.getState().maps.length > 1 }
     ] },
-  { label: 'Help',
+  { label: 'Info',
     glyph: <>
       <circle cx="8" cy="8" r="6.5" />
-      <path d="M6.2 6.3a1.9 1.9 0 1 1 2.6 1.75c-.5.2-.8.6-.8 1.1v.4" />
-      <circle cx="8" cy="11.3" r=".7" fill="currentColor" stroke="none" />
+      <path d="M8 7.2v4.3" />
+      <circle cx="8" cy="4.9" r=".8" fill="currentColor" stroke="none" />
     </>,
     items: [
       { label: 'Open Example Data', action: 'open-example' },
@@ -162,7 +162,7 @@ function MenuFlyout({ menu, anchor, onClose }: {
   )
 }
 
-export type MenuName = 'File' | 'Maps' | 'Help'
+export type MenuName = 'File' | 'Maps' | 'Info'
 
 export interface StripMenus {
   /** The icon that opens the named menu. */

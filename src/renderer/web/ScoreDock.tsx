@@ -9,8 +9,8 @@ import { SettingsPanel } from './SettingsPanel'
 import styles from './ScoreDock.module.css'
 
 // Browser Score column: an always-visible strip beside the Score Window, the
-// page's anchor. One list from the top: File | Notes, Elements, Dimensions,
-// Collections | Assess, Conversions, Maps | Help, Settings (commands in
+// page's anchor. One list from the top: Info, File | Notes, Elements,
+// Dimensions, Collections | Assess, Conversions, Maps | Settings (commands in
 // StripCommands.tsx). Choosing the tab already showing collapses Score and
 // clears the highlight; any tab icon while collapsed opens Score on that tab.
 // The gear works the same way for Settings, which shows in Score's place.
@@ -113,6 +113,7 @@ export function ScoreDock({ children }: { children: ReactNode }): React.JSX.Elem
   return (
     <>
       <nav className={styles.strip} data-strip aria-label="Score tabs and commands">
+        {menus.menuButton('Info')}
         {menus.menuButton('File')}
         {divider('a')}
         {(['notes', 'elements', 'dimensions', 'collections'] as const).map(tabButton)}
@@ -120,7 +121,6 @@ export function ScoreDock({ children }: { children: ReactNode }): React.JSX.Elem
         {(['scores', 'conversions'] as const).map(tabButton)}
         {menus.menuButton('Maps')}
         {divider('c')}
-        {menus.menuButton('Help')}
         {menus.settingsButton}
         {menus.flyout}
       </nav>
