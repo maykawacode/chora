@@ -2,7 +2,7 @@ import { useEffect, useRef, type ReactNode } from 'react'
 import { useAppStore } from '@renderer/store/appStore'
 import { TAB_ACCESSIBLE_LABELS } from '@renderer/components/ScoreWindow/ScoreWindow'
 import type { AppState } from '@renderer/lib/types'
-import { DEFAULT_SHARE, MAP_AREA_MIN_WIDTH, SCORE_MIN_WIDTH, STRIP_WIDTH, useScoreLayout } from './scoreLayout'
+import { DEFAULT_SHARE, MAP_AREA_MIN_WIDTH, SCORE_MIN_WIDTH, stripWidth, useScoreLayout } from './scoreLayout'
 import { Glyph } from './Glyph'
 import { useStripMenus } from './StripCommands'
 import { SettingsPanel } from './SettingsPanel'
@@ -15,7 +15,9 @@ import styles from './ScoreDock.module.css'
 // clears the highlight; any tab icon while collapsed opens Score on that tab.
 // The gear works the same way for Settings, which shows in Score's place.
 // Collapsing hides the Score Window, still mounted so tab state and pending
-// edits survive. In the browser the strip replaces Score's tab bar.
+// edits survive. In the browser the strip replaces Score's tab bar. The
+// toggle at its foot widens it to show each icon's name; every button carries
+// its name, which the strip's labelled style reveals.
 
 type Tab = AppState['activeTab']
 
@@ -51,16 +53,19 @@ const TAB_GLYPHS: Record<Tab, ReactNode> = {
  * splitter's limits (BrowserWorkspace.tsx).
  */
 function estimatedOpenWidth(): number {
-  const left = useScoreLayout.getState().scoreWidth ?? DEFAULT_SHARE * window.innerWidth + STRIP_WIDTH
-  const max = window.innerWidth - MAP_AREA_MIN_WIDTH - STRIP_WIDTH
-  return Math.round(Math.max(SCORE_MIN_WIDTH, Math.min(left - STRIP_WIDTH, max)))
+  const { scoreWidth, labels } = useScoreLayout.getState()
+  const strip = stripWidth(labels)
+  const left = scoreWidth ?? DEFAULT_SHARE * window.innerWidth + strip
+  const max = window.innerWidth - MAP_AREA_MIN_WIDTH - strip
+  return Math.round(Math.max(SCORE_MIN_WIDTH, Math.min(left - strip, max)))
 }
 
 export function ScoreDock({ children }: { children: ReactNode }): React.JSX.Element {
   const collapsed = useScoreLayout(s => s.collapsed)
   const animating = useScoreLayout(s => s.animating)
   const view = useScoreLayout(s => s.view)
-  const { collapse, show } = useScoreLayout.getState()
+  const labels = useScoreLayout(s => s.labels)
+  const { collapse, show, toggleLabels } = useScoreLayout.getState()
   const scoreRef = useRef<HTMLDivElement>(null)
   // Score's settled open width. While collapsing or expanding, Score is held
   // at this width and slides behind the strip rather than reflowing.
@@ -105,6 +110,7 @@ export function ScoreDock({ children }: { children: ReactNode }): React.JSX.Elem
         }}
       >
         <Glyph>{TAB_GLYPHS[tab]}</Glyph>
+        <span className={styles.stripLabel}>{label}</span>
       </button>
     )
   }
@@ -112,7 +118,12 @@ export function ScoreDock({ children }: { children: ReactNode }): React.JSX.Elem
 
   return (
     <>
-      <nav className={styles.strip} data-strip aria-label="Score tabs and commands">
+      <nav
+        className={`${styles.strip} ${labels ? styles.stripLabelled : ''}`}
+        style={{ flexBasis: stripWidth(labels) }}
+        data-strip
+        aria-label="Score tabs and commands"
+      >
         {menus.menuButton('Info')}
         {menus.menuButton('File')}
         {divider('a')}
@@ -122,6 +133,17 @@ export function ScoreDock({ children }: { children: ReactNode }): React.JSX.Elem
         {menus.menuButton('Maps')}
         {divider('c')}
         {menus.settingsButton}
+        <button
+          type="button"
+          className={`${styles.stripButton} ${styles.stripFoot}`}
+          title={labels ? 'Hide names' : 'Show names'}
+          aria-label={labels ? 'Hide names' : 'Show names'}
+          aria-pressed={labels}
+          onClick={toggleLabels}
+        >
+          <Glyph><path d={labels ? 'M10 4 6 8l4 4' : 'M6 4l4 4-4 4'} /></Glyph>
+          <span className={styles.stripLabel}>Hide names</span>
+        </button>
         {menus.flyout}
       </nav>
       <div ref={scoreRef} className={styles.score} hidden={collapsed && !animating} inert={collapsed}>

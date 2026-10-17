@@ -221,6 +221,7 @@ export function useStripMenus(): StripMenus {
         }}
       >
         <Glyph>{menu.glyph}</Glyph>
+        <span className={dock.stripLabel}>{name}</span>
       </button>
     )
   }
@@ -245,6 +246,7 @@ export function useStripMenus(): StripMenus {
         <path d={GEAR} />
         <circle cx="8" cy="8" r="2" />
       </Glyph>
+      <span className={dock.stripLabel}>Settings</span>
     </button>
   )
 

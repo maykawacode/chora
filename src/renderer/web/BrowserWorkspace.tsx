@@ -5,7 +5,7 @@ import { MapHostContext, type MapHost } from '@renderer/components/maps/mapHost'
 import {
   activateSurface, activeSurface, beginTransaction, endTransaction, releaseSurface, setModalLock
 } from './interaction'
-import { MAP_AREA_MIN_WIDTH, SCORE_MIN_WIDTH, STRIP_WIDTH, useScoreLayout } from './scoreLayout'
+import { MAP_AREA_MIN_WIDTH, leftMinWidth, stripWidth, useScoreLayout } from './scoreLayout'
 import {
   FILL, columnsFor, computeArrangement, findSplit, minSize, moveTile, reconcile, setSplitSizes, useTileLayout,
   type Arrangement, type Divider, type FluidRect, type Rect, type Side, type Span
@@ -120,12 +120,10 @@ function useSurfaceTracking(): void {
   }, [])
 }
 
-// Everything left of the splitter: the tab strip plus Score.
-const LEFT_MIN_WIDTH = STRIP_WIDTH + SCORE_MIN_WIDTH
 const KEY_STEP = 16
 
-const clampScoreWidth = (width: number): number =>
-  Math.round(Math.max(LEFT_MIN_WIDTH, Math.min(width, window.innerWidth - MAP_AREA_MIN_WIDTH)))
+const clampScoreWidth = (width: number, min: number): number =>
+  Math.round(Math.max(min, Math.min(width, window.innerWidth - MAP_AREA_MIN_WIDTH)))
 
 /**
  * Divider on Score's right edge. Drag, or focus it and use the arrow keys, to
@@ -133,13 +131,14 @@ const clampScoreWidth = (width: number): number =>
  * start at the page's left edge, so their width is the divider's x position.
  */
 function Splitter({ width, onChange }: { width: number | null; onChange: (w: number | null) => void }): React.JSX.Element {
+  const min = useScoreLayout(s => leftMinWidth(s.labels))
   return (
     <div
       className={styles.splitter}
       role="separator"
       aria-orientation="vertical"
       aria-label="Resize Score"
-      aria-valuemin={LEFT_MIN_WIDTH}
+      aria-valuemin={min}
       aria-valuenow={width ?? undefined}
       tabIndex={0}
       onPointerDown={(e) => {
@@ -147,7 +146,7 @@ function Splitter({ width, onChange }: { width: number | null; onChange: (w: num
         e.currentTarget.setPointerCapture(e.pointerId)
       }}
       onPointerMove={(e) => {
-        if (e.currentTarget.hasPointerCapture(e.pointerId)) onChange(clampScoreWidth(e.clientX))
+        if (e.currentTarget.hasPointerCapture(e.pointerId)) onChange(clampScoreWidth(e.clientX, min))
       }}
       onDoubleClick={() => onChange(null)}
       onKeyDown={(e) => {
@@ -156,7 +155,7 @@ function Splitter({ width, onChange }: { width: number | null; onChange: (w: num
         // Keep the arrows from also nudging the selected score (ScoresTab listens on window).
         e.stopPropagation()
         const left = e.currentTarget.getBoundingClientRect().left
-        onChange(clampScoreWidth(left + (e.key === 'ArrowLeft' ? -KEY_STEP : KEY_STEP)))
+        onChange(clampScoreWidth(left + (e.key === 'ArrowLeft' ? -KEY_STEP : KEY_STEP), min))
       }}
     />
   )
@@ -323,6 +322,7 @@ export function BrowserWorkspace(): React.JSX.Element {
   const [maximizedId, setMaximizedId] = useState<string | null>(null)
   const scoreCollapsed = useScoreLayout(s => s.collapsed)
   const scoreMotion = useScoreLayout(s => s.animating)
+  const labels = useScoreLayout(s => s.labels)
   const root = useTileLayout(s => s.root)
   const columns = useTileLayout(s => s.columns)
 
@@ -381,8 +381,8 @@ export function BrowserWorkspace(): React.JSX.Element {
         if (e.target === e.currentTarget && e.propertyName === 'flex-basis') useScoreLayout.getState().endAnimation()
       }}
       style={{
-        '--score-min-width': `${LEFT_MIN_WIDTH}px`,
-        '--strip-width': `${STRIP_WIDTH}px`,
+        '--score-min-width': `${leftMinWidth(labels)}px`,
+        '--strip-width': `${stripWidth(labels)}px`,
         ...(scoreWidth === null ? {} : { '--score-width': `${scoreWidth}px` })
       } as React.CSSProperties}
     >

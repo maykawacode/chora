@@ -34,12 +34,14 @@
   display: none;
 }
 
-/* Tab strip on the page's left edge; width matches STRIP_WIDTH in scoreLayout.ts.
+/* Tab strip on the page's left edge; its width (flex-basis, set from
+   stripWidth in scoreLayout.ts) widens when it shows names.
    On a window too short for tabs and commands together it scrolls (no visible
    scrollbar, which would take the strip's width) rather than clipping. */
 .strip {
   display: flex;
-  flex: 0 0 40px;
+  flex: 0 0 auto;
+  box-sizing: border-box;
   flex-direction: column;
   align-items: center;
   gap: var(--space-one);
@@ -87,4 +89,41 @@
 
 .stripButton svg {
   display: block;
+}
+
+/* Each button's name, shown only while the strip is labelled. */
+.stripLabel {
+  display: none;
+}
+
+/* The names toggle sits at the strip's foot. */
+.stripFoot {
+  margin-top: auto;
+}
+
+.stripLabelled {
+  align-items: stretch;
+  padding: var(--space-one) 6px; /* raw: inset of the labelled rows */
+}
+
+.stripLabelled .stripButton {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--space-two);
+  width: auto;
+  padding: 0 6px; /* raw: centres the 16px icon in the same 28px column as unlabelled */
+}
+
+.stripLabelled .stripLabel {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-size-control);
+}
+
+.stripLabelled .stripDivider {
+  width: auto;
+  margin: 2px 6px; /* raw: matches the button inset */
 }
