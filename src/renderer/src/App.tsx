@@ -21,6 +21,7 @@ import { ChooseDimensions, CreateSemanticMap } from './components/maps/ChooseDim
 import { StarterListPicker } from './components/ScoreWindow/StarterListPicker'
 import { ImportPreview } from './components/ImportPreview'
 import { PreferencesDialog } from './components/PreferencesDialog'
+import { showStatusNotice } from './components/ScoreWindow/statusLine'
 import { WelcomeDialog } from './components/WelcomeDialog'
 import { ConfirmationDisc } from './components/ConfirmationDisc'
 import { OrientationDialog } from './components/OrientationDialog'
@@ -153,14 +154,6 @@ export function App({ workspace, scoreFrame }: AppProps = {}): React.JSX.Element
   // frame if changes remain.
   const saveInFlight = useRef<Promise<boolean> | null>(null)
 
-  // Brief status-bar message (browser downloads); replaces the contextual hint.
-  const [notice, setNotice] = useState<string | null>(null)
-  const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  function showNotice(message: string): void {
-    if (noticeTimer.current) clearTimeout(noticeTimer.current)
-    setNotice(message)
-    noticeTimer.current = setTimeout(() => setNotice(null), 4000)
-  }
   // New/Open await the user's decision without falling back to a native dialog.
   const discardConfirmationResolver = useRef<((confirmed: boolean) => void) | null>(null)
 
@@ -418,7 +411,11 @@ export function App({ workspace, scoreFrame }: AppProps = {}): React.JSX.Element
 
   useEffect(() => {
     const name = filePath ? filePath.split('/').pop() ?? filePath : 'Untitled'
-    document.title = name
+    // The browser tab shows the name as the page banner does, without the
+    // .chora/.mtda extension; the desktop window title keeps it.
+    document.title = hostCapabilities().kind === 'browser'
+      ? name.replace(/\.(chora|mtda)$/i, '') || 'Untitled'
+      : name
   }, [filePath])
 
   // ── Menu action dispatcher ────────────────────────────────────────────────────
@@ -435,7 +432,7 @@ export function App({ workspace, scoreFrame }: AppProps = {}): React.JSX.Element
           break
         case 'save':               await handleSave(false);       break
         case 'save-as':            await handleSave(true);        break
-        case 'download-copy':      showNotice(`Download started: ${downloadDocumentCopy()}`); break
+        case 'download-copy':      showStatusNotice(`Download started: ${downloadDocumentCopy()}`); break
         case 'import-spreadsheet': await handleImport();          break
         case 'export-spreadsheet': await handleExport();          break
         case 'create-cartesian':   setShowChooseDimensions(true); break
@@ -487,7 +484,7 @@ export function App({ workspace, scoreFrame }: AppProps = {}): React.JSX.Element
     if (host.documentSave === 'download') {
       // The first download of an untitled study asks for its name.
       if (host.nameUntitledDocument && !await host.nameUntitledDocument()) return false
-      showNotice(`Download started: ${downloadDocument()}`)
+      showStatusNotice(`Download started: ${downloadDocument()}`)
       return true
     }
     const pending = saveInFlight.current
@@ -510,7 +507,7 @@ export function App({ workspace, scoreFrame }: AppProps = {}): React.JSX.Element
   async function handleExport(): Promise<void> {
     // The browser always exports by download, also where Save writes in place.
     if (hostCapabilities().kind === 'browser') {
-      showNotice(`Download started: ${downloadSpreadsheet()}`)
+      showStatusNotice(`Download started: ${downloadSpreadsheet()}`)
       return
     }
     await exportDocument()
@@ -558,7 +555,7 @@ export function App({ workspace, scoreFrame }: AppProps = {}): React.JSX.Element
   return (
     <div className={styles.root}>
       {(scoreFrame ?? (score => score))(
-        <ScoreWindow onOpenStarterPicker={() => setShowStarterPicker(true)} statusOverride={notice} />
+        <ScoreWindow onOpenStarterPicker={() => setShowStarterPicker(true)} />
       )}
       {workspace}
 

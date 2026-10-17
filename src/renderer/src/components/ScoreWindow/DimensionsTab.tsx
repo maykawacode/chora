@@ -14,6 +14,7 @@ import { useRef, useState, useEffect, KeyboardEvent } from 'react'
 import { useAppStore } from '../../store/appStore'
 import { history, SCORE_HISTORY_OWNER } from '../../store/history'
 import { useResizableSplitPane } from './useResizableSplitPane'
+import { hostCapabilities } from '../../lib/host'
 import styles from './DataTab.module.css'
 import { formatRange, numericRange, openWeight } from '../../lib/numericRange'
 import { ConfirmationDisc } from '../ConfirmationDisc'
@@ -132,7 +133,10 @@ export function DimensionsTab({ onOpenStarterPicker }: Props): React.JSX.Element
     <div className={styles.tab} ref={splitPane.containerRef} style={splitPane.containerStyle}>
       {/* ── List pane ── */}
       <div className={styles.listPane} style={splitPane.leftPaneStyle}>
-        <div className={styles.listHeader}>Dimensions ({dimensions.length})</div>
+        {/* The browser shows the count in Score's title instead. */}
+        {hostCapabilities().kind === 'desktop' && (
+          <div className={styles.listHeader}>Dimensions ({dimensions.length})</div>
+        )}
 
         <div className={styles.listEditor}>
           {dimensions.length > 0 && (

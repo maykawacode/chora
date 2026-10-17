@@ -17,6 +17,7 @@ import { DEFAULT_COLLECTION_COLOR } from '../../lib/color'
 import { useResizableSplitPane } from './useResizableSplitPane'
 import { ConfirmationDisc } from '../ConfirmationDisc'
 import { usePrefsStore } from '../../store/prefsStore'
+import { hostCapabilities } from '../../lib/host'
 import styles from './DataTab.module.css'
 
 export function CollectionsTab(): React.JSX.Element {
@@ -82,7 +83,10 @@ export function CollectionsTab(): React.JSX.Element {
     <div className={styles.tab} ref={splitPane.containerRef} style={splitPane.containerStyle}>
       {/* ── List pane ── */}
       <div className={styles.listPane} style={splitPane.leftPaneStyle}>
-        <div className={styles.listHeader}>Collections ({collections.length})</div>
+        {/* The browser shows the count in Score's title instead. */}
+        {hostCapabilities().kind === 'desktop' && (
+          <div className={styles.listHeader}>Collections ({collections.length})</div>
+        )}
 
         <div className={styles.listEditor}>
           {collections.length > 0 && (

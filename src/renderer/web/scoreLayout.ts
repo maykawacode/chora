@@ -11,8 +11,10 @@ export const MAP_AREA_MIN_WIDTH = 360
 export const DEFAULT_SHARE = 0.23
 
 // Browser layout of the Score column: its width (strip included; null keeps
-// the default share) and whether it is collapsed to the icon strip. Both are
-// remembered in localStorage across reloads and tabs; they are browser layout,
+// the default share), whether it is collapsed to the icon strip, and which
+// view it shows (Score, or Settings in Score's place; the view always starts
+// as Score). Width and collapse are remembered in localStorage across reloads
+// and tabs; they are browser layout,
 // not study content. `animating` holds while a collapse or expand plays, so
 // only those changes animate (not splitter drags or window resizes). The map
 // area's transitionend ends it; the timer covers reduced motion and
@@ -52,10 +54,15 @@ function writeLayout({ scoreWidth, collapsed }: StoredLayout): void {
   } catch { /* storage blocked or full: layout lasts for this page only */ }
 }
 
+export type ColumnView = 'score' | 'settings'
+
 interface ScoreLayout extends StoredLayout {
+  view: ColumnView
   animating: boolean
   collapse: () => void
   expand: () => void
+  /** Shows the view, expanding the column if it is collapsed. */
+  show: (view: ColumnView) => void
   setScoreWidth: (width: number | null) => void
   endAnimation: () => void
 }
@@ -71,9 +78,14 @@ export const useScoreLayout = create<ScoreLayout>((set, get) => {
   }
   return {
     ...readLayout(),
+    view: 'score',
     animating: false,
     collapse: () => toggleTo(true),
     expand: () => toggleTo(false),
+    show: view => {
+      if (get().view !== view) set({ view })
+      toggleTo(false)
+    },
     setScoreWidth: scoreWidth => set({ scoreWidth }),
     endAnimation: () => {
       clearTimeout(fallback)

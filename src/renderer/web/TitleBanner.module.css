@@ -1,5 +1,6 @@
-/* Top banner: title on the left; the device notice, when shown, on the right,
-   wrapping below the title when the page is too narrow for both. */
+/* Top banner: title on the left, then the status line, which shortens first;
+   the device notice, when shown, on the right, wrapping below when the page
+   is too narrow. 10px taller than the desktop title bar for breathing room. */
 .banner {
   flex: 0 0 auto;
   display: flex;
@@ -7,7 +8,7 @@
   align-items: center;
   column-gap: var(--space-four);
   row-gap: var(--space-one);
-  min-height: var(--size-title-bar);
+  min-height: calc(var(--size-title-bar) + 10px);
   padding: var(--space-one) var(--space-three);
   background: var(--color-surface-raised);
   border-bottom: 1px solid var(--color-border-subtle);
@@ -60,6 +61,16 @@
   color: var(--color-text-primary);
   font: inherit;
   font-weight: var(--font-weight-semibold);
+}
+
+.status {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-control);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .notice {

@@ -153,6 +153,48 @@
   flex-direction: column;
 }
 
+/* Browser: the current tab's title in place of the tab bar, set like a map
+   tile's title (MapPanel.module.css .title in a title-bar-high row). */
+.paneTitle {
+  flex: 0 0 var(--size-title-bar);
+  /* Fixed height too, so it sits the same in Settings' grid layout. */
+  height: var(--size-title-bar);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-two);
+  margin: 0;
+  padding: 0 var(--space-three);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  user-select: none;
+}
+
+/* Elements sort toggle at the title's right end (the desktop's list-header badge). */
+.paneSort {
+  flex: none;
+  padding: 1px var(--space-one);
+  border: none;
+  border-radius: var(--radius-small);
+  background: var(--color-surface-chrome-strong);
+  color: var(--color-text-muted);
+  font-family: inherit;
+  font-size: var(--font-size-meta);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-interface);
+  cursor: pointer;
+}
+
+.paneSort:hover {
+  color: var(--color-text-primary);
+}
+
+/* Directly under the title, without the gap kept below the tab bar. */
+.tabContentUnderTitle {
+  padding-top: 0;
+}
+
 /* Tab controls intentionally keep the same appearance when focus arrives by
    mouse or keyboard. This covers native fields plus custom focusable lists,
    rows, links, and sliders used by the individual workspaces. */

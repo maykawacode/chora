@@ -14,7 +14,8 @@ import { AssessTab } from './ScoresTab'
 import { CollectionsTab } from './CollectionsTab'
 import { ConversionsTab } from './ConversionsTab'
 import type { AppState } from '../../lib/types'
-import { resolveStatusMessage } from './statusRules'
+import { useStatusLine } from './statusLine'
+import { sortToggleTitle, useElementSort } from './elementSort'
 import { hostCapabilities } from '../../lib/host'
 import styles from './ScoreWindow.module.css'
 
@@ -42,23 +43,45 @@ export const TAB_ORDER = ['notes', 'elements', 'dimensions', 'collections', 'sco
 
 interface Props {
   onOpenStarterPicker: () => void
-  statusOverride?: string | null
 }
 
-export function ScoreWindow({ onOpenStarterPicker, statusOverride }: Props): React.JSX.Element {
+/** Browser: the current tab's name, with the list count where it has one. */
+function PaneTitle({ tab }: { tab: AppState['activeTab'] }): React.JSX.Element {
+  const count = useAppStore(s =>
+    tab === 'elements' ? s.elements.length
+      : tab === 'dimensions' ? s.dimensions.length
+        : tab === 'collections' ? s.collections.length
+          : undefined)
+  const sortAlpha = useElementSort(s => s.alpha)
+  const toggleSort = useElementSort(s => s.toggle)
+  return (
+    <h2 className={styles.paneTitle}>
+      <span>{TAB_ACCESSIBLE_LABELS[tab]}{count === undefined ? '' : ` (${count})`}</span>
+      {tab === 'elements' && (
+        <button type="button" className={styles.paneSort} onClick={toggleSort} title={sortToggleTitle(sortAlpha)}>
+          {sortAlpha ? 'A–Z' : '⇅'}
+        </button>
+      )}
+    </h2>
+  )
+}
+
+export function ScoreWindow({ onOpenStarterPicker }: Props): React.JSX.Element {
   const activeTab    = useAppStore(s => s.activeTab)
   const setActiveTab = useAppStore(s => s.setActiveTab)
   const filePath     = useAppStore(s => s.filePath)
   const isDirty      = useAppStore(s => s.isDirty)
-  const defaultStatus = useAppStore(resolveStatusMessage)
+  const status = useStatusLine()
+  // The browser shows the title and status line in its page banner
+  // (web/TitleBanner.tsx), and replaces the tab bar with its strip's icons
+  // (web/ScoreDock.tsx) and a title for the current tab, set like a map title.
+  const desktop = hostCapabilities().kind === 'desktop'
 
   const fileName = filePath ? (filePath.split('/').pop() ?? 'Untitled') : 'Untitled'
-  const status = statusOverride ?? defaultStatus
 
   return (
     <div className={styles.window}>
-      {/* The browser shows the title in its page banner (web/TitleBanner.tsx). */}
-      {hostCapabilities().kind === 'desktop' && <div className={styles.titleBar}>
+      {desktop && <div className={styles.titleBar}>
         <div className={styles.titleLine}>
           <span className={styles.productName}>Chora</span>
           <span className={styles.titleDivider} aria-hidden="true">|</span>
@@ -69,15 +92,19 @@ export function ScoreWindow({ onOpenStarterPicker, statusOverride }: Props): Rea
         </div>
       </div>}
 
-      <div
-        className={styles.statusBar}
-        role="status"
-        aria-live="polite"
-      >
-        <span className={styles.statusMessage}>{status}</span>
-      </div>
+      {desktop && (
+        <div
+          className={styles.statusBar}
+          role="status"
+          aria-live="polite"
+        >
+          <span className={styles.statusMessage}>{status}</span>
+        </div>
+      )}
 
-      <div className={styles.tabBar}>
+      {!desktop && <PaneTitle tab={activeTab} />}
+
+      {desktop && <div className={styles.tabBar}>
         {TAB_ORDER.map(tab => (
           <button
             key={tab}
@@ -94,9 +121,12 @@ export function ScoreWindow({ onOpenStarterPicker, statusOverride }: Props): Rea
             {TAB_LABELS[tab]}
           </button>
         ))}
-      </div>
+      </div>}
 
-      <div className={styles.tabContent}>
+      <div
+        className={`${styles.tabContent} ${desktop ? '' : styles.tabContentUnderTitle}`}
+        data-list-headers={desktop ? 'shown' : 'hidden'}
+      >
         {activeTab === 'notes'       && <NotesTab />}
         {activeTab === 'elements'    && <ElementsTab />}
         {activeTab === 'collections' && <CollectionsTab />}

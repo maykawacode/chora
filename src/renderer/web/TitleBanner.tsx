@@ -1,18 +1,22 @@
 import { useRef, useState } from 'react'
 import { useAppStore } from '@renderer/store/appStore'
+import { useStatusLine } from '@renderer/components/ScoreWindow/statusLine'
 import { displayName, editableName, renameDocument } from './documentName'
 import { NamePrompt } from './NamePrompt'
+import { useScoreLayout } from './scoreLayout'
 import styles from './TitleBanner.module.css'
 
 // Banner across the top of the browser page: the product name, the study's
-// file name and its Unsaved badge (the desktop shows these in the Score
-// Window's title bar, which the browser leaves out). Double-click the file
+// file name, its Unsaved badge and the status line (the desktop shows these in
+// the Score Window's title and status bars, which the browser leaves out). Double-click the file
 // name to rename it in place (documentName.ts). On touch-first or narrow
 // screens it also carries a one-time notice, since the editor relies on
 // precise pointer drags, right-click and keyboard shortcuts. Dismissal lasts
 // for this tab.
 
 const NOTICE_KEY = 'chora:device-notice-dismissed'
+// While Settings shows in the Score column, the status line speaks to it.
+const SETTINGS_HINT = 'Changes apply as you make them. Restore defaults resets every setting.'
 const NARROW_PX = 900
 
 function shouldShowNotice(): boolean {
@@ -23,6 +27,8 @@ function shouldShowNotice(): boolean {
 export function TitleBanner(): React.JSX.Element {
   const filePath = useAppStore(s => s.filePath)
   const isDirty = useAppStore(s => s.isDirty)
+  const settingsShowing = useScoreLayout(s => s.view === 'settings' && !s.collapsed)
+  const status = useStatusLine(settingsShowing ? SETTINGS_HINT : undefined)
   const [notice, setNotice] = useState(shouldShowNotice)
   const [draft, setDraft] = useState<string | null>(null)
   // Escape cancels; the blur that follows must not then commit.
@@ -70,6 +76,7 @@ export function TitleBanner(): React.JSX.Element {
         )}
         {isDirty && <span className="unsavedBadge">Unsaved</span>}
       </div>
+      <div className={styles.status} role="status" aria-live="polite">{status}</div>
       {notice && (
         <div className={styles.notice} role="note">
           <span>

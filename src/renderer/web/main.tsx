@@ -21,8 +21,12 @@ setHostCapabilities({
   nameUntitledDocument
 })
 installShortcuts()
-// A collapsed Score keeps its tabs mounted; their keyboard handlers stand down.
-setScoreSurfaceProbe(() => activeSurface() === 'score' && !useScoreLayout.getState().collapsed)
+// A collapsed Score, or one under Settings, keeps its tabs mounted; their
+// keyboard handlers stand down.
+setScoreSurfaceProbe(() => {
+  const { collapsed, view } = useScoreLayout.getState()
+  return activeSurface() === 'score' && !collapsed && view === 'score'
+})
 void startApp({
   header: <TitleBanner />,
   workspace: <BrowserWorkspace />,

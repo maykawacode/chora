@@ -34,6 +34,15 @@
   min-height: 0;
   overflow-y: auto;
   padding: var(--space-four);
+  /* The sections stack in one column wherever Settings is narrow: a small
+     window, or the browser's Score column. */
+  container-type: inline-size;
+}
+
+@container (max-width: 520px) {
+  .settingsGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .settingsGrid {

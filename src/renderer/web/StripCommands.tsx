@@ -8,11 +8,12 @@ import { useAppStore } from '@renderer/store/appStore'
 import { arrangeMapsInGrid } from './tileLayout'
 import { Glyph } from './Glyph'
 import { promptRename } from './documentName'
+import { useScoreLayout } from './scoreLayout'
 import dock from './ScoreDock.module.css'
 import styles from './StripCommands.module.css'
 
 // The browser's commands, as icons in the tab strip: File, Maps and Help open
-// a menu beside the strip; the gear opens Settings. They dispatch through
+// a menu beside the strip; the gear shows Settings in the Score column. They dispatch through
 // the desktop application menu's MenuAction path. Undo and Redo have no menu;
 // they stay on their shortcuts (shortcuts.ts). Shortcuts shown are only those
 // the browser leaves to the page.
@@ -179,6 +180,8 @@ export interface StripMenus {
  */
 export function useStripMenus(): StripMenus {
   const [open, setOpen] = useState<MenuName | null>(null)
+  const layoutView = useScoreLayout(s => s.view)
+  const collapsed = useScoreLayout(s => s.collapsed)
   const buttons = useRef<Partial<Record<MenuName, HTMLButtonElement | null>>>({})
 
   useEffect(() => {
@@ -222,13 +225,21 @@ export function useStripMenus(): StripMenus {
     )
   }
 
+  // Settings shows in the Score column and behaves like a tab icon: choosing
+  // it while showing collapses the column.
+  const settingsShowing = layoutView === 'settings' && !collapsed
   const settingsButton = (
     <button
       type="button"
-      className={dock.stripButton}
-      title="Settings"
+      className={`${dock.stripButton} ${settingsShowing ? dock.stripButtonActive : ''}`}
+      title={settingsShowing ? 'Settings (click to collapse)' : 'Settings'}
       aria-label="Settings"
-      onClick={() => dispatchMenuAction('preferences')}
+      aria-pressed={settingsShowing}
+      onClick={() => {
+        const layout = useScoreLayout.getState()
+        if (settingsShowing) layout.collapse()
+        else layout.show('settings')
+      }}
     >
       <Glyph>
         <path d={GEAR} />

@@ -5,15 +5,17 @@ import type { AppState } from '@renderer/lib/types'
 import { DEFAULT_SHARE, MAP_AREA_MIN_WIDTH, SCORE_MIN_WIDTH, STRIP_WIDTH, useScoreLayout } from './scoreLayout'
 import { Glyph } from './Glyph'
 import { useStripMenus } from './StripCommands'
+import { SettingsPanel } from './SettingsPanel'
 import styles from './ScoreDock.module.css'
 
 // Browser Score column: an always-visible strip beside the Score Window, the
 // page's anchor. One list from the top: File | Notes, Elements, Dimensions,
 // Collections | Assess, Conversions, Maps | Help, Settings (commands in
 // StripCommands.tsx). Choosing the tab already showing collapses Score and
-// clears the highlight; any tab icon while collapsed opens Score on that tab. Collapsing hides the Score Window, still
-// mounted so tab state and pending edits survive; choosing a tab icon opens
-// Score on that tab. The strip is meant to replace the tab bar eventually.
+// clears the highlight; any tab icon while collapsed opens Score on that tab.
+// The gear works the same way for Settings, which shows in Score's place.
+// Collapsing hides the Score Window, still mounted so tab state and pending
+// edits survive. In the browser the strip replaces Score's tab bar.
 
 type Tab = AppState['activeTab']
 
@@ -57,7 +59,8 @@ function estimatedOpenWidth(): number {
 export function ScoreDock({ children }: { children: ReactNode }): React.JSX.Element {
   const collapsed = useScoreLayout(s => s.collapsed)
   const animating = useScoreLayout(s => s.animating)
-  const { collapse, expand } = useScoreLayout.getState()
+  const view = useScoreLayout(s => s.view)
+  const { collapse, show } = useScoreLayout.getState()
   const scoreRef = useRef<HTMLDivElement>(null)
   // Score's settled open width. While collapsing or expanding, Score is held
   // at this width and slides behind the strip rather than reflowing.
@@ -67,7 +70,7 @@ export function ScoreDock({ children }: { children: ReactNode }): React.JSX.Elem
 
   // A tab change from elsewhere (Import, a menu command) brings Score back into view.
   useEffect(() => useAppStore.subscribe((s, prev) => {
-    if (s.activeTab !== prev.activeTab) useScoreLayout.getState().expand()
+    if (s.activeTab !== prev.activeTab) useScoreLayout.getState().show('score')
   }), [])
 
   useEffect(() => {
@@ -85,8 +88,9 @@ export function ScoreDock({ children }: { children: ReactNode }): React.JSX.Elem
 
   const tabButton = (tab: Tab): React.JSX.Element => {
     const label = TAB_ACCESSIBLE_LABELS[tab]
-    // Only the tab Score is showing is highlighted; collapsed, none is.
-    const showing = tab === activeTab && !collapsed
+    // Only the tab Score is showing is highlighted; collapsed or with
+    // Settings in its place, none is.
+    const showing = tab === activeTab && !collapsed && view === 'score'
     return (
       <button
         key={tab}
@@ -97,7 +101,7 @@ export function ScoreDock({ children }: { children: ReactNode }): React.JSX.Elem
         onClick={() => {
           if (showing) return collapse()
           setActiveTab(tab)
-          expand()
+          show('score')
         }}
       >
         <Glyph>{TAB_GLYPHS[tab]}</Glyph>
@@ -125,7 +129,9 @@ export function ScoreDock({ children }: { children: ReactNode }): React.JSX.Elem
           className={styles.scoreInner}
           style={animating ? { flex: `0 0 ${openWidth.current || estimatedOpenWidth()}px` } : undefined}
         >
-          {children}
+          {/* Score stays mounted under Settings, so its tab state and pending edits survive. */}
+          <div className={styles.view} hidden={view !== 'score'}>{children}</div>
+          {view === 'settings' && <div className={styles.view}><SettingsPanel /></div>}
         </div>
       </div>
     </>

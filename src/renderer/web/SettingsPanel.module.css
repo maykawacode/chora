@@ -1,0 +1,9 @@
+/* Content lines up with the title's 12px inset, as Score's views do, and
+   starts 12px below it so the boxed sections do not crowd the title. Like the dialog's content it scrolls, and is the container whose
+   width decides when the sections stack (PreferencesDialog.module.css). */
+.content {
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-three);
+  container-type: inline-size;
+}

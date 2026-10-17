@@ -27,6 +27,8 @@ import { useResizableSplitPane } from './useResizableSplitPane'
 import { formatRange, numericRange, openWeight } from '../../lib/numericRange'
 import { ConfirmationDisc } from '../ConfirmationDisc'
 import { scoreOwnsKeys } from '../../lib/overlayStack'
+import { hostCapabilities } from '../../lib/host'
+import { sortToggleTitle, useElementSort } from './elementSort'
 import styles from './DataTab.module.css'
 
 export function ElementsTab(): React.JSX.Element {
@@ -47,7 +49,8 @@ export function ElementsTab(): React.JSX.Element {
 
   // sortAlpha=false → display in creation/import order (the store's canonical order)
   // sortAlpha=true  → display alphabetically by name (view-only; store order is unchanged)
-  const [sortAlpha, setSortAlpha] = useState(false)
+  const sortAlpha = useElementSort(s => s.alpha)
+  const toggleSort = useElementSort(s => s.toggle)
 
   // Derived display list — sorted copy when sortAlpha is on, raw store array otherwise.
   // All list rendering and keyboard navigation uses this, never `elements` directly,
@@ -185,15 +188,18 @@ export function ElementsTab(): React.JSX.Element {
     <div className={styles.tab} ref={splitPane.containerRef} style={splitPane.containerStyle}>
       {/* ── List pane ── */}
       <div className={styles.listPane} style={splitPane.leftPaneStyle}>
-        {/* Header doubles as a sort toggle — click cycles creation order ↔ A–Z */}
-        <button
-          className={styles.listHeaderBtn}
-          onClick={() => setSortAlpha(s => !s)}
-          title={sortAlpha ? 'Showing A–Z — click for creation order' : 'Showing creation order — click for A–Z'}
-        >
-          <span>Elements ({elements.length})</span>
-          <span className={styles.sortBadge}>{sortAlpha ? 'A–Z' : '⇅'}</span>
-        </button>
+        {/* Header doubles as a sort toggle — click cycles creation order ↔ A–Z.
+            The browser shows the count and toggle in Score's title instead. */}
+        {hostCapabilities().kind === 'desktop' && (
+          <button
+            className={styles.listHeaderBtn}
+            onClick={toggleSort}
+            title={sortToggleTitle(sortAlpha)}
+          >
+            <span>Elements ({elements.length})</span>
+            <span className={styles.sortBadge}>{sortAlpha ? 'A–Z' : '⇅'}</span>
+          </button>
+        )}
 
         <div className={styles.listEditor}>
           {elements.length > 0 && (
