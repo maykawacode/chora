@@ -12,7 +12,7 @@
 // read-only displays — they send back only fine-grained score drags and config
 // changes. Every other mutation flows through this component.
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useAppStore } from './store/appStore'
 import { usePrefsStore } from './store/prefsStore'
 import { history } from './store/history'
@@ -21,6 +21,7 @@ import { ChooseDimensions, CreateSemanticMap } from './components/maps/ChooseDim
 import { StarterListPicker } from './components/ScoreWindow/StarterListPicker'
 import { ImportPreview } from './components/ImportPreview'
 import { PreferencesDialog } from './components/PreferencesDialog'
+import { showStatusNotice } from './components/ScoreWindow/statusLine'
 import { WelcomeDialog } from './components/WelcomeDialog'
 import { ConfirmationDisc } from './components/ConfirmationDisc'
 import { OrientationDialog } from './components/OrientationDialog'
@@ -33,11 +34,15 @@ import {
   openBundledExample,
   openDocument,
   openOrientationDocument,
+  downloadDocument,
+  downloadDocumentCopy,
+  downloadSpreadsheet,
   reopenLastDocument,
   saveDocument,
   type ImportPreviewData
 } from './lib/documentWorkflows'
 import type { CartesianMapConfig, SemanticMapConfig, Element, Dimension } from './lib/types'
+import { hostCapabilities } from './lib/host'
 import styles from './App.module.css'
 import { encodeMapStateEnvelope } from '../../shared/contracts'
 import type { UpdateNotice } from '../../shared/updateNotice'
@@ -45,6 +50,7 @@ import type { UpdateNotice } from '../../shared/updateNotice'
 type StoreState = ReturnType<typeof useAppStore.getState>
 
 const REPOSITORY_URL = 'https://github.com/maykawacode/chora'
+const RELEASES_URL = 'https://github.com/maykawacode/chora/releases'
 
 function AboutDialog({ version, onClose }: { version: string; onClose: () => void }): React.JSX.Element {
   return (
@@ -56,11 +62,18 @@ function AboutDialog({ version, onClose }: { version: string; onClose: () => voi
     >
       <h1 className={styles.aboutTitle} id="about-dialog-title">Chora</h1>
       <p className={styles.aboutTagline}>Spatial reasoning for qualitative data</p>
-      <p className={styles.aboutVersion}>Version {version}</p>
+      <p className={styles.aboutVersion}>
+        Version {version}{hostCapabilities().kind === 'browser' ? ' (web)' : ''}
+      </p>
       <p className={styles.aboutCopyright}>Copyright © 2026 Matt Mayfield</p>
       <a className={styles.aboutLink} href={REPOSITORY_URL} target="_blank" rel="noreferrer">
         github.com/maykawacode/chora
       </a>
+      {hostCapabilities().kind === 'browser' && (
+        <a className={styles.aboutLink} href={RELEASES_URL} target="_blank" rel="noreferrer">
+          Get Chora for Mac
+        </a>
+      )}
     </ModalShell>
   )
 }
@@ -76,7 +89,14 @@ function encodeStateEnvelope(state: StoreState): string {
   })
 }
 
-export function App(): React.JSX.Element {
+interface AppProps {
+  /** Host-supplied surface beside the Score Window (the browser's map tiles). */
+  workspace?: ReactNode
+  /** Host wrapper around the Score Window (the browser's collapsible dock). */
+  scoreFrame?: (score: ReactNode) => ReactNode
+}
+
+export function App({ workspace, scoreFrame }: AppProps = {}): React.JSX.Element {
   const [appVersion] = useState(() => window.api.getAppVersion())
   const filePath      = useAppStore(s => s.filePath)
   const isDirty       = useAppStore(s => s.isDirty)
@@ -91,11 +111,14 @@ export function App(): React.JSX.Element {
 
   // ── Modal visibility state ────────────────────────────────────────────────────
 
-  // Show the welcome dialog on startup unless a file will be auto-reopened.
+  // Show the welcome dialog on startup unless a file will be auto-reopened or
+  // the host already restored a document before mount (browser recovery).
   // Prefs are pre-loaded before React mounts so this initial value is stable.
   const [showWelcome, setShowWelcome] = useState(() => {
     const { prefs } = usePrefsStore.getState()
-    return !(prefs.reopenLastFile && !!prefs.lastFilePath)
+    const s = useAppStore.getState()
+    const restored = s.elements.length > 0 || s.dimensions.length > 0 || s.maps.length > 0
+    return !restored && !(prefs.reopenLastFile && !!prefs.lastFilePath)
   })
 
   const [showQuitConfirm,       setShowQuitConfirm]       = useState(false)
@@ -130,6 +153,7 @@ export function App(): React.JSX.Element {
   // one in-flight result; after it settles, a later request can capture a fresh
   // frame if changes remain.
   const saveInFlight = useRef<Promise<boolean> | null>(null)
+
   // New/Open await the user's decision without falling back to a native dialog.
   const discardConfirmationResolver = useRef<((confirmed: boolean) => void) | null>(null)
 
@@ -387,7 +411,11 @@ export function App(): React.JSX.Element {
 
   useEffect(() => {
     const name = filePath ? filePath.split('/').pop() ?? filePath : 'Untitled'
-    document.title = name
+    // The browser tab shows the name as the page banner does, without the
+    // .chora/.mtda extension; the desktop window title keeps it.
+    document.title = hostCapabilities().kind === 'browser'
+      ? name.replace(/\.(chora|mtda)$/i, '') || 'Untitled'
+      : name
   }, [filePath])
 
   // ── Menu action dispatcher ────────────────────────────────────────────────────
@@ -404,6 +432,7 @@ export function App(): React.JSX.Element {
           break
         case 'save':               await handleSave(false);       break
         case 'save-as':            await handleSave(true);        break
+        case 'download-copy':      showStatusNotice(`Download started: ${downloadDocumentCopy()}`); break
         case 'import-spreadsheet': await handleImport();          break
         case 'export-spreadsheet': await handleExport();          break
         case 'create-cartesian':   setShowChooseDimensions(true); break
@@ -450,6 +479,14 @@ export function App(): React.JSX.Element {
   }
 
   async function handleSave(forceDialog: boolean): Promise<boolean> {
+    // The browser saves by downloading; the download counts as the save.
+    const host = hostCapabilities()
+    if (host.documentSave === 'download') {
+      // The first download of an untitled study asks for its name.
+      if (host.nameUntitledDocument && !await host.nameUntitledDocument()) return false
+      showStatusNotice(`Download started: ${downloadDocument()}`)
+      return true
+    }
     const pending = saveInFlight.current
     if (pending) return pending
 
@@ -468,6 +505,11 @@ export function App(): React.JSX.Element {
   }
 
   async function handleExport(): Promise<void> {
+    // The browser always exports by download, also where Save writes in place.
+    if (hostCapabilities().kind === 'browser') {
+      showStatusNotice(`Download started: ${downloadSpreadsheet()}`)
+      return
+    }
     await exportDocument()
   }
 
@@ -512,7 +554,10 @@ export function App(): React.JSX.Element {
 
   return (
     <div className={styles.root}>
-      <ScoreWindow onOpenStarterPicker={() => setShowStarterPicker(true)} />
+      {(scoreFrame ?? (score => score))(
+        <ScoreWindow onOpenStarterPicker={() => setShowStarterPicker(true)} />
+      )}
+      {workspace}
 
       {importPreview && (
         <ImportPreview

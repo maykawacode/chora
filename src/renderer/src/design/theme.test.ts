@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { themeVariables, uiTheme } from './theme'
 
 const rendererRoot = resolve(process.cwd(), 'src/renderer/src')
+const webRoot = resolve(process.cwd(), 'src/renderer/web')
 const rawColor = /#[0-9a-f]{3,8}\b|rgba?\(/i
 const spacingValue = /(?:padding|margin|gap)[a-z-]*\s*:\s*([^;}]*)/g
 const pixelValue = /(?<![\w.-])(\d+(?:\.\d+)?)px/g
@@ -30,7 +31,7 @@ describe('interface theme', () => {
   })
 
   it('keeps raw presentation colors out of styles and map painters', () => {
-    const cssFiles = filesUnder(rendererRoot).filter(path => path.endsWith('.css'))
+    const cssFiles = [rendererRoot, webRoot].flatMap(filesUnder).filter(path => path.endsWith('.css'))
     const canvasFiles = [
       'MapApp.tsx',
       'components/maps/MapPanel.tsx',
@@ -57,7 +58,7 @@ describe('interface theme', () => {
   // offsets, calc(), and larger layout offsets stay raw, as does any line
   // marked with a `/* raw: reason */` comment.
   it('keeps 4–32px spacing on the space tokens', () => {
-    const cssFiles = filesUnder(rendererRoot).filter(path => path.endsWith('.css'))
+    const cssFiles = [rendererRoot, webRoot].flatMap(filesUnder).filter(path => path.endsWith('.css'))
     const violations = cssFiles.flatMap(path =>
       readFileSync(path, 'utf8')
         .split('\n')

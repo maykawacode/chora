@@ -1,7 +1,8 @@
 // ── Preferences store ─────────────────────────────────────────────────────────
 //
 // Thin Zustand store that holds the current user preferences in the renderer.
-// Preferences are loaded once on startup via IPC (App.tsx useEffect) and
+// Preferences are loaded before React mounts — bootstrap.tsx for the Score
+// Window (desktop and browser), mapMain.tsx for desktop map windows — and
 // saved back to disk whenever the user clicks Save in PreferencesDialog.
 //
 // The `loaded` flag lets components distinguish between "defaults are showing"

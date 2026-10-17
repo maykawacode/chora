@@ -12,5 +12,5 @@
     "strict": true,
     "target": "ESNext"
   },
-  "include": ["src/renderer/src/**/*"]
+  "include": ["src/renderer/src/**/*", "src/renderer/web/**/*"]
 }

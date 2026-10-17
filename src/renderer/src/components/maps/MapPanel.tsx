@@ -4,7 +4,8 @@
 // Pure geometry and hit testing live in mapGeometry; this component coordinates
 // React state, canvas painting, pointer gestures, and map-window controls.
 
-import { useRef, useEffect, useCallback, useState } from 'react'
+import { useRef, useEffect, useCallback, useContext, useState } from 'react'
+import { MapHostContext } from './mapHost'
 import { useAppStore, type ScoreEntry } from '../../store/appStore'
 import { usePrefsStore } from '../../store/prefsStore'
 import type { CartesianMapConfig, SemanticMapConfig, Dimension } from '../../lib/types'
@@ -20,6 +21,12 @@ import { ModalShell } from '../ModalShell'
 import { uiTheme } from '../../design/theme'
 import styles from './MapPanel.module.css'
 import { cartesianElements } from './collections'
+
+// Room a map needs to stay readable: plot margins on both sides plus a small
+// plot, and the control sidebar's width (MapPanel.module.css --map-sidebar-width).
+const MIN_MAP_WIDTH = 2 * MARGIN + 160
+const SIDEBAR_WIDTH = 230
+import { downloadText } from '../../lib/download'
 import {
   cartesianDragStart,
   cartesianHitDot,
@@ -121,16 +128,20 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
   // drives it sits in the title bar. Deliberately not persisted.
   const [sidebarOpen,    setSidebarOpen]    = useState(false)
 
+  // A browser tile supplies its own history bridge; a desktop map window uses IPC.
+  const mapHost = useContext(MapHostContext)
+  const historyBridge = mapHost?.history ?? window.api
+
   // A map modal owns keyboard interaction while it is visible. Tell main to
   // gate native Undo/Redo; cleanup also releases a block if this renderer exits.
   const historyModalOpen =
     elementModal !== null || bulkModalIds.length > 0 || dimensionModal !== null
   useEffect(() => {
-    window.api.setHistoryModalOpen(historyModalOpen)
+    historyBridge.setHistoryModalOpen(historyModalOpen)
     return () => {
-      if (historyModalOpen) window.api.setHistoryModalOpen(false)
+      if (historyModalOpen) historyBridge.setHistoryModalOpen(false)
     }
-  }, [historyModalOpen])
+  }, [historyModalOpen, historyBridge])
 
   // Map windows do not own history. They bracket gestures over IPC so the
   // authoritative Score Window captures one snapshot around every score drag or
@@ -141,14 +152,14 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
     // Reasserting before each drag write lets a gesture resume cleanly if Undo,
     // Redo, or Save finalized its Score-side transaction while the pointer was
     // still down.
-    window.api.historyBegin()
-  }, [])
+    historyBridge.historyBegin()
+  }, [historyBridge])
 
   const finishHistory = useCallback((): void => {
     if (!historyOpenRef.current) return
     historyOpenRef.current = false
-    window.api.historyEnd()
-  }, [])
+    historyBridge.historyEnd()
+  }, [historyBridge])
 
   // A gesture can end without a canvas mouseup when the window loses focus or
   // closes. Always close the remote transaction so it cannot absorb a later edit.
@@ -197,18 +208,24 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return
-      setAxisPicker(null)
-      setSemanticPicker(null)
+      if (mapHost && !mapHost.isActive()) return
+      // One Escape, one interaction: an open picker closes before selection clears.
+      if (axisPicker || semanticPicker) {
+        setAxisPicker(null)
+        setSemanticPicker(null)
+        return
+      }
       deselectAll()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [deselectAll])
+  }, [deselectAll, mapHost, axisPicker, semanticPicker])
 
   function handleExportSvg(): void {
     const wrapper = wrapperRef.current
     if (!wrapper || !config) return
     const rect = wrapper.getBoundingClientRect()
+    if (rect.width <= 0 || rect.height <= 0) return
     // Exports leave out selection highlights.
     const svg = buildMapSvg(rect.width, rect.height, (ctx, w, h) => {
       if (config.type === 'cartesian') {
@@ -219,13 +236,7 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
           undefined, undefined, elementLabelSize, dimensionLabelSize, [], defaultDotRadius)
       }
     })
-    const blob = new Blob([svg], { type: 'image/svg+xml' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `${config.title ?? 'map'}.svg`
-    a.click()
-    URL.revokeObjectURL(url)
+    downloadText(`${config.title ?? 'map'}.svg`, svg, 'image/svg+xml')
   }
 
   // ── Canvas drawing ────────────────────────────────────────────────────────────
@@ -239,11 +250,23 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
     const rect = wrapper.getBoundingClientRect()
     const cssW = rect.width
     const cssH = rect.height
+    // A hidden or collapsed host (minimized window, hidden tile) has no area to paint.
+    if (cssW <= 0 || cssH <= 0) return
 
-    // Match canvas bitmap to CSS size × devicePixelRatio for sharp rendering
-    canvas.width  = cssW * window.devicePixelRatio
-    canvas.height = cssH * window.devicePixelRatio
-    ctx.scale(window.devicePixelRatio, window.devicePixelRatio)
+    // Match canvas bitmap to CSS size × devicePixelRatio for sharp rendering.
+    // The bitmap is reallocated only when that size changes; otherwise the
+    // frame is cleared, and save/restore keeps one frame's drawing state
+    // (dashes, alpha, transforms) out of the next.
+    const dpr = window.devicePixelRatio
+    const bitmapW = Math.trunc(cssW * dpr)
+    const bitmapH = Math.trunc(cssH * dpr)
+    if (canvas.width !== bitmapW || canvas.height !== bitmapH) {
+      canvas.width  = bitmapW
+      canvas.height = bitmapH
+    }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+    ctx.clearRect(0, 0, cssW, cssH)
+    ctx.save()
 
     if (config.type === 'cartesian') {
       drawCartesian(ctx, cssW, cssH, config, elements, collections, dimensions, scores,
@@ -265,22 +288,32 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
       ctx.strokeRect(x1, y1, x2 - x1, y2 - y1)
       ctx.restore()
     }
+    ctx.restore()
   // Selection and every map appearance preference must be dependencies:
   // any of them changing should immediately repaint the canvas.
   }, [config, elements, collections, dimensions, scores, selectedElementId,
     selectedElementIds, elementLabelSize, dimensionLabelSize, defaultDotRadius])
 
   // Redraw whenever any input data changes
-  useEffect(() => { redraw() }, [redraw])
+  const redrawRef = useRef(redraw)
+  useEffect(() => {
+    redrawRef.current = redraw
+    redraw()
+  }, [redraw])
 
-  // Redraw when the wrapper div is resized (window resize or layout change)
+  // Redraw when the wrapper div is resized (window resize or layout change).
+  // One observer while the canvas is mounted, calling the latest redraw:
+  // recreating it per data change would make its initial size report repaint
+  // each change a second time (Issue #5). The wrapper appears once the map's
+  // config arrives (a desktop map window starts without it).
+  const hasCanvas = !!config
   useEffect(() => {
     const wrapper = wrapperRef.current
     if (!wrapper) return
-    const observer = new ResizeObserver(() => redraw())
+    const observer = new ResizeObserver(() => redrawRef.current())
     observer.observe(wrapper)
     return () => observer.disconnect()
-  }, [redraw])
+  }, [hasCanvas])
 
   // ── Mouse event handlers ──────────────────────────────────────────────────────
 
@@ -715,7 +748,11 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
         isDirty={isDirty}
         sidebarOpen={sidebarOpen}
         onRename={title => updateConfig({ title })}
-        onToggleSidebar={() => setSidebarOpen(open => !open)}
+        onToggleSidebar={() => {
+          // A browser tile too narrow for controls plus a useful plot maximizes first.
+          if (!sidebarOpen) mapHost?.ensureRoom(SIDEBAR_WIDTH + MIN_MAP_WIDTH, 0)
+          setSidebarOpen(open => !open)
+        }}
       />
 
       {/* Body — canvas on the left, collapsible control sidebar on the right */}
@@ -909,6 +946,7 @@ function AxisPicker({ edge, clickX, clickY, currentId, isFlipped, dimensions, on
   return (
     <ModalShell
       overlayClassName={styles.axisPickerBackdrop}
+      clampToOverlay
       dialogClassName={styles.axisPicker}
       onClose={onClose}
       label={`${axis} options`}
@@ -966,6 +1004,7 @@ function SemanticAxisPicker({ currentDimId, isFlipped, dimensions, clickX, click
   return (
     <ModalShell
       overlayClassName={styles.axisPickerBackdrop}
+      clampToOverlay
       dialogClassName={styles.axisPicker}
       onClose={onClose}
       label="Dimension options"

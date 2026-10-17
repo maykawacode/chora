@@ -283,6 +283,12 @@
   overflow-y: auto;
 }
 
+/* Without the list header (browser: the count is in Score's title), the
+   details start level with the list's first row instead of one line lower. */
+:global([data-list-headers="hidden"]) .detailPane {
+  padding-top: var(--space-two);
+}
+
 .detailPane > * {
   max-width: 100%;
   min-width: 0;

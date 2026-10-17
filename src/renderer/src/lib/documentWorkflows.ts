@@ -3,7 +3,8 @@ import { usePrefsStore } from '../store/prefsStore'
 import { history } from '../store/history'
 import { exportSpreadsheet } from './exporter'
 import { parseSpreadsheet, type ImportResult } from './importer'
-import { deserializeBundledExample, deserializeSession } from './parser'
+import { deserializeBundledExample, deserializeSession, serializeSession } from './parser'
+import { downloadText } from './download'
 
 export interface ImportPreviewData {
   fileName: string
@@ -125,6 +126,49 @@ export async function saveDocument(
     await showError('Could not save file', error)
     return false
   }
+}
+
+/** Base name of a document path, or the given fallback for an unsaved one. */
+function documentName(fallback: string): string {
+  const filePath = useAppStore.getState().filePath
+  return filePath ? (filePath.split('/').pop() || fallback) : fallback
+}
+
+/** The document's name as a .chora file (legacy .mtda becomes .chora). */
+export function choraFileName(): string {
+  const name = documentName('Untitled.chora').replace(/\.mtda$/i, '.chora')
+  return /\.chora$/i.test(name) ? name : `${name}.chora`
+}
+
+/**
+ * Browser Save: downloads a snapshot of the current document and treats it as
+ * saved (owner decision 2026-10-15), so the Unsaved badge clears and leaving
+ * the page stops warning. The browser cannot confirm the write; the status
+ * message says the download started. Returns the downloaded name.
+ */
+export function downloadDocument(): string {
+  const fileName = choraFileName()
+  const saveToken = history.captureSave()
+  downloadText(fileName, saveToken.frame.session, 'application/json')
+  history.markSaved(saveToken, useAppStore.getState().filePath ?? `browser:/download/${fileName}`)
+  return fileName
+}
+
+/**
+ * Browser Download a Copy: a snapshot of the current document that leaves its
+ * save target, savepoint and Unsaved state untouched. Returns the name.
+ */
+export function downloadDocumentCopy(): string {
+  const fileName = choraFileName()
+  downloadText(fileName, serializeSession(useAppStore.getState()), 'application/json')
+  return fileName
+}
+
+/** Browser Export: downloads the spreadsheet as tab-separated values. */
+export function downloadSpreadsheet(): string {
+  const fileName = 'chora-export.tsv'
+  downloadText(fileName, exportSpreadsheet(useAppStore.getState()), 'text/tab-separated-values')
+  return fileName
 }
 
 export async function chooseSpreadsheetImport(): Promise<ImportPreviewData | null> {

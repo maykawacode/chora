@@ -94,11 +94,6 @@ const api = {
 
   // ── Preferences ───────────────────────────────────────────────────────────────
 
-  // Synchronous read — returns the cached prefs without an async roundtrip.
-  // The cache is guaranteed to be warm because main process loads prefs before
-  // creating the window. Use this for initialization; use loadPreferences for
-  // the full async flow with reopenLastFile support.
-  getPrefsSync:    (): Preferences          => ipcRenderer.sendSync('prefs:get-sync'),
   loadPreferences: (): Promise<Preferences> => ipcRenderer.invoke('prefs:load'),
   savePreferences: (prefs: Preferences): void => ipcRenderer.send('prefs:save', prefs),
 

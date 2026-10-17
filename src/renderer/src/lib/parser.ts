@@ -34,6 +34,7 @@ import type { AppState, ColorMode, MarkMode, Element, Collection, Dimension, Map
 import { defaultCategories, defaultSessionMeta, parsePoles } from './types'
 import { openWeight } from './numericRange'
 import { DEFAULT_COLLECTION_COLOR, DEFAULT_ELEMENT_COLOR, readHexColor } from './color'
+import { foldIntentIntoNotes } from './sessionIntent'
 
 const FORMAT_VERSION = '5.0'
 
@@ -204,13 +205,14 @@ export function deserializeSession(json: string): AppState {
   }
 
   // ── SessionMeta (new in 4.0) ─────────────────────────────────────────────
+  // A stored Intent (definition) moves into Notes; see sessionIntent.ts.
   const sessionMeta: SessionMeta = raw.sessionMeta
-    ? {
+    ? foldIntentIntoNotes({
         id:         raw.sessionMeta.id         ?? crypto.randomUUID(),
         name:       raw.sessionMeta.name        ?? '',
         definition: raw.sessionMeta.definition  ?? '',
         notes:      raw.sessionMeta.notes       ?? ''
-      }
+      })
     : defaultSessionMeta()
 
   // ── Collections (added in 4.0 as 'types', renamed in 5.0) ────────────────

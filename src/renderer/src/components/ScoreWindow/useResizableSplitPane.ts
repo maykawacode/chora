@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import type { CSSProperties, PointerEventHandler, RefObject } from 'react'
 
-const PANE_MIN_WIDTH = 200
+export const PANE_MIN_WIDTH = 200
 const DIVIDER_HIT_WIDTH = 5
 const GRID_FRACTION_SCALE = 1000
 

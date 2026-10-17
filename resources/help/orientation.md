@@ -24,12 +24,12 @@ own information with it. Every open map redraws as you go.
   belong to more than one.
 - **Conversions** turn one scale into another — a dimension of size can drive
   element weight, a dimension of intensity can drive element color, and back.
-- **Intent and Notes** open the study: what the comparison is for, and a running
-  log of what you decide and why.
+- **Notes** open the study: what the comparison is for, and a running log of
+  what you decide and why.
 
 ## A working sequence
 
-**Intent → Elements → Dimensions → Collections → Assess → Maps**
+**Notes → Elements → Dimensions → Collections → Assess → Maps**
 
 Say what the study is for, list what you are comparing, name the qualities you
 will compare them on, add any groups worth tracking, then use Assess to record

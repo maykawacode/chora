@@ -44,3 +44,10 @@ jobs:
 
       - name: Build production bundles
         run: npm run build
+
+      - name: Build browser version
+        run: npm run web:build
+
+      - name: Check browser output
+        # CSP, relative asset paths, and no Node/Electron code in the bundle.
+        run: npm run web:check

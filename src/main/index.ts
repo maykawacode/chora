@@ -102,8 +102,9 @@ function createWindow(): void {
 }
 
 app.whenReady().then(async () => {
-  // Warm the prefs cache before the window opens so the renderer can read
-  // preferences synchronously via the prefs:get-sync IPC channel
+  // Warm the prefs cache before the window opens; the main process reads it
+  // synchronously (window bounds, update checks). Renderers load preferences
+  // with loadPreferences before they first render.
   const prefs = await loadPreferences()
 
   // Fire and forget, in parallel with window creation: by the time the

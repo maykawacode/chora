@@ -7,6 +7,8 @@
   width: 100%;
   min-width: 0;
   height: 100vh;
+  /* Lets a host column (the browser's title banner above) shrink it to fit. */
+  min-height: 0;
   overflow: hidden;
   background: var(--color-surface-app);
   font-family: var(--font-family-ui);
@@ -134,7 +136,7 @@
 }
 
 .aboutDialog {
-  width: min(300px, calc(100vw - 32px), calc(100vh - 32px));
+  width: min(var(--size-disc), calc(100vw - 32px), calc(100vh - 32px));
   aspect-ratio: 1;
   display: flex;
   flex-direction: column;

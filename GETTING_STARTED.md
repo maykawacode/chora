@@ -94,9 +94,9 @@ Macs with Apple silicon running macOS 12 or later.
 
 ### 1. Open the example
 
-On the Welcome screen, choose **Example**. Chora opens a campus study-spaces
-dataset containing 18 Elements, six Dimensions, three overlapping Collections,
-and prepared Cartesian and Semantic maps.
+On the Welcome screen, choose **Example**. Chora opens "Vegetables — Example
+Comparison", a dataset containing 20 Elements, six Dimensions, six
+Collections, two prepared Cartesian maps and one Semantic map.
 
 The example opens as an unsaved working copy. You can freely change it without
 overwriting the bundled original.
@@ -105,8 +105,8 @@ If the Welcome screen is not visible, choose **Help → Open Example Data**.
 
 ### 2. Look through the main tabs
 
-- **Elements** lists the campus spaces and their visual properties.
-- **Dimensions** shows paired qualities such as quiet and lively.
+- **Elements** lists the vegetables and their visual properties.
+- **Dimensions** shows paired qualities such as mild and pungent.
 - **Collections** shows the named groups and how many Elements each contains.
 - **Assess** is where you score the selected Element and change its Collection
   membership.

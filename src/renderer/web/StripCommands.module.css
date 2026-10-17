@@ -1,0 +1,56 @@
+/* Command menu beside the strip; left and top are set from its icon's position.
+   The command icons share the tab icons' look (ScoreDock.module.css). */
+.menu {
+  position: fixed;
+  z-index: 50;
+  min-width: 220px;
+  padding: var(--space-one) 0;
+  background: var(--color-surface-app);
+  border: 1px solid var(--color-border-strong);
+  box-shadow: var(--shadow-dialog);
+  font-family: var(--font-family-ui);
+  font-size: var(--font-size-body);
+  user-select: none;
+}
+
+/* The menu's name, so "File › Open…" still reads as it does in help and messages. */
+.header {
+  padding: var(--space-one) var(--space-three);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-meta);
+  font-weight: var(--font-weight-semibold);
+}
+
+.item {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-four);
+  width: 100%;
+  padding: var(--space-one) var(--space-three);
+  border: 0;
+  background: transparent;
+  color: var(--color-text-primary);
+  font: inherit;
+  text-align: left;
+  cursor: default;
+}
+
+.item:hover:not(:disabled),
+.item:focus-visible {
+  outline: none;
+  background: var(--color-surface-raised);
+}
+
+.item:disabled {
+  color: var(--color-text-disabled);
+}
+
+.keys {
+  color: var(--color-text-muted);
+}
+
+.separator {
+  height: 1px;
+  margin: var(--space-one) 0;
+  background: var(--color-border-subtle);
+}

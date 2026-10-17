@@ -1,0 +1,5 @@
+/* Browser page: the title banner sits above the app, which fills the rest. */
+#root {
+  display: flex;
+  flex-direction: column;
+}

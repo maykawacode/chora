@@ -441,6 +441,36 @@ describe('HistoryController', () => {
     expect(state().isDirty).toBe(true)
   })
 
+  it('renames without saving, dirtying, or entering history', async () => {
+    state().addElement('Alpha')
+    const id = state().elements[0].id
+    expect(controller.markSaved(controller.captureSave(), 'browser:/1/first.chora')).toBe(true)
+
+    controller.retarget('browser:/2/renamed.chora')
+    expect(state().filePath).toBe('browser:/2/renamed.chora')
+    expect(state().isDirty).toBe(false)
+    expect(controller.pastCount).toBe(1)
+
+    state().updateElement(id, { definition: 'changed' })
+    await flushHistory()
+    controller.retarget('browser:/3/again.chora')
+    expect(state().isDirty).toBe(true)
+
+    // Undo returns the content to the saved frame and keeps the new name.
+    controller.undo()
+    expect(state().filePath).toBe('browser:/3/again.chora')
+    expect(state().isDirty).toBe(false)
+    controller.undo()
+    expect(state().filePath).toBe('browser:/3/again.chora')
+  })
+
+  it('keeps an unsaved document unsaved when it is renamed', () => {
+    controller.replaceUnsavedDocument(() => state().addElement('Example'))
+    controller.retarget('browser:/1/named.chora')
+    expect(state().filePath).toBe('browser:/1/named.chora')
+    expect(state().isDirty).toBe(true)
+  })
+
   it('keeps newer edits dirty when an earlier asynchronous save completes', () => {
     state().addElement('Alpha')
     const token = controller.captureSave()

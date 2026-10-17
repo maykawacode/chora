@@ -1,13 +1,14 @@
 // ── NotesTab ─────────────────────────────────────────────────────────────────
 //
-// The session-level tab: what this study is for (Intent, the long-dormant
-// sessionMeta.definition field) and a running rich-text log (Notes, HTML).
-// Both edit like every other field in the app — no save button, just
-// history.begin/end bracketing each edit into one undo step.
+// The study-level tab: one rich-text field (sessionMeta.notes, HTML) for what
+// the study is looking to do and a running log of the work. It edits like
+// every other field in the app — no save button, just history.begin/end
+// bracketing each edit into one undo step. A study's older Intent text is
+// moved into Notes when it loads (lib/sessionIntent.ts).
 //
-// The Notes editor is a Trix custom element <trix-editor>, built imperatively
-// via the DOM rather than JSX: Trix registers its own custom elements as a
-// side effect of importing the package, and wrapping one in JSX would need
+// The editor is a Trix custom element <trix-editor>, built imperatively via
+// the DOM rather than JSX: Trix registers its own custom elements as a side
+// effect of importing the package, and wrapping one in JSX would need
 // speculative typing for elements React doesn't know about. Constructing it
 // with refs + effects, like any third-party imperative widget, avoids that
 // and keeps initial/external content set through the element's `.value`
@@ -19,43 +20,24 @@ import 'trix'
 import 'trix/dist/trix.css'
 import { useAppStore } from '../../store/appStore'
 import { history, SCORE_HISTORY_OWNER } from '../../store/history'
-import { useResizableSplitPaneVertical } from './useResizableSplitPaneVertical'
 import styles from './NotesTab.module.css'
 
 type TrixEditorElement = HTMLElement & { value: string }
 
-// Trix auto-builds a toolbar with far more than this app wants (headings,
-// quote, code, file attachments, its own undo/redo). This is Trix's own
-// button markup, trimmed to the five attributes/actions this app exposes —
-// not hand-built formatting logic, just fewer of Trix's built-in buttons.
-// The link button needs its paired dialog (also Trix's own markup, verbatim
-// from its default toolbar template) to prompt for a URL; Trix looks it up
-// by data-trix-dialog="href" inside this same toolbar element.
+// Trix builds a full toolbar unless given one. This one is Trix's own button
+// markup for bold and italic only, and it is never shown: it exists so ⌘B and
+// ⌘I (its data-trix-key shortcuts) still work in a field with no visible
+// controls. Existing lists and links still display, and links still open.
 const TOOLBAR_HTML = `
   <div class="trix-button-row">
     <span class="trix-button-group trix-button-group--text-tools">
-      <button type="button" class="trix-button trix-button--icon trix-button--icon-bold" data-trix-attribute="bold" data-trix-key="b" title="Bold" tabindex="-1">Bold</button>
-      <button type="button" class="trix-button trix-button--icon trix-button--icon-italic" data-trix-attribute="italic" data-trix-key="i" title="Italic" tabindex="-1">Italic</button>
-      <button type="button" class="trix-button trix-button--icon trix-button--icon-link" data-trix-attribute="href" data-trix-action="link" data-trix-key="k" title="Link" tabindex="-1">Link</button>
+      <button type="button" class="trix-button" data-trix-attribute="bold" data-trix-key="b" tabindex="-1">Bold</button>
+      <button type="button" class="trix-button" data-trix-attribute="italic" data-trix-key="i" tabindex="-1">Italic</button>
     </span>
-    <span class="trix-button-group trix-button-group--block-tools">
-      <button type="button" class="trix-button trix-button--icon trix-button--icon-bullet-list" data-trix-attribute="bullet" title="Bulleted list" tabindex="-1">Bullets</button>
-      <button type="button" class="trix-button trix-button--icon trix-button--icon-number-list" data-trix-attribute="number" title="Numbered list" tabindex="-1">Numbers</button>
-    </span>
-  </div>
-
-  <div class="trix-dialogs" data-trix-dialogs>
-    <div class="trix-dialog trix-dialog--link" data-trix-dialog="href" data-trix-dialog-attribute="href">
-      <div class="trix-dialog__link-fields">
-        <input type="url" name="href" class="trix-input trix-input--dialog" placeholder="Enter a URL…" aria-label="URL" data-trix-validate-href required data-trix-input>
-        <div class="trix-button-group">
-          <input type="button" class="trix-button trix-button--dialog" value="Link" data-trix-method="setAttribute">
-          <input type="button" class="trix-button trix-button--dialog" value="Unlink" data-trix-method="removeAttribute">
-        </div>
-      </div>
-    </div>
   </div>
 `
+
+const PLACEHOLDER = 'This study is looking to...'
 
 export function NotesTab(): React.JSX.Element {
   const sessionMeta       = useAppStore(s => s.sessionMeta)
@@ -65,7 +47,6 @@ export function NotesTab(): React.JSX.Element {
   const lastEmittedRef    = useRef<string | null>(null)
   // Read once: the mount effect below must not re-run as sessionMeta changes.
   const initialNotesRef   = useRef(sessionMeta.notes)
-  const splitPane         = useResizableSplitPaneVertical()
 
   // Mount the Trix editor once. Its own change events, not React props, are
   // its source of truth going forward — see the resync effect below for how
@@ -78,11 +59,13 @@ export function NotesTab(): React.JSX.Element {
 
     const toolbar = document.createElement('trix-toolbar')
     toolbar.id = 'notes-toolbar'
+    toolbar.hidden = true
     toolbar.innerHTML = TOOLBAR_HTML
 
     const editor = document.createElement('trix-editor') as TrixEditorElement
     editor.setAttribute('toolbar', 'notes-toolbar')
-    editor.setAttribute('placeholder', 'Notes…')
+    editor.setAttribute('placeholder', PLACEHOLDER)
+    editor.setAttribute('aria-label', 'Notes')
 
     mount.appendChild(toolbar)
     mount.appendChild(editor)
@@ -141,27 +124,8 @@ export function NotesTab(): React.JSX.Element {
   }, [sessionMeta.notes])
 
   return (
-    <div className={styles.tab} ref={splitPane.containerRef} style={splitPane.containerStyle}>
-      <div className={styles.section} style={splitPane.topPaneStyle}>
-        <label className={styles.label} htmlFor="notes-intent">Intent</label>
-        <textarea
-          id="notes-intent"
-          className={styles.intentField}
-          placeholder="What is this study trying to find out?"
-          value={sessionMeta.definition}
-          onFocus={() => history.begin(SCORE_HISTORY_OWNER)}
-          onBlur={() => history.end(SCORE_HISTORY_OWNER)}
-          onChange={e => {
-            history.begin(SCORE_HISTORY_OWNER)
-            updateSessionMeta({ definition: e.target.value })
-          }}
-        />
-      </div>
-      <div className={styles.resizeHandle} style={splitPane.dividerStyle} {...splitPane.dividerProps} />
-      <div className={styles.notesSection} style={splitPane.bottomPaneStyle}>
-        <label className={styles.label}>Notes</label>
-        <div className={styles.notesEditor} ref={mountRef} />
-      </div>
+    <div className={styles.tab}>
+      <div className={styles.notesEditor} ref={mountRef} />
     </div>
   )
 }

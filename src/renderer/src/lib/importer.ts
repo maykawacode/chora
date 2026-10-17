@@ -33,6 +33,7 @@ import { MEMBERSHIP_CUTOFF } from './parser'
 import { COLLECTION_SEPARATOR, isFormulaEscaped } from './exporter'
 import { openWeight } from './numericRange'
 import { DEFAULT_COLLECTION_COLOR, DEFAULT_ELEMENT_COLOR, readHexColor } from './color'
+import { foldIntentIntoNotes } from './sessionIntent'
 
 // Strip surrounding double-quotes and unescape "" → " (standard TSV/CSV quoting).
 function stripQuotes(s: string): string {
@@ -126,6 +127,8 @@ function parseFullSpreadsheet(text: string): ImportResult {
     sessionMeta.definition = defCol   >= 0 ? tc(data[defCol])   : ''
     sessionMeta.notes      = notesCol >= 0 ? tc(data[notesCol]) : ''
   }
+  // An imported Intent moves into Notes, as when a study file opens.
+  Object.assign(sessionMeta, foldIntentIntoNotes(sessionMeta))
 
   // ── Collections ────────────────────────────────────────────────────────────
   // Parsed before elements so an element's Collections cell can be resolved
