@@ -256,8 +256,10 @@ describe('##SESSION round-trip', () => {
     const back = parseSpreadsheet(exportSpreadsheet(state))
 
     expect(back.sessionMeta.name).toBe('Campus study spaces')
-    expect(back.sessionMeta.definition).toBe('What makes a good place to study?')
+    // Intent is folded into Notes on import (sessionIntent.ts).
+    expect(back.sessionMeta.definition).toBe('')
     expect(back.sessionMeta.notes).toBe(
+      '<div>What makes a good place to study?</div><div><br></div>' +
       '<div>Ran a first pass — <strong>library carrels</strong> scored highest so far. Says "quiet".</div>'
     )
   })
@@ -266,8 +268,8 @@ describe('##SESSION round-trip', () => {
     const tsv = ['##SESSION', 'Name\tPurpose of Analysis', 'Old Session\tSome purpose'].join('\n')
     const back = parseSpreadsheet(tsv)
     expect(back.sessionMeta.name).toBe('Old Session')
-    expect(back.sessionMeta.definition).toBe('Some purpose')
-    expect(back.sessionMeta.notes).toBe('')
+    expect(back.sessionMeta.definition).toBe('')
+    expect(back.sessionMeta.notes).toBe('<div>Some purpose</div>')
   })
 })
 

@@ -63,11 +63,11 @@ describe('Bundled orientation', () => {
 
     for (const term of [
       'Elements', 'Dimensions', 'Scores', 'Collections', 'Conversions',
-      'Intent and Notes', 'Cartesian map', 'Semantic map'
+      'Notes', 'Cartesian map', 'Semantic map'
     ]) {
       expect(markdown).toContain(term)
     }
-    expect(markdown).toContain('Intent → Elements → Dimensions → Collections → Assess → Maps')
+    expect(markdown).toContain('Notes → Elements → Dimensions → Collections → Assess → Maps')
   })
 
   it('uses only the Markdown subset OrientationDialog can render', () => {
@@ -127,6 +127,21 @@ describe('sessionMeta.notes', () => {
 
     expect(parseNotes('<div>Some notes</div>')).toBe('<div>Some notes</div>')
     expect(parseNotes()).toBe('')
+  })
+
+  it('moves a stored Intent into Notes as its first paragraph, escaped', () => {
+    const parse = (definition: string, notes: string) => deserializeSession(JSON.stringify({
+      version: '5.0',
+      sessionMeta: { id: 's', name: 'S', definition, notes },
+      elements: [], collections: [], dimensions: [], scores: {}, maps: []
+    })).sessionMeta
+
+    expect(parse('Why <roots> & "tubers"\nmatter', '')).toMatchObject({
+      definition: '',
+      notes: '<div>Why &lt;roots&gt; &amp; &quot;tubers&quot;<br>matter</div>'
+    })
+    expect(parse('Purpose', '<div>Log</div>').notes).toBe('<div>Purpose</div><div><br></div><div>Log</div>')
+    expect(parse('   ', '<div>Log</div>')).toMatchObject({ definition: '', notes: '<div>Log</div>' })
   })
 })
 
