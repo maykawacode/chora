@@ -45,6 +45,23 @@
   white-space: nowrap;
 }
 
+.fileName[title] {
+  cursor: text;
+}
+
+/* Same size and weight as the name it replaces while renaming. */
+.fileNameInput {
+  width: 24ch;
+  min-width: 0;
+  padding: 0 var(--space-one);
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-small);
+  background: var(--color-surface-app);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-weight: var(--font-weight-semibold);
+}
+
 .notice {
   display: flex;
   flex: 1 1 320px;

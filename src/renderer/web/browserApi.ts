@@ -3,7 +3,9 @@ import { mergePreferences } from '../../shared/contracts'
 import sampleDataset from '../../../resources/examples/sample-dataset.chora?raw'
 import orientationHelp from '../../../resources/help/orientation.md?raw'
 import { pickFile, readHeldFile } from './files'
-import { chooseSaveTarget, hasHandle, inPlaceSaving, openStudyWithHandle, writeToHandle } from './fileAccess'
+import {
+  chooseSaveTarget, hasHandle, inPlaceSaving, openStudyWithHandle, takeSuggestedSaveName, writeToHandle
+} from './fileAccess'
 import { choraFileName } from '@renderer/lib/documentWorkflows'
 
 // Browser implementation of the desktop preload bridge.
@@ -75,7 +77,9 @@ export const browserApi: ChoraApi = {
   // saving is a download (lib/host.ts documentSave) and the save dialog is
   // never reached. Spreadsheet export is always a download.
   openFile:           () => inPlaceSaving ? openStudyWithHandle() : pickFile('.chora,.mtda'),
-  showSaveDialog:     () => inPlaceSaving ? chooseSaveTarget(choraFileName()) : Promise.resolve(null),
+  showSaveDialog:     () => inPlaceSaving
+    ? chooseSaveTarget(takeSuggestedSaveName(choraFileName()))
+    : Promise.resolve(null),
   openCsvFile:        () => pickFile('.tsv,.csv,.txt'),
   showCsvSaveDialog:  () => Promise.resolve(null),
   readFile:           readHeldFile,

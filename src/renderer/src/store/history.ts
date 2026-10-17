@@ -329,6 +329,25 @@ export class HistoryController {
     return true
   }
 
+  /**
+   * Point the document at another path without saving it or recording an
+   * action (browser Rename). Every frame moves to the new path, as in
+   * markSaved, so Undo never restores the old name and the Unsaved state is
+   * unchanged. An unsaved sentinel keeps its empty session and stays unsaved.
+   */
+  retarget(path: string): void {
+    const rebase = (frame: HistoryFrame): HistoryFrame => ({ ...frame, filePath: path })
+    this.past = this.past.map(rebase)
+    this.future = this.future.map(rebase)
+    if (this.active) {
+      this.active = { ...this.active, before: rebase(this.active.before) }
+    }
+    this.saved = rebase(this.saved)
+    this.withRecordingGuard(() => {
+      this.store.setState({ filePath: path })
+    })
+  }
+
   /** Subscribe to menu availability. The callback fires immediately. */
   onAvailability(cb: (availability: HistoryAvailability) => void): () => void {
     this.availabilityListeners.add(cb)

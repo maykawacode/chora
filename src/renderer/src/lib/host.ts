@@ -13,6 +13,11 @@ export interface HostCapabilities {
    * mark the document saved; a download's write is not confirmed.
    */
   documentSave: 'file' | 'download'
+  /**
+   * Download saving only: names an untitled document before its first
+   * download. Resolves false when the user cancels, and nothing downloads.
+   */
+  nameUntitledDocument?: () => Promise<boolean>
 }
 
 let capabilities: HostCapabilities = { kind: 'desktop', documentSave: 'file' }

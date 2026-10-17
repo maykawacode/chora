@@ -7,6 +7,7 @@ import { inPlaceSaving } from './fileAccess'
 import { useAppStore } from '@renderer/store/appStore'
 import { arrangeMapsInGrid } from './tileLayout'
 import { Glyph } from './Glyph'
+import { promptRename } from './documentName'
 import dock from './ScoreDock.module.css'
 import styles from './StripCommands.module.css'
 
@@ -46,6 +47,7 @@ const MENUS: Menu[] = [
             { label: 'Download a Copy', action: 'download-copy' }
           ] satisfies Item[]
         : [{ label: 'Save (Download)', action: 'save', keys: `${mod}S` }] satisfies Item[]),
+      { label: 'Rename…', run: () => { void promptRename() } },
       'separator',
       { label: 'Import Spreadsheet…', action: 'import-spreadsheet' },
       { label: 'Export Spreadsheet', action: 'export-spreadsheet' }

@@ -11,10 +11,15 @@ import { activeSurface } from './interaction'
 import { setHostCapabilities } from '@renderer/lib/host'
 import { clearRecovery, installLeaveWarning } from './recovery'
 import { inPlaceSaving } from './fileAccess'
+import { nameUntitledDocument } from './documentName'
 
 // Browser entry: install the browser host before the shared startup reads it.
 window.api = browserApi
-setHostCapabilities({ kind: 'browser', documentSave: inPlaceSaving ? 'file' : 'download' })
+setHostCapabilities({
+  kind: 'browser',
+  documentSave: inPlaceSaving ? 'file' : 'download',
+  nameUntitledDocument
+})
 installShortcuts()
 // A collapsed Score keeps its tabs mounted; their keyboard handlers stand down.
 setScoreSurfaceProbe(() => activeSurface() === 'score' && !useScoreLayout.getState().collapsed)

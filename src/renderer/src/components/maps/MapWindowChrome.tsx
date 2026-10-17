@@ -70,8 +70,8 @@ export function MapWindowChrome({
 }: Props): React.JSX.Element {
   const host = useContext(MapHostContext)
   // A browser tile groups Close and Zoom with the panel toggle at the top right
-  // and leaves the Unsaved badge to the page banner; a desktop map window keeps
-  // its controls on the left, as macOS places them.
+  // and leaves the file name and Unsaved badge to the page banner; a desktop
+  // map window keeps its controls on the left, as macOS places them.
   const inTile = host !== null
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState('')
@@ -123,7 +123,7 @@ export function MapWindowChrome({
             </span>
           )}
           {isDirty && !inTile && <span className="unsavedBadge">Unsaved</span>}
-          {!editing && filePath && <span className={styles.titleFileName}>{filePath.split('/').pop()}</span>}
+          {!editing && filePath && !inTile && <span className={styles.titleFileName}>{filePath.split('/').pop()}</span>}
         </div>
       </div>
 

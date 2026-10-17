@@ -69,6 +69,20 @@ export async function openStudyWithHandle(): Promise<string | null> {
   return path
 }
 
+// A Save As started by Rename suggests the new name, once.
+let suggestedName: string | null = null
+
+export function suggestSaveName(name: string): void {
+  suggestedName = name
+}
+
+/** The name the save picker should offer: a pending Rename's, else `fallback`. */
+export function takeSuggestedSaveName(fallback: string): string {
+  const name = suggestedName ?? fallback
+  suggestedName = null
+  return name
+}
+
 /** Save As target. Resolves to its pseudo-path, or null when cancelled. */
 export async function chooseSaveTarget(suggestedName: string): Promise<string | null> {
   let handle: WritableHandle

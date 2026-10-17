@@ -483,7 +483,10 @@ export function App({ workspace, scoreFrame }: AppProps = {}): React.JSX.Element
 
   async function handleSave(forceDialog: boolean): Promise<boolean> {
     // The browser saves by downloading; the download counts as the save.
-    if (hostCapabilities().documentSave === 'download') {
+    const host = hostCapabilities()
+    if (host.documentSave === 'download') {
+      // The first download of an untitled study asks for its name.
+      if (host.nameUntitledDocument && !await host.nameUntitledDocument()) return false
       showNotice(`Download started: ${downloadDocument()}`)
       return true
     }
