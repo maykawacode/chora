@@ -28,6 +28,19 @@ import { beginLayer } from '../svgExport'
 import { normalizeInRange, numericRange, type NumericRange } from '../../../lib/numericRange'
 import { uiTheme } from '../../../design/theme'
 
+// Guide lines (crosshair, placeholder and partial-score rings) are dotted:
+// short round-capped dashes read as dots. SVG export keeps them as
+// stroke-dasharray with round caps.
+const DOTTED_LINE = [1, 4]
+
+function strokeDotted(ctx: CanvasRenderingContext2D): void {
+  ctx.save()
+  ctx.setLineDash(DOTTED_LINE)
+  ctx.lineCap = 'round'
+  ctx.stroke()
+  ctx.restore()
+}
+
 // Space reserved on each side of the canvas for pole labels
 export const MARGIN = 58
 
@@ -174,16 +187,11 @@ export function drawCartesian(
 
   ctx.strokeStyle = uiTheme.map.grid
   ctx.lineWidth = 1
-  ctx.setLineDash([4, 4])
 
   ctx.beginPath()
   ctx.moveTo(midX, plotTop);   ctx.lineTo(midX, plotBottom)
-  ctx.stroke()
-  ctx.beginPath()
   ctx.moveTo(plotLeft, midY);  ctx.lineTo(plotRight, midY)
-  ctx.stroke()
-
-  ctx.setLineDash([])
+  strokeDotted(ctx)
 
   // ── Pole labels ───────────────────────────────────────────────────────────────
   //
@@ -286,9 +294,7 @@ export function drawCartesian(
         ctx.arc(midX, midY, blobPadding(baseDotRadius), 0, Math.PI * 2)
         ctx.strokeStyle = color + '44'
         ctx.lineWidth = 1
-        ctx.setLineDash([4, 4])
-        ctx.stroke()
-        ctx.setLineDash([])
+        strokeDotted(ctx)
         ctx.restore()
         continue
       }
@@ -342,11 +348,9 @@ export function drawCartesian(
       if (isPartial) {
         ctx.fillStyle = uiTheme.map.background
         ctx.fill()
-        ctx.setLineDash([3, 3])
         ctx.strokeStyle = uiTheme.map.partial
         ctx.lineWidth = 1.5
-        ctx.stroke()
-        ctx.setLineDash([])
+        strokeDotted(ctx)
       } else {
         ctx.fillStyle = resolveElementColor(config.colorMode, el, collections, [])
         ctx.fill()
