@@ -18,7 +18,7 @@ import { BulkEditModal } from './BulkEditModal'
 import { DimensionDetailModal } from './DimensionDetailModal'
 import { MapSidebar } from './MapSidebar'
 import { MapWindowChrome } from './MapWindowChrome'
-import { ModalShell } from '../ModalShell'
+import { AxisPicker } from './AxisPicker'
 import { uiTheme } from '../../design/theme'
 import styles from './MapPanel.module.css'
 import { cartesianElements } from './collections'
@@ -48,15 +48,11 @@ import {
 
 interface AxisPickerState {
   edge: Edge
-  clickX: number
-  clickY: number
 }
 
 interface SemanticPickerState {
   dimIndex: number
   dimId: string
-  clickX: number
-  clickY: number
 }
 
 // ── MapPanel component ────────────────────────────────────────────────────────
@@ -701,7 +697,7 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
       setSemanticPicker(null)
       const edge = cartesianHitEdge(x, y, W, H)
       if (edge) {
-        setAxisPicker({ edge, clickX: x, clickY: y })
+        setAxisPicker({ edge })
         return
       }
       setAxisPicker(null)
@@ -720,7 +716,7 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
       }
       const rowIdx = semanticHitRow(y, layout)
       if (rowIdx >= 0) {
-        setSemanticPicker({ dimIndex: rowIdx, dimId: layout.axes[rowIdx].dimension.id, clickX: x, clickY: y })
+        setSemanticPicker({ dimIndex: rowIdx, dimId: layout.axes[rowIdx].dimension.id })
       } else {
         // Open space: no dot, no axis row. Same as the cartesian case — the
         // click means "never mind", so the whole selection goes.
@@ -827,9 +823,7 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
         {/* Axis picker — shown when the user clicks a cartesian axis */}
         {axisPicker && config.type === 'cartesian' && (
           <AxisPicker
-            edge={axisPicker.edge}
-            clickX={axisPicker.clickX}
-            clickY={axisPicker.clickY}
+            title={axisPicker.edge === 'left' || axisPicker.edge === 'right' ? 'X Axis' : 'Y Axis'}
             currentId={
               axisPicker.edge === 'left' || axisPicker.edge === 'right'
                 ? cartConfig.xDimensionId
@@ -863,12 +857,11 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
 
         {/* Dimension picker — shown when the user clicks a semantic axis */}
         {semanticPicker && config.type === 'semantic' && (
-          <SemanticAxisPicker
-            currentDimId={semanticPicker.dimId}
+          <AxisPicker
+            title="Dimension"
+            currentId={semanticPicker.dimId}
             isFlipped={semConfig.flippedDimensionIds.includes(semanticPicker.dimId)}
             dimensions={dimensions}
-            clickX={semanticPicker.clickX}
-            clickY={semanticPicker.clickY}
             onPick={(newId) => {
               const newIds = [...semConfig.dimensionIds]
               newIds[semanticPicker.dimIndex] = newId
@@ -907,127 +900,6 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
       </div>
 
     </div>
-  )
-}
-
-// ── AxisPicker (Cartesian) ────────────────────────────────────────────────────
-//
-// Floating panel positioned near the clicked axis edge. Lets the user swap
-// which dimension is assigned to that axis, or flip its poles.
-
-interface AxisPickerProps {
-  edge: Edge
-  clickX: number
-  clickY: number
-  currentId: string
-  isFlipped: boolean
-  dimensions: Dimension[]
-  onPick: (id: string) => void
-  onFlip: () => void
-  onClose: () => void
-}
-
-function AxisPicker({ edge, clickX, clickY, currentId, isFlipped, dimensions, onPick, onFlip, onClose }: AxisPickerProps): React.JSX.Element {
-  const axis = edge === 'left' || edge === 'right' ? 'X Axis' : 'Y Axis'
-
-  // Position the picker near the click, anchored to the axis side it came from
-  const pickerStyle: React.CSSProperties = (() => {
-    const base: React.CSSProperties = { position: 'absolute', zIndex: 10 }
-    switch (edge) {
-      case 'left':   return { ...base, left: MARGIN + 4,  top: `calc(var(--map-titlebar-height) + ${Math.max(4, clickY - 20)}px)` }
-      case 'right':  return { ...base, right: MARGIN + 4, top: `calc(var(--map-titlebar-height) + ${Math.max(4, clickY - 20)}px)` }
-      case 'top':    return { ...base, left: Math.max(4, clickX - 70), top: `calc(var(--map-titlebar-height) + ${MARGIN + 4}px)` }
-      case 'bottom': return { ...base, left: Math.max(4, clickX - 70), bottom: MARGIN + 4 }
-    }
-  })()
-
-  return (
-    <ModalShell
-      overlayClassName={styles.axisPickerBackdrop}
-      clampToOverlay
-      dialogClassName={styles.axisPicker}
-      onClose={onClose}
-      label={`${axis} options`}
-      dialogStyle={pickerStyle}
-    >
-        <div className={styles.axisPickerTitle}>{axis}</div>
-        <button
-          className={styles.axisPickerFlipBtn}
-          onClick={(e) => { e.stopPropagation(); onFlip() }}
-        >
-          ↔ {isFlipped ? 'Restore poles' : 'Flip poles'}
-        </button>
-        <div className={styles.axisPickerSubtitle}>Change to</div>
-        <ul className={styles.axisPickerList}>
-          {dimensions.map((dim, i) => (
-            <li
-              key={dim.id}
-              className={`${styles.axisPickerItem} ${dim.id === currentId ? styles.axisPickerSelected : ''}`}
-              onClick={(e) => { e.stopPropagation(); onPick(dim.id) }}
-            >
-              {dim.label || `Dimension ${i + 1}`}
-            </li>
-          ))}
-        </ul>
-    </ModalShell>
-  )
-}
-
-// ── SemanticAxisPicker ────────────────────────────────────────────────────────
-//
-// Floating panel for semantic axis interaction — swap which dimension is on
-// a given row, or flip its poles.
-
-interface SemanticAxisPickerProps {
-  // dimIndex was removed: the picker doesn't need to know its row position,
-  // only the caller (SemanticAxisPicker usage site) needs that for onPick.
-  currentDimId: string
-  isFlipped: boolean
-  dimensions: Dimension[]
-  clickX: number
-  clickY: number
-  onPick: (newDimId: string) => void
-  onFlip: () => void
-  onClose: () => void
-}
-
-function SemanticAxisPicker({ currentDimId, isFlipped, dimensions, clickX, clickY, onPick, onFlip, onClose }: SemanticAxisPickerProps): React.JSX.Element {
-  const pickerStyle: React.CSSProperties = {
-    position: 'absolute',
-    zIndex: 10,
-    left: Math.max(4, clickX - 70),
-    top:  `calc(var(--map-titlebar-height) + ${Math.max(4, clickY - 20)}px)`
-  }
-
-  return (
-    <ModalShell
-      overlayClassName={styles.axisPickerBackdrop}
-      clampToOverlay
-      dialogClassName={styles.axisPicker}
-      onClose={onClose}
-      label="Dimension options"
-      dialogStyle={pickerStyle}
-    >
-        <div className={styles.axisPickerTitle}>Dimension</div>
-        <button
-          className={styles.axisPickerFlipBtn}
-          onClick={(e) => { e.stopPropagation(); onFlip() }}
-        >
-          ↔ {isFlipped ? 'Restore poles' : 'Flip poles'}
-        </button>
-        <div className={styles.axisPickerSubtitle}>Change to</div>
-        <ul className={styles.axisPickerList}>
-          {dimensions.map((dim, i) => (
-            <li
-              key={dim.id}
-              className={`${styles.axisPickerItem} ${dim.id === currentDimId ? styles.axisPickerSelected : ''}`}
-              onClick={(e) => { e.stopPropagation(); onPick(dim.id) }}
-            >
-              {dim.label || `Dimension ${i + 1}`}
-            </li>
-          ))}
-        </ul>
-    </ModalShell>
   )
 }
 
