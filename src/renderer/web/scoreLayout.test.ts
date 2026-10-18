@@ -5,7 +5,7 @@ import {
   useScoreLayout, type StoredLayout
 } from './scoreLayout'
 
-const record = (fields: object) => JSON.stringify({ version: 3, ...fields })
+const record = (fields: object) => JSON.stringify({ version: 4, ...fields })
 const defaults: StoredLayout = { openTabs: ['notes'], paneWidths: {}, collapsed: false, labels: false }
 
 describe('stored Score layout', () => {
@@ -18,7 +18,7 @@ describe('stored Score layout', () => {
   it('gives the defaults for missing, corrupt and foreign-version records', () => {
     expect(parseLayout(null)).toEqual(defaults)
     expect(parseLayout('{not json')).toEqual(defaults)
-    expect(parseLayout(record({ version: 4 }))).toEqual(defaults)
+    expect(parseLayout(record({ version: 5 }))).toEqual(defaults)
     expect(parseLayout('null')).toEqual(defaults)
   })
 
@@ -31,27 +31,28 @@ describe('stored Score layout', () => {
     expect(parseLayout(record({ openTabs: [] }))).toMatchObject({ openTabs: [], collapsed: true })
   })
 
-  it('carries a single Score width from before side-by-side views to Assess and Conversions', () => {
-    const layout = parseLayout(record({ version: 1, scoreWidth: 520, collapsed: false }))
-    expect(layout.openTabs).toEqual(['notes'])
-    expect(layout.paneWidths.scores).toBe(520 - STRIP_WIDTH)
-    expect(layout.paneWidths.elements).toBeUndefined()
-    expect(layout.paneWidths.notes).toBeUndefined()
-  })
-
-  it('drops the Elements, Dimensions and Collections widths an older record kept, once', () => {
-    const widths = { notes: 200, elements: 440, dimensions: 300, collections: 500, scores: 600 }
-    for (const version of [1, 2]) {
-      expect(parseLayout(record({ version, paneWidths: widths })).paneWidths).toEqual({ notes: 200, scores: 600 })
-    }
+  it('drops a view width saved before that view\'s default changed, once', () => {
+    const widths = { notes: 200, elements: 440, dimensions: 300, collections: 500, scores: 600, conversions: 500 }
+    expect(parseLayout(record({ version: 2, paneWidths: widths })).paneWidths).toEqual({ notes: 200 })
+    expect(parseLayout(record({ version: 3, paneWidths: widths })).paneWidths)
+      .toEqual({ notes: 200, elements: 440, dimensions: 300, collections: 500 })
     expect(parseLayout(record({ paneWidths: widths })).paneWidths).toEqual(widths)
   })
 
-  it('opens Elements, Dimensions and Collections at 200px, squeezing to 150px', () => {
-    for (const tab of ['elements', 'dimensions', 'collections'] as const) {
-      expect(paneWidth({ paneWidths: {} }, tab)).toBe(200)
+  it('opens the data views at their defaults, squeezing to 150px and snapping closed below 75px', () => {
+    const defaultsByTab = { elements: 200, dimensions: 200, collections: 200, conversions: 380 } as const
+    for (const [tab, width] of Object.entries(defaultsByTab) as [keyof typeof defaultsByTab, number][]) {
+      expect(paneWidth({ paneWidths: {} }, tab)).toBe(width)
       expect(paneMinWidth(tab)).toBe(150)
+      expect(paneSnapWidth(tab)).toBe(75)
     }
+  })
+
+  it('opens Assess at 380px and snaps it closed below 160px, its minimum', () => {
+    expect(paneWidth({ paneWidths: {} }, 'scores')).toBe(380)
+    expect(paneMinWidth('scores')).toBe(160)
+    expect(snapsClosed('scores', 160)).toBe(false)
+    expect(snapsClosed('scores', 159)).toBe(true)
   })
 })
 
@@ -62,8 +63,7 @@ describe('Score column width', () => {
     expect(columnMinWidth(layout)).toBe(STRIP_WIDTH + paneMinWidth('notes') + paneMinWidth('elements') + 1)
   })
 
-  it('lets Notes go thinner than Assess, never below its snap width', () => {
-    expect(paneMinWidth('notes')).toBeLessThan(paneMinWidth('scores'))
+  it('never shows a view below its snap width', () => {
     expect(paneWidth({ paneWidths: { notes: 10 } }, 'notes')).toBe(paneSnapWidth('notes'))
   })
 
@@ -138,6 +138,24 @@ describe('Score views sharing the page', () => {
     useScoreLayout.setState({ openTabs: ['notes'], paneWidths: { elements: paneSnapWidth('elements') + 5 }, collapsed: false })
     useScoreLayout.getState().toggleTab('elements')
     expect(useScoreLayout.getState().paneWidths.elements).toBe(paneMinWidth('elements'))
+  })
+
+  it('reopens a view snapped closed at its default width, however wide it was before', () => {
+    const defaults = { notes: 260, elements: 200, dimensions: 200, collections: 200, scores: 380, conversions: 380 } as const
+    for (const [tab, width] of Object.entries(defaults) as [keyof typeof defaults, number][]) {
+      useScoreLayout.setState({ openTabs: [tab], paneWidths: { [tab]: 600 }, collapsed: false })
+      useScoreLayout.getState().snapClose(tab)
+      expect(useScoreLayout.getState().openTabs).toEqual([])
+      useScoreLayout.getState().toggleTab(tab)
+      expect(paneWidth(useScoreLayout.getState(), tab)).toBe(width)
+    }
+  })
+
+  it('reopens a view closed from the strip at the width it had', () => {
+    useScoreLayout.setState({ openTabs: ['notes', 'scores'], paneWidths: { scores: 600 }, collapsed: false })
+    useScoreLayout.getState().toggleTab('scores')
+    useScoreLayout.getState().toggleTab('scores', true)
+    expect(useScoreLayout.getState().paneWidths.scores).toBe(600)
   })
 
   it('shrinks every open view to its minimum when a map takes the room', () => {

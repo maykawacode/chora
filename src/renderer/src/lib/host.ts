@@ -15,11 +15,13 @@ export interface HostCapabilities {
    */
   scoreChrome: boolean
   /**
-   * Elements, Dimensions and Collections keep their detail below the list at
-   * every width, and list names on one line ending in "…". The browser's narrow side-by-side views do; the
-   * desktop keeps list and detail side by side.
+   * Score's data views are laid out for narrow panes side by side (the
+   * browser): Elements, Dimensions and Collections keep their detail below the
+   * list at every width, Assess keeps its columns beside each other however
+   * narrow, and names and labels stay on one line ending in "…". The desktop
+   * lays them out for its one wide window.
    */
-  stackedDataViews: boolean
+  narrowDataViews: boolean
   /** Settings offers startup and window choices: reopen last file, window positions, update checks. */
   startupSettings: boolean
   /** Export always hands over a download, even where Save writes in place. */
@@ -39,7 +41,7 @@ export interface HostCapabilities {
 let capabilities: HostCapabilities = {
   kind: 'desktop',
   scoreChrome: true,
-  stackedDataViews: false,
+  narrowDataViews: false,
   startupSettings: true,
   exportByDownload: false,
   documentSave: 'file'

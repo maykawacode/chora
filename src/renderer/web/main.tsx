@@ -20,7 +20,7 @@ window.api = browserApi
 setHostCapabilities({
   kind: 'browser',
   scoreChrome: false,
-  stackedDataViews: true,
+  narrowDataViews: true,
   startupSettings: false,
   exportByDownload: true,
   documentSave: inPlaceSaving ? 'file' : 'download',

@@ -16,6 +16,7 @@ import styles from './AssessTab.module.css'
 import { CollectionChoiceRow } from '../CollectionChoiceRow'
 import { scoreOwnsKeys } from '../../lib/overlayStack'
 import { memberCount } from '../maps/collections'
+import { hostCapabilities } from '../../lib/host'
 
 type Membership = 'all' | 'none' | 'mixed'
 
@@ -34,7 +35,12 @@ export function AssessTab(): React.JSX.Element {
   const setScore        = useAppStore(s => s.setScore)
   const setCollection   = useAppStore(s => s.setElementsCollection)
 
-  const splitPane = useResizableSplitPane()
+  // Browser: the two columns stay side by side however narrow the view, and
+  // names shorten with "…" (narrowDataViews).
+  const narrow = hostCapabilities().narrowDataViews
+  const splitPane = useResizableSplitPane(narrow ? 'beside' : 'responsive')
+  // Browser: a line between Dimensions and Collections sets their heights.
+  const rail = useResizableSplitPane('stacked')
   const keyHold = useHistoryGesture()
 
   const selectedEl  = elements.find(e => e.id === selectedElId)    ?? null
@@ -206,7 +212,7 @@ export function AssessTab(): React.JSX.Element {
   // ── Render ────────────────────────────────────────────────────────────────────
 
   return (
-    <div className={styles.tab}>
+    <div className={narrow ? `${styles.tab} ${styles.narrow}` : styles.tab}>
       <div className={styles.scoreKey} aria-label="Scoring status key">
         <span><span className={styles.keySymbol}>–</span>No score</span>
         <span><span className={styles.keySymbol}>◇</span>Incomplete scores</span>
@@ -285,7 +291,7 @@ export function AssessTab(): React.JSX.Element {
                     <span className={styles.indicator} title={statusLabel} aria-label={statusLabel}>
                       {status}
                     </span>
-                    <span className={styles.rowName}>{element.name || 'Untitled element'}</span>
+                    <span className={styles.rowName} title={narrow ? element.name : undefined}>{element.name || 'Untitled element'}</span>
                   </li>
                 )
               })}
@@ -295,8 +301,15 @@ export function AssessTab(): React.JSX.Element {
 
         <div className={styles.resizeHandle} style={splitPane.dividerStyle} {...splitPane.dividerProps} />
 
-        <div className={styles.controlRail} style={splitPane.rightPaneStyle}>
-          <section className={`${styles.section} ${styles.dimensionsSection}`}>
+        <div
+          ref={narrow ? rail.containerRef : undefined}
+          className={styles.controlRail}
+          style={narrow ? { ...splitPane.rightPaneStyle, ...rail.containerStyle } : splitPane.rightPaneStyle}
+        >
+          <section
+            className={`${styles.section} ${styles.dimensionsSection}`}
+            style={narrow ? rail.leftPaneStyle : undefined}
+          >
             <h3 className={styles.sectionTitle}>Dimensions</h3>
             {dimensions.length === 0 ? (
               <div className={styles.guidance}>
@@ -339,7 +352,7 @@ export function AssessTab(): React.JSX.Element {
                       <span className={styles.indicator} title={completionLabel} aria-label={completionLabel}>
                         {status}
                       </span>
-                      <span className={styles.rowName}>{dimension.label || 'Untitled dimension'}</span>
+                      <span className={styles.rowName} title={narrow ? dimension.label : undefined}>{dimension.label || 'Untitled dimension'}</span>
                     </li>
                   )
                 })}
@@ -347,7 +360,12 @@ export function AssessTab(): React.JSX.Element {
             )}
           </section>
 
-          <section className={`${styles.section} ${styles.collectionsSection}`}>
+          {narrow && <div className={styles.resizeHandle} style={rail.dividerStyle} {...rail.dividerProps} />}
+
+          <section
+            className={`${styles.section} ${styles.collectionsSection}`}
+            style={narrow ? rail.rightPaneStyle : undefined}
+          >
             <h3 className={styles.sectionTitle}>
               <span>
                 Collections

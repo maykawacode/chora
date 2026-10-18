@@ -14,7 +14,7 @@ import styles from './DataTab.module.css'
 
 /**
  * The view's list-and-detail layout. Where the host stacks these views
- * (stackedDataViews: the browser), the detail stays below the list at every
+ * (narrowDataViews: the browser), the detail stays below the list at every
  * width and list names stay on one line, shortened with "…"; `stacked` tells the view to title its rows
  * with their full names. Elsewhere, list and detail sit side by side until
  * the view is too narrow.
@@ -24,10 +24,10 @@ export function useDataViewLayout(): {
   splitPane: ReturnType<typeof useResizableSplitPane>
   className: string
 } {
-  const stacked = hostCapabilities().stackedDataViews
+  const stacked = hostCapabilities().narrowDataViews
   return {
     stacked,
-    splitPane: useResizableSplitPane(stacked),
+    splitPane: useResizableSplitPane(stacked ? 'stacked' : 'responsive'),
     className: stacked ? `${styles.tab} ${styles.stacked}` : styles.tab
   }
 }

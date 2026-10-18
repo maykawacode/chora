@@ -12,30 +12,35 @@ export const stripWidth = (labels: boolean): number => labels ? STRIP_WIDTH_LABE
 const PANE_DIVIDER = 1
 
 /**
- * Elements, Dimensions and Collections keep their detail below the list
- * (useDataViewLayout), so they open as narrow as a side panel. Notes is one
- * text field and can go thin too. Assess and Conversions hold a list and its
- * detail side by side, stacking below STACK_BELOW_WIDTH
- * (useResizableSplitPane.ts), so they go narrower than two panes.
+ * Score's data views open narrow enough to sit beside maps: Elements,
+ * Dimensions and Collections keep their detail below the list
+ * (useDataViewLayout), and Assess keeps its columns side by side however
+ * narrow, so they share one minimum and snap point. Assess is the exception:
+ * it snaps closed below 160px, and so goes no narrower. Notes is one text
+ * field and can go thin too.
  */
-const LIST_VIEWS: readonly Tab[] = ['elements', 'dimensions', 'collections']
+export const paneMinWidth = (tab: Tab): number => tab === 'notes' || tab === 'scores' ? 160 : 150
 
-export const paneMinWidth = (tab: Tab): number =>
-  LIST_VIEWS.includes(tab) ? 150 : tab === 'notes' ? 160 : 240
-const paneDefaultWidth = (tab: Tab): number =>
-  LIST_VIEWS.includes(tab) ? 200 : tab === 'notes' ? 260 : 440
+/** Views that snap closed at their own width rather than a share of their minimum (at most the minimum). */
+const SNAP_WIDTHS: Partial<Record<Tab, number>> = { scores: 160 }
+
+const DEFAULT_WIDTHS: Record<Tab, number> = {
+  notes: 260, elements: 200, dimensions: 200, collections: 200, scores: 380, conversions: 380
+}
+const paneDefaultWidth = (tab: Tab): number => DEFAULT_WIDTHS[tab]
 
 /** The map area keeps room for at least one tile. */
 export const MAP_AREA_MIN_WIDTH = 360
 
 /**
- * A view can be dragged narrower than its minimum, down to this share of it;
- * dragged past that, it snaps closed. Only drags go below the minimum: new
- * maps, fitting and resets use the minimum itself, and a view reopens at
- * its minimum or wider.
+ * A view can be dragged narrower than its minimum, down to this share of it
+ * (or its own snap width, SNAP_WIDTHS); dragged past that, it snaps closed,
+ * and reopens at its default width. Only drags go below the minimum: new
+ * maps, fitting and resets use the minimum itself, and a view reopens at its
+ * minimum or wider.
  */
 const SNAP_SHARE = 0.5
-export const paneSnapWidth = (tab: Tab): number => Math.round(paneMinWidth(tab) * SNAP_SHARE)
+export const paneSnapWidth = (tab: Tab): number => SNAP_WIDTHS[tab] ?? Math.round(paneMinWidth(tab) * SNAP_SHARE)
 export const snapsClosed = (tab: Tab, width: number): boolean => width < paneSnapWidth(tab)
 
 // Browser layout of the Score column: which views are open side by side and
@@ -56,12 +61,17 @@ export const snapsClosed = (tab: Tab, width: number): boolean => width < paneSna
 
 const MOTION_FALLBACK_MS = 400
 const STORAGE_KEY = 'chora:layout'
+const VERSION = 4
+
 /**
- * 2 and 3: Elements, Dimensions and Collections narrowed to 150px, then
- * opening at 200px. An older record's widths for those three are dropped
- * once, so they open at the new default.
+ * The record version in which each view's default width last changed. A view
+ * width saved by an older record is dropped once, so the view opens at its
+ * new default: Elements, Dimensions and Collections at 200px (version 3),
+ * Assess and Conversions at 380px (version 4).
  */
-const VERSION = 3
+const WIDTH_RESET_AT: Record<Tab, number> = {
+  notes: 1, elements: 3, dimensions: 3, collections: 3, scores: 4, conversions: 4
+}
 
 export interface StoredLayout {
   openTabs: Tab[]
@@ -81,19 +91,13 @@ export function parseLayout(raw: string | null): StoredLayout {
   if (!raw) return DEFAULT_LAYOUT
   try {
     const v = JSON.parse(raw)
-    if (![1, 2, VERSION].includes(v?.version)) return DEFAULT_LAYOUT
+    if (!Number.isInteger(v?.version) || v.version < 1 || v.version > VERSION) return DEFAULT_LAYOUT
     const paneWidths: StoredLayout['paneWidths'] = {}
     if (v.paneWidths && typeof v.paneWidths === 'object') {
       for (const [tab, w] of Object.entries(v.paneWidths)) {
-        if (isTab(tab) && validWidth(w)) paneWidths[tab] = Math.round(w)
+        if (isTab(tab) && validWidth(w) && v.version >= WIDTH_RESET_AT[tab]) paneWidths[tab] = Math.round(w)
       }
-    } else if (validWidth(v.scoreWidth)) {
-      // Written before views opened side by side: the one Score width,
-      // strip included, becomes the width of each list-and-detail view.
-      const strip = stripWidth(v.labels === true)
-      for (const tab of TABS) if (tab !== 'notes') paneWidths[tab] = Math.round(v.scoreWidth - strip)
     }
-    if (v.version !== VERSION) for (const tab of LIST_VIEWS) delete paneWidths[tab]
     const openTabs = Array.isArray(v.openTabs) ? inStripOrder(v.openTabs.filter(isTab)) : DEFAULT_LAYOUT.openTabs
     return {
       openTabs,
@@ -169,6 +173,8 @@ interface ScoreLayout extends StoredLayout {
   reveal: (tab: Tab) => void
   /** Closes an open view; closing the last one collapses the column. */
   closeTab: (tab: Tab) => void
+  /** Closes a view dragged past its snap width; it reopens at its default width. */
+  snapClose: (tab: Tab) => void
   setPaneWidth: (tab: Tab, width: number) => void
   /** Sets several views' widths at once (a drag between two views filling the page). */
   setPaneWidths: (widths: Partial<Record<Tab, number>>) => void
@@ -194,7 +200,7 @@ export const useScoreLayout = create<ScoreLayout>((set, get) => {
     fallback = setTimeout(() => get().endAnimation(), MOTION_FALLBACK_MS)
     set({ collapsed, animating: true })
   }
-  // A view reopens at least at its minimum, though it was dragged narrower or snapped closed.
+  // A view reopens at least at its minimum, though it was dragged narrower before it closed.
   const open = (tab: Tab): void => {
     const layout = get()
     if (layout.openTabs.includes(tab)) return
@@ -218,6 +224,12 @@ export const useScoreLayout = create<ScoreLayout>((set, get) => {
       set({ openTabs: [] })
       open(tab)
       toggleTo(false)
+    },
+    snapClose: tab => {
+      // Forgetting its width returns the view to its default.
+      const { [tab]: _snapped, ...paneWidths } = get().paneWidths
+      set({ paneWidths })
+      get().closeTab(tab)
     },
     closeTab: tab => {
       const rest = get().openTabs.filter(t => t !== tab)
@@ -251,7 +263,7 @@ export const useScoreLayout = create<ScoreLayout>((set, get) => {
       const last = layout.openTabs[layout.openTabs.length - 1]
       if (!last) return
       const next = paneWidth(layout, last) + width - columnWidth(layout)
-      if (snapsClosed(last, next)) layout.closeTab(last)
+      if (snapsClosed(last, next)) layout.snapClose(last)
       else layout.setPaneWidth(last, next)
     },
     resetWidths: () => set({ paneWidths: {} }),

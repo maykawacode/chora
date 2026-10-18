@@ -247,3 +247,34 @@
 .applyBtnOverwrite:hover {
   background: var(--color-destructive-hover);
 }
+
+/* ── Narrow views (browser; narrowDataViews) ────────────────────────────────
+   Everything shrinks with the view and nothing scrolls sideways: headings,
+   labels and buttons stay on one line and end in "…", and the dropdowns
+   shorten their chosen option. Descriptions and summaries still wrap. */
+
+.narrow {
+  overflow-x: hidden;
+}
+
+.narrow .groupTitle,
+.narrow .sectionLabel,
+.narrow .subLabel,
+.narrow .applyBtn,
+.narrow .applyBtnDone,
+.narrow .applyBtnOverwrite {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.narrow .select {
+  min-width: 0;
+  text-overflow: ellipsis;
+}
+
+.narrow .colorField {
+  flex: 1 1 0;
+  min-width: 0;
+}

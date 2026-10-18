@@ -2,6 +2,8 @@ import { useCallback, useRef, useState } from 'react'
 import type { CSSProperties, PointerEventHandler } from 'react'
 
 const PANE_MIN_WIDTH = 200
+/** Kept side by side at any width ('beside'), each pane can be dragged down to this. */
+const BESIDE_PANE_MIN_WIDTH = 48
 /** Narrower than two panes side by side, the list stacks above its detail. */
 const STACK_BELOW_WIDTH = 2 * PANE_MIN_WIDTH
 /** Each pane's least height while stacked. */
@@ -40,9 +42,13 @@ function clampDividerRatio(desiredRatio: number, length: number, paneMin: number
  * and responds to window resizing without pixel synchronization. Narrower
  * than two panes side by side, the panes stack, list above detail, and the
  * divider resizes their heights; an observer watches the width for that.
- * `alwaysStacked` keeps them stacked at every width.
+ * `layout` 'stacked' keeps them stacked at every width; 'beside' keeps them
+ * side by side at every width, each free to shrink well below its usual
+ * minimum.
  */
-export function useResizableSplitPane(alwaysStacked = false): ResizableSplitPane {
+export type SplitLayout = 'responsive' | 'stacked' | 'beside'
+
+export function useResizableSplitPane(layout: SplitLayout = 'responsive'): ResizableSplitPane {
   const containerEl = useRef<HTMLDivElement | null>(null)
   const observer = useRef<ResizeObserver | null>(null)
   const activePointerId = useRef<number | null>(null)
@@ -50,7 +56,8 @@ export function useResizableSplitPane(alwaysStacked = false): ResizableSplitPane
   const dividerRatioRef = useRef(0.5)
   const [dividerRatio, setDividerRatio] = useState(0.5)
   const [narrow, setNarrow] = useState(false)
-  const stacked = alwaysStacked || narrow
+  const stacked = layout === 'stacked' || (layout === 'responsive' && narrow)
+  const sideMin = layout === 'beside' ? BESIDE_PANE_MIN_WIDTH : PANE_MIN_WIDTH
 
   const containerRef = useCallback((el: HTMLDivElement | null) => {
     observer.current?.disconnect()
@@ -71,7 +78,7 @@ export function useResizableSplitPane(alwaysStacked = false): ResizableSplitPane
     const bounds = container.getBoundingClientRect()
     return stacked
       ? { length: container.clientHeight, start: bounds.top, paneMin: PANE_MIN_HEIGHT }
-      : { length: container.clientWidth, start: bounds.left, paneMin: PANE_MIN_WIDTH }
+      : { length: container.clientWidth, start: bounds.left, paneMin: sideMin }
   }
   const pointerAt = (event: { clientX: number; clientY: number }): number => stacked ? event.clientY : event.clientX
 
@@ -164,7 +171,10 @@ export function useResizableSplitPane(alwaysStacked = false): ResizableSplitPane
       // Keep both flexible factors above 1fr. Sub-1fr tracks represent partial
       // shares in CSS Grid; when their sibling hits its 200px minimum, that can
       // leave unused space instead of filling the container.
-      gridTemplateColumns: `minmax(${PANE_MIN_WIDTH}px, ${first}fr) 0 minmax(${PANE_MIN_WIDTH}px, ${second}fr)`,
+      // Kept beside at any width, the panes may shrink to nothing in CSS; drags stop at sideMin.
+      gridTemplateColumns: layout === 'beside'
+        ? `minmax(0, ${first}fr) 0 minmax(0, ${second}fr)`
+        : `minmax(${PANE_MIN_WIDTH}px, ${first}fr) 0 minmax(${PANE_MIN_WIDTH}px, ${second}fr)`,
       // A shrinkable grid row is required for descendant lists to become
       // scroll containers. The default auto row otherwise follows their
       // min-content height and can grow beyond the visible tab workspace.

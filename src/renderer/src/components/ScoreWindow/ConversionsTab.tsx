@@ -15,6 +15,7 @@ import {
   shapeFromColor, spreadScores, weightFromScores, type Transform
 } from '../../store/transforms'
 import { ConfirmationDisc } from '../ConfirmationDisc'
+import { hostCapabilities } from '../../lib/host'
 import styles from './ConversionsTab.module.css'
 
 type Kind = 'dim-scores' | 'el-weight' | 'collection' | 'el-shape' | 'el-color'
@@ -234,7 +235,7 @@ export function ConversionsTab(): React.JSX.Element {
   }
 
   return (
-    <div className={styles.tab}>
+    <div className={hostCapabilities().narrowDataViews ? `${styles.tab} ${styles.narrow}` : styles.tab}>
 
       <section className={styles.group}>
         <h2 className={styles.groupTitle}>Mapping</h2>

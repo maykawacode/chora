@@ -12,9 +12,10 @@ import styles from './ScorePanes.module.css'
 // the page in proportion to their widths, and the line trades width between
 // its two neighbours. Drag, or focus a line and use the arrow keys;
 // double-click returns every view to its default width. A drag can take a view
-// below its minimum, down to its snap width, and past that it closes
-// (scoreLayout.ts); the arrow keys stop at the snap width. Views that cannot all fit
-// close from the right (ScoreDock.tsx); one that still cannot fit scrolls.
+// below its minimum, down to its snap width, and past that it closes, to
+// reopen at its default width (scoreLayout.ts); the arrow keys stop at the snap
+// width. Views that cannot all fit close from the right (ScoreDock.tsx); one
+// that still cannot fit scrolls.
 // Pressing or focusing in a view makes it the active tab, which the status
 // line and keyboard shortcuts follow.
 
@@ -53,7 +54,7 @@ function PaneDivider({ tab, fill }: { tab: Tab; fill: boolean }): React.JSX.Elem
     const layout = useScoreLayout.getState()
     if (snap && snapsClosed(tab, width)) {
       drag.current = null
-      layout.closeTab(tab)
+      layout.snapClose(tab)
     } else {
       layout.setPaneWidth(tab, Math.min(width, Math.max(max, paneSnapWidth(tab))))
     }
@@ -65,8 +66,8 @@ function PaneDivider({ tab, fill }: { tab: Tab; fill: boolean }): React.JSX.Elem
     const { tabs, widths, index } = d.shown!
     const next = tabs[index + 1]
     const pair = widths[index] + widths[index + 1]
-    if (snap && snapsClosed(tab, width)) { drag.current = null; return layout.closeTab(tab) }
-    if (snap && snapsClosed(next, pair - width)) { drag.current = null; return layout.closeTab(next) }
+    if (snap && snapsClosed(tab, width)) { drag.current = null; return layout.snapClose(tab) }
+    if (snap && snapsClosed(next, pair - width)) { drag.current = null; return layout.snapClose(next) }
     const left = Math.max(paneSnapWidth(tab), Math.min(width, pair - paneSnapWidth(next)))
     const all = Object.fromEntries(tabs.map((t, i) => [t, widths[i]]))
     layout.setPaneWidths({ ...all, [tab]: left, [next]: pair - left })

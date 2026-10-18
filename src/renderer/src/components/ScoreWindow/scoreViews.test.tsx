@@ -103,10 +103,10 @@ describe('Dimensions and Collections lists', () => {
 
 describe('Stacked list-and-detail views (browser)', () => {
   beforeEach(() => {
-    setHostCapabilities({ stackedDataViews: true })
+    setHostCapabilities({ narrowDataViews: true })
     study([element('a')], [{ ...dimension('d'), poleA: 'A very long first pole', poleB: 'An even longer second pole' }])
   })
-  afterEach(() => setHostCapabilities({ stackedDataViews: false }))
+  afterEach(() => setHostCapabilities({ narrowDataViews: false }))
 
   it('keeps the detail below the list at any width', () => {
     const { container } = render(<ElementsTab />)
@@ -167,8 +167,23 @@ describe('Stacked list-and-detail views (browser)', () => {
     }
   })
 
+  it('keeps the Assess columns side by side, free to shrink, at any width', () => {
+    const { container } = render(<AssessTab />)
+    const columns = container.querySelector<HTMLElement>('[style*="grid-template-columns"]')!
+    expect(columns.style.gridTemplateColumns).toMatch(/^minmax\(0(px)?, /)
+    expect(columns.style.gridTemplateRows).toBe('minmax(0, 1fr)')
+  })
+
+  it('lets Dimensions and Collections share the Assess column by a line between them', () => {
+    const { container } = render(<AssessTab />)
+    const rail = [...container.querySelectorAll<HTMLElement>('[style*="grid-template-rows"]')]
+      .find(el => el.style.gridTemplateColumns === 'minmax(0, 1fr)')!
+    expect(rail.style.gridTemplateRows).toMatch(/^minmax\(0(px)?, \d+fr\) 0 minmax\(0(px)?, \d+fr\)$/)
+    expect(rail.children).toHaveLength(3)
+  })
+
   it('leaves list and detail side by side where the host does not stack them', () => {
-    setHostCapabilities({ stackedDataViews: false })
+    setHostCapabilities({ narrowDataViews: false })
     const { container } = render(<ElementsTab />)
     expect((container.firstElementChild as HTMLElement).style.gridTemplateRows).toBe('minmax(0, 1fr)')
   })

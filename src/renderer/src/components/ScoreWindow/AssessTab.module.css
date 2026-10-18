@@ -326,3 +326,52 @@
     padding-left: var(--space-four);
   }
 }
+
+/* ── Narrow views (browser; narrowDataViews) ────────────────────────────────
+   The Elements list and the Dimensions and Collections column stay side by
+   side however narrow the view, and nothing scrolls sideways: names and
+   headings stay on one line and end in "…" (the full name is the row's
+   tooltip). */
+
+.narrow .rowName,
+.narrow .sectionTitle {
+  overflow: hidden;
+  overflow-wrap: normal;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A block, so its text can end in "…" (a flex container's text cannot). */
+.narrow .sectionTitle {
+  display: block;
+}
+
+.narrow .targetCount {
+  white-space: nowrap;
+}
+
+/* The key stays on one line; too narrow for all of it, its end becomes "…".
+   Inline rather than inline-flex parts, so the ellipsis can reach their text. */
+.narrow .scoreKey {
+  display: block;
+  overflow: hidden;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.narrow .scoreKey > span {
+  display: inline;
+  margin: 0 var(--space-two);
+}
+
+.narrow .keySymbol {
+  display: inline-block;
+  margin-right: var(--space-one);
+}
+
+/* Dimensions and Collections share the right column by a draggable line,
+   which stands in for the line under Dimensions. */
+.narrow .dimensionsSection {
+  border-bottom: none;
+}
