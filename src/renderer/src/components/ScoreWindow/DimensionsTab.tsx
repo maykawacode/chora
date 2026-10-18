@@ -17,7 +17,7 @@ import { hostCapabilities } from '../../lib/host'
 import styles from './DataTab.module.css'
 import { formatRange, numericRange } from '../../lib/numericRange'
 import { ConfirmationDisc } from '../ConfirmationDisc'
-import { AddRow, WeightInput, listKeys, selectAllOnEntry, useConfirmedDelete, useDataViewLayout } from './dataList'
+import { AddRow, WeightInput, listKeys, selectAllOnEntry, useConfirmedDelete, useDataViewLayout, useSelectFirstOnOpen } from './dataList'
 
 interface Props { onOpenStarterPicker: () => void }
 
@@ -82,6 +82,7 @@ export function DimensionsTab({ onOpenStarterPicker }: Props): React.JSX.Element
   const scores          = useAppStore(s => s.scores)
 
   const selected = dimensions.find(d => d.id === selectedId) ?? null
+  useSelectFirstOnOpen(!!selected, dimensions[0]?.id, selectDimension)
   const { stacked, splitPane, className } = useDataViewLayout()
   const deletion = useConfirmedDelete(ids => { for (const id of ids) removeDimension(id) })
   const confirmDeleteId = deletion.pendingIds[0] ?? null
@@ -138,7 +139,7 @@ export function DimensionsTab({ onOpenStarterPicker }: Props): React.JSX.Element
             </ul>
           )}
 
-          <AddRow placeholder="New dimension (e.g. Hot–Cold)…" onAdd={addDimension}>
+          <AddRow placeholder="New dimension (e.g. Hot–Cold)…" focusOnOpen={dimensions.length === 0} onAdd={addDimension}>
             <button
               className={styles.starterBtn}
               onClick={onOpenStarterPicker}

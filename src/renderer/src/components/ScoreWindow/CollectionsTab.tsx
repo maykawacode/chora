@@ -15,7 +15,7 @@ import { historyField } from '../../store/historyBindings'
 import { DEFAULT_COLLECTION_COLOR } from '../../lib/color'
 import { paletteForUncolored } from '../../store/transforms'
 import { ConfirmationDisc } from '../ConfirmationDisc'
-import { AddRow, listKeys, selectAllOnEntry, useConfirmedDelete, useDataViewLayout } from './dataList'
+import { AddRow, listKeys, selectAllOnEntry, useConfirmedDelete, useDataViewLayout, useSelectFirstOnOpen } from './dataList'
 import { hostCapabilities } from '../../lib/host'
 import styles from './DataTab.module.css'
 
@@ -36,6 +36,7 @@ export function CollectionsTab(): React.JSX.Element {
   const uncoloredCount = collections.filter(c => c.color === DEFAULT_COLLECTION_COLOR).length
 
   const selected = collections.find(c => c.id === selectedId) ?? null
+  useSelectFirstOnOpen(!!selected, collections[0]?.id, selectCollection)
 
   const { stacked, splitPane, className } = useDataViewLayout()
 
@@ -88,7 +89,7 @@ export function CollectionsTab(): React.JSX.Element {
             </ul>
           )}
 
-          <AddRow placeholder="New collection…" onAdd={addCollection} />
+          <AddRow placeholder="New collection…" focusOnOpen={collections.length === 0} onAdd={addCollection} />
 
           {uncoloredCount > 0 && (
             <button type="button" className={styles.bulkBtn} onClick={() => transform(paletteForUncolored)}>

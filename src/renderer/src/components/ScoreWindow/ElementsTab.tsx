@@ -30,7 +30,7 @@ import { scoreOwnsKeys } from '../../lib/overlayStack'
 import { hostCapabilities } from '../../lib/host'
 import { sortToggleTitle, useElementSort } from './elementSort'
 import { DEFAULT_ELEMENT_COLOR } from '../../lib/color'
-import { AddRow, WeightInput, listKeys, selectAllOnEntry, useConfirmedDelete, useDataViewLayout } from './dataList'
+import { AddRow, WeightInput, listKeys, selectAllOnEntry, useConfirmedDelete, useDataViewLayout, useSelectFirstOnOpen } from './dataList'
 import styles from './DataTab.module.css'
 
 export function ElementsTab(): React.JSX.Element {
@@ -60,6 +60,9 @@ export function ElementsTab(): React.JSX.Element {
   const displayElements = sortAlpha
     ? [...elements].sort((a, b) => a.name.localeCompare(b.name))
     : elements
+
+  // A lasso from a map counts as a selection, though no row is the anchor.
+  useSelectFirstOnOpen(!!selected || selectedIds.length > 0, displayElements[0]?.id, selectElement)
 
   const { stacked, splitPane, className } = useDataViewLayout()
 
@@ -213,7 +216,7 @@ export function ElementsTab(): React.JSX.Element {
             </ul>
           )}
 
-          <AddRow placeholder="New element…" onAdd={name => addElement(name, prefs.defaultElementColor)} />
+          <AddRow placeholder="New element…" focusOnOpen={elements.length === 0} onAdd={name => addElement(name, prefs.defaultElementColor)} />
         </div>
       </div>
 

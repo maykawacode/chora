@@ -53,6 +53,43 @@ describe('Elements list keys', () => {
   })
 })
 
+describe('Opening a list view', () => {
+  const collection = (id: string): Collection => ({ id, name: id.toUpperCase(), definition: '', color: '#808080' })
+
+  beforeEach(() => {
+    study([element('b'), element('a')], [dimension('d'), dimension('e')])
+    useAppStore.setState({
+      collections: [collection('x'), collection('y')],
+      selectedElementId: null, selectedDimensionId: null, selectedCollectionId: null
+    })
+  })
+
+  it('selects the first row of each list when nothing is selected', () => {
+    render(<><ElementsTab /><DimensionsTab onOpenStarterPicker={() => {}} /><CollectionsTab /></>)
+    const state = useAppStore.getState()
+    expect([state.selectedElementId, state.selectedDimensionId, state.selectedCollectionId]).toEqual(['b', 'd', 'x'])
+  })
+
+  it('keeps a selection already made, including a lasso from a map', () => {
+    useAppStore.setState({ selectedDimensionId: 'e', selectedElementIds: ['a'] })
+    render(<><ElementsTab /><DimensionsTab onOpenStarterPicker={() => {}} /></>)
+    expect(useAppStore.getState().selectedElementId).toBeNull()
+    expect(useAppStore.getState().selectedDimensionId).toBe('e')
+  })
+
+  it('leaves an empty list with nothing selected, ready to type the first name', () => {
+    useAppStore.setState({ collections: [] })
+    render(<CollectionsTab />)
+    expect(useAppStore.getState().selectedCollectionId).toBeNull()
+    expect(document.activeElement).toBe(screen.getByPlaceholderText('New collection…'))
+  })
+
+  it('leaves focus alone when the list has items', () => {
+    render(<ElementsTab />)
+    expect(document.activeElement).not.toBe(screen.getByPlaceholderText('New element…'))
+  })
+})
+
 describe('Dimensions and Collections lists', () => {
   beforeEach(() => {
     study([element('a', 'circle')], [dimension('d'), { ...dimension('e'), poleA: 'Cold', poleB: 'Hot' }])

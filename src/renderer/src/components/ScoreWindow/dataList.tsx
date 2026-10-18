@@ -5,7 +5,7 @@
 // preference says so, and the add row under the list. Each view keeps its own
 // rows, detail fields and confirmation wording.
 
-import { useRef, useState, type FocusEvent, type KeyboardEvent, type MouseEvent, type PointerEvent, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type FocusEvent, type KeyboardEvent, type MouseEvent, type PointerEvent, type ReactNode } from 'react'
 import { usePrefsStore } from '../../store/prefsStore'
 import { hostCapabilities } from '../../lib/host'
 import { openWeight } from '../../lib/numericRange'
@@ -56,6 +56,20 @@ export function listKeys({ ids, currentId, onStep, onDelete }: {
   }
 }
 
+/**
+ * When a list view opens with nothing selected, selects its first row, so the
+ * detail shows something to edit. Only on opening: clearing the selection
+ * later leaves it clear.
+ */
+export function useSelectFirstOnOpen(hasSelection: boolean, firstId: string | undefined, select: (id: string) => void): void {
+  const opened = useRef(false)
+  useEffect(() => {
+    if (opened.current) return
+    opened.current = true
+    if (!hasSelection && firstId) select(firstId)
+  }, [hasSelection, firstId, select])
+}
+
 /** Deletion that follows the confirmDeleteData preference: at once, or after the view's confirmation. */
 export function useConfirmedDelete(remove: (ids: string[]) => void): {
   /** Ids awaiting confirmation; the view shows its confirmation while there are any. */
@@ -78,15 +92,26 @@ export function useConfirmedDelete(remove: (ids: string[]) => void): {
   }
 }
 
-/** The input under a list: Enter adds the trimmed name, then the field clears and keeps focus. */
-export function AddRow({ placeholder, onAdd, children }: {
+/**
+ * The input under a list: Enter adds the trimmed name, then the field clears
+ * and keeps focus. With `focusOnOpen` (an empty list) it takes focus when the
+ * view opens, so typing starts the first item.
+ */
+export function AddRow({ placeholder, onAdd, focusOnOpen = false, children }: {
   placeholder: string
   onAdd: (name: string) => void
+  focusOnOpen?: boolean
   /** Extra controls beside the input. */
   children?: ReactNode
 }): React.JSX.Element {
   const [name, setName] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
+  const opened = useRef(false)
+  useEffect(() => {
+    if (opened.current) return
+    opened.current = true
+    if (focusOnOpen) inputRef.current?.focus()
+  }, [focusOnOpen])
   return (
     <div className={styles.addRow}>
       <input
