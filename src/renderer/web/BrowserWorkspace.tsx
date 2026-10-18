@@ -374,7 +374,8 @@ export function BrowserWorkspace(): React.JSX.Element {
   const area = maximized
     ? { x: 0, y: 0, width: view.width, height: view.height }
     : { x: 0, y: 0, width: Math.max(view.width, min.width), height: Math.max(view.height, min.height) }
-  const arrangement = useMemo(() => computeArrangement(root, area), [root, area.width, area.height])
+  // Keyed on the area's size: `area` is a fresh object each render.
+  const arrangement = useMemo(() => computeArrangement(root, area), [root, area.width, area.height]) // eslint-disable-line react-hooks/exhaustive-deps
   const arrangementRef = useRef(arrangement)
   arrangementRef.current = arrangement
 

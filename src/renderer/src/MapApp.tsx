@@ -98,7 +98,7 @@ export function MapApp(): React.JSX.Element {
       removePrefs()
       removeCancelModals()
     }
-  }, [loadSession, selectElements, setScore])
+  }, [loadSession, selectElements, setScore, setPrefs])
 
   // ── OS window title sync ──────────────────────────────────────────────────
 

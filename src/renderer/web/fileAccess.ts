@@ -121,6 +121,6 @@ export async function writeToHandle(path: string, text: string): Promise<void> {
     const denied = e instanceof DOMException && e.name === 'NotAllowedError'
     throw new Error(denied
       ? `Chora was not given permission to save ${handle.name}. ${COPY_HINT}`
-      : `${e instanceof Error ? e.message : String(e)} ${COPY_HINT}`)
+      : `${e instanceof Error ? e.message : String(e)} ${COPY_HINT}`, { cause: e })
   }
 }

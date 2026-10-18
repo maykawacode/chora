@@ -64,5 +64,5 @@ export function useOverlay(onEscape: (() => void) | null, focusTarget?: RefObjec
       if (opener instanceof HTMLElement && opener.isConnected) opener.focus()
     }
     // Registered once per mount; the latest onEscape is read through the ref.
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 }

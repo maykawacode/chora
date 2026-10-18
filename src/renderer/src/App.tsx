@@ -214,7 +214,7 @@ export function App({ workspace, scoreFrame, scorePanes, welcome }: AppProps = {
         if (!loaded) setShowWelcome(true)
       })
     }
-  }, [])  // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
 
   // ── Update notice ────────────────────────────────────────────────────────────
   //
@@ -240,7 +240,7 @@ export function App({ workspace, scoreFrame, scorePanes, welcome }: AppProps = {
     })
 
     return () => { cancelled = true }
-  }, [])  // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
 
   // ── State broadcast to map windows ───────────────────────────────────────────
   //

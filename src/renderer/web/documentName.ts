@@ -19,7 +19,8 @@ import { pseudoPath } from './files'
 // The first Save already asks for a name through the browser's save picker.
 
 const EXTENSION = /\.(chora|mtda)$/i
-const UNSAFE = /[/\\:*?"<>|\u0000-\u001f]/g
+// Control characters are unsafe in file names, so the pattern matches them on purpose.
+const UNSAFE = /[/\\:*?"<>|\u0000-\u001f]/g // eslint-disable-line no-control-regex
 const MAX_LENGTH = 120
 
 /** The typed name as a .chora file name, or null when nothing usable is left. */

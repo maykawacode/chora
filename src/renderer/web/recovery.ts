@@ -74,7 +74,7 @@ export function parseEnvelope(raw: string | null, now: number): Envelope | null 
 
 /** Startup: replaces the empty document with a recent snapshot, if one is valid. */
 export function restoreRecovery(): void {
-  let raw: string | null = null
+  let raw: string | null
   try { raw = sessionStorage.getItem(KEY) } catch { return }
   const envelope = parseEnvelope(raw, Date.now())
   if (!envelope) { if (raw) remove(); return }
