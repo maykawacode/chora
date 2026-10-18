@@ -90,6 +90,18 @@ describe('Opening a list view', () => {
   })
 })
 
+describe('Assess with no element selected', () => {
+  beforeEach(() => study([element('a')], [dimension('d')]))
+
+  it("shows the selected dimension's poles on the inactive slider", () => {
+    render(<AssessTab />)
+    act(() => { useAppStore.setState({ selectedElementId: null, selectedDimensionId: 'd' }) })
+    expect(screen.getByText('Soft')).toBeTruthy()
+    expect(screen.getByText('Crisp')).toBeTruthy()
+    expect(screen.queryByRole('slider')).toBeNull()
+  })
+})
+
 describe('Dimensions and Collections lists', () => {
   beforeEach(() => {
     study([element('a', 'circle')], [dimension('d'), { ...dimension('e'), poleA: 'Cold', poleB: 'Hot' }])

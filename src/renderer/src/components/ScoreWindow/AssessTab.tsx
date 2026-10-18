@@ -231,7 +231,7 @@ export function AssessTab(): React.JSX.Element {
         ) : isMultiSelection ? (
           <p className={styles.multiScoreMessage}>Select one element to change dimension scores.</p>
         ) : !selectedEl ? (
-          <EmptyScoreSlider />
+          <EmptyScoreSlider poleA={selectedDim?.poleA} poleB={selectedDim?.poleB} />
         ) : !selectedDim ? (
           <p className={styles.empty}>Choose a dimension below to score {selectedEl.name || 'this element'}.</p>
         ) : (
@@ -440,13 +440,14 @@ function ScoreScale({ score, onDotMouseDown }: ScoreScaleProps): React.JSX.Eleme
   )
 }
 
-function EmptyScoreSlider(): React.JSX.Element {
+/** The slider with no element to score: inactive, showing the selected dimension's poles if there is one. */
+function EmptyScoreSlider({ poleA, poleB }: { poleA?: string; poleB?: string }): React.JSX.Element {
   return (
     <div className={styles.slider} aria-hidden="true">
       <div className={styles.sliderElementName}>&nbsp;</div>
       <div className={styles.sliderPoles}>
-        <span className={styles.poleLabel}>&nbsp;</span>
-        <span className={styles.poleLabel}>&nbsp;</span>
+        <span className={styles.poleLabel}>{poleA || '\u00a0'}</span>
+        <span className={styles.poleLabel}>{poleB || '\u00a0'}</span>
       </div>
       <div className={`${styles.sliderTrack} ${styles.sliderTrackInactive}`}>
         <ScoreScale score={null} />
