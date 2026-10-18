@@ -73,11 +73,11 @@ export function ScoreWindow({ onOpenStarterPicker, panes: Panes }: Props): React
   // The browser shows the title and status line in its page banner
   // (web/TitleBanner.tsx), and replaces the tab bar with its strip's icons
   // (web/ScoreDock.tsx) and a title for the current tab, set like a map title.
-  const desktop = hostCapabilities().kind === 'desktop'
+  const ownChrome = hostCapabilities().scoreChrome
 
   const fileName = filePath ? (filePath.split('/').pop() ?? 'Untitled') : 'Untitled'
 
-  if (!desktop && Panes) {
+  if (!ownChrome && Panes) {
     return (
       <div className={styles.window}>
         <Panes renderTab={tab => (
@@ -94,7 +94,7 @@ export function ScoreWindow({ onOpenStarterPicker, panes: Panes }: Props): React
 
   return (
     <div className={styles.window}>
-      {desktop && <div className={styles.titleBar}>
+      {ownChrome && <div className={styles.titleBar}>
         <div className={styles.titleLine}>
           <span className={styles.productName}>Chora</span>
           <span className={styles.titleDivider} aria-hidden="true">|</span>
@@ -105,7 +105,7 @@ export function ScoreWindow({ onOpenStarterPicker, panes: Panes }: Props): React
         </div>
       </div>}
 
-      {desktop && (
+      {ownChrome && (
         <div
           className={styles.statusBar}
           role="status"
@@ -115,9 +115,9 @@ export function ScoreWindow({ onOpenStarterPicker, panes: Panes }: Props): React
         </div>
       )}
 
-      {!desktop && <PaneTitle tab={activeTab} />}
+      {!ownChrome && <PaneTitle tab={activeTab} />}
 
-      {desktop && <div className={styles.tabBar}>
+      {ownChrome && <div className={styles.tabBar}>
         {TABS.map(tab => (
           <button
             key={tab}
@@ -137,8 +137,8 @@ export function ScoreWindow({ onOpenStarterPicker, panes: Panes }: Props): React
       </div>}
 
       <div
-        className={`${styles.tabContent} ${desktop ? '' : styles.tabContentUnderTitle}`}
-        data-list-headers={desktop ? 'shown' : 'hidden'}
+        className={`${styles.tabContent} ${ownChrome ? '' : styles.tabContentUnderTitle}`}
+        data-list-headers={ownChrome ? 'shown' : 'hidden'}
       >
         <TabBody tab={activeTab} onOpenStarterPicker={onOpenStarterPicker} />
       </div>

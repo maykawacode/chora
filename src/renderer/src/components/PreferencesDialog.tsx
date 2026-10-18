@@ -130,14 +130,14 @@ type Setting =
 interface SettingsSection {
   id: string
   title: string
-  /** Shown only in the desktop app. */
-  desktopOnly?: boolean
+  /** Startup and window choices, shown where the host offers them. */
+  startup?: boolean
   settings: Setting[]
 }
 
 const SETTINGS: SettingsSection[] = [
   {
-    id: 'startup', title: 'Startup & Windows', desktopOnly: true,
+    id: 'startup', title: 'Startup & Windows', startup: true,
     settings: [
       { kind: 'check', key: 'reopenLastFile', label: 'Reopen last file on startup' },
       { kind: 'lastFile' },
@@ -194,7 +194,7 @@ export function SettingsSections({ values, update }: {
 }): React.JSX.Element {
   const set = <K extends keyof Preferences>(key: K, value: Preferences[K]): void =>
     update(d => ({ ...d, [key]: value }))
-  const isDesktop = hostCapabilities().kind === 'desktop'
+  const { startupSettings } = hostCapabilities()
 
   function row(setting: Setting): React.JSX.Element | null {
     switch (setting.kind) {
@@ -248,7 +248,7 @@ export function SettingsSections({ values, update }: {
 
   return (
     <div className={styles.settingsGrid}>
-      {SETTINGS.filter(section => isDesktop || !section.desktopOnly).map(section => (
+      {SETTINGS.filter(section => startupSettings || !section.startup).map(section => (
         <section key={section.id} className={styles.section} aria-labelledby={`preferences-${section.id}`}>
           <h3 className={styles.sectionTitle} id={`preferences-${section.id}`}>{section.title}</h3>
           {section.settings.map(row)}

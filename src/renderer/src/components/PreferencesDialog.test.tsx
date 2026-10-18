@@ -25,18 +25,18 @@ describe('Settings sections', () => {
   const shared = ['New Maps', 'Elements', 'Data', 'Map Labels & Marks', 'Dimension-to-color Gradient']
   const titles = (): (string | null)[] => screen.getAllByRole('heading').map(h => h.textContent)
 
-  it('shows the desktop-only section, with the last file, only on the desktop', () => {
+  it('shows the startup section, with the last file, only where the host offers it', () => {
     render(<Harness />)
     expect(titles()).toEqual(['Startup & Windows', ...shared])
     expect(screen.getByText('Last: study.chora')).toBeTruthy()
     cleanup()
 
-    setHostCapabilities({ kind: 'browser' })
+    setHostCapabilities({ startupSettings: false })
     try {
       render(<Harness />)
       expect(titles()).toEqual(shared)
     } finally {
-      setHostCapabilities({ kind: 'desktop' })
+      setHostCapabilities({ startupSettings: true })
     }
   })
 

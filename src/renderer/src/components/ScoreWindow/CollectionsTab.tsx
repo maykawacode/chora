@@ -56,7 +56,7 @@ export function CollectionsTab(): React.JSX.Element {
       {/* ── List pane ── */}
       <div className={styles.listPane} style={splitPane.leftPaneStyle}>
         {/* The browser shows the count in Score's title instead. */}
-        {hostCapabilities().kind === 'desktop' && (
+        {hostCapabilities().scoreChrome && (
           <div className={styles.listHeader}>Collections ({collections.length})</div>
         )}
 

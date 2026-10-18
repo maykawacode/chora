@@ -19,6 +19,9 @@ import { nameUntitledDocument } from './documentName'
 window.api = browserApi
 setHostCapabilities({
   kind: 'browser',
+  scoreChrome: false,
+  startupSettings: false,
+  exportByDownload: true,
   documentSave: inPlaceSaving ? 'file' : 'download',
   nameUntitledDocument
 })

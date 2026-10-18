@@ -516,8 +516,7 @@ export function App({ workspace, scoreFrame, scorePanes, welcome }: AppProps = {
   }
 
   async function handleExport(): Promise<void> {
-    // The browser always exports by download, also where Save writes in place.
-    if (hostCapabilities().kind === 'browser') {
+    if (hostCapabilities().exportByDownload) {
       notifyDownload('spreadsheet')
       return
     }

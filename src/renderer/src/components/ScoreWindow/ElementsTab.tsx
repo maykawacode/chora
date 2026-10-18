@@ -167,7 +167,7 @@ export function ElementsTab(): React.JSX.Element {
       <div className={styles.listPane} style={splitPane.leftPaneStyle}>
         {/* Header doubles as a sort toggle — click cycles creation order ↔ A–Z.
             The browser shows the count and toggle in Score's title instead. */}
-        {hostCapabilities().kind === 'desktop' && (
+        {hostCapabilities().scoreChrome && (
           <button
             className={styles.listHeaderBtn}
             onClick={toggleSort}

@@ -4,10 +4,20 @@
 
 export interface HostCapabilities {
   /**
-   * 'browser' hides desktop-only settings (reopen last file, window positions,
-   * update checks) and labels the version as the web version.
+   * Which edition this is: 'browser' labels the version as the web version,
+   * offers the Mac app in About, and titles the tab without the file extension.
+   * Behaviour that differs by host has a named capability below instead.
    */
   kind: 'desktop' | 'browser'
+  /**
+   * Score draws its own title bar, tab bar and list headers. The browser shows
+   * them in its page banner, strip and pane titles instead.
+   */
+  scoreChrome: boolean
+  /** Settings offers startup and window choices: reopen last file, window positions, update checks. */
+  startupSettings: boolean
+  /** Export always hands over a download, even where Save writes in place. */
+  exportByDownload: boolean
   /**
    * 'file' writes to a chosen path. 'download' hands the browser a copy. Both
    * mark the document saved; a download's write is not confirmed.
@@ -20,7 +30,13 @@ export interface HostCapabilities {
   nameUntitledDocument?: () => Promise<boolean>
 }
 
-let capabilities: HostCapabilities = { kind: 'desktop', documentSave: 'file' }
+let capabilities: HostCapabilities = {
+  kind: 'desktop',
+  scoreChrome: true,
+  startupSettings: true,
+  exportByDownload: false,
+  documentSave: 'file'
+}
 
 export function hostCapabilities(): HostCapabilities {
   return capabilities
