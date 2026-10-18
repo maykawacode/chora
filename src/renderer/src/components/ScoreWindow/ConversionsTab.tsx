@@ -2,12 +2,15 @@
 //
 // Four groups, in order: mapping (FROM → TO, the CONVERSIONS table),
 // randomizing (FOR → RANDOMIZE, the RANDOMIZERS table), scaling, and advanced
-// whole-study conversions (ADVANCED). Every change is a pure transform
-// (store/transforms.ts) applied through the store.
+// whole-study conversions (ADVANCED). Each group is one field: its choices,
+// then a result text saying what applying will do, beside the forward arrow
+// that applies it. Every change is a pure transform (store/transforms.ts)
+// applied through the store.
 
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useAppStore } from '../../store/appStore'
 import { usePrefsStore } from '../../store/prefsStore'
+import type { Dimension } from '../../lib/types'
 import {
   colorFromCollections, colorFromScores, colorFromShape, collectionsFromShape, copyScores,
   randomCollectionAssignments, randomCollectionColors, randomDimensionWeight, randomElementColors,
@@ -17,9 +20,11 @@ import {
 import { ConfirmationDisc, ForwardActionButton } from '../ConfirmationDisc'
 import styles from './ConversionsTab.module.css'
 
+// ── Mapping ───────────────────────────────────────────────────────────────────
+
 type Kind = 'dim-scores' | 'el-weight' | 'collection' | 'el-shape' | 'el-color'
 
-const LABELS: Record<Kind, string> = {
+const KIND_LABELS: Record<Kind, string> = {
   'dim-scores': 'Dimension scores',
   'el-weight':  'Element weight',
   'collection': 'Collection membership',
@@ -27,9 +32,18 @@ const LABELS: Record<Kind, string> = {
   'el-color':   'Element color'
 }
 
-interface Choices { fromDimId: string; toDimId: string; flipped: boolean; colorLow: string; colorHigh: string }
+interface MappingChoices {
+  from: Kind | ''
+  to: Kind | ''
+  fromDimId: string
+  toDimId: string
+  /** The high end is pole A rather than pole B. */
+  flipped: boolean
+  colorLow: string
+  colorHigh: string
+}
 
-/** The labels a result text names: the chosen dimensions, and the ends of the pole choice. */
+/** The names a result text uses: the chosen dimensions, and the ends of the pole choice. */
 interface SummaryLabels { from: string; to: string; high: string; low: string }
 
 /**
@@ -42,7 +56,7 @@ interface Conversion {
   from: Kind
   to: Kind
   summary: (labels: SummaryLabels) => string
-  apply: (choices: Choices) => Transform
+  apply: (choices: MappingChoices) => Transform
   pole?: 'from' | 'to'
   colors?: boolean
   needsCollections?: boolean
@@ -80,6 +94,8 @@ const CONVERSIONS: Conversion[] = [
 ]
 
 const SOURCES = [...new Set(CONVERSIONS.map(c => c.from))]
+
+// ── Randomizing ───────────────────────────────────────────────────────────────
 
 type RandomTarget = 'elements' | 'dimensions' | 'collections'
 type RandomAttribute = 'weights' | 'colors' | 'shapes' | 'members' | 'scores' | 'weight'
@@ -132,6 +148,8 @@ const RANDOMIZERS: Randomizer[] = [
 
 const RANDOM_TARGETS = [...new Set(RANDOMIZERS.map(r => r.target))]
 
+// ── Advanced ──────────────────────────────────────────────────────────────────
+
 /** Predefined whole-study conversions. Each replaces a great deal, so it applies in red; one Undo reverses it. */
 const ADVANCED: { id: string; label: string; summary: string; apply: Transform }[] = [
   { id: 'randomize-all', label: 'Randomize All Values',
@@ -139,17 +157,90 @@ const ADVANCED: { id: string; label: string; summary: string; apply: Transform }
     apply: randomizeAll }
 ]
 
-/** Each field's apply control: the action named beside the green forward arrow. */
-function ApplyRow({ label, applied, onApply, destructive = false }: {
-  label: string; applied: boolean; onApply: () => void; destructive?: boolean
+// ── Shared pieces ─────────────────────────────────────────────────────────────
+
+/**
+ * A group's choices, and whether they have been applied. Any change to a
+ * choice clears `applied`, so the arrow is ready again; the same choices can
+ * be applied again (a randomizer rerolled) by changing one and back.
+ */
+function useChoices<T extends object>(initial: T): [T & { applied: boolean }, (patch: Partial<T>) => void, () => void] {
+  const [state, setState] = useState({ ...initial, applied: false })
+  const choose = (patch: Partial<T>): void => setState(s => ({ ...s, ...patch, applied: false }))
+  const markApplied = (): void => setState(s => ({ ...s, applied: true }))
+  return [state, choose, markApplied]
+}
+
+/** A dimension's name as the menus and result texts show it, numbered when it has no label. */
+const dimensionName = (dimension: Dimension, dimensions: Dimension[]): string =>
+  dimension.label || `Dimension ${dimensions.indexOf(dimension) + 1}`
+
+/** A dimension menu, or a hint when there are none; `exclude` leaves one out. */
+function DimensionSelect({ dimensions, value, onChange, label, exclude }: {
+  dimensions: Dimension[]; value: string; onChange: (id: string) => void; label: string; exclude?: string
 }): React.JSX.Element {
+  if (dimensions.length === 0) return <p className={styles.hint}>No dimensions defined.</p>
   return (
-    <div className={styles.applyRow}>
-      <span className={styles.applyLabel}>{applied ? 'Applied' : label}</span>
-      <ForwardActionButton label={applied ? 'Applied' : label} disabled={applied} destructive={destructive} onClick={onApply} />
+    <select className={styles.select} value={value} onChange={e => onChange(e.target.value)} aria-label={label}>
+      <option value="">Choose dimension…</option>
+      {dimensions.filter(d => d.id !== exclude).map(d => (
+        <option key={d.id} value={d.id}>{dimensionName(d, dimensions)}</option>
+      ))}
+    </select>
+  )
+}
+
+/** A nested choice under a step, with its own small label. */
+function SubControl({ label, children }: { label: string; children: ReactNode }): React.JSX.Element {
+  return (
+    <div className={styles.subControl}>
+      <div className={styles.subLabel}>{label}</div>
+      {children}
     </div>
   )
 }
+
+/**
+ * One step of a field: its label at the field's edge, its choices indented
+ * beside it. `leadsOn` draws the thin arrow from under the label down to the
+ * next step.
+ */
+function Step({ label, leadsOn, children }: { label: string; leadsOn: boolean; children: ReactNode }): React.JSX.Element {
+  return (
+    <div className={styles.step}>
+      <div className={styles.stepLabel}>{label}</div>
+      <div className={leadsOn ? `${styles.stepBody} ${styles.flowDown}` : styles.stepBody}>{children}</div>
+    </div>
+  )
+}
+
+/** What applying will do, and the action named beside the forward arrow that applies it. */
+function Result({ text, label, applied, onApply, destructive = false }: {
+  text: string; label: string; applied: boolean; onApply: () => void; destructive?: boolean
+}): React.JSX.Element {
+  const name = applied ? 'Applied' : label
+  return (
+    <div className={styles.result}>
+      <p className={styles.resultText}>{text}</p>
+      <div className={styles.applyRow}>
+        <span className={styles.applyLabel}>{name}</span>
+        <ForwardActionButton label={name} disabled={applied} destructive={destructive} onClick={onApply} />
+      </div>
+    </div>
+  )
+}
+
+/** A titled group holding one field. */
+function Group({ title, children }: { title: string; children: ReactNode }): React.JSX.Element {
+  return (
+    <section className={styles.group}>
+      <h2 className={styles.groupTitle}>{title}</h2>
+      <div className={styles.field}>{children}</div>
+    </section>
+  )
+}
+
+// ── The view ──────────────────────────────────────────────────────────────────
 
 export function ConversionsTab(): React.JSX.Element {
   const elements    = useAppStore(s => s.elements)
@@ -157,444 +248,289 @@ export function ConversionsTab(): React.JSX.Element {
   const collections = useAppStore(s => s.collections)
   const scores      = useAppStore(s => s.scores)
   const transform   = useAppStore(s => s.transform)
+  const { dimColorLow, dimColorHigh } = usePrefsStore(s => s.prefs)
 
-  const { dimColorLow: prefLow, dimColorHigh: prefHigh } = usePrefsStore(s => s.prefs)
+  const findDimension = (id: string): Dimension | null => dimensions.find(d => d.id === id) ?? null
+  const nameOf = (dimension: Dimension | null): string =>
+    dimension ? dimensionName(dimension, dimensions) : 'the chosen dimension'
 
-  const [fromSource,  setFromSource]  = useState<Kind | ''>('')
-  const [toTarget,    setToTarget]    = useState<Kind | ''>('')
-  const [fromDimId,   setFromDimId]   = useState('')
-  const [toDimId,     setToDimId]     = useState('')
-  const [poleFlipped, setPoleFlipped] = useState(false)
-  const [colorLow,    setColorLow]    = useState(prefLow)
-  const [colorHigh,   setColorHigh]   = useState(prefHigh)
-  const [applied,     setApplied]     = useState(false)
+  // ── Mapping ──
+  const [mapping, chooseMapping, mappingApplied] = useChoices<MappingChoices>({
+    from: '', to: '', fromDimId: '', toDimId: '', flipped: false, colorLow: dimColorLow, colorHigh: dimColorHigh
+  })
+  const conversion = CONVERSIONS.find(c => c.from === mapping.from && c.to === mapping.to) ?? null
+  const fromDim = findDimension(mapping.fromDimId)
+  const toDim = findDimension(mapping.toDimId)
+  const poleDim = conversion?.pole === 'from' ? fromDim : toDim
+  const poleA = poleDim?.poleA || 'Pole A'
+  const poleB = poleDim?.poleB || 'Pole B'
+  const mappingNoCollections = !!conversion?.needsCollections && collections.length === 0
+  const canMap = !!conversion && !mappingNoCollections &&
+    (mapping.from !== 'dim-scores' || !!fromDim) &&
+    (mapping.to !== 'dim-scores' || !!toDim)
 
-  const [spreadDimId, setSpreadDimId] = useState('')
-  const [spreadApplied, setSpreadApplied] = useState(false)
-  const [randomTarget, setRandomTarget] = useState<RandomTarget | ''>('')
-  const [randomAttribute, setRandomAttribute] = useState<RandomAttribute | ''>('')
-  const [randomDimId, setRandomDimId] = useState('')
-  const [randomizerApplied, setRandomizerApplied] = useState(false)
-  const [showRandomizeConfirm, setShowRandomizeConfirm] = useState(false)
-  const spreadDim = spreadDimId ? dimensions.find(d => d.id === spreadDimId) ?? null : null
+  function applyMapping(): void {
+    if (!canMap || !conversion) return
+    transform(conversion.apply(mapping))
+    mappingApplied()
+  }
 
-  const randomizer = RANDOMIZERS.find(r => r.target === randomTarget && r.attribute === randomAttribute) ?? null
-  const randomDim = randomDimId ? dimensions.find(d => d.id === randomDimId) ?? null : null
-  const randomDimName = randomDim ? randomDim.label || `Dimension ${dimensions.indexOf(randomDim) + 1}` : ''
-  const forDimension = randomTarget === 'dimensions'
-  // Only scores can be overwritten: every other randomizer replaces values that always exist.
-  const randomOverwrites = randomAttribute === 'scores' && !!randomDim &&
-    Object.values(scores).some(row => row[randomDim.id] !== undefined)
-  const noCollectionsToRandomize = randomTarget === 'collections' && collections.length === 0
+  // ── Randomizing ──
+  const [random, chooseRandom, randomApplied] = useChoices<{
+    target: RandomTarget | ''; attribute: RandomAttribute | ''; dimId: string
+  }>({ target: '', attribute: '', dimId: '' })
+  const [confirmingOverwrite, setConfirmingOverwrite] = useState(false)
+  const randomizer = RANDOMIZERS.find(r => r.target === random.target && r.attribute === random.attribute) ?? null
+  const randomDim = findDimension(random.dimId)
+  const forDimension = random.target === 'dimensions'
+  const randomNoCollections = random.target === 'collections' && collections.length === 0
   // A dimension is chosen before what to randomize on it.
-  const attributeReady = !!randomTarget && (!forDimension || !!randomDim) && !noCollectionsToRandomize
+  const attributeReady = !!random.target && (!forDimension || !!randomDim) && !randomNoCollections
   const canRandomize = !!randomizer && attributeReady
-  const randomSummary = canRandomize && randomizer
-    ? randomizer.summary({ dimension: randomDimName, overwrites: randomOverwrites })
-    : ''
-
-  function chooseRandomTarget(value: string): void {
-    setRandomTarget(value as RandomTarget | '')
-    setRandomAttribute('')
-    setRandomDimId('')
-    setRandomizerApplied(false)
-    setShowRandomizeConfirm(false)
-  }
-
-  function chooseRandomAttribute(value: string): void {
-    setRandomAttribute(value as RandomAttribute | '')
-    setRandomizerApplied(false)
-    setShowRandomizeConfirm(false)
-  }
-
-  const spreadSummary = spreadDim
-    ? `Rescales ${spreadDim.label || 'this dimension'} scores so the lowest is .05 and the highest .95, keeping their spacing. Unscored elements keep theirs.`
-    : ''
-
-  function handleSpreadApply(): void {
-    if (!spreadDim) return
-    transform(spreadScores(spreadDim.id))
-    setSpreadApplied(true)
-  }
+  // Only scores can be overwritten: every other randomizer replaces values that always exist.
+  const randomOverwrites = random.attribute === 'scores' && !!randomDim &&
+    Object.values(scores).some(row => row[randomDim.id] !== undefined)
 
   function applyRandomizer(): void {
+    setConfirmingOverwrite(false)
     if (!canRandomize || !randomizer) return
-    transform(randomizer.apply(randomDimId))
-    setRandomizerApplied(true)
-    setShowRandomizeConfirm(false)
+    transform(randomizer.apply(random.dimId))
+    randomApplied()
   }
 
-  function handleRandomize(): void {
-    if (!canRandomize) return
-    if (randomOverwrites) {
-      setShowRandomizeConfirm(true)
-      return
-    }
-    applyRandomizer()
+  // ── Scaling ──
+  const [spread, chooseSpread, spreadApplied] = useChoices({ dimId: '' })
+  const spreadDim = findDimension(spread.dimId)
+
+  function applySpread(): void {
+    if (!spreadDim) return
+    transform(spreadScores(spreadDim.id))
+    spreadApplied()
   }
 
-  const [advancedId, setAdvancedId] = useState('')
-  const [advancedApplied, setAdvancedApplied] = useState(false)
-  const advanced = ADVANCED.find(a => a.id === advancedId) ?? null
+  // ── Advanced ──
+  const [advancedChoice, chooseAdvanced, advancedApplied] = useChoices({ id: '' })
+  const advanced = ADVANCED.find(a => a.id === advancedChoice.id) ?? null
   const studyEmpty = elements.length === 0 && dimensions.length === 0 && collections.length === 0
 
   function applyAdvanced(): void {
     if (!advanced) return
     transform(advanced.apply)
-    setAdvancedApplied(true)
-  }
-
-  function handleFromChange(val: string): void {
-    setFromSource(val as Kind | '')
-    setToTarget('')
-    setFromDimId('')
-    setToDimId('')
-    setPoleFlipped(false)
-    setApplied(false)
-  }
-
-  function handleToChange(val: string): void {
-    setToTarget(val as Kind | '')
-    setToDimId('')
-    setPoleFlipped(false)
-    setApplied(false)
-  }
-
-  const conversion = CONVERSIONS.find(c => c.from === fromSource && c.to === toTarget) ?? null
-  const showFromDimPicker = fromSource === 'dim-scores'
-  const showToDimPicker   = toTarget === 'dim-scores'
-
-  const fromDim = fromDimId ? dimensions.find(d => d.id === fromDimId) ?? null : null
-  const toDim   = toDimId   ? dimensions.find(d => d.id === toDimId)   ?? null : null
-  const poleDim = conversion?.pole === 'from' ? fromDim : toDim
-  const noCollections = !!conversion?.needsCollections && collections.length === 0
-
-  const canApply = !!conversion &&
-    (fromSource !== 'dim-scores' || !!fromDim) &&
-    (toTarget !== 'dim-scores' || !!toDim) &&
-    !(fromSource === 'dim-scores' && toTarget === 'dim-scores' && fromDimId === toDimId) &&
-    !noCollections
-
-  const poleA = poleDim?.poleA || 'Pole A'
-  const poleB = poleDim?.poleB || 'Pole B'
-  const summary = conversion?.summary({
-    from: fromDim?.label || 'the chosen dimension',
-    to: toDim?.label || 'the chosen dimension',
-    high: poleFlipped ? poleA : poleB,
-    low: poleFlipped ? poleB : poleA
-  }) ?? ''
-
-  function handleApply(): void {
-    if (!canApply || !conversion) return
-    transform(conversion.apply({ fromDimId, toDimId, flipped: poleFlipped, colorLow, colorHigh }))
-    setApplied(true)
+    advancedApplied()
   }
 
   return (
     <div className={styles.tab}>
 
-      <section className={styles.group}>
-        <h2 className={styles.groupTitle}>Map Attributes to Attributes</h2>
-        <div className={styles.groupBody}>
-
-      {/* One field: FROM, TO, then what the mapping will do and the green
-          arrow that applies it. Thin arrows run down from each label
-          to the next step, and each label's contents sit indented beside them. */}
-      <div className={styles.pipeline}>
-
-      {/* ── FROM ────────────────────────────────────────────────────────────── */}
-      <div className={styles.step}>
-        <div className={styles.sectionLabel}>From</div>
-        <div className={`${styles.sectionBody} ${styles.flowDown}`}>
-
+      <Group title="Map Attributes to Attributes">
+        <Step label="From" leadsOn>
           <select
             className={styles.select}
-            value={fromSource}
-            onChange={e => handleFromChange(e.target.value)}
+            value={mapping.from}
+            onChange={e => chooseMapping({
+              from: e.target.value as Kind | '', to: '', fromDimId: '', toDimId: '', flipped: false
+            })}
             aria-label="Source"
-            data-transform-source
           >
             <option value="">Choose source…</option>
-            {SOURCES.map(k => <option key={k} value={k}>{LABELS[k]}</option>)}
+            {SOURCES.map(k => <option key={k} value={k}>{KIND_LABELS[k]}</option>)}
           </select>
 
-          {showFromDimPicker && (
-            <div className={styles.subControl}>
-              <div className={styles.subLabel}>Dimension</div>
-              {dimensions.length === 0
-                ? <p className={styles.hint}>No dimensions defined.</p>
-                : (
-                  <select
-                    className={styles.select}
-                    value={fromDimId}
-                    onChange={e => { const v = e.target.value; setFromDimId(v); if (v === toDimId) setToDimId(''); setApplied(false) }}
-                    aria-label="Source dimension"
-                  >
-                    <option value="">Choose dimension…</option>
-                    {dimensions.map((d, i) => (
-                      <option key={d.id} value={d.id}>{d.label || `Dimension ${i + 1}`}</option>
-                    ))}
-                  </select>
-                )
-              }
-            </div>
+          {mapping.from === 'dim-scores' && (
+            <SubControl label="Dimension">
+              <DimensionSelect
+                dimensions={dimensions}
+                value={mapping.fromDimId}
+                // A dimension cannot be copied onto itself.
+                onChange={id => chooseMapping({ fromDimId: id, ...(id === mapping.toDimId && { toDimId: '' }) })}
+                label="Source dimension"
+              />
+            </SubControl>
           )}
-        </div>
-      </div>
+        </Step>
 
-      {/* ── TO ──────────────────────────────────────────────────────────────── */}
-      <div className={styles.step}>
-        <div className={styles.sectionLabel}>To</div>
-        <div className={canApply ? `${styles.sectionBody} ${styles.flowDown}` : styles.sectionBody}>
-
+        <Step label="To" leadsOn={canMap}>
           <select
             className={styles.select}
-            value={toTarget}
-            disabled={!fromSource}
-            onChange={e => handleToChange(e.target.value)}
+            value={mapping.to}
+            disabled={!mapping.from}
+            onChange={e => chooseMapping({ to: e.target.value as Kind | '', toDimId: '', flipped: false })}
             aria-label="Destination"
           >
-            {!fromSource
+            {!mapping.from
               ? <option value="">Choose a source first…</option>
               : <>
                   <option value="">Choose destination…</option>
-                  {CONVERSIONS.filter(c => c.from === fromSource).map(c => (
-                    <option key={c.to} value={c.to}>{LABELS[c.to]}</option>
+                  {CONVERSIONS.filter(c => c.from === mapping.from).map(c => (
+                    <option key={c.to} value={c.to}>{KIND_LABELS[c.to]}</option>
                   ))}
                 </>
             }
           </select>
 
-          {showToDimPicker && (
-            <div className={styles.subControl}>
-              <div className={styles.subLabel}>Dimension</div>
-              {dimensions.length === 0
-                ? <p className={styles.hint}>No dimensions defined.</p>
-                : (
-                  <select
-                    className={styles.select}
-                    value={toDimId}
-                    onChange={e => { setToDimId(e.target.value); setApplied(false) }}
-                    aria-label="Destination dimension"
-                  >
-                    <option value="">Choose dimension…</option>
-                    {dimensions
-                      .filter(d => !(fromSource === 'dim-scores' && d.id === fromDimId))
-                      .map((d, i) => (
-                        <option key={d.id} value={d.id}>{d.label || `Dimension ${i + 1}`}</option>
-                      ))}
-                  </select>
-                )
-              }
-            </div>
+          {mapping.to === 'dim-scores' && (
+            <SubControl label="Dimension">
+              <DimensionSelect
+                dimensions={dimensions}
+                value={mapping.toDimId}
+                onChange={id => chooseMapping({ toDimId: id })}
+                label="Destination dimension"
+                exclude={mapping.from === 'dim-scores' ? mapping.fromDimId : undefined}
+              />
+            </SubControl>
           )}
 
           {conversion?.pole && poleDim && (
-            <div className={styles.subControl}>
-              <div className={styles.subLabel}>High end</div>
+            <SubControl label="High end">
               <div className={styles.poleButtons} role="group" aria-label="High end">
-                <button
-                  type="button"
-                  className={`${styles.poleBtn} ${poleFlipped ? styles.poleBtnActive : ''}`}
-                  onClick={() => { setPoleFlipped(true); setApplied(false) }}
-                  aria-pressed={poleFlipped}
-                >
-                  {poleDim.poleA || 'Pole A'}
-                </button>
-                <button
-                  type="button"
-                  className={`${styles.poleBtn} ${!poleFlipped ? styles.poleBtnActive : ''}`}
-                  onClick={() => { setPoleFlipped(false); setApplied(false) }}
-                  aria-pressed={!poleFlipped}
-                >
-                  {poleDim.poleB || 'Pole B'}
-                </button>
+                {[{ flipped: true, name: poleA }, { flipped: false, name: poleB }].map(pole => (
+                  <button
+                    key={String(pole.flipped)}
+                    type="button"
+                    className={`${styles.poleBtn} ${mapping.flipped === pole.flipped ? styles.poleBtnActive : ''}`}
+                    onClick={() => chooseMapping({ flipped: pole.flipped })}
+                    aria-pressed={mapping.flipped === pole.flipped}
+                  >
+                    {pole.name}
+                  </button>
+                ))}
               </div>
-            </div>
+            </SubControl>
           )}
 
           {conversion?.colors && (
             <div className={styles.colorRow}>
               <label className={styles.colorField}>
                 <span className={styles.subLabel}>Low ({fromDim?.poleA || 'score 0'})</span>
-                <input type="color" className={styles.colorPicker} value={colorLow}
-                  onChange={e => { setColorLow(e.target.value); setApplied(false) }} />
+                <input type="color" className={styles.colorPicker} value={mapping.colorLow}
+                  onChange={e => chooseMapping({ colorLow: e.target.value })} />
               </label>
               <label className={styles.colorField}>
                 <span className={styles.subLabel}>High ({fromDim?.poleB || 'score 1'})</span>
-                <input type="color" className={styles.colorPicker} value={colorHigh}
-                  onChange={e => { setColorHigh(e.target.value); setApplied(false) }} />
+                <input type="color" className={styles.colorPicker} value={mapping.colorHigh}
+                  onChange={e => chooseMapping({ colorHigh: e.target.value })} />
               </label>
             </div>
           )}
 
-          {noCollections && <p className={styles.hint}>No collections defined.</p>}
-        </div>
-      </div>
+          {mappingNoCollections && <p className={styles.hint}>No collections defined.</p>}
+        </Step>
 
-      {canApply && (
-        <div className={styles.pipelineFooter}>
-          {summary && <p className={styles.pipelineSummary}>{summary}</p>}
-          <ApplyRow label="Apply Conversion" applied={applied} onApply={handleApply} />
-        </div>
-      )}
+        {canMap && conversion && (
+          <Result
+            text={conversion.summary({
+              from: nameOf(fromDim),
+              to: nameOf(toDim),
+              high: mapping.flipped ? poleA : poleB,
+              low: mapping.flipped ? poleB : poleA
+            })}
+            label="Apply Conversion"
+            applied={mapping.applied}
+            onApply={applyMapping}
+          />
+        )}
+      </Group>
 
-      </div>
+      <Group title="Randomize Attribute Values">
+        <Step label="For" leadsOn>
+          <select
+            className={styles.select}
+            value={random.target}
+            onChange={e => chooseRandom({ target: e.target.value as RandomTarget | '', attribute: '', dimId: '' })}
+            aria-label="Randomize for"
+          >
+            <option value="">Choose elements, dimensions or collections…</option>
+            {RANDOM_TARGETS.map(t => <option key={t} value={t}>{TARGET_LABELS[t]}</option>)}
+          </select>
 
-        </div>
-      </section>
+          {forDimension && (
+            <SubControl label="Dimension">
+              <DimensionSelect
+                dimensions={dimensions}
+                value={random.dimId}
+                onChange={id => chooseRandom({ dimId: id })}
+                label="Dimension to randomize"
+              />
+            </SubControl>
+          )}
 
-      <section className={styles.group}>
-        <h2 className={styles.groupTitle}>Randomize Attribute Values</h2>
-        <div className={styles.groupBody}>
-          {/* FOR, then RANDOMIZE, then the result, in one field like the mapping. */}
-          <div className={styles.pipeline}>
-            <div className={styles.step}>
-              <div className={styles.sectionLabel}>For</div>
-              <div className={`${styles.sectionBody} ${styles.flowDown}`}>
-                <select
-                  className={styles.select}
-                  value={randomTarget}
-                  onChange={e => chooseRandomTarget(e.target.value)}
-                  aria-label="Randomize for"
-                >
-                  <option value="">Choose elements, dimensions or collections…</option>
-                  {RANDOM_TARGETS.map(t => <option key={t} value={t}>{TARGET_LABELS[t]}</option>)}
-                </select>
+          {randomNoCollections && <p className={styles.hint}>No collections defined.</p>}
+        </Step>
 
-                {forDimension && (
-                  <div className={styles.subControl}>
-                    <div className={styles.subLabel}>Dimension</div>
-                    {dimensions.length === 0
-                      ? <p className={styles.hint}>No dimensions defined.</p>
-                      : (
-                        <select
-                          className={styles.select}
-                          value={randomDimId}
-                          onChange={e => { setRandomDimId(e.target.value); setRandomizerApplied(false); setShowRandomizeConfirm(false) }}
-                          aria-label="Dimension to randomize"
-                        >
-                          <option value="">Choose dimension…</option>
-                          {dimensions.map((d, i) => (
-                            <option key={d.id} value={d.id}>{d.label || `Dimension ${i + 1}`}</option>
-                          ))}
-                        </select>
-                      )
-                    }
-                  </div>
-                )}
+        <Step label="Randomize" leadsOn={canRandomize}>
+          <select
+            className={styles.select}
+            value={random.attribute}
+            disabled={!attributeReady}
+            onChange={e => chooseRandom({ attribute: e.target.value as RandomAttribute | '' })}
+            aria-label="Attribute to randomize"
+          >
+            {!attributeReady
+              ? <option value="">{forDimension ? 'Choose a dimension first…' : 'Choose what to randomize for first…'}</option>
+              : <>
+                  <option value="">Choose attribute…</option>
+                  {RANDOMIZERS.filter(r => r.target === random.target).map(r => (
+                    <option key={r.attribute} value={r.attribute}>{ATTRIBUTE_LABELS[r.attribute]}</option>
+                  ))}
+                </>
+            }
+          </select>
+        </Step>
 
-                {noCollectionsToRandomize && <p className={styles.hint}>No collections defined.</p>}
-              </div>
-            </div>
+        {canRandomize && randomizer && (
+          <Result
+            text={randomizer.summary({ dimension: nameOf(randomDim), overwrites: randomOverwrites })}
+            label={randomOverwrites ? 'Overwrite & Randomize' : 'Apply Randomizer'}
+            applied={random.applied}
+            // Overwriting scores asks first.
+            onApply={randomOverwrites ? () => setConfirmingOverwrite(true) : applyRandomizer}
+          />
+        )}
+      </Group>
 
-            <div className={styles.step}>
-              <div className={styles.sectionLabel}>Randomize</div>
-              <div className={canRandomize ? `${styles.sectionBody} ${styles.flowDown}` : styles.sectionBody}>
-                <select
-                  className={styles.select}
-                  value={randomAttribute}
-                  disabled={!attributeReady}
-                  onChange={e => chooseRandomAttribute(e.target.value)}
-                  aria-label="Attribute to randomize"
-                >
-                  {!attributeReady
-                    ? <option value="">{forDimension ? 'Choose a dimension first…' : 'Choose what to randomize for first…'}</option>
-                    : <>
-                        <option value="">Choose attribute…</option>
-                        {RANDOMIZERS.filter(r => r.target === randomTarget).map(r => (
-                          <option key={r.attribute} value={r.attribute}>{ATTRIBUTE_LABELS[r.attribute]}</option>
-                        ))}
-                      </>
-                  }
-                </select>
-              </div>
-            </div>
+      <Group title="Scale Dimension to Range">
+        <DimensionSelect
+          dimensions={dimensions}
+          value={spread.dimId}
+          onChange={id => chooseSpread({ dimId: id })}
+          label="Dimension to spread"
+        />
 
-            {canRandomize && (
-              <div className={styles.pipelineFooter}>
-                <p className={styles.pipelineSummary}>{randomSummary}</p>
-                {/* Overwriting scores still asks first (the disc below). */}
-                <ApplyRow
-                  label={randomOverwrites ? 'Overwrite & Randomize' : 'Apply Randomizer'}
-                  applied={randomizerApplied}
-                  onApply={handleRandomize}
-                />
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
+        {spreadDim && (
+          <Result
+            text={`Rescales ${nameOf(spreadDim)} scores so the lowest is .05 and the highest .95, keeping their spacing. Unscored elements keep theirs.`}
+            label="Apply Spread"
+            applied={spread.applied}
+            onApply={applySpread}
+          />
+        )}
+      </Group>
 
-      {/* ── Spread: rescale a dimension's scores to fill .05–.95 ───────────── */}
-      <section className={styles.group}>
-        <h2 className={styles.groupTitle}>Scale Dimension to Range</h2>
-        <div className={styles.groupBody}>
-          {/* The dropdown, then the result below it, as in the mapping field. */}
-          <div className={`${styles.section} ${styles.stepField}`}>
+      <Group title="Advanced">
+        <select
+          className={styles.select}
+          value={advancedChoice.id}
+          onChange={e => chooseAdvanced({ id: e.target.value })}
+          aria-label="Advanced conversion"
+        >
+          <option value="">Choose conversion…</option>
+          {ADVANCED.map(a => <option key={a.id} value={a.id}>{a.label}</option>)}
+        </select>
 
-            <select
-              className={styles.select}
-              value={spreadDimId}
-              onChange={e => { setSpreadDimId(e.target.value); setSpreadApplied(false) }}
-              aria-label="Dimension to spread"
-            >
-              <option value="">Choose dimension…</option>
-              {dimensions.map((d, i) => (
-                <option key={d.id} value={d.id}>{d.label || `Dimension ${i + 1}`}</option>
-              ))}
-            </select>
+        {advanced && studyEmpty && <p className={styles.hint}>Add elements, dimensions or collections first.</p>}
 
-            {spreadDim && (
-              <div className={styles.pipelineFooter}>
-                <p className={styles.pipelineSummary}>{spreadSummary}</p>
-                <ApplyRow label="Apply Spread" applied={spreadApplied} onApply={handleSpreadApply} />
-              </div>
-            )}
+        {advanced && !studyEmpty && (
+          <Result text={advanced.summary} label={advanced.label} applied={advancedChoice.applied} destructive onApply={applyAdvanced} />
+        )}
+      </Group>
 
-          </div>
-        </div>
-      </section>
-
-      {/* ── Advanced: whole-study conversions ───────────────────────────────── */}
-      <section className={styles.group}>
-        <h2 className={styles.groupTitle}>Advanced</h2>
-        <div className={styles.groupBody}>
-          <div className={`${styles.section} ${styles.stepField}`}>
-            <select
-              className={styles.select}
-              value={advancedId}
-              onChange={e => { setAdvancedId(e.target.value); setAdvancedApplied(false) }}
-              aria-label="Advanced conversion"
-            >
-              <option value="">Choose conversion…</option>
-              {ADVANCED.map(a => <option key={a.id} value={a.id}>{a.label}</option>)}
-            </select>
-
-            {advanced && studyEmpty && <p className={styles.hint}>Add elements, dimensions or collections first.</p>}
-
-            {advanced && !studyEmpty && (
-              <div className={styles.pipelineFooter}>
-                <p className={styles.pipelineSummary}>{advanced.summary}</p>
-                <ApplyRow
-                  label={advanced.label}
-                  applied={advancedApplied}
-                  destructive
-                  onApply={applyAdvanced}
-                />
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {showRandomizeConfirm && canRandomize && (
+      {confirmingOverwrite && canRandomize && (
         <ConfirmationDisc
           fixed
           title="Randomize scores?"
           detail="This will overwrite existing scores with new values"
           actionLabel="Randomize"
-          onCancel={() => setShowRandomizeConfirm(false)}
+          onCancel={() => setConfirmingOverwrite(false)}
           onAction={applyRandomizer}
         />
       )}

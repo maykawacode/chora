@@ -1,14 +1,18 @@
+/* Everything shrinks with the view and nothing scrolls sideways: headings and
+   labels stay on one line and end in "…", the dropdowns shorten their chosen
+   option, and result texts wrap. */
 .tab {
   display: flex;
   flex-direction: column;
   flex: 1;
   min-height: 0;
+  overflow-x: hidden;
   overflow-y: auto;
   padding: var(--space-four);
   gap: var(--space-four);
 }
 
-/* ── Conversion groups ───────────────────────────────────────────────────── */
+/* ── Groups and fields ───────────────────────────────────────────────────── */
 
 .group {
   display: flex;
@@ -23,24 +27,29 @@
   color: var(--color-text-secondary);
 }
 
-.groupBody {
+/* Each group's one field: its steps, then the result, each a step apart. */
+.field {
   display: flex;
   flex-direction: column;
-}
-
-/* ── Fields ──────────────────────────────────────────────────────────────── */
-
-.section {
+  gap: var(--space-five);
   background: var(--color-surface-field);
   border: 1px solid var(--color-border-control);
   border-radius: var(--radius-control);
   padding: var(--space-three);
+}
+
+/* ── Steps ───────────────────────────────────────────────────────────────────
+   Each step's label sits at the field's left edge with its choices indented
+   beside a thin arrow that runs from under the label down to the top of the
+   next step: FROM to TO, and TO to the result. */
+
+.step {
   display: flex;
   flex-direction: column;
   gap: var(--space-two);
 }
 
-.sectionLabel {
+.stepLabel {
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-semibold);
   color: var(--color-text-muted);
@@ -48,10 +57,51 @@
   letter-spacing: 0.08em;
 }
 
+.stepBody {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-two);
+  padding-left: 20px; /* raw: indent beside the flow arrows */
+}
+
+/* The line, ending at the next step's first letter, one field gap below. */
+.flowDown::before {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 2px;
+  bottom: calc(2px - var(--space-five));
+  border-left: 1px solid var(--color-text-muted);
+}
+
+/* Its arrowhead. */
+.flowDown::after {
+  content: '';
+  position: absolute;
+  left: 1px;
+  bottom: calc(3px - var(--space-five));
+  width: 5px;
+  height: 5px;
+  border-right: 1px solid var(--color-text-muted);
+  border-bottom: 1px solid var(--color-text-muted);
+  transform: rotate(45deg);
+}
+
+.groupTitle,
+.stepLabel,
+.subLabel {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* ── Dropdowns ───────────────────────────────────────────────────────────── */
 
 .select {
   width: 100%;
+  min-width: 0;
   padding: var(--space-one) var(--space-two);
   min-height: var(--size-control);
   border: 1px solid transparent; /* shown on focus */
@@ -60,6 +110,7 @@
   font-family: inherit;
   font-size: var(--font-size-body);
   color: var(--color-text-primary);
+  text-overflow: ellipsis;
 }
 
 .select:disabled {
@@ -67,7 +118,7 @@
   background: var(--color-surface-disabled);
 }
 
-/* ── Sub-controls (nested pickers, pole toggle) ──────────────────────────── */
+/* ── Nested choices (dimension pickers, pole toggle) ─────────────────────── */
 
 .subControl {
   display: flex;
@@ -81,15 +132,13 @@
   color: var(--color-text-secondary);
 }
 
-/* ── Hints ───────────────────────────────────────────────────────────────── */
-
 .hint {
   font-size: var(--font-size-control);
   color: var(--color-warning-text);
   margin: 0;
 }
 
-/* ── Color pickers (dim → element color) ────────────────────────────────── */
+/* ── Color pickers (dimension scores → element color) ────────────────────── */
 
 .colorRow {
   display: flex;
@@ -98,8 +147,10 @@
 
 .colorField {
   display: flex;
+  flex: 1 1 0;
   flex-direction: column;
   gap: var(--space-one);
+  min-width: 0;
   cursor: pointer;
 }
 
@@ -112,8 +163,6 @@
   background: var(--color-surface-text-field);
   cursor: pointer;
 }
-
-
 
 /* ── Pole toggle ─────────────────────────────────────────────────────────── */
 
@@ -153,98 +202,15 @@
   font-weight: var(--font-weight-medium);
 }
 
-/* ── Narrow widths ────────────────────────────────────────────────────────────
-   Everything shrinks with the view and nothing scrolls sideways: headings
-   and labels stay on one line and end in "…", and the dropdowns shorten
-   their chosen option. Result texts still wrap. */
+/* ── Result: what applying will do, and the arrow that applies it ────────── */
 
-.tab {
-  overflow-x: hidden;
-}
-
-.groupTitle,
-.sectionLabel,
-.subLabel {
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.select {
-  min-width: 0;
-  text-overflow: ellipsis;
-}
-
-.colorField {
-  flex: 1 1 0;
-  min-width: 0;
-}
-
-/* ── Mapping field ───────────────────────────────────────────────────────────
-   FROM, TO and the result share one field. Each label sits at the field's
-   left edge with its contents indented beside a thin arrow that runs from
-   under the label down to the next step: FROM to TO, and TO to the result. */
-.pipeline {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-five);
-  background: var(--color-surface-field);
-  border: 1px solid var(--color-border-control);
-  border-radius: var(--radius-control);
-  padding: var(--space-three);
-}
-
-.step {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-two);
-}
-
-.sectionBody {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-two);
-  --flow-gap: var(--space-five);
-  position: relative;
-  padding-left: 20px; /* raw: indent beside the flow arrows */
-}
-
-/* Down to the top of the next step's first letter. */
-.flowDown::before {
-  content: '';
-  position: absolute;
-  left: 3px;
-  top: 2px;
-  bottom: calc(2px - var(--flow-gap));
-  border-left: 1px solid var(--color-text-muted);
-}
-
-.flowDown::after {
-  content: '';
-  position: absolute;
-  left: 1px;
-  bottom: calc(3px - var(--flow-gap));
-  width: 5px;
-  height: 5px;
-  border-right: 1px solid var(--color-text-muted);
-  border-bottom: 1px solid var(--color-text-muted);
-  transform: rotate(45deg);
-}
-
-/* A one-step field (Scaling): its control, then the result, as far apart as
-   the mapping field's steps. */
-.stepField {
-  gap: var(--space-five);
-}
-
-/* What the mapping or scaling will do, and the green arrow that applies it. */
-.pipelineFooter {
+.result {
   display: flex;
   flex-direction: column;
   gap: var(--space-three);
 }
-.pipelineSummary {
+
+.resultText {
   margin: 0;
   font-size: var(--font-size-body);
   line-height: var(--line-height-reading);
