@@ -17,7 +17,7 @@ import type {
   MapConfig, CartesianMapConfig, SemanticMapConfig, ElementShape, Tab
 } from '../lib/types'
 import { DEFAULT_COLLECTION_COLOR, hexHue, paletteColor, mixCollectionColors, randomReadableColor } from '../lib/color'
-import { defaultCategories, defaultSessionMeta, ELEMENT_SHAPES, parsePoles } from '../lib/types'
+import { defaultSessionMeta, ELEMENT_SHAPES, newCollection, newDimension, newElement } from '../lib/types'
 import { usePrefsStore } from './prefsStore'
 import { openWeight } from '../lib/numericRange'
 import {
@@ -168,11 +168,7 @@ export const useAppStore = create<AppStore>((set) => ({
 
   addElement: (name, color) => set((s) => {
     const prefs = usePrefsStore.getState().prefs
-    const resolvedColor = color ?? prefs.defaultElementColor
-    const el: Element = {
-      id: crypto.randomUUID(), name, definition: '', weight: 1,
-      color: resolvedColor, shape: prefs.defaultElementShape, collectionIds: []
-    }
+    const el = newElement(name, { color: color ?? prefs.defaultElementColor, shape: prefs.defaultElementShape })
     return { elements: [...s.elements, el], isDirty: true }
   }),
 
@@ -226,12 +222,12 @@ export const useAppStore = create<AppStore>((set) => ({
   // collection looked broken and — worse — dragged multi-collection mixes
   // toward gray.
   addCollection: (name, id) => {
-    const newId = id ?? crypto.randomUUID()
+    const collection = newCollection(name, id ? { id } : {})
     set((s) => ({
-      collections: [...s.collections, { id: newId, name, definition: '', color: paletteColor(s.collections.length) }],
+      collections: [...s.collections, { ...collection, color: paletteColor(s.collections.length) }],
       isDirty: true
     }))
-    return newId
+    return collection.id
   },
 
   // Fills in palette colors for collections still sitting on the legacy default
@@ -287,19 +283,10 @@ export const useAppStore = create<AppStore>((set) => ({
 
   // ── Dimensions ──────────────────────────────────────────────────────────────
 
-  addDimension: (label, categories) => set((s) => {
-    const { poleA, poleB } = parsePoles(label)
-    const dim: Dimension = {
-      id: crypto.randomUUID(),
-      label,
-      poleA,
-      poleB,
-      definition: '',
-      weight: 1,
-      categories: categories ?? defaultCategories()
-    }
-    return { dimensions: [...s.dimensions, dim], isDirty: true }
-  }),
+  addDimension: (label, categories) => set((s) => ({
+    dimensions: [...s.dimensions, newDimension(label, categories ? { categories } : {})],
+    isDirty: true
+  })),
 
   updateDimension: (id, changes) => set((s) => {
     const safeChanges = safeWeightChanges(changes)

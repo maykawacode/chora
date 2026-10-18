@@ -9,6 +9,7 @@
 
 export type { ElementShape } from '../../../shared/contracts'
 import type { ElementShape } from '../../../shared/contracts'
+import { DEFAULT_COLLECTION_COLOR, DEFAULT_ELEMENT_COLOR } from './color'
 
 export const ELEMENT_SHAPES: ElementShape[] = ['circle', 'square', 'triangle', 'diamond']
 
@@ -218,6 +219,26 @@ export function defaultCategories(): DimensionCategories {
     socialMeaning: false,
     aesthetics: false
   }
+}
+
+// New items start from these defaults; `fields` overrides any of them.
+
+export function newElement(name: string, fields: Partial<Element> = {}): Element {
+  return {
+    id: crypto.randomUUID(), name, definition: '', weight: 1,
+    color: DEFAULT_ELEMENT_COLOR, shape: 'circle', collectionIds: [], ...fields
+  }
+}
+
+export function newDimension(label: string, fields: Partial<Dimension> = {}): Dimension {
+  return {
+    id: crypto.randomUUID(), label, ...parsePoles(label), definition: '', weight: 1,
+    categories: defaultCategories(), ...fields
+  }
+}
+
+export function newCollection(name: string, fields: Partial<Collection> = {}): Collection {
+  return { id: crypto.randomUUID(), name, definition: '', color: DEFAULT_COLLECTION_COLOR, ...fields }
 }
 
 /** Returns a SessionMeta with a fresh UUID and empty strings. */
