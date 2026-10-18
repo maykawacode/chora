@@ -122,6 +122,17 @@
 
 /* ── Divider between FROM and TO ─────────────────────────────────────────── */
 
+.pipeline {
+  display: flex;
+  flex-direction: column;
+}
+
+.sectionBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-two);
+}
+
 .divider {
   text-align: center;
   font-size: var(--font-size-title);
@@ -277,4 +288,81 @@
 .narrow .colorField {
   flex: 1 1 0;
   min-width: 0;
+}
+
+/* FROM, TO and the result share one field. Each label sits at the field's
+   left edge with its contents indented beside a thin arrow that runs from
+   under the label down to the next step: FROM to TO, and TO to the result. */
+.narrow .pipeline {
+  gap: var(--space-five);
+  background: var(--color-surface-field);
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-control);
+  padding: var(--space-three);
+}
+
+.narrow .pipeline .section {
+  background: none;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+}
+
+.narrow .sectionBody {
+  --flow-gap: var(--space-five);
+  position: relative;
+  padding-left: 20px; /* raw: indent beside the flow arrows */
+}
+
+/* Down to the top of the next step's first letter. */
+.flowDown::before {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 2px;
+  bottom: calc(2px - var(--flow-gap));
+  border-left: 1px solid var(--color-text-muted);
+}
+
+.flowDown::after {
+  content: '';
+  position: absolute;
+  left: 1px;
+  bottom: calc(3px - var(--flow-gap));
+  width: 5px;
+  height: 5px;
+  border-right: 1px solid var(--color-text-muted);
+  border-bottom: 1px solid var(--color-text-muted);
+  transform: rotate(45deg);
+}
+
+/* What the mapping will do, and the green arrow that applies it. */
+.pipelineFooter {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-three);
+}
+.pipelineSummary {
+  margin: 0;
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-reading);
+  color: var(--color-text-secondary);
+}
+
+.applyRow {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-three);
+  min-width: 0;
+}
+
+.applyLabel {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
 }

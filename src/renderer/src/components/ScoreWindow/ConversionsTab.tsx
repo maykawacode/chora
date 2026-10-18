@@ -7,14 +7,13 @@
 import { useState } from 'react'
 import { useAppStore } from '../../store/appStore'
 import { usePrefsStore } from '../../store/prefsStore'
-import { ELEMENT_SHAPES } from '../../lib/types'
 import {
-  SHAPE_COLORS, colorFromCollections, colorFromScores, colorFromShape, collectionsFromShape, copyScores,
+  colorFromCollections, colorFromScores, colorFromShape, collectionsFromShape, copyScores,
   randomCollectionAssignments, randomCollectionColors, randomDimensionWeights, randomElementColors,
   randomElementShapes, randomElementWeights, randomScores, scoresFromWeights, shapeFromCollections,
   shapeFromColor, spreadScores, weightFromScores, type Transform
 } from '../../store/transforms'
-import { ConfirmationDisc } from '../ConfirmationDisc'
+import { ConfirmationDisc, ForwardActionButton } from '../ConfirmationDisc'
 import { hostCapabilities } from '../../lib/host'
 import styles from './ConversionsTab.module.css'
 
@@ -28,28 +27,22 @@ const LABELS: Record<Kind, string> = {
   'el-color':   'Element color'
 }
 
-/** What a source means, shown under it once chosen. */
-const SOURCE_NOTES: Partial<Record<Kind, string>> = {
-  'el-weight':  "Each element's weight, scaled from the current range.",
-  'collection': 'The collections each element belongs to.',
-  'el-shape':   "Each element's current shape.",
-  'el-color':   "Each element's current color."
-}
-
 interface Choices { fromDimId: string; toDimId: string; flipped: boolean; colorLow: string; colorHigh: string }
 
+/** The labels a result text names: the chosen dimensions, and the ends of the pole choice. */
+interface SummaryLabels { from: string; to: string; high: string; low: string }
+
 /**
- * One mapping. `summary` gets the source and destination dimension labels;
- * `pole` asks which end is high, of the source or the destination dimension;
- * `colors` asks for the two ends of a colour gradient; `needsCollections`
- * refuses to apply without any.
+ * One mapping. `summary` says what applying it will do; `pole` asks which end
+ * is high, of the source or the destination dimension; `colors` asks for the
+ * two ends of a colour gradient; `needsCollections` refuses to apply without
+ * any.
  */
 interface Conversion {
   from: Kind
   to: Kind
-  summary: (fromLabel: string, toLabel: string) => string
+  summary: (labels: SummaryLabels) => string
   apply: (choices: Choices) => Transform
-  note?: string
   pole?: 'from' | 'to'
   colors?: boolean
   needsCollections?: boolean
@@ -58,35 +51,31 @@ interface Conversion {
 /** Every mapping, in the order the destination menu lists them. */
 const CONVERSIONS: Conversion[] = [
   { from: 'dim-scores', to: 'el-weight', pole: 'from',
-    summary: fd => `Sets each element's weight from ${fd} scores (scaled 1–100). Unscored elements unchanged.`,
+    summary: l => `Sets each element's weight from 1 to 100 by its ${l.from} score, heaviest toward ${l.high}. Unscored elements keep theirs.`,
     apply: c => weightFromScores(c.fromDimId, c.flipped) },
   { from: 'dim-scores', to: 'el-color', colors: true,
-    summary: fd => `Sets each element's color from ${fd} scores, interpolating between the chosen colors. Unscored elements unchanged.`,
+    summary: l => `Colors each element between the two chosen colors by its ${l.from} score. Unscored elements keep theirs.`,
     apply: c => colorFromScores(c.fromDimId, c.colorLow, c.colorHigh) },
   { from: 'dim-scores', to: 'dim-scores',
-    summary: (fd, td) => `Copies scores from ${fd} to ${td}. Only scored elements are updated; unscored elements unchanged.`,
+    summary: l => `Copies ${l.from} scores onto ${l.to}, replacing any there. Elements unscored on ${l.from} keep their ${l.to} score.`,
     apply: c => copyScores(c.fromDimId, c.toDimId) },
   { from: 'el-weight', to: 'dim-scores', pole: 'to',
-    summary: (_, td) => `Writes each element's weight as its ${td} score, scaling the current weight range to 0–1. All elements updated.`,
+    summary: l => `Scores every element on ${l.to} by weight, lightest at ${l.low} and heaviest at ${l.high}. Replaces existing ${l.to} scores.`,
     apply: c => scoresFromWeights(c.toDimId, c.flipped) },
   { from: 'collection', to: 'el-color', needsCollections: true,
-    summary: () => "Sets each element's color by mixing the colors of every collection it belongs to — the same mix a map colored by collection draws. Elements in no collection unchanged.",
+    summary: () => "Colors each element with the mix of its collections' colors, as a map colored by collection shows it. Elements in no collection keep theirs.",
     apply: () => colorFromCollections },
   { from: 'collection', to: 'el-shape', needsCollections: true,
-    note: 'Collection order → shape: 1st circle · 2nd square · 3rd triangle · 4th diamond (cycling)',
-    summary: () => 'Assigns shapes by collection order: circle, square, triangle, diamond (cycling). Elements in no collection unchanged.',
+    summary: () => 'Gives each element the shape of its first collection: 1st circle, 2nd square, 3rd triangle, 4th diamond, then repeating. Elements in no collection keep theirs.',
     apply: () => shapeFromCollections },
   { from: 'el-shape', to: 'el-color',
-    note: ELEMENT_SHAPES.map(shape => `${shape} → ${SHAPE_COLORS[shape]}`).join(' · '),
-    summary: () => "Sets each element's color by shape: circle→blue, square→red, triangle→green, diamond→purple.",
+    summary: () => 'Colors every element by shape: circles blue, squares red, triangles green, diamonds purple.',
     apply: () => colorFromShape },
   { from: 'el-shape', to: 'collection', needsCollections: true,
-    note: 'Matched by creation order: circle=1st collection · square=2nd · triangle=3rd · diamond=4th (cycling)',
-    summary: () => 'Puts each element in its matched collection and no other, replacing its current memberships. Matched by creation order: circle=1st, square=2nd, triangle=3rd, diamond=4th (cycling).',
+    summary: () => "Replaces every element's collections by shape: circles join the 1st collection, squares the 2nd, triangles the 3rd, diamonds the 4th, and every 4th after.",
     apply: () => collectionsFromShape },
   { from: 'el-color', to: 'el-shape',
-    note: 'By hue: red → circle · yellow-green → square · blue → triangle · purple → diamond',
-    summary: () => "Sets each element's shape by hue: red→circle, yellow-green→square, blue→triangle, purple→diamond.",
+    summary: () => 'Shapes every element by the hue of its color: reds circle, oranges to greens square, cyans and blues triangle, purples and pinks diamond. Grays and white count as red.',
     apply: () => shapeFromColor }
 ]
 
@@ -226,7 +215,14 @@ export function ConversionsTab(): React.JSX.Element {
     !(fromSource === 'dim-scores' && toTarget === 'dim-scores' && fromDimId === toDimId) &&
     !noCollections
 
-  const summary = conversion?.summary(fromDim?.label || 'the chosen dimension', toDim?.label || 'the chosen dimension') ?? ''
+  const poleA = poleDim?.poleA || 'Pole A'
+  const poleB = poleDim?.poleB || 'Pole B'
+  const summary = conversion?.summary({
+    from: fromDim?.label || 'the chosen dimension',
+    to: toDim?.label || 'the chosen dimension',
+    high: poleFlipped ? poleA : poleB,
+    low: poleFlipped ? poleB : poleA
+  }) ?? ''
 
   function handleApply(): void {
     if (!canApply || !conversion) return
@@ -234,148 +230,167 @@ export function ConversionsTab(): React.JSX.Element {
     setApplied(true)
   }
 
+  const narrow = hostCapabilities().narrowDataViews
+
   return (
-    <div className={hostCapabilities().narrowDataViews ? `${styles.tab} ${styles.narrow}` : styles.tab}>
+    <div className={narrow ? `${styles.tab} ${styles.narrow}` : styles.tab}>
 
       <section className={styles.group}>
         <h2 className={styles.groupTitle}>Mapping</h2>
         <div className={styles.groupBody}>
 
+      {/* One field in narrow views: FROM, TO, then what the mapping will do and
+          the green arrow that applies it. Thin arrows run down from each label
+          to the next step, and each label's contents sit indented beside them. */}
+      <div className={styles.pipeline}>
+
       {/* ── FROM ────────────────────────────────────────────────────────────── */}
       <div className={styles.section}>
         <div className={styles.sectionLabel}>From</div>
+        <div className={narrow ? `${styles.sectionBody} ${styles.flowDown}` : styles.sectionBody}>
 
-        <select
-          className={styles.select}
-          value={fromSource}
-          onChange={e => handleFromChange(e.target.value)}
-          aria-label="Source"
-          data-transform-source
-        >
-          <option value="">Choose source…</option>
-          {SOURCES.map(k => <option key={k} value={k}>{LABELS[k]}</option>)}
-        </select>
+          <select
+            className={styles.select}
+            value={fromSource}
+            onChange={e => handleFromChange(e.target.value)}
+            aria-label="Source"
+            data-transform-source
+          >
+            <option value="">Choose source…</option>
+            {SOURCES.map(k => <option key={k} value={k}>{LABELS[k]}</option>)}
+          </select>
 
-        {showFromDimPicker && (
-          <div className={styles.subControl}>
-            <div className={styles.subLabel}>Dimension</div>
-            {dimensions.length === 0
-              ? <p className={styles.hint}>No dimensions defined.</p>
-              : (
-                <select
-                  className={styles.select}
-                  value={fromDimId}
-                  onChange={e => { const v = e.target.value; setFromDimId(v); if (v === toDimId) setToDimId(''); setApplied(false) }}
-                  aria-label="Source dimension"
-                >
-                  <option value="">Choose dimension…</option>
-                  {dimensions.map((d, i) => (
-                    <option key={d.id} value={d.id}>{d.label || `Dimension ${i + 1}`}</option>
-                  ))}
-                </select>
-              )
-            }
-          </div>
-        )}
-
-        {fromSource && SOURCE_NOTES[fromSource] && <p className={styles.descriptor}>{SOURCE_NOTES[fromSource]}</p>}
+          {showFromDimPicker && (
+            <div className={styles.subControl}>
+              <div className={styles.subLabel}>Dimension</div>
+              {dimensions.length === 0
+                ? <p className={styles.hint}>No dimensions defined.</p>
+                : (
+                  <select
+                    className={styles.select}
+                    value={fromDimId}
+                    onChange={e => { const v = e.target.value; setFromDimId(v); if (v === toDimId) setToDimId(''); setApplied(false) }}
+                    aria-label="Source dimension"
+                  >
+                    <option value="">Choose dimension…</option>
+                    {dimensions.map((d, i) => (
+                      <option key={d.id} value={d.id}>{d.label || `Dimension ${i + 1}`}</option>
+                    ))}
+                  </select>
+                )
+              }
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* ── Divider ─────────────────────────────────────────────────────────── */}
-      <div className={styles.divider}>↓</div>
+      {/* ── Divider (narrow views draw a thin arrow from FROM to TO instead) ── */}
+      {!narrow && <div className={styles.divider}>↓</div>}
 
       {/* ── TO ──────────────────────────────────────────────────────────────── */}
       <div className={styles.section}>
         <div className={styles.sectionLabel}>To</div>
+        <div className={narrow && canApply ? `${styles.sectionBody} ${styles.flowDown}` : styles.sectionBody}>
 
-        <select
-          className={styles.select}
-          value={toTarget}
-          disabled={!fromSource}
-          onChange={e => handleToChange(e.target.value)}
-          aria-label="Destination"
-        >
-          {!fromSource
-            ? <option value="">Choose a source first…</option>
-            : <>
-                <option value="">Choose destination…</option>
-                {CONVERSIONS.filter(c => c.from === fromSource).map(c => (
-                  <option key={c.to} value={c.to}>{LABELS[c.to]}</option>
-                ))}
-              </>
-          }
-        </select>
-
-        {showToDimPicker && (
-          <div className={styles.subControl}>
-            <div className={styles.subLabel}>Dimension</div>
-            {dimensions.length === 0
-              ? <p className={styles.hint}>No dimensions defined.</p>
-              : (
-                <select
-                  className={styles.select}
-                  value={toDimId}
-                  onChange={e => { setToDimId(e.target.value); setApplied(false) }}
-                  aria-label="Destination dimension"
-                >
-                  <option value="">Choose dimension…</option>
-                  {dimensions
-                    .filter(d => !(fromSource === 'dim-scores' && d.id === fromDimId))
-                    .map((d, i) => (
-                      <option key={d.id} value={d.id}>{d.label || `Dimension ${i + 1}`}</option>
-                    ))}
-                </select>
-              )
+          <select
+            className={styles.select}
+            value={toTarget}
+            disabled={!fromSource}
+            onChange={e => handleToChange(e.target.value)}
+            aria-label="Destination"
+          >
+            {!fromSource
+              ? <option value="">Choose a source first…</option>
+              : <>
+                  <option value="">Choose destination…</option>
+                  {CONVERSIONS.filter(c => c.from === fromSource).map(c => (
+                    <option key={c.to} value={c.to}>{LABELS[c.to]}</option>
+                  ))}
+                </>
             }
-          </div>
-        )}
+          </select>
 
-        {conversion?.pole && poleDim && (
-          <div className={styles.subControl}>
-            <div className={styles.subLabel}>High end</div>
-            <div className={styles.poleButtons} role="group" aria-label="High end">
-              <button
-                type="button"
-                className={`${styles.poleBtn} ${poleFlipped ? styles.poleBtnActive : ''}`}
-                onClick={() => { setPoleFlipped(true); setApplied(false) }}
-                aria-pressed={poleFlipped}
-              >
-                {poleDim.poleA || 'Pole A'}
-              </button>
-              <button
-                type="button"
-                className={`${styles.poleBtn} ${!poleFlipped ? styles.poleBtnActive : ''}`}
-                onClick={() => { setPoleFlipped(false); setApplied(false) }}
-                aria-pressed={!poleFlipped}
-              >
-                {poleDim.poleB || 'Pole B'}
-              </button>
+          {showToDimPicker && (
+            <div className={styles.subControl}>
+              <div className={styles.subLabel}>Dimension</div>
+              {dimensions.length === 0
+                ? <p className={styles.hint}>No dimensions defined.</p>
+                : (
+                  <select
+                    className={styles.select}
+                    value={toDimId}
+                    onChange={e => { setToDimId(e.target.value); setApplied(false) }}
+                    aria-label="Destination dimension"
+                  >
+                    <option value="">Choose dimension…</option>
+                    {dimensions
+                      .filter(d => !(fromSource === 'dim-scores' && d.id === fromDimId))
+                      .map((d, i) => (
+                        <option key={d.id} value={d.id}>{d.label || `Dimension ${i + 1}`}</option>
+                      ))}
+                  </select>
+                )
+              }
             </div>
-          </div>
-        )}
+          )}
 
-        {conversion?.colors && (
-          <div className={styles.colorRow}>
-            <label className={styles.colorField}>
-              <span className={styles.subLabel}>Low (score 0)</span>
-              <input type="color" className={styles.colorPicker} value={colorLow}
-                onChange={e => { setColorLow(e.target.value); setApplied(false) }} />
-            </label>
-            <label className={styles.colorField}>
-              <span className={styles.subLabel}>High (score 1)</span>
-              <input type="color" className={styles.colorPicker} value={colorHigh}
-                onChange={e => { setColorHigh(e.target.value); setApplied(false) }} />
-            </label>
-          </div>
-        )}
+          {conversion?.pole && poleDim && (
+            <div className={styles.subControl}>
+              <div className={styles.subLabel}>High end</div>
+              <div className={styles.poleButtons} role="group" aria-label="High end">
+                <button
+                  type="button"
+                  className={`${styles.poleBtn} ${poleFlipped ? styles.poleBtnActive : ''}`}
+                  onClick={() => { setPoleFlipped(true); setApplied(false) }}
+                  aria-pressed={poleFlipped}
+                >
+                  {poleDim.poleA || 'Pole A'}
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.poleBtn} ${!poleFlipped ? styles.poleBtnActive : ''}`}
+                  onClick={() => { setPoleFlipped(false); setApplied(false) }}
+                  aria-pressed={!poleFlipped}
+                >
+                  {poleDim.poleB || 'Pole B'}
+                </button>
+              </div>
+            </div>
+          )}
 
-        {noCollections
-          ? <p className={styles.hint}>No collections defined.</p>
-          : conversion?.note && <p className={styles.descriptor}>{conversion.note}</p>}
+          {conversion?.colors && (
+            <div className={styles.colorRow}>
+              <label className={styles.colorField}>
+                <span className={styles.subLabel}>Low ({fromDim?.poleA || 'score 0'})</span>
+                <input type="color" className={styles.colorPicker} value={colorLow}
+                  onChange={e => { setColorLow(e.target.value); setApplied(false) }} />
+              </label>
+              <label className={styles.colorField}>
+                <span className={styles.subLabel}>High ({fromDim?.poleB || 'score 1'})</span>
+                <input type="color" className={styles.colorPicker} value={colorHigh}
+                  onChange={e => { setColorHigh(e.target.value); setApplied(false) }} />
+              </label>
+            </div>
+          )}
+
+          {noCollections && <p className={styles.hint}>No collections defined.</p>}
+        </div>
+      </div>
+
+      {narrow && canApply && (
+        <div className={styles.pipelineFooter}>
+          {summary && <p className={styles.pipelineSummary}>{summary}</p>}
+          <div className={styles.applyRow}>
+            <span className={styles.applyLabel}>{applied ? 'Applied' : 'Apply Conversion'}</span>
+            <ForwardActionButton label="Apply Conversion" disabled={applied} onClick={handleApply} />
+          </div>
+        </div>
+      )}
+
       </div>
 
       {/* ── Footer: summary + warning + apply ───────────────────────────────── */}
-      {canApply && (
+      {!narrow && canApply && (
         <div className={styles.footer}>
           {summary && <p className={styles.summary}>{summary}</p>}
           <button

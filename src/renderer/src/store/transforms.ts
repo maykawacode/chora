@@ -114,7 +114,7 @@ export const collectionsFromShape: Transform = eachElement((el, { collections })
     .map(c => c.id)
 }))
 
-export const SHAPE_COLORS: Record<ElementShape, string> = {
+const SHAPE_COLORS: Record<ElementShape, string> = {
   circle:   '#4080c0',
   square:   '#c04040',
   triangle: '#40a040',
