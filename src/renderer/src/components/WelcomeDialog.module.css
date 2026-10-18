@@ -91,13 +91,14 @@
   background: var(--color-text-secondary);
 }
 
+/* A host page may recolour the labels (the browser Welcome page's gold). */
 .actionLabel {
-  color: var(--color-text-muted);
+  color: var(--start-label-color, var(--color-text-muted));
   white-space: nowrap;
 }
 
 .action:hover .actionLabel {
-  color: var(--color-text-primary);
+  color: var(--start-label-hover-color, var(--color-text-primary));
 }
 
 .actionIcon {

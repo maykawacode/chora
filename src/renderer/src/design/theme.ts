@@ -36,6 +36,17 @@ export const uiTheme = {
     surfaceBase: '#f5f0e8',
     surfaceTextField: '#faf8f5',
     surfaceSelected: '#ded8cc',
+    // Chora's signature colour: the persistent frame around the views (the
+    // browser's title banner and icon strip). A dark, muted gold, a little
+    // redder than the selection yellow, with text and icons reversed out in
+    // white (8.2:1; the secondary white 5.9:1). Hover lightens, selected darkens.
+    surfaceSignature: '#604c24',
+    surfaceSignatureHover: '#6f582a',
+    surfaceSignatureSelected: '#3a2d17',
+    borderSignature: '#3a2d17',
+    textOnSignature: '#ffffff',
+    textOnSignatureSecondary: 'rgba(255, 255, 255, 0.8)',
+    dividerOnSignature: 'rgba(255, 255, 255, 0.24)',
     textPrimary: '#292725',
     textSecondary: '#5e5953',
     textMuted: '#706a62',

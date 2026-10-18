@@ -5,7 +5,10 @@
   z-index: 100;
   overflow-y: auto;
   background: var(--color-surface-base);
-  color: var(--color-text-primary);
+  /* All of the page's text is the signature colour (7.2:1 on the page). */
+  --start-label-color: var(--color-surface-signature);
+  --start-label-hover-color: var(--color-surface-signature);
+  color: var(--color-surface-signature);
   font-family: var(--font-family-ui);
   font-size: var(--font-size-title);
   line-height: var(--line-height-reading);
@@ -32,7 +35,7 @@
   border: 1px solid var(--color-border-control);
   border-radius: var(--radius-control);
   background: var(--color-surface-text-field);
-  color: var(--color-text-primary);
+  color: inherit;
   font: inherit;
   font-size: var(--font-size-body);
   font-weight: var(--font-weight-medium);
@@ -57,7 +60,7 @@
 .title {
   margin: 0;
   font-size: 48px; /* raw: the page's one display size */
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-semibold);
   line-height: var(--line-height-compact);
   letter-spacing: -0.02em;
 }
@@ -65,12 +68,10 @@
 .subtitle {
   margin: var(--space-two) 0 var(--space-five);
   font-size: var(--font-size-display);
-  color: var(--color-text-secondary);
 }
 
 .lead {
   margin: 0 0 var(--space-three);
-  color: var(--color-text-primary);
 }
 
 /* The disc's start buttons (WelcomeDialog.module.css), set in a row. */
@@ -96,7 +97,6 @@
 .caption {
   margin-top: var(--space-two);
   font-size: var(--font-size-body);
-  color: var(--color-text-muted);
 }
 
 .section {
@@ -133,13 +133,8 @@
 .links {
   margin: var(--space-six) 0 0;
   font-size: var(--font-size-body);
-  color: var(--color-text-muted);
 }
 
 .links a {
-  color: var(--color-text-secondary);
-}
-
-.links a:hover {
-  color: var(--color-text-primary);
+  color: inherit;
 }

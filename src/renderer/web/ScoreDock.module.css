@@ -45,8 +45,8 @@
   overflow-y: auto;
   scrollbar-width: none;
   padding: var(--space-one) 0;
-  border-right: 1px solid var(--color-border-subtle);
-  background: var(--color-surface-base);
+  border-right: 1px solid var(--color-border-signature);
+  background: var(--color-surface-signature);
 }
 
 .stripButton {
@@ -61,18 +61,23 @@
   width: var(--size-control);
   height: var(--size-control);
   border-radius: var(--radius-subtle);
-  color: var(--color-text-secondary);
+  color: var(--color-text-on-signature-secondary);
+}
+
+/* Focus shows in white against the signature colour. */
+.stripButton:focus-visible {
+  outline-color: var(--color-text-on-signature);
 }
 
 .stripButton:hover {
-  background: var(--color-surface-hover);
-  color: var(--color-text-primary);
+  background: var(--color-surface-signature-hover);
+  color: var(--color-text-on-signature);
 }
 
 .stripButtonActive,
 .stripButtonActive:hover {
-  background: var(--color-surface-selected);
-  color: var(--color-text-primary);
+  background: var(--color-surface-signature-selected);
+  color: var(--color-text-on-signature);
 }
 
 .stripDivider {
@@ -80,7 +85,7 @@
   width: 20px;
   height: 1px;
   margin: 2px 0;
-  background: var(--color-border-subtle);
+  background: var(--color-divider-on-signature);
 }
 
 .stripButton svg {
@@ -108,7 +113,7 @@
   justify-content: flex-start;
   gap: var(--space-two);
   width: auto;
-  padding: 0 6px; /* raw: centres the 16px icon in the same 28px column as unlabelled */
+  padding: 0 5px; /* raw: centres the 17.6px icon in the same 28px column as unlabelled */
 }
 
 .stripLabelled .stripLabel {
@@ -116,7 +121,9 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: var(--font-size-control);
+  /* 10% larger and a step heavier than control text, to match the icons. */
+  font-size: calc(var(--font-size-control) * 1.1);
+  font-weight: var(--font-weight-medium);
 }
 
 .stripLabelled .stripDivider {
