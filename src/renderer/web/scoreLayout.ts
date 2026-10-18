@@ -16,16 +16,15 @@ const PANE_DIVIDER = 1
  * Dimensions and Collections keep their detail below the list
  * (useDataViewLayout), and Assess keeps its columns side by side however
  * narrow, so they share one minimum and snap point. Assess is the exception:
- * it snaps closed below 160px, and so goes no narrower. Notes is one text
- * field and can go thin too.
+ * it snaps closed below 160px, and so goes no narrower. Notes keeps 200px.
  */
-export const paneMinWidth = (tab: Tab): number => tab === 'notes' || tab === 'scores' ? 160 : 150
+export const paneMinWidth = (tab: Tab): number => tab === 'notes' ? 200 : tab === 'scores' ? 160 : 150
 
 /** Views that snap closed at their own width rather than a share of their minimum (at most the minimum). */
 const SNAP_WIDTHS: Partial<Record<Tab, number>> = { scores: 160 }
 
 const DEFAULT_WIDTHS: Record<Tab, number> = {
-  notes: 260, elements: 200, dimensions: 200, collections: 200, scores: 380, conversions: 380
+  notes: 200, elements: 200, dimensions: 200, collections: 200, scores: 380, conversions: 380
 }
 const paneDefaultWidth = (tab: Tab): number => DEFAULT_WIDTHS[tab]
 
@@ -61,16 +60,16 @@ export const snapsClosed = (tab: Tab, width: number): boolean => width < paneSna
 
 const MOTION_FALLBACK_MS = 400
 const STORAGE_KEY = 'chora:layout'
-const VERSION = 4
+const VERSION = 5
 
 /**
  * The record version in which each view's default width last changed. A view
  * width saved by an older record is dropped once, so the view opens at its
  * new default: Elements, Dimensions and Collections at 200px (version 3),
- * Assess and Conversions at 380px (version 4).
+ * Assess and Conversions at 380px (version 4), Notes at 200px (version 5).
  */
 const WIDTH_RESET_AT: Record<Tab, number> = {
-  notes: 1, elements: 3, dimensions: 3, collections: 3, scores: 4, conversions: 4
+  notes: 5, elements: 3, dimensions: 3, collections: 3, scores: 4, conversions: 4
 }
 
 export interface StoredLayout {

@@ -5,7 +5,7 @@ import {
   useScoreLayout, type StoredLayout
 } from './scoreLayout'
 
-const record = (fields: object) => JSON.stringify({ version: 4, ...fields })
+const record = (fields: object) => JSON.stringify({ version: 5, ...fields })
 const defaults: StoredLayout = { openTabs: ['notes'], paneWidths: {}, collapsed: false, labels: false }
 
 describe('stored Score layout', () => {
@@ -18,7 +18,7 @@ describe('stored Score layout', () => {
   it('gives the defaults for missing, corrupt and foreign-version records', () => {
     expect(parseLayout(null)).toEqual(defaults)
     expect(parseLayout('{not json')).toEqual(defaults)
-    expect(parseLayout(record({ version: 5 }))).toEqual(defaults)
+    expect(parseLayout(record({ version: 6 }))).toEqual(defaults)
     expect(parseLayout('null')).toEqual(defaults)
   })
 
@@ -33,9 +33,11 @@ describe('stored Score layout', () => {
 
   it('drops a view width saved before that view\'s default changed, once', () => {
     const widths = { notes: 200, elements: 440, dimensions: 300, collections: 500, scores: 600, conversions: 500 }
-    expect(parseLayout(record({ version: 2, paneWidths: widths })).paneWidths).toEqual({ notes: 200 })
+    expect(parseLayout(record({ version: 2, paneWidths: widths })).paneWidths).toEqual({})
     expect(parseLayout(record({ version: 3, paneWidths: widths })).paneWidths)
-      .toEqual({ notes: 200, elements: 440, dimensions: 300, collections: 500 })
+      .toEqual({ elements: 440, dimensions: 300, collections: 500 })
+    expect(parseLayout(record({ version: 4, paneWidths: widths })).paneWidths)
+      .toEqual({ elements: 440, dimensions: 300, collections: 500, scores: 600, conversions: 500 })
     expect(parseLayout(record({ paneWidths: widths })).paneWidths).toEqual(widths)
   })
 
@@ -59,8 +61,13 @@ describe('stored Score layout', () => {
 describe('Score column width', () => {
   it('is the strip plus each open view and the lines between them', () => {
     const layout: StoredLayout = { ...defaults, openTabs: ['notes', 'elements'], paneWidths: { elements: 450 } }
-    expect(columnWidth(layout)).toBe(STRIP_WIDTH + 260 + 450 + 1)
+    expect(columnWidth(layout)).toBe(STRIP_WIDTH + 200 + 450 + 1)
     expect(columnMinWidth(layout)).toBe(STRIP_WIDTH + paneMinWidth('notes') + paneMinWidth('elements') + 1)
+  })
+
+  it('keeps Notes at least 200px, snapping it closed below 100px', () => {
+    expect(paneMinWidth('notes')).toBe(200)
+    expect(paneSnapWidth('notes')).toBe(100)
   })
 
   it('never shows a view below its snap width', () => {
@@ -141,7 +148,7 @@ describe('Score views sharing the page', () => {
   })
 
   it('reopens a view snapped closed at its default width, however wide it was before', () => {
-    const defaults = { notes: 260, elements: 200, dimensions: 200, collections: 200, scores: 380, conversions: 380 } as const
+    const defaults = { notes: 200, elements: 200, dimensions: 200, collections: 200, scores: 380, conversions: 380 } as const
     for (const [tab, width] of Object.entries(defaults) as [keyof typeof defaults, number][]) {
       useScoreLayout.setState({ openTabs: [tab], paneWidths: { [tab]: 600 }, collapsed: false })
       useScoreLayout.getState().snapClose(tab)
