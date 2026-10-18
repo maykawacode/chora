@@ -10,7 +10,7 @@
   /* Lets a host column (the browser's title banner above) shrink it to fit. */
   min-height: 0;
   overflow: hidden;
-  background: var(--color-surface-app);
+  background: var(--color-surface-base);
   font-family: var(--font-family-ui);
   font-size: var(--font-size-body);
 }

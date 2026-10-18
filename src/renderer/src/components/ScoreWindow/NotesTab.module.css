@@ -32,7 +32,7 @@
   padding: var(--space-two);
   font-size: var(--font-size-body);
   font-family: inherit;
-  background: var(--color-surface-field);
+  background: var(--color-surface-text-field);
   color: var(--color-text-primary);
 }
 

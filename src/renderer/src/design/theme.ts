@@ -31,6 +31,11 @@ export const uiTheme = {
     surfaceField: '#fffefc',
     surfaceHover: '#eee9e1',
     surfaceDisabled: '#e5dfd6',
+    // Interface outside the maps (Score, title bar, strip); maps keep the
+    // surfaces above until the palette is cleaned up as a whole.
+    surfaceBase: '#f5f0e8',
+    surfaceTextField: '#faf8f5',
+    surfaceSelected: '#ded8cc',
     textPrimary: '#292725',
     textSecondary: '#5e5953',
     textMuted: '#706a62',

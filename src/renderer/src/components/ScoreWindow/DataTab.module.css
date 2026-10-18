@@ -149,7 +149,7 @@
   white-space: normal;
   overflow: visible;
   text-overflow: unset;
-  background: var(--color-white-wash);
+  background: var(--color-surface-text-field);
   border-radius: var(--radius-subtle);
   padding: 0 2px;
 }
@@ -206,7 +206,7 @@
   padding: var(--space-one) var(--space-two);
   border: 1px solid var(--color-border-control);
   border-radius: var(--radius-control);
-  background: var(--color-surface-field);
+  background: var(--color-surface-text-field);
   color: var(--color-text-primary);
   font-size: var(--font-size-control);
   font-family: inherit;
@@ -378,7 +378,7 @@
   border-radius: var(--radius-control);
   padding: 1px 2px;
   cursor: pointer;
-  background: var(--color-surface-field);
+  background: var(--color-surface-text-field);
 }
 
 .colorInput:disabled {
@@ -394,7 +394,7 @@
   padding: 3px var(--space-one);
   border: 1px solid var(--color-border-control);
   border-radius: var(--radius-control);
-  background: var(--color-surface-field);
+  background: var(--color-surface-text-field);
   color: var(--color-text-primary);
   font-size: var(--font-size-control);
   font-family: inherit;
@@ -418,7 +418,7 @@
   padding: 3px var(--space-one);
   border: 1px solid var(--color-border-control);
   border-radius: var(--radius-control);
-  background: var(--color-surface-field);
+  background: var(--color-surface-text-field);
   color: var(--color-text-primary);
   font-size: var(--font-size-control);
   font-family: inherit;
@@ -452,7 +452,7 @@
   padding: var(--space-one);
   font-size: var(--font-size-control);
   font-family: inherit;
-  background: var(--color-surface-field);
+  background: var(--color-surface-text-field);
   color: var(--color-text-primary);
 }
 

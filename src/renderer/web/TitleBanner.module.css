@@ -10,7 +10,7 @@
   row-gap: var(--space-one);
   min-height: calc(var(--size-title-bar) + 10px);
   padding: var(--space-one) var(--space-three);
-  background: var(--color-surface-raised);
+  background: var(--color-surface-base);
   border-bottom: 1px solid var(--color-border-subtle);
   font-family: var(--font-family-ui);
   font-size: var(--font-size-body);
@@ -62,7 +62,7 @@
   padding: 0 var(--space-one);
   border: 1px solid var(--color-border-control);
   border-radius: var(--radius-small);
-  background: var(--color-surface-app);
+  background: var(--color-surface-text-field);
   color: var(--color-text-primary);
   font: inherit;
   font-weight: var(--font-weight-semibold);

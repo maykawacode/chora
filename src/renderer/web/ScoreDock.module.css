@@ -46,7 +46,7 @@
   scrollbar-width: none;
   padding: var(--space-one) 0;
   border-right: 1px solid var(--color-border-subtle);
-  background: var(--color-surface-raised);
+  background: var(--color-surface-base);
 }
 
 .stripButton {
@@ -71,7 +71,7 @@
 
 .stripButtonActive,
 .stripButtonActive:hover {
-  background: var(--color-surface-chrome-strong);
+  background: var(--color-surface-selected);
   color: var(--color-text-primary);
 }
 

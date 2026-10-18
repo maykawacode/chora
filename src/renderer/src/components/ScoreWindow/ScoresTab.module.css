@@ -4,7 +4,7 @@
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  background: var(--color-surface-app);
+  background: var(--color-surface-base);
   color: var(--color-text-primary);
 }
 
