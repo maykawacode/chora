@@ -161,10 +161,13 @@ export interface CartesianMapConfig extends BaseMapConfig {
 // A semantic map has no 2D space to project a cluster into, so it draws no
 // blobs; its shownCollectionIds filters instead, narrowing the map to the
 // members of the selected collections. See semanticElements in drawSemantic,
-// which resolves that against elementIds and is what MapPanel hit-tests too.
+// which resolves that and is what MapPanel hit-tests too.
 export interface SemanticMapConfig extends BaseMapConfig {
   type: 'semantic'
-  elementIds: string[]           // ordered list of elements to show
+  // Not read: every element is drawn. Kept in the format so older files load
+  // unchanged; new maps write an empty list, which older versions read as
+  // "every element" too.
+  elementIds: string[]
   dimensionIds: string[]         // ordered list of axes to display
   flippedDimensionIds: string[]  // subset of dimensionIds whose poles are reversed
 }

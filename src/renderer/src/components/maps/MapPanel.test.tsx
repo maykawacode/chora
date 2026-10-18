@@ -93,7 +93,7 @@ describe('Cartesian map pointer', () => {
   const EMPTY: [number, number] = [100, 230]
 
   beforeEach(() => {
-    const map = { ...newMapConfig('cartesian', { dimensionIds: ['x', 'y'], maps: [], elements: [], showLabels: true, marks: 'circle' }), id: 'm', sizeByWeight: false } as CartesianMapConfig
+    const map = { ...newMapConfig('cartesian', { dimensionIds: ['x', 'y'], maps: [], showLabels: true, marks: 'circle' }), id: 'm', sizeByWeight: false } as CartesianMapConfig
     study(map, { a: { x: 0.25, y: 0.75 }, b: { x: 0.75, y: 0.25 } }, [dimension('x'), dimension('y'), dimension('z', 'Cold', 'Hot')])
   })
 
@@ -251,7 +251,7 @@ describe('Semantic map pointer', () => {
   const EMPTY: [number, number] = [200, 150]
 
   beforeEach(() => {
-    map = { ...newMapConfig('semantic', { dimensionIds: ['d', 'e'], maps: [], elements: [element('a'), element('b'), element('c')], showLabels: true, marks: 'circle' }), id: 'm' } as SemanticMapConfig
+    map = { ...newMapConfig('semantic', { dimensionIds: ['d', 'e'], maps: [], showLabels: true, marks: 'circle' }), id: 'm' } as SemanticMapConfig
     study(map, { a: { d: 0.25, e: 0.5 }, b: { d: 0.75 } }, dims)
   })
 

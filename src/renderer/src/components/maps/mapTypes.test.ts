@@ -1,11 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import type { Element, MapConfig } from '../../lib/types'
+import type { MapConfig } from '../../lib/types'
 import { MAP_TYPES, mapTypeInfo, newMapConfig } from './mapTypes'
 
 const input = (maps: MapConfig[] = []) => ({
   dimensionIds: ['x', 'y', 'z'],
   maps,
-  elements: [{ id: 'a' }, { id: 'b' }] as Element[],
   showLabels: true,
   marks: 'circle' as const
 })
@@ -24,12 +23,12 @@ describe('map types', () => {
     })
   })
 
-  it('starts a semantic map on every chosen dimension and element, numbered among semantic maps', () => {
+  it('starts a semantic map on every chosen dimension, numbered among semantic maps', () => {
     const earlier = [newMapConfig('cartesian', input()), newMapConfig('semantic', input())]
     const map = newMapConfig('semantic', input(earlier))
     expect(map).toMatchObject({
       type: 'semantic', title: 'Semantic Map 2', dimensionIds: ['x', 'y', 'z'],
-      elementIds: ['a', 'b'], flippedDimensionIds: [], sizeByWeight: false
+      elementIds: [], flippedDimensionIds: [], sizeByWeight: false
     })
   })
 })

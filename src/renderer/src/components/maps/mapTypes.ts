@@ -3,7 +3,7 @@
 // The kinds of map a study can hold, and how a new one starts. Creating a map
 // reads from here, so a new map type is described once.
 
-import type { CartesianMapConfig, Element, MapConfig, MapType, MarkMode, SemanticMapConfig } from '../../lib/types'
+import type { CartesianMapConfig, MapConfig, MapType, MarkMode, SemanticMapConfig } from '../../lib/types'
 import type { MenuAction } from '../../../../shared/contracts'
 
 export interface MapTypeInfo {
@@ -52,7 +52,6 @@ export function mapTypeInfo(type: MapType): MapTypeInfo {
 export interface NewMapInput {
   dimensionIds: string[]
   maps: MapConfig[]
-  elements: Element[]
   showLabels: boolean
   marks: MarkMode
 }
@@ -90,7 +89,8 @@ export function newMapConfig(type: MapType, input: NewMapInput): MapConfig {
     ...base,
     type: 'semantic',
     title: `Semantic Map ${input.maps.filter(m => m.type === 'semantic').length + 1}`,
-    elementIds: input.elements.map(e => e.id),
+    // Every element is drawn (semanticElements); see SemanticMapConfig.
+    elementIds: [],
     dimensionIds: input.dimensionIds,
     flippedDimensionIds: [],
     // Semantic axes sit close together, so uniform dots keep a fresh map readable.

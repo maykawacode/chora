@@ -34,10 +34,11 @@ const LABEL_WIDTH_CALIBRATION_SIZE = 11
 /**
  * The elements this map draws, in draw order before any weight sorting.
  *
- * Two filters, applied in that order. First the map's own list: an explicit
- * elementIds picks and orders them, an empty one means every element. Then the
- * collection selection — with any collection selected, only its members are
- * drawn, and with none selected nothing is hidden.
+ * Every element in the study, in study order, narrowed by the collection
+ * selection — with any collection selected, only its members are drawn, and
+ * with none selected nothing is hidden. The map's stored elementIds is not
+ * read: it was a snapshot of the study when the map was made, and following
+ * it left out every element added since.
  *
  * This is mostly where a semantic map spends its collection selection. It has
  * no 2D space to draw a cluster into, so it narrows to the cluster instead:
@@ -53,16 +54,9 @@ export function semanticElements(
   elements: Element[],
   collections: Collection[]
 ): Element[] {
-  const byId = new Map(elements.map(e => [e.id, e]))
-  const listed = config.elementIds.length > 0
-    ? config.elementIds
-        .map(id => byId.get(id))
-        .filter((e): e is Element => e !== undefined)
-    : elements
-
   const shown = shownCollections(config, collections)
-  if (shown.length === 0) return listed
-  return listed.filter(el => shown.some(c => el.collectionIds.includes(c.id)))
+  if (shown.length === 0) return elements
+  return elements.filter(el => shown.some(c => el.collectionIds.includes(c.id)))
 }
 
 export function hasVisibleScores(

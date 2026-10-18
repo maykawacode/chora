@@ -3,7 +3,7 @@ import { clampGroupDelta, dragGroupIds } from './mapGeometry'
 import { cartesianHitEdge } from './cartesian/cartesianAdapter'
 import { semanticAdapter } from './semantic/semanticAdapter'
 import { axisYs, semanticLayout, type MeasureText } from './semantic/semanticLayout'
-import type { Dimension, Element, ScoreMap, SemanticMapConfig } from '../../lib/types'
+import type { Collection, Dimension, Element, ScoreMap, SemanticMapConfig } from '../../lib/types'
 
 // Text measured at 7px a character, standing in for a canvas in tests.
 const measure: MeasureText = text => text.length * 7
@@ -14,8 +14,8 @@ const dimension = (id: string, poleA: string, poleB: string): Dimension =>
 const semanticConfig = (dimensionIds: string[], flippedDimensionIds: string[] = []): SemanticMapConfig =>
   ({ type: 'semantic', elementIds: [], dimensionIds, flippedDimensionIds, marks: 'circle', shownCollectionIds: [] } as unknown as SemanticMapConfig)
 
-const semanticMap = (config: SemanticMapConfig, dimensions: Dimension[], elements: Element[], scores: ScoreMap, width = 400) =>
-  semanticAdapter(config, { elements, collections: [], dimensions, scores, defaultDotRadius: 6, elementLabelSize: 13, dimensionLabelSize: 13 }, width, 300, measure)
+const semanticMap = (config: SemanticMapConfig, dimensions: Dimension[], elements: Element[], scores: ScoreMap, width = 400, collections: Collection[] = []) =>
+  semanticAdapter(config, { elements, collections, dimensions, scores, defaultDotRadius: 6, elementLabelSize: 13, dimensionLabelSize: 13 }, width, 300, measure)
 
 describe('map geometry', () => {
   it('clamps a group without changing the spacing between members', () => {
@@ -29,11 +29,18 @@ describe('map geometry', () => {
   })
 
   it('leaves hidden and unscored semantic elements out of a drag', () => {
-    const elements = ['a', 'b', 'c'].map(id => ({ id, weight: 1, collectionIds: [] }) as unknown as Element)
-    const config = { ...semanticConfig(['dim']), elementIds: ['a', 'c'] }
-    const map = semanticMap(config, [dimension('dim', 'Low', 'High')], elements, { a: { dim: 0 }, b: { dim: 0.5 }, c: {} })
+    const elements = ['a', 'b', 'c'].map(id => ({ id, weight: 1, collectionIds: id === 'b' ? [] : ['k'] }) as unknown as Element)
+    const config = { ...semanticConfig(['dim']), shownCollectionIds: ['k'] }
+    const map = semanticMap(config, [dimension('dim', 'Low', 'High')], elements, { a: { dim: 0 }, b: { dim: 0.5 }, c: {} }, 400, [{ id: 'k' } as Collection])
     const drag = map.startDrag({ elementId: 'a', dimensionId: 'dim' }, 0, 0, ['a', 'b', 'c'])!
     expect(drag.moveTo(10_000, 150, false)).toEqual([{ elementId: 'a', targetId: 'dim', value: 1 }])
+  })
+
+  it('shows elements added after a semantic map was made, whatever list it stored', () => {
+    const elements = ['a', 'b'].map(id => ({ id, weight: 1, collectionIds: [] }) as unknown as Element)
+    const config = { ...semanticConfig(['dim']), elementIds: ['a'] }
+    const map = semanticMap(config, [dimension('dim', 'Low', 'High')], elements, { a: { dim: 0.2 }, b: { dim: 0.8 } })
+    expect([...map.visibleIds]).toEqual(['a', 'b'])
   })
 
   it('lays out and hit-tests semantic axes consistently', () => {

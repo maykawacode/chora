@@ -42,7 +42,6 @@ function DimensionPicker({ type, onCreated }: {
     addMap(newMapConfig(type, {
       dimensionIds: selected,
       maps: useAppStore.getState().maps,
-      elements,
       showLabels: prefs.defaultShowLabels,
       marks: prefs.defaultMarks
     }))
