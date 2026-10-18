@@ -4,22 +4,30 @@
 // which dots a lasso holds, how dragging a dot turns into scores, and how an
 // axis is changed. Each type answers in its own adapter file, and MapPanel's
 // pointer handlers are written once against this interface, so a new map type
-// is one adapter plus its painter.
+// is one adapter plus its painter, both added to the dispatches below.
 
 import type { CartesianMapConfig, Collection, Dimension, Element, MapConfig, ScoreMap, SemanticMapConfig } from '../../lib/types'
 import type { ScoreEntry } from '../../store/appStore'
 import type { Rect } from './mapGeometry'
 import { cartesianAdapter, cartesianAxisControl } from './cartesian/cartesianAdapter'
+import { drawCartesian } from './cartesian/drawCartesian'
 import { semanticAdapter, semanticAxisControl } from './semantic/semanticAdapter'
+import { drawSemantic } from './semantic/drawSemantic'
 
-/** The study and display settings an adapter measures against. */
-export interface MapData {
+/** Everything a map is drawn and hit-tested from, besides its config and size. */
+export interface MapScene {
   elements: Element[]
   collections: Collection[]
   dimensions: Dimension[]
   scores: ScoreMap
   defaultDotRadius: number
+  elementLabelSize: number
   dimensionLabelSize: number
+  /** The single highlight and the multi-selection; exports leave both out. */
+  selectedElementId?: string
+  selectedElementIds?: string[]
+  /** The dot being dragged, which a semantic map draws with a heavier line. */
+  draggingElementId?: string
 }
 
 
@@ -64,10 +72,16 @@ export interface MapAdapter {
 }
 
 /** The adapter for a map laid out at width × height. */
-export function mapAdapter(config: MapConfig, data: MapData, width: number, height: number): MapAdapter {
+export function mapAdapter(config: MapConfig, scene: MapScene, width: number, height: number): MapAdapter {
   return config.type === 'cartesian'
-    ? cartesianAdapter(config, data, width, height)
-    : semanticAdapter(config, data, width, height)
+    ? cartesianAdapter(config, scene, width, height)
+    : semanticAdapter(config, scene, width, height)
+}
+
+/** Paints a map at width × height, on screen or into an SVG export. */
+export function drawMap(ctx: CanvasRenderingContext2D, width: number, height: number, config: MapConfig, scene: MapScene): void {
+  if (config.type === 'cartesian') drawCartesian(ctx, width, height, config, scene)
+  else drawSemantic(ctx, width, height, config, scene)
 }
 
 export function axisControl(config: MapConfig, axis: AxisHit): AxisControl {

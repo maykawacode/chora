@@ -7,7 +7,7 @@
 import type { CartesianMapConfig } from '../../../lib/types'
 import type { ScoreEntry } from '../../../store/appStore'
 import { numericRange } from '../../../lib/numericRange'
-import type { AxisControl, AxisHit, MapAdapter, MapData } from '../mapAdapter'
+import type { AxisControl, AxisHit, MapAdapter, MapScene } from '../mapAdapter'
 import { clampGroupDelta, dragGroupIds, inRect, onDot } from '../mapGeometry'
 import { cartesianElements } from '../collections'
 import { dotRadius } from '../shape'
@@ -30,8 +30,8 @@ export function cartesianHitEdge(x: number, y: number, width: number, height: nu
   return null
 }
 
-export function cartesianAdapter(config: CartesianMapConfig, data: MapData, width: number, height: number): MapAdapter {
-  const { elements, collections, scores } = data
+export function cartesianAdapter(config: CartesianMapConfig, scene: MapScene, width: number, height: number): MapAdapter {
+  const { elements, collections, scores } = scene
   const { left, top, right, bottom } = cartesianPlot(width, height)
   const visible = cartesianElements(config, elements, collections)
   const visibleIds = new Set(visible.map(element => element.id))
@@ -61,7 +61,7 @@ export function cartesianAdapter(config: CartesianMapConfig, data: MapData, widt
       if (config.marks === 'none') return null
       const hit = [...visible].sort((a, b) => a.weight - b.weight).find(element => {
         const dot = project(scoresOf(element.id))
-        return onDot(x, y, dot.x, dot.y, dotRadius(config, element.weight, weightRange, data.defaultDotRadius))
+        return onDot(x, y, dot.x, dot.y, dotRadius(config, element.weight, weightRange, scene.defaultDotRadius))
       })
       return hit ? { elementId: hit.id } : null
     },

@@ -10,13 +10,14 @@
 //   - Score 1.0 maps to the right end
 //   - Axes are evenly spaced vertically within the canvas
 
-import type { SemanticMapConfig, Element, Collection, Dimension, ScoreMap } from '../../../lib/types'
+import type { SemanticMapConfig, Element, Collection, ScoreMap } from '../../../lib/types'
+import type { MapScene } from '../mapAdapter'
 // labelFont and LABEL_SIZE_DEFAULT are defined once in drawCartesian and shared
 // here so there is a single source of truth for map typography.
 import { labelFont, LABEL_SIZE_DEFAULT } from '../cartesian/drawCartesian'
 import { resolveElementColor } from '../color'
 import { shownCollections } from '../collections'
-import { DOT_DEFAULT_RADIUS, beginLayer, dotRadius, drawMark, drawSelectionRing, markShapeIndex } from '../shape'
+import { beginLayer, dotRadius, drawMark, drawSelectionRing, markShapeIndex } from '../shape'
 import { numericRange } from '../../../lib/numericRange'
 import { uiTheme } from '../../../design/theme'
 import { EDGE_PAD, LABEL_GAP, SEM_MARGIN_V, axisX, fitText, semanticLayout } from './semanticLayout'
@@ -88,17 +89,12 @@ export function drawSemantic(
   W: number,
   H: number,
   config: SemanticMapConfig,
-  elements: Element[],
-  collections: Collection[],
-  dimensions: Dimension[],
-  scores: ScoreMap,
-  draggingElementId?: string,
-  selectedElementId?: string,
-  elementLabelSize: number = LABEL_SIZE_DEFAULT,
-  dimensionLabelSize: number = LABEL_SIZE_DEFAULT,
-  selectedElementIds: string[] = [],
-  defaultDotRadius: number = DOT_DEFAULT_RADIUS
+  scene: MapScene
 ): void {
+  const {
+    elements, collections, dimensions, scores, draggingElementId, selectedElementId, selectedElementIds = [],
+    elementLabelSize, dimensionLabelSize, defaultDotRadius
+  } = scene
   const layout = semanticLayout(W, H, config, dimensions, dimensionLabelSize)
   const { axisLeft, axisRight, axes } = layout
 

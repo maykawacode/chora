@@ -4,13 +4,12 @@
 // Pure geometry and hit testing live in mapGeometry; this component coordinates
 // React state, canvas painting, pointer gestures, and map-window controls.
 
-import { useRef, useEffect, useCallback, useContext, useState } from 'react'
+import { useRef, useEffect, useCallback, useContext, useMemo, useState } from 'react'
 import { MapHostContext } from './mapHost'
 import { useAppStore } from '../../store/appStore'
 import { usePrefsStore } from '../../store/prefsStore'
 import type { CartesianMapConfig, SemanticMapConfig } from '../../lib/types'
-import { drawCartesian, MARGIN } from './cartesian/drawCartesian'
-import { drawSemantic } from './semantic/drawSemantic'
+import { MARGIN } from './cartesian/drawCartesian'
 import { ElementDetailModal } from './ElementDetailModal'
 import { BulkEditModal } from './BulkEditModal'
 import { DimensionDetailModal } from './DimensionDetailModal'
@@ -20,7 +19,7 @@ import { AxisPicker } from './AxisPicker'
 import { uiTheme } from '../../design/theme'
 import styles from './MapPanel.module.css'
 import { downloadText } from '../../lib/download'
-import { axisControl, mapAdapter, type AxisHit, type MapAdapter, type ScoreDrag } from './mapAdapter'
+import { axisControl, drawMap, mapAdapter, type AxisHit, type MapAdapter, type MapScene, type ScoreDrag } from './mapAdapter'
 import type { Rect } from './mapGeometry'
 
 // Room a map needs to stay readable: plot margins on both sides plus a small
@@ -67,6 +66,12 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
   const elementLabelSize   = usePrefsStore(s => s.prefs.elementLabelSize)
   const dimensionLabelSize = usePrefsStore(s => s.prefs.dimensionLabelSize)
   const defaultDotRadius   = usePrefsStore(s => s.prefs.dotDefaultSize)
+
+  // What the map is drawn and hit-tested from; selection is added when painting.
+  const scene: MapScene = useMemo(
+    () => ({ elements, collections, dimensions, scores, defaultDotRadius, elementLabelSize, dimensionLabelSize }),
+    [elements, collections, dimensions, scores, defaultDotRadius, elementLabelSize, dimensionLabelSize]
+  )
 
   // Wraps updateMapConfig + IPC so changes made in either window stay in sync.
   // Map windows send broadcastMapConfig → main → Score Window's onMapConfig
@@ -205,15 +210,7 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
     if (rect.width <= 0 || rect.height <= 0) return
     const { buildMapSvg } = await import('./svgExport')
     // Exports leave out selection highlights.
-    const svg = buildMapSvg(rect.width, rect.height, (ctx, w, h) => {
-      if (config.type === 'cartesian') {
-        drawCartesian(ctx, w, h, config, elements, collections, dimensions, scores,
-          undefined, elementLabelSize, dimensionLabelSize, [], defaultDotRadius)
-      } else {
-        drawSemantic(ctx, w, h, config, elements, collections, dimensions, scores,
-          undefined, undefined, elementLabelSize, dimensionLabelSize, [], defaultDotRadius)
-      }
-    })
+    const svg = buildMapSvg(rect.width, rect.height, (ctx, w, h) => drawMap(ctx, w, h, config, scene))
     downloadText(`${config.title ?? 'map'}.svg`, svg, 'image/svg+xml')
   }
 
@@ -246,15 +243,12 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
     ctx.clearRect(0, 0, cssW, cssH)
     ctx.save()
 
-    if (config.type === 'cartesian') {
-      drawCartesian(ctx, cssW, cssH, config, elements, collections, dimensions, scores,
-        selectedElementId ?? undefined, elementLabelSize, dimensionLabelSize,
-        selectedElementIds, defaultDotRadius)
-    } else {
-      drawSemantic(ctx, cssW, cssH, config, elements, collections, dimensions, scores,
-        heldRef.current?.drag.elementId, selectedElementId ?? undefined,
-        elementLabelSize, dimensionLabelSize, selectedElementIds, defaultDotRadius)
-    }
+    drawMap(ctx, cssW, cssH, config, {
+      ...scene,
+      selectedElementId: selectedElementId ?? undefined,
+      selectedElementIds,
+      draggingElementId: heldRef.current?.drag.elementId
+    })
 
     // Lasso overlay — applies to all map types
     if (lassoRef.current) {
@@ -269,8 +263,7 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
     ctx.restore()
   // Selection and every map appearance preference must be dependencies:
   // any of them changing should immediately repaint the canvas.
-  }, [config, elements, collections, dimensions, scores, selectedElementId,
-    selectedElementIds, elementLabelSize, dimensionLabelSize, defaultDotRadius])
+  }, [config, scene, selectedElementId, selectedElementIds])
 
   // Redraw whenever any input data changes
   const redrawRef = useRef(redraw)
@@ -300,8 +293,7 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
     const wrapper = wrapperRef.current
     if (!wrapper || !config) return null
     const rect = wrapper.getBoundingClientRect()
-    const data = { elements, collections, dimensions, scores, defaultDotRadius, dimensionLabelSize }
-    return { map: mapAdapter(config, data, rect.width, rect.height), rect }
+    return { map: mapAdapter(config, scene, rect.width, rect.height), rect }
   }
 
   /** The adapter plus the pointer's position on the canvas. */

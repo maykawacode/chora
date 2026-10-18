@@ -6,7 +6,7 @@
 
 import type { SemanticMapConfig } from '../../../lib/types'
 import { numericRange } from '../../../lib/numericRange'
-import type { AxisControl, AxisHit, MapAdapter, MapData } from '../mapAdapter'
+import type { AxisControl, AxisHit, MapAdapter, MapScene } from '../mapAdapter'
 import { clampGroupDelta, dragGroupIds, inRect, onDot } from '../mapGeometry'
 import { DOT_MAX_RADIUS, dotRadius } from '../shape'
 import { semanticElements } from './drawSemantic'
@@ -14,13 +14,13 @@ import { axisX, scoreAtX, semanticLayout, type MeasureText } from './semanticLay
 
 export function semanticAdapter(
   config: SemanticMapConfig,
-  data: MapData,
+  scene: MapScene,
   width: number,
   height: number,
   measure?: MeasureText
 ): MapAdapter {
-  const { elements, collections, scores } = data
-  const layout = semanticLayout(width, height, config, data.dimensions, data.dimensionLabelSize, measure)
+  const { elements, collections, scores } = scene
+  const layout = semanticLayout(width, height, config, scene.dimensions, scene.dimensionLabelSize, measure)
   const visible = semanticElements(config, elements, collections)
   const visibleIds = new Set(visible.map(element => element.id))
   const weightRange = numericRange(elements.map(element => element.weight))
@@ -37,7 +37,7 @@ export function semanticAdapter(
         for (const element of visible) {
           const raw = scores[element.id]?.[axis.dimension.id]
           if (raw === undefined) continue
-          if (onDot(x, y, axisX(layout, axis, raw), axis.y, dotRadius(config, element.weight, weightRange, data.defaultDotRadius))) {
+          if (onDot(x, y, axisX(layout, axis, raw), axis.y, dotRadius(config, element.weight, weightRange, scene.defaultDotRadius))) {
             return { elementId: element.id, dimensionId: axis.dimension.id }
           }
         }

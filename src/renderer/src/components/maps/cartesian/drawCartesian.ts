@@ -19,11 +19,12 @@
 // Selecting a collection draws its blob. The optional members-only filter can
 // also narrow plotted Elements to the union of those selected collections.
 
-import type { CartesianMapConfig, Element, Dimension, Collection, ScoreMap } from '../../../lib/types'
+import type { CartesianMapConfig } from '../../../lib/types'
+import type { MapScene } from '../mapAdapter'
 import { blobPadding, setBlobPath, type BlobPoint, type Pt } from '../blob'
 import { resolveElementColor } from '../color'
 import { cartesianElements, shownCollections } from '../collections'
-import { DOT_DEFAULT_RADIUS, beginLayer, dotRadius, drawMark, drawSelectionRing, markShapeIndex, normalizeDefaultDotRadius } from '../shape'
+import { beginLayer, dotRadius, drawMark, drawSelectionRing, markShapeIndex, normalizeDefaultDotRadius } from '../shape'
 import { numericRange } from '../../../lib/numericRange'
 import { uiTheme } from '../../../design/theme'
 
@@ -54,9 +55,9 @@ export function cartesianPlot(W: number, H: number): { left: number; top: number
 // Gap between dot edge and element name label
 const LABEL_OFFSET = 3
 
-// Fallback label size for callers that omit one; mirrors the elementLabelSize
-// and dimensionLabelSize preference defaults. MapPanel always passes the user's
-// chosen sizes, so this is a floor for future callers, not a live default.
+// The elementLabelSize and dimensionLabelSize preference default. Maps draw
+// labels at the user's chosen sizes; fixed text such as a semantic map's
+// empty-map notice uses this.
 export const LABEL_SIZE_DEFAULT = 13
 
 // Builds the canvas font string for any given pixel size. Map labels remain
@@ -124,16 +125,12 @@ export function drawCartesian(
   W: number,
   H: number,
   config: CartesianMapConfig,
-  elements: Element[],
-  collections: Collection[],
-  dimensions: Dimension[],
-  scores: ScoreMap,
-  selectedElementId?: string,
-  elementLabelSize: number = LABEL_SIZE_DEFAULT,
-  dimensionLabelSize: number = LABEL_SIZE_DEFAULT,
-  selectedElementIds: string[] = [],
-  defaultDotRadius: number = DOT_DEFAULT_RADIUS
+  scene: MapScene
 ): void {
+  const {
+    elements, collections, dimensions, scores, selectedElementId, selectedElementIds = [],
+    elementLabelSize, dimensionLabelSize, defaultDotRadius
+  } = scene
   const baseDotRadius = normalizeDefaultDotRadius(defaultDotRadius)
   const { left: plotLeft, top: plotTop, right: plotRight, bottom: plotBottom } = cartesianPlot(W, H)
   const plotW      = plotRight - plotLeft

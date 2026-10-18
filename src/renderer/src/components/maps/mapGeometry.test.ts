@@ -15,7 +15,7 @@ const semanticConfig = (dimensionIds: string[], flippedDimensionIds: string[] = 
   ({ type: 'semantic', elementIds: [], dimensionIds, flippedDimensionIds, marks: 'circle', shownCollectionIds: [] } as unknown as SemanticMapConfig)
 
 const semanticMap = (config: SemanticMapConfig, dimensions: Dimension[], elements: Element[], scores: ScoreMap, width = 400) =>
-  semanticAdapter(config, { elements, collections: [], dimensions, scores, defaultDotRadius: 6, dimensionLabelSize: 13 }, width, 300, measure)
+  semanticAdapter(config, { elements, collections: [], dimensions, scores, defaultDotRadius: 6, elementLabelSize: 13, dimensionLabelSize: 13 }, width, 300, measure)
 
 describe('map geometry', () => {
   it('clamps a group without changing the spacing between members', () => {
