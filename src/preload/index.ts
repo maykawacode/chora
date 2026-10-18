@@ -10,7 +10,8 @@
 //
 // Listener functions follow the pattern:
 //   onXxx(callback) → returns a cleanup function
-// The cleanup removes the listener when the React component unmounts.
+// The cleanup removes the listener when the React component unmounts. Most are
+// made by on(), which passes a channel's arguments through without the event.
 
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron'
 import {
@@ -22,6 +23,15 @@ import {
   type Preferences
 } from '../shared/contracts'
 import type { UpdateNotice } from '../shared/updateNotice'
+
+/** A listener for one channel: calls back with the message's arguments and returns its cleanup. */
+function on<Args extends unknown[]>(channel: string): (cb: (...args: Args) => void) => () => void {
+  return cb => {
+    const handler = (_: IpcRendererEvent, ...args: Args): void => cb(...args)
+    ipcRenderer.on(channel, handler)
+    return () => ipcRenderer.removeListener(channel, handler)
+  }
+}
 
 const api = {
 
@@ -81,14 +91,7 @@ const api = {
   historyBegin: (): void => ipcRenderer.send('history:transaction', 'begin'),
   historyEnd:   (): void => ipcRenderer.send('history:transaction', 'end'),
   setHistoryModalOpen: (open: boolean): void => ipcRenderer.send('history:modal', open),
-  onHistoryTransaction: (
-    cb: (ownerId: number, phase: HistoryPhase) => void
-  ): (() => void) => {
-    const handler = (_: IpcRendererEvent, ownerId: number, phase: HistoryPhase): void =>
-      cb(ownerId, phase)
-    ipcRenderer.on('history:transaction', handler)
-    return () => ipcRenderer.removeListener('history:transaction', handler)
-  },
+  onHistoryTransaction: on<[ownerId: number, phase: HistoryPhase]>('history:transaction'),
   setHistoryAvailability: (canUndo: boolean, canRedo: boolean): void =>
     ipcRenderer.send('history:availability', canUndo, canRedo),
 
@@ -138,66 +141,30 @@ const api = {
   // ── Inbound listeners (used by map windows) ───────────────────────────────────
 
   // Preferences pushed from the Score Window after the user saves the dialog
-  onPrefs: (cb: (prefs: Preferences) => void): (() => void) => {
-    const handler = (_: IpcRendererEvent, prefs: Preferences): void => cb(prefs)
-    ipcRenderer.on('prefs:push', handler)
-    return () => ipcRenderer.removeListener('prefs:push', handler)
-  },
+  onPrefs: on<[prefs: Preferences]>('prefs:push'),
 
   // Initial payload sent once after the renderer signals readiness
-  onMapInit: (cb: (mapId: string, stateJson: string) => void): (() => void) => {
-    const handler = (_: IpcRendererEvent, mapId: string, stateJson: string): void => cb(mapId, stateJson)
-    ipcRenderer.on('map:init', handler)
-    return () => ipcRenderer.removeListener('map:init', handler)
-  },
+  onMapInit: on<[mapId: string, stateJson: string]>('map:init'),
 
   // Full state replacement broadcast from the Score Window
-  onState: (cb: (stateJson: string) => void): (() => void) => {
-    const handler = (_: IpcRendererEvent, stateJson: string): void => cb(stateJson)
-    ipcRenderer.on('state:push', handler)
-    return () => ipcRenderer.removeListener('state:push', handler)
-  },
+  onState: on<[stateJson: string]>('state:push'),
 
   // Fine-grained score update — applies to a single element/dimension pair
-  onScore: (cb: (elementId: string, dimensionId: string, value: number) => void): (() => void) => {
-    const handler = (_: IpcRendererEvent, elementId: string, dimensionId: string, value: number): void =>
-      cb(elementId, dimensionId, value)
-    ipcRenderer.on('score:update', handler)
-    return () => ipcRenderer.removeListener('score:update', handler)
-  },
+  onScore: on<[elementId: string, dimensionId: string, value: number]>('score:update'),
 
   // ── Inbound listeners (used by Score Window) ──────────────────────────────────
 
   // Map config change relayed back from a map window
-  onMapConfig: (cb: (mapId: string, changes: Record<string, unknown>) => void): (() => void) => {
-    const handler = (_: IpcRendererEvent, mapId: string, changes: Record<string, unknown>): void =>
-      cb(mapId, changes)
-    ipcRenderer.on('mapConfig:update', handler)
-    return () => ipcRenderer.removeListener('mapConfig:update', handler)
-  },
+  onMapConfig: on<[mapId: string, changes: Record<string, unknown>]>('mapConfig:update'),
 
   // Element property update relayed from a map window's right-click modal
-  onElementUpdate: (cb: (elementId: string, changes: Record<string, unknown>) => void): (() => void) => {
-    const handler = (_: IpcRendererEvent, elementId: string, changes: Record<string, unknown>): void =>
-      cb(elementId, changes)
-    ipcRenderer.on('element:update', handler)
-    return () => ipcRenderer.removeListener('element:update', handler)
-  },
+  onElementUpdate: on<[elementId: string, changes: Record<string, unknown>]>('element:update'),
 
   // Dimension property update relayed from a map window's right-click modal
-  onDimensionUpdate: (cb: (dimensionId: string, changes: Record<string, unknown>) => void): (() => void) => {
-    const handler = (_: IpcRendererEvent, dimensionId: string, changes: Record<string, unknown>): void =>
-      cb(dimensionId, changes)
-    ipcRenderer.on('dimension:update', handler)
-    return () => ipcRenderer.removeListener('dimension:update', handler)
-  },
+  onDimensionUpdate: on<[dimensionId: string, changes: Record<string, unknown>]>('dimension:update'),
 
   // New collection created inline from a map window modal
-  onCollectionAdd: (cb: (id: string, name: string) => void): (() => void) => {
-    const handler = (_: IpcRendererEvent, id: string, name: string): void => cb(id, name)
-    ipcRenderer.on('collection:add', handler)
-    return () => ipcRenderer.removeListener('collection:add', handler)
-  },
+  onCollectionAdd: on<[id: string, name: string]>('collection:add'),
 
   // Selection change relayed from a map window — Score Window listens for this
   onSelection: (cb: (elementId: string | null, clearDimension: boolean) => void): (() => void) => {
@@ -208,33 +175,17 @@ const api = {
   },
 
   // Multi-selection change relayed from a map window — Score Window listens for this
-  onMultiSelection: (cb: (ids: string[]) => void): (() => void) => {
-    const handler = (_: IpcRendererEvent, ids: string[]): void => cb(ids)
-    ipcRenderer.on('multiSelection:update', handler)
-    return () => ipcRenderer.removeListener('multiSelection:update', handler)
-  },
+  onMultiSelection: on<[ids: string[]]>('multiSelection:update'),
 
   // Fired when a map window is closed by the user (not programmatically)
-  onMapClosed: (cb: (mapId: string) => void): (() => void) => {
-    const handler = (_: IpcRendererEvent, mapId: string): void => cb(mapId)
-    ipcRenderer.on('map:closed', handler)
-    return () => ipcRenderer.removeListener('map:closed', handler)
-  },
+  onMapClosed: on<[mapId: string]>('map:closed'),
 
   // ── Quit confirmation ─────────────────────────────────────────────────────────
 
-  onCancelModals: (cb: () => void): (() => void) => {
-    const handler = (): void => cb()
-    ipcRenderer.on('app:cancel-modals', handler)
-    return () => ipcRenderer.removeListener('app:cancel-modals', handler)
-  },
+  onCancelModals: on<[]>('app:cancel-modals'),
 
   // Main process fires this before quitting so the renderer can save or cancel
-  onQuitRequested: (cb: () => void): (() => void) => {
-    const handler = (): void => cb()
-    ipcRenderer.on('app:quit-requested', handler)
-    return () => ipcRenderer.removeListener('app:quit-requested', handler)
-  },
+  onQuitRequested: on<[]>('app:quit-requested'),
 
   // Renderer calls this to tell main it may proceed with the quit
   confirmQuit: (): void => ipcRenderer.send('app:confirm-quit')
