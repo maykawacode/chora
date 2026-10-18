@@ -32,7 +32,7 @@
   min-width: 0;
   padding: var(--space-one) var(--space-two);
   min-height: var(--size-control);
-  border: 1px solid var(--color-border-control);
+  border: 1px solid transparent; /* shown on focus */
   border-radius: var(--radius-control);
   background: var(--color-surface-field);
   font-weight: var(--font-weight-semibold);
@@ -42,9 +42,6 @@
   outline: none;
 }
 
-.nameInput:focus {
-  border-color: var(--color-focus);
-}
 
 .name {
   font-weight: var(--font-weight-semibold);
@@ -95,7 +92,7 @@
   flex: 1;
   padding: 2px var(--space-two);
   min-height: var(--size-control);
-  border: 1px solid var(--color-border-control);
+  border: 1px solid transparent; /* shown on focus */
   border-radius: var(--radius-control);
   font-size: var(--font-size-control);
   font-family: var(--font-family-mono);
@@ -150,7 +147,7 @@
   width: 60px;
   padding: 2px var(--space-two);
   min-height: var(--size-control);
-  border: 1px solid var(--color-border-control);
+  border: 1px solid transparent; /* shown on focus */
   border-radius: var(--radius-control);
   font-size: var(--font-size-control);
   font-family: inherit;
@@ -167,7 +164,7 @@
 .description {
   margin: var(--space-three) var(--space-five) var(--space-two);
   padding: var(--space-two);
-  border: 1px solid var(--color-border-control);
+  border: 1px solid transparent; /* shown on focus */
   border-radius: var(--radius-control);
   font-size: var(--font-size-control);
   font-family: inherit;

@@ -73,10 +73,6 @@
 }
 
 /* Borderless until focused, like the main window's fields (App.module.css). */
-.fileNameInput:focus {
-  outline: none;
-  border-color: var(--color-border-control);
-}
 
 .status {
   grid-column: 2;

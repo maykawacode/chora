@@ -36,10 +36,6 @@
   color: var(--color-text-primary);
 }
 
-.notesEditor :global(trix-editor:focus) {
-  outline: none;
-  border-color: var(--color-border-control);
-}
 
 .notesEditor :global(trix-editor a) {
   color: var(--color-focus);

@@ -30,6 +30,17 @@ describe('interface theme', () => {
     expect(variables['--motion-duration-enter']).toBe(uiTheme.motion.durationEnter)
   })
 
+  it('uses only colour variables the theme defines', () => {
+    const defined = new Set(Object.keys(themeVariables()))
+    const sources = [rendererRoot, webRoot].flatMap(filesUnder).filter(path => /\.(css|tsx?)$/.test(path))
+    const unknown = sources.flatMap(path =>
+      [...readFileSync(path, 'utf8').matchAll(/var\((--color-[\w-]+)/g)]
+        .filter(([, name]) => !defined.has(name))
+        .map(([, name]) => `${relative(rendererRoot, path)}: ${name}`)
+    )
+    expect(unknown).toEqual([])
+  })
+
   it('keeps raw presentation colors out of styles and map painters', () => {
     const cssFiles = [rendererRoot, webRoot].flatMap(filesUnder).filter(path => path.endsWith('.css'))
     const canvasFiles = [

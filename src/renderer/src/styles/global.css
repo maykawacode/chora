@@ -55,6 +55,18 @@ textarea {
   outline-offset: 1px;
 }
 
+/* Text fields (Issue #13): the field surface with no edge at rest; while
+   typing, an edge in the focus colour and a soft ring. Each field's own rule
+   sets only its size and spacing, with a transparent 1px border to colour. */
+input:not([type=checkbox], [type=radio], [type=range], [type=color]):focus,
+textarea:focus,
+select:focus,
+trix-editor:focus {
+  outline: none;
+  border-color: var(--color-focus);
+  box-shadow: 0 0 0 2px var(--color-focus-ring);
+}
+
 /* Shared document-state marker used by both main and map window titles. */
 .unsavedBadge {
   flex: none;

@@ -64,10 +64,6 @@
 }
 
 /* Borderless until focused, like the main window's fields (App.module.css). */
-.input:focus {
-  outline: none;
-  border-color: var(--color-border-control);
-}
 
 .extension {
   color: var(--color-text-muted);

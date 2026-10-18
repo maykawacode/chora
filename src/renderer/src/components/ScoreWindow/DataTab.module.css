@@ -212,11 +212,6 @@
   font-family: inherit;
 }
 
-.addInput:focus {
-  outline: none;
-  border-color: var(--color-focus);
-  box-shadow: 0 0 0 2px var(--color-focus-ring);
-}
 
 .starterBtn {
   width: var(--size-control);
@@ -400,10 +395,6 @@
   font-family: inherit;
 }
 
-.poleInput:focus {
-  outline: none;
-  border-color: var(--color-focus);
-}
 
 .poleInput:disabled {
   background: var(--color-surface-disabled);
@@ -424,10 +415,6 @@
   font-family: inherit;
 }
 
-.weightInput:focus {
-  outline: none;
-  border-color: var(--color-focus);
-}
 
 .weightInput:disabled {
   background: var(--color-surface-disabled);
@@ -456,10 +443,6 @@
   color: var(--color-text-primary);
 }
 
-.description:focus {
-  outline: none;
-  border-color: var(--color-focus);
-}
 
 .description:disabled {
   background: var(--color-surface-disabled);
