@@ -1,4 +1,4 @@
-export type TokenGroup = Readonly<Record<string, string>>
+type TokenGroup = Readonly<Record<string, string>>
 
 export interface UiTheme {
   color: TokenGroup

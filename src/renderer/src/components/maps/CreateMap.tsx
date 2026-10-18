@@ -14,7 +14,7 @@ import { ModalShell } from '../ModalShell'
 import { mapTypeInfo, newMapConfig } from './mapTypes'
 import styles from './CreateMap.module.css'
 
-export function DimensionPicker({ type, onCreated }: {
+function DimensionPicker({ type, onCreated }: {
   type: MapType
   onCreated: () => void
 }): React.JSX.Element {

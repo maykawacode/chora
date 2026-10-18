@@ -25,7 +25,7 @@ const SAVE_TYPES: PickerType[] = [
   { description: 'Chora study', accept: { 'application/json': ['.chora'] } }
 ]
 
-export const COPY_HINT = 'Use File › Download a Copy to keep your work.'
+const COPY_HINT = 'Use File › Download a Copy to keep your work.'
 
 const host = (): PickerHost => globalThis as unknown as PickerHost
 
@@ -33,7 +33,7 @@ const host = (): PickerHost => globalThis as unknown as PickerHost
  * Whether Save can write to a chosen file. Pickers need a secure context and
  * are refused in cross-origin frames, so both are checked too.
  */
-export function detectInPlaceSaving(): boolean {
+function detectInPlaceSaving(): boolean {
   const h = host()
   return typeof h.showOpenFilePicker === 'function' &&
     typeof h.showSaveFilePicker === 'function' &&

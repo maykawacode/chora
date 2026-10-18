@@ -41,7 +41,7 @@ const LABEL_WIDTH_CALIBRATION_SIZE = 11
 // The weighted ceiling is deliberately far below the cartesian map's 76px:
 // semantic axes are stacked only ~110px apart in a default window, so full-size
 // dots would collide across neighbouring rows and bury the axis lines.
-export const SEM_DOT_R     = 6
+const SEM_DOT_R     = 6
 export const SEM_DOT_MAX_R = 18
 
 /**

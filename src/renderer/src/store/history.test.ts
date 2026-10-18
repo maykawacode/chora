@@ -5,8 +5,7 @@ import { blackTextContrast } from '../lib/color'
 import {
   cartesianDotRadius,
   DOT_DEFAULT_RADIUS,
-  DOT_MAX_RADIUS,
-  DOT_MIN_RADIUS
+  DOT_MAX_RADIUS
 } from '../components/maps/cartesian/drawCartesian'
 import { useAppStore } from './appStore'
 import { DEFAULT_PREFERENCES } from '../lib/preferences'
@@ -639,7 +638,7 @@ describe('cartesianDotRadius', () => {
   it('uses the complete current range while retaining the default size', () => {
     const weighted = cartesianMap()
     const range = { min: 0, max: 250 }
-    expect(cartesianDotRadius(weighted, 0, range)).toBe(DOT_MIN_RADIUS)
+    expect(cartesianDotRadius(weighted, 0, range)).toBe(DOT_DEFAULT_RADIUS)
     expect(cartesianDotRadius(weighted, 125, range)).toBe(41)
     expect(cartesianDotRadius(weighted, 250, range)).toBe(76)
     expect(DOT_MAX_RADIUS).toBe(76)

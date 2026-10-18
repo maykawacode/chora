@@ -14,7 +14,7 @@
 import { create } from 'zustand'
 import type {
   AppState, Element, Collection, Dimension, DimensionCategories, SessionMeta,
-  MapConfig, CartesianMapConfig, SemanticMapConfig, ElementShape
+  MapConfig, CartesianMapConfig, SemanticMapConfig, ElementShape, Tab
 } from '../lib/types'
 import { DEFAULT_COLLECTION_COLOR, paletteColor, mixCollectionColors, randomReadableColor } from '../lib/color'
 import { defaultCategories, defaultSessionMeta, ELEMENT_SHAPES, parsePoles } from '../lib/types'
@@ -93,7 +93,7 @@ interface AppStore extends AppState {
   selectElement:    (id: string | null) => void
   selectDimension:  (id: string | null) => void
   selectCollection: (id: string | null) => void
-  setActiveTab:     (tab: AppState['activeTab']) => void
+  setActiveTab:     (tab: Tab) => void
 
   // Multi-select (not persisted; synced across map windows via multiSelection:update IPC)
   selectedElementIds:     string[]

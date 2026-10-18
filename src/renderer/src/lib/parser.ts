@@ -31,7 +31,7 @@
 //   within 5.0: sessionMeta.notes added. Missing defaults to ''.
 
 import type { AppState, ColorMode, MarkMode, Element, Collection, Dimension, MapConfig, SessionMeta } from './types'
-import { defaultCategories, defaultSessionMeta, parsePoles } from './types'
+import { ELEMENT_SHAPES, defaultCategories, defaultSessionMeta, parsePoles } from './types'
 import { openWeight } from './numericRange'
 import { DEFAULT_COLLECTION_COLOR, DEFAULT_ELEMENT_COLOR, readHexColor } from './color'
 import { foldIntentIntoNotes } from './sessionIntent'
@@ -238,8 +238,7 @@ export function deserializeSession(json: string): AppState {
                 : typeof e.description === 'string' ? e.description : '',
     weight:     openWeight(e.weight, 1),
     color:      readHexColor(e.color, DEFAULT_ELEMENT_COLOR),
-    shape:      (['circle', 'square', 'triangle', 'diamond'].includes(e.shape as string)
-                  ? e.shape : 'circle') as Element['shape'],
+    shape:      ELEMENT_SHAPES.includes(e.shape as Element['shape']) ? e.shape as Element['shape'] : 'circle',
     // Present only in 5.0 files; pre-5.0 elements get theirs from
     // liftMemberships below. IDs naming a collection that no longer exists are
     // dropped rather than carried as invisible cruft — nothing renders them,

@@ -29,6 +29,7 @@ import { ConfirmationDisc } from '../ConfirmationDisc'
 import { scoreOwnsKeys } from '../../lib/overlayStack'
 import { hostCapabilities } from '../../lib/host'
 import { sortToggleTitle, useElementSort } from './elementSort'
+import { DEFAULT_ELEMENT_COLOR } from '../../lib/color'
 import styles from './DataTab.module.css'
 
 export function ElementsTab(): React.JSX.Element {
@@ -276,7 +277,7 @@ export function ElementsTab(): React.JSX.Element {
           <input
             type="color"
             className={styles.colorInput}
-            value={selected?.color ?? '#9d9d53'}
+            value={selected?.color ?? DEFAULT_ELEMENT_COLOR}
             disabled={!selected}
             onFocus={() => history.begin(SCORE_HISTORY_OWNER)}
             onBlur={() => history.end(SCORE_HISTORY_OWNER)}

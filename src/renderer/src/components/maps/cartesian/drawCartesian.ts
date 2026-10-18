@@ -53,13 +53,12 @@ export function cartesianPlot(W: number, H: number): { left: number; top: number
 }
 
 // Dot radius range — the current lightest Element → min, heaviest → max.
-export const DOT_MIN_RADIUS = 6
-export const DOT_MAX_RADIUS = 76
 // Uniform radius used when sizeByWeight is off — the same as the current
 // lightest weighted dot.
-export const DOT_DEFAULT_RADIUS = DOT_MIN_RADIUS
-export const DOT_DEFAULT_RADIUS_MIN = 3
-export const DOT_DEFAULT_RADIUS_MAX = 16
+export const DOT_DEFAULT_RADIUS = 6
+export const DOT_MAX_RADIUS = 76
+const DOT_DEFAULT_RADIUS_MIN = 3
+const DOT_DEFAULT_RADIUS_MAX = 16
 
 /** Keeps saved or hand-edited preferences inside the range supported by maps. */
 export function normalizeDefaultDotRadius(radius: number = DOT_DEFAULT_RADIUS): number {

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useAppStore } from '@renderer/store/appStore'
-import { TAB_ACCESSIBLE_LABELS } from '@renderer/components/ScoreWindow/ScoreWindow'
-import { MAP_AREA_MIN_WIDTH, columnWidth, stripWidth, useScoreLayout, type Tab } from './scoreLayout'
+import { TAB_NAMES, type Tab } from '@renderer/lib/types'
+import { MAP_AREA_MIN_WIDTH, columnWidth, stripWidth, useScoreLayout } from './scoreLayout'
 import { Glyph } from './Glyph'
 import { isApple } from './shortcuts'
 import { useStripMenus } from './StripCommands'
@@ -127,7 +127,7 @@ export function ScoreDock({ children }: { children: ReactNode }): React.JSX.Elem
   const menus = useStripMenus()
 
   const tabButton = (tab: Tab): React.JSX.Element => {
-    const label = TAB_ACCESSIBLE_LABELS[tab]
+    const label = TAB_NAMES[tab]
     // Open views are highlighted; collapsed, none is.
     const showing = openTabs.includes(tab) && !collapsed
     const choose = (add: boolean): void => {

@@ -54,7 +54,7 @@ export const DEFAULT_ELEMENT_COLOR = '#9d9d53'
 // distinct collections without anyone opening a color picker. Mid-saturation
 // tones matching the existing shape palette: they stay legible under the blob
 // overlay's ~13% fill and behind white-outlined dots.
-export const COLLECTION_PALETTE: readonly string[] = [
+const COLLECTION_PALETTE: readonly string[] = [
   '#4080c0', // blue
   '#c04040', // red
   '#40a040', // green
@@ -123,7 +123,7 @@ export function randomReadableColor(random: () => number = Math.random): string 
  * Returns null when that leaves nothing to average, so each caller can decide
  * what "no color" means for it rather than being handed a misleading black.
  */
-export function mixColors(parts: Array<{ color: string; weight: number }>): string | null {
+function mixColors(parts: Array<{ color: string; weight: number }>): string | null {
   let r = 0, g = 0, b = 0, total = 0
   for (const { color, weight } of parts) {
     if (weight <= 0) continue

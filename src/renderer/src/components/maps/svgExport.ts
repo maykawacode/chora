@@ -1,6 +1,6 @@
 import { Context } from 'svgcanvas'
 
-export const EXPORT_FONT_FAMILY = 'Arial'
+const EXPORT_FONT_FAMILY = 'Arial'
 
 // PowerPoint reads SVG pixels at 96 per inch, so 16px lands at 12pt; scaling
 // by 16/13 puts the default 13px label there.

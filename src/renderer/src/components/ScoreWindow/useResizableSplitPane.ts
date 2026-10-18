@@ -1,9 +1,9 @@
 import { useCallback, useRef, useState } from 'react'
 import type { CSSProperties, PointerEventHandler } from 'react'
 
-export const PANE_MIN_WIDTH = 200
+const PANE_MIN_WIDTH = 200
 /** Narrower than two panes side by side, the list stacks above its detail. */
-export const STACK_BELOW_WIDTH = 2 * PANE_MIN_WIDTH
+const STACK_BELOW_WIDTH = 2 * PANE_MIN_WIDTH
 /** Each pane's least height while stacked. */
 const PANE_MIN_HEIGHT = 120
 const DIVIDER_HIT_WIDTH = 5

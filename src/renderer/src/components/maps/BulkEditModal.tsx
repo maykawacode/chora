@@ -21,8 +21,9 @@ import { openWeight } from '../../lib/numericRange'
 import { CollectionChoiceRow } from '../CollectionChoiceRow'
 import { ForwardActionButton } from '../ConfirmationDisc'
 import { ModalShell } from '../ModalShell'
+import { DEFAULT_ELEMENT_COLOR, isHexColor } from '../../lib/color'
 
-export interface BulkChanges {
+interface BulkChanges {
   /** Applied identically to every selected element. */
   fields: Partial<Element>
   /** Resulting membership by element id — present only if any chip was touched. */
@@ -122,7 +123,7 @@ export function BulkEditModal({ elementIds, elements, onClose }: Props): React.J
 
   function handleHexInput(value: string): void {
     setHexInput(value)
-    if (/^#[0-9a-fA-F]{6}$/.test(value)) setColor(value)
+    if (isHexColor(value)) setColor(value)
   }
 
   return (
@@ -137,7 +138,7 @@ export function BulkEditModal({ elementIds, elements, onClose }: Props): React.J
             <input
               type="color"
               className={styles.colorSwatch}
-              value={color ?? '#9d9d53'}
+              value={color ?? DEFAULT_ELEMENT_COLOR}
               onChange={e => handleColorPicker(e.target.value)}
             />
             <input

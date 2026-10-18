@@ -21,6 +21,7 @@ import { formatRange, numericRange, openWeight } from '../../lib/numericRange'
 import { CollectionChoiceRow } from '../CollectionChoiceRow'
 import { ForwardActionButton } from '../ConfirmationDisc'
 import { ModalShell } from '../ModalShell'
+import { DEFAULT_ELEMENT_COLOR, isHexColor } from '../../lib/color'
 
 // Membership is a set; the array only records it. Two lists holding the same
 // ids in a different order are the same membership and must not read as an
@@ -41,8 +42,8 @@ export function ElementDetailModal({ elementId, onClose }: Props): React.JSX.Ele
   const addCollection = useAppStore(s => s.addCollection)
 
   const [name,       setName]       = useState(element?.name ?? '')
-  const [color,      setColor]      = useState(element?.color ?? '#9d9d53')
-  const [hexInput,   setHexInput]   = useState(element?.color ?? '#9d9d53')
+  const [color,      setColor]      = useState(element?.color ?? DEFAULT_ELEMENT_COLOR)
+  const [hexInput,   setHexInput]   = useState(element?.color ?? DEFAULT_ELEMENT_COLOR)
   const [shape,      setShape]      = useState<ElementShape>(element?.shape ?? 'circle')
   const [weight,     setWeight]     = useState(String(element?.weight ?? 1))
   const [definition, setDefinition] = useState(element?.definition ?? '')
@@ -101,7 +102,7 @@ export function ElementDetailModal({ elementId, onClose }: Props): React.JSX.Ele
 
   function handleHexInput(value: string): void {
     setHexInput(value)
-    if (/^#[0-9a-fA-F]{6}$/.test(value)) setColor(value)
+    if (isHexColor(value)) setColor(value)
   }
 
   return (

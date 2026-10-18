@@ -31,7 +31,7 @@
     "test": "vitest run",
     "lint": "eslint src",
     "knip": "knip",
-    "check": "npm run typecheck && npm run lint && npm test",
+    "check": "npm run typecheck && npm run lint && npm run knip && npm test",
     "dist": "npm run build && electron-builder --mac dmg --publish never"
   },
   "dependencies": {

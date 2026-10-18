@@ -28,7 +28,7 @@
 //   ElementName  [def text]     score       score       ...
 
 import type { Element, Dimension, ScoreMap, SessionMeta, Collection } from './types'
-import { defaultCategories, defaultSessionMeta, parsePoles } from './types'
+import { ELEMENT_SHAPES, defaultCategories, defaultSessionMeta, parsePoles } from './types'
 import { MEMBERSHIP_CUTOFF } from './parser'
 import { COLLECTION_SEPARATOR, isFormulaEscaped } from './exporter'
 import { openWeight } from './numericRange'
@@ -193,8 +193,7 @@ function parseFullSpreadsheet(text: string): ImportResult {
         weight:     weightCol >= 0 && rawWeight !== ''
           ? openWeight(Number(rawWeight), 1)
           : 1,
-        shape:      (['circle', 'square', 'triangle', 'diamond'] as const).includes(rawShape as Element['shape'])
-                      ? rawShape as Element['shape'] : 'circle',
+        shape:      ELEMENT_SHAPES.includes(rawShape as Element['shape']) ? rawShape as Element['shape'] : 'circle',
         collectionIds: rawColls
           .split(COLLECTION_SEPARATOR)
           // Each name carries its own escaping: tc() above only unescaped the

@@ -40,7 +40,7 @@ function MapChromeButton({ action, label, glyph }: MapChromeButtonProps): React.
   )
 }
 
-export function SidebarToggle({ open, onToggle }: { open: boolean; onToggle: () => void }): React.JSX.Element {
+function SidebarToggle({ open, onToggle }: { open: boolean; onToggle: () => void }): React.JSX.Element {
   const label = open ? 'Hide map controls' : 'Show map controls'
   return (
     <button

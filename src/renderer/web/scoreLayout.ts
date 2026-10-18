@@ -1,20 +1,15 @@
 import { create } from 'zustand'
-import type { AppState } from '@renderer/lib/types'
-
-export type Tab = AppState['activeTab']
+import { TABS, type Tab } from '@renderer/lib/types'
 
 /** The tab strip's width, including its 1px right border (border-box; ScoreDock.module.css). */
 export const STRIP_WIDTH = 40
 /** The strip's width while it shows each icon's name beside it. */
-export const STRIP_WIDTH_LABELLED = 136
+const STRIP_WIDTH_LABELLED = 136
 
 export const stripWidth = (labels: boolean): number => labels ? STRIP_WIDTH_LABELLED : STRIP_WIDTH
 
-/** The strip's order, which open views keep side by side. */
-export const TAB_ORDER: readonly Tab[] = ['notes', 'elements', 'dimensions', 'collections', 'scores', 'conversions']
-
 /** Line between two open views. */
-export const PANE_DIVIDER = 1
+const PANE_DIVIDER = 1
 
 /**
  * Notes is one text field and can go thin. The others hold a list and its
@@ -66,8 +61,8 @@ export interface StoredLayout {
 
 const DEFAULT_LAYOUT: StoredLayout = { openTabs: ['notes'], paneWidths: {}, collapsed: false, labels: false }
 
-const isTab = (v: unknown): v is Tab => TAB_ORDER.includes(v as Tab)
-const inStripOrder = (tabs: Tab[]): Tab[] => TAB_ORDER.filter(t => tabs.includes(t))
+const isTab = (v: unknown): v is Tab => TABS.includes(v as Tab)
+const inStripOrder = (tabs: Tab[]): Tab[] => TABS.filter(t => tabs.includes(t))
 const validWidth = (w: unknown): w is number => typeof w === 'number' && Number.isFinite(w) && w > 0
 
 /** Reads a stored layout record; anything unreadable or foreign gives the defaults. */
@@ -85,7 +80,7 @@ export function parseLayout(raw: string | null): StoredLayout {
       // Written before views opened side by side: the one Score width,
       // strip included, becomes the width of each list-and-detail view.
       const strip = stripWidth(v.labels === true)
-      for (const tab of TAB_ORDER) if (tab !== 'notes') paneWidths[tab] = Math.round(v.scoreWidth - strip)
+      for (const tab of TABS) if (tab !== 'notes') paneWidths[tab] = Math.round(v.scoreWidth - strip)
     }
     const openTabs = Array.isArray(v.openTabs) ? inStripOrder(v.openTabs.filter(isTab)) : DEFAULT_LAYOUT.openTabs
     return {

@@ -24,7 +24,7 @@ import { uiTheme } from '../../design/theme'
 // Substituted for every color in 'none' mode, and drawn when 'collection' mode
 // finds no collection to color by. Mid-gray keeps both the white dot outline
 // and the dark element label legible against it.
-export const NEUTRAL_COLOR = uiTheme.map.neutral
+const NEUTRAL_COLOR = uiTheme.map.neutral
 
 /**
  * The color to draw one element in — cartesian dots, and semantic polylines

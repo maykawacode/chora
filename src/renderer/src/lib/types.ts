@@ -124,7 +124,7 @@ import type { MarkMode } from '../../../shared/contracts'
 // Named for what it selects rather than matching Element.collectionIds: one is
 // a per-map display choice, the other is the membership itself, and a shared
 // name would invite reading a map's selection as data about the elements.
-export interface BaseMapConfig {
+interface BaseMapConfig {
   id: string
   type: MapType
   title: string        // user-editable; also used as the OS window title
@@ -170,6 +170,21 @@ export interface SemanticMapConfig extends BaseMapConfig {
 
 export type MapConfig = CartesianMapConfig | SemanticMapConfig
 
+// ── Score views ───────────────────────────────────────────────────────────────
+
+/** The Score views in tab and strip order. `scores` is shown as Assess. */
+export const TABS = ['notes', 'elements', 'dimensions', 'collections', 'scores', 'conversions'] as const
+export type Tab = typeof TABS[number]
+
+export const TAB_NAMES: Record<Tab, string> = {
+  notes:       'Notes',
+  elements:    'Elements',
+  dimensions:  'Dimensions',
+  collections: 'Collections',
+  scores:      'Assess',
+  conversions: 'Conversions'
+}
+
 // ── Application state ─────────────────────────────────────────────────────────
 //
 // The full session state. Serialized to JSON for file save and for
@@ -188,7 +203,7 @@ export interface AppState {
   selectedElementId: string | null
   selectedDimensionId: string | null
   selectedCollectionId: string | null
-  activeTab: 'notes' | 'elements' | 'dimensions' | 'scores' | 'collections' | 'conversions'
+  activeTab: Tab
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

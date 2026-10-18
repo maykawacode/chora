@@ -57,7 +57,7 @@ export function renameDocument(typed: string): boolean {
 
 // ── Name prompt ───────────────────────────────────────────────────────────────
 
-export type PromptPurpose = 'rename' | 'first-save'
+type PromptPurpose = 'rename' | 'first-save'
 
 interface NamePromptState {
   request: { purpose: PromptPurpose; resolve: (name: string | null) => void } | null

@@ -14,13 +14,10 @@
 // conversions think in cycles — "1st type circle, 2nd square, …" — and an index
 // wraps naturally. ELEMENT_SHAPES in lib/types.ts fixes that order.
 
-import type { Element, MarkMode } from '../../lib/types'
+import { ELEMENT_SHAPES, type Element, type MarkMode } from '../../lib/types'
 import { uiTheme } from '../../design/theme'
 
-// Element.shape → the index drawMark expects.
-export const SHAPE_INDEX: Record<string, number> = { circle: 0, square: 1, triangle: 2, diamond: 3 }
-
-const CIRCLE = SHAPE_INDEX.circle
+const CIRCLE = 0
 
 /**
  * Which shape to draw for one element, or null to draw no mark at all.
@@ -32,7 +29,7 @@ export function markShapeIndex(mode: MarkMode, el: Element): number | null {
   switch (mode) {
     case 'none':    return null
     case 'circle':  return CIRCLE
-    case 'element': return SHAPE_INDEX[el.shape] ?? CIRCLE
+    case 'element': return Math.max(CIRCLE, ELEMENT_SHAPES.indexOf(el.shape))
   }
 }
 

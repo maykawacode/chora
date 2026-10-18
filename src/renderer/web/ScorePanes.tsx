@@ -1,8 +1,8 @@
 import { Fragment, useRef, type ReactNode } from 'react'
 import { useAppStore } from '@renderer/store/appStore'
-import { TAB_ACCESSIBLE_LABELS } from '@renderer/components/ScoreWindow/ScoreWindow'
+import { TAB_NAMES, type Tab } from '@renderer/lib/types'
 import {
-  MAP_AREA_MIN_WIDTH, columnWidth, paneFloor, paneSnapWidth, paneWidth, snapsClosed, useScoreLayout, type Tab
+  MAP_AREA_MIN_WIDTH, columnWidth, paneFloor, paneSnapWidth, paneWidth, snapsClosed, useScoreLayout
 } from './scoreLayout'
 import styles from './ScorePanes.module.css'
 
@@ -89,7 +89,7 @@ function PaneDivider({ tab, fill }: { tab: Tab; fill: boolean }): React.JSX.Elem
       className={styles.divider}
       role="separator"
       aria-orientation="vertical"
-      aria-label={`Resize ${TAB_ACCESSIBLE_LABELS[tab]}`}
+      aria-label={`Resize ${TAB_NAMES[tab]}`}
       tabIndex={0}
       onPointerDown={(e) => {
         e.preventDefault()
@@ -134,7 +134,7 @@ export function ScorePanes({ renderTab }: { renderTab: (tab: Tab) => ReactNode }
               flexGrow: fill ? paneWidth({ paneWidths }, tab) : undefined,
               minWidth: paneFloor({ paneWidths }, tab)
             }}
-            aria-label={TAB_ACCESSIBLE_LABELS[tab]}
+            aria-label={TAB_NAMES[tab]}
             onPointerDownCapture={() => focusTab(tab)}
             onFocusCapture={() => focusTab(tab)}
           >

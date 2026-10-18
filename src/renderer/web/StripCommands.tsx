@@ -163,7 +163,7 @@ function MenuFlyout({ menu, anchor, onClose }: {
   )
 }
 
-export type MenuName = 'File' | 'Maps' | 'Info'
+type MenuName = 'File' | 'Maps' | 'Info'
 
 export interface StripMenus {
   /** The icon that opens the named menu. */

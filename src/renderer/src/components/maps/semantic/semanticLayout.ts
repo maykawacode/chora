@@ -44,7 +44,7 @@ let scratch: CanvasRenderingContext2D | null = null
 const measured = new Map<string, number>()
 
 /** Text width in a font, measured once per pair (labels are re-measured every frame otherwise). */
-export const measureText: MeasureText = (text, font) => {
+const measureText: MeasureText = (text, font) => {
   const key = `${font}\n${text}`
   let width = measured.get(key)
   if (width === undefined) {

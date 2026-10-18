@@ -113,7 +113,7 @@ export function cartesianHitEdge(
   return null
 }
 
-export function cartesianProject(
+function cartesianProject(
   config: CartesianMapConfig,
   width: number,
   height: number,

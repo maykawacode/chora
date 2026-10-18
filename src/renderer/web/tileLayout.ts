@@ -8,11 +8,11 @@ import { create } from 'zustand'
 // map IDs, so it is not carried across reloads (Score's width and collapse
 // state are; scoreLayout.ts).
 
-export type Dir = 'row' | 'column'
+type Dir = 'row' | 'column'
 export type Side = 'left' | 'right' | 'top' | 'bottom'
 
-export interface TileNode { kind: 'tile'; id: string }
-export interface SplitNode { kind: 'split'; id: string; dir: Dir; children: LayoutNode[]; sizes: number[] }
+interface TileNode { kind: 'tile'; id: string }
+interface SplitNode { kind: 'split'; id: string; dir: Dir; children: LayoutNode[]; sizes: number[] }
 export type LayoutNode = TileNode | SplitNode
 
 export interface Rect { x: number; y: number; width: number; height: number }
@@ -66,9 +66,9 @@ export interface Arrangement {
 /** Smallest tile that keeps a readable plot (two 58px margins + 160px plot) plus chrome. */
 export const TILE_MIN = { width: 280, height: 280 }
 /** Widest a tile may start; new maps start a new row rather than going narrower. */
-export const TILE_TARGET_WIDTH = 360
-export const MAX_COLUMNS = 3
-export const DIVIDER = 1
+const TILE_TARGET_WIDTH = 360
+const MAX_COLUMNS = 3
+const DIVIDER = 1
 
 let nextSplit = 0
 const split = (dir: Dir, children: LayoutNode[], sizes?: number[]): SplitNode => ({
@@ -96,7 +96,7 @@ export function tileIds(node: LayoutNode | null): string[] {
 }
 
 /** Collapses one-child splits and merges a split into a parent of the same direction. */
-export function normalize(node: LayoutNode | null): LayoutNode | null {
+function normalize(node: LayoutNode | null): LayoutNode | null {
   if (!node || node.kind === 'tile') return node
   const children: LayoutNode[] = []
   const sizes: number[] = []

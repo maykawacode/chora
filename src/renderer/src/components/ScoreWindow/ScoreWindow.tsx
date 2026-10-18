@@ -16,45 +16,21 @@ import { DimensionsTab } from './DimensionsTab'
 import { AssessTab } from './ScoresTab'
 import { CollectionsTab } from './CollectionsTab'
 import { ConversionsTab } from './ConversionsTab'
-import type { AppState } from '../../lib/types'
+import { TABS, TAB_NAMES, type Tab } from '../../lib/types'
 import { useStatusLine } from './statusLine'
 import { sortToggleTitle, useElementSort } from './elementSort'
 import { hostCapabilities } from '../../lib/host'
 import styles from './ScoreWindow.module.css'
 
-// Keep runtime keys decoupled from presentation labels. In particular, the
-// long-standing `scores` key now presents the broader Assess workspace.
-const TAB_LABELS: Record<AppState['activeTab'], string> = {
-  notes:       'Notes',
-  elements:    'Elements',
-  collections: 'Collections',
-  dimensions:  'Dimensions',
-  scores:      'Assess',
-  conversions: '…'
-}
-
-export const TAB_ACCESSIBLE_LABELS: Record<AppState['activeTab'], string> = {
-  notes:       'Notes',
-  elements:    'Elements',
-  collections: 'Collections',
-  dimensions:  'Dimensions',
-  scores:      'Assess',
-  conversions: 'Conversions'
-}
-
-export const TAB_ORDER = ['notes', 'elements', 'dimensions', 'collections', 'scores', 'conversions'] as const
-
-export type ScoreTab = AppState['activeTab']
-
 /** Host layout for several views at once; `renderTab` draws one view under its title. */
-export type ScorePanesLayout = ComponentType<{ renderTab: (tab: ScoreTab) => ReactNode }>
+export type ScorePanesLayout = ComponentType<{ renderTab: (tab: Tab) => ReactNode }>
 
 interface Props {
   onOpenStarterPicker: () => void
   panes?: ScorePanesLayout
 }
 
-function TabBody({ tab, onOpenStarterPicker }: { tab: ScoreTab; onOpenStarterPicker: () => void }): React.JSX.Element {
+function TabBody({ tab, onOpenStarterPicker }: { tab: Tab; onOpenStarterPicker: () => void }): React.JSX.Element {
   switch (tab) {
     case 'notes':       return <NotesTab />
     case 'elements':    return <ElementsTab />
@@ -66,7 +42,7 @@ function TabBody({ tab, onOpenStarterPicker }: { tab: ScoreTab; onOpenStarterPic
 }
 
 /** Browser: the current tab's name, with the list count where it has one. */
-function PaneTitle({ tab }: { tab: AppState['activeTab'] }): React.JSX.Element {
+function PaneTitle({ tab }: { tab: Tab }): React.JSX.Element {
   const count = useAppStore(s =>
     tab === 'elements' ? s.elements.length
       : tab === 'dimensions' ? s.dimensions.length
@@ -76,7 +52,7 @@ function PaneTitle({ tab }: { tab: AppState['activeTab'] }): React.JSX.Element {
   const toggleSort = useElementSort(s => s.toggle)
   return (
     <h2 className={styles.paneTitle}>
-      <span>{TAB_ACCESSIBLE_LABELS[tab]}{count === undefined ? '' : ` (${count})`}</span>
+      <span>{TAB_NAMES[tab]}{count === undefined ? '' : ` (${count})`}</span>
       {tab === 'elements' && (
         <button type="button" className={styles.paneSort} onClick={toggleSort} title={sortToggleTitle(sortAlpha)}>
           {sortAlpha ? 'A–Z' : '⇅'}
@@ -140,7 +116,7 @@ export function ScoreWindow({ onOpenStarterPicker, panes: Panes }: Props): React
       {!desktop && <PaneTitle tab={activeTab} />}
 
       {desktop && <div className={styles.tabBar}>
-        {TAB_ORDER.map(tab => (
+        {TABS.map(tab => (
           <button
             key={tab}
             className={[
@@ -150,10 +126,10 @@ export function ScoreWindow({ onOpenStarterPicker, panes: Panes }: Props): React
             ].filter(Boolean).join(' ')}
             onClick={() => setActiveTab(tab)}
             aria-pressed={activeTab === tab}
-            aria-label={TAB_ACCESSIBLE_LABELS[tab]}
+            aria-label={TAB_NAMES[tab]}
             title={tab === 'conversions' ? 'Conversions' : undefined}
           >
-            {TAB_LABELS[tab]}
+            {tab === 'conversions' ? '…' : TAB_NAMES[tab]}
           </button>
         ))}
       </div>}
