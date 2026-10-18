@@ -10,7 +10,7 @@
 //   - Every deletion follows the global confirmDeleteData preference
 //   Escape dismisses the confirmation dialog.
 
-import { useRef, useState, useEffect, KeyboardEvent } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { useAppStore } from '../../store/appStore'
 import { historyField } from '../../store/historyBindings'
 import { useResizableSplitPane } from './useResizableSplitPane'
@@ -18,7 +18,7 @@ import { hostCapabilities } from '../../lib/host'
 import styles from './DataTab.module.css'
 import { formatRange, numericRange, openWeight } from '../../lib/numericRange'
 import { ConfirmationDisc } from '../ConfirmationDisc'
-import { usePrefsStore } from '../../store/prefsStore'
+import { AddRow, listKeys, useConfirmedDelete } from './dataList'
 
 interface Props { onOpenStarterPicker: () => void }
 
@@ -75,27 +75,13 @@ export function DimensionsTab({ onOpenStarterPicker }: Props): React.JSX.Element
   const removeDimension = useAppStore(s => s.removeDimension)
   const selectDimension = useAppStore(s => s.selectDimension)
   const scores          = useAppStore(s => s.scores)
-  const confirmDeleteData = usePrefsStore(s => s.prefs.confirmDeleteData)
 
   const selected = dimensions.find(d => d.id === selectedId) ?? null
-  const [newLabel,       setNewLabel]       = useState('')
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
-  const addInputRef = useRef<HTMLInputElement>(null)
   const splitPane = useResizableSplitPane()
+  const deletion = useConfirmedDelete(ids => { for (const id of ids) removeDimension(id) })
+  const confirmDeleteId = deletion.pendingIds[0] ?? null
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
-
-  function handleAdd(): void {
-    const label = newLabel.trim()
-    if (!label) return
-    addDimension(label)
-    setNewLabel('')
-    addInputRef.current?.focus()
-  }
-
-  function handleAddKeyDown(e: KeyboardEvent<HTMLInputElement>): void {
-    if (e.key === 'Enter') handleAdd()
-  }
 
   // Keep poleA, poleB, and label in sync: editing either pole rebuilds the label
   function handlePoleEdit(field: 'poleA' | 'poleB', value: string): void {
@@ -103,22 +89,6 @@ export function DimensionsTab({ onOpenStarterPicker }: Props): React.JSX.Element
     const poleA = field === 'poleA' ? value : selected.poleA
     const poleB = field === 'poleB' ? value : selected.poleB
     updateDimension(selected.id, { poleA, poleB, label: `${poleA}–${poleB}` })
-  }
-
-  function handleListKeyDown(e: KeyboardEvent<HTMLUListElement>): void {
-    if (!selectedId || dimensions.length === 0) return
-    const idx = dimensions.findIndex(d => d.id === selectedId)
-
-    if (e.key === 'ArrowDown' && idx < dimensions.length - 1) {
-      selectDimension(dimensions[idx + 1].id)
-      e.preventDefault()
-    } else if (e.key === 'ArrowUp' && idx > 0) {
-      selectDimension(dimensions[idx - 1].id)
-      e.preventDefault()
-    } else if (e.key === 'Backspace' || e.key === 'Delete') {
-      if (confirmDeleteData) setConfirmDeleteId(selectedId)
-      else removeDimension(selectedId)
-    }
   }
 
   const confirmDim = confirmDeleteId ? dimensions.find(d => d.id === confirmDeleteId) : null
@@ -143,7 +113,12 @@ export function DimensionsTab({ onOpenStarterPicker }: Props): React.JSX.Element
             <ul
               className={styles.list}
               tabIndex={0}
-              onKeyDown={handleListKeyDown}
+              onKeyDown={listKeys({
+                ids: dimensions.map(d => d.id),
+                currentId: selectedId,
+                onStep: selectDimension,
+                onDelete: () => selectedId && deletion.request([selectedId])
+              })}
               aria-label="Dimensions"
             >
               {dimensions.map(dim => (
@@ -158,15 +133,7 @@ export function DimensionsTab({ onOpenStarterPicker }: Props): React.JSX.Element
             </ul>
           )}
 
-          <div className={styles.addRow}>
-            <input
-              ref={addInputRef}
-              className={styles.addInput}
-              placeholder="New dimension (e.g. Hot–Cold)…"
-              value={newLabel}
-              onChange={e => setNewLabel(e.target.value)}
-              onKeyDown={handleAddKeyDown}
-            />
+          <AddRow placeholder="New dimension (e.g. Hot–Cold)…" onAdd={addDimension}>
             <button
               className={styles.starterBtn}
               onClick={onOpenStarterPicker}
@@ -174,7 +141,7 @@ export function DimensionsTab({ onOpenStarterPicker }: Props): React.JSX.Element
             >
               ⋯
             </button>
-          </div>
+          </AddRow>
         </div>
       </div>
 
@@ -243,8 +210,8 @@ export function DimensionsTab({ onOpenStarterPicker }: Props): React.JSX.Element
           title={<>Delete <strong>{confirmDim.label}</strong>?</>}
           detail={confirmDimHasScores ? 'Its scores will be lost.' : 'This cannot be undone.'}
           actionLabel="Delete"
-          onCancel={() => setConfirmDeleteId(null)}
-          onAction={() => { removeDimension(confirmDeleteId!); setConfirmDeleteId(null) }}
+          onCancel={deletion.cancel}
+          onAction={deletion.confirm}
         />
       )}
     </div>

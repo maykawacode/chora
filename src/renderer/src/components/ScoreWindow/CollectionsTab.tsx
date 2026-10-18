@@ -10,14 +10,13 @@
 // Delete behavior:
 //   - Every deletion follows the global confirmDeleteData preference
 
-import { useRef, useState, KeyboardEvent } from 'react'
 import { useAppStore } from '../../store/appStore'
 import { historyField } from '../../store/historyBindings'
 import { DEFAULT_COLLECTION_COLOR } from '../../lib/color'
 import { useResizableSplitPane } from './useResizableSplitPane'
 import { paletteForUncolored } from '../../store/transforms'
 import { ConfirmationDisc } from '../ConfirmationDisc'
-import { usePrefsStore } from '../../store/prefsStore'
+import { AddRow, listKeys, useConfirmedDelete } from './dataList'
 import { hostCapabilities } from '../../lib/host'
 import styles from './DataTab.module.css'
 
@@ -30,7 +29,6 @@ export function CollectionsTab(): React.JSX.Element {
   const removeCollection = useAppStore(s => s.removeCollection)
   const selectCollection = useAppStore(s => s.selectCollection)
   const transform        = useAppStore(s => s.transform)
-  const confirmDeleteData = usePrefsStore(s => s.prefs.confirmDeleteData)
 
   // Collections created before the palette existed all carry
   // DEFAULT_COLLECTION_COLOR, which makes a map colored by collection look like
@@ -40,38 +38,11 @@ export function CollectionsTab(): React.JSX.Element {
 
   const selected = collections.find(c => c.id === selectedId) ?? null
 
-  const [newName,         setNewName]         = useState('')
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
-  const addInputRef = useRef<HTMLInputElement>(null)
   const splitPane = useResizableSplitPane()
 
-  function handleAdd(): void {
-    const name = newName.trim()
-    if (!name) return
-    addCollection(name)
-    setNewName('')
-    addInputRef.current?.focus()
-  }
-
-  // Deleting a collection drops it from every member's collectionIds. Whether
-  // that operation asks first is governed by the same preference as every
-  // other data deletion.
-  function requestDelete(id: string): void {
-    if (confirmDeleteData) setConfirmDeleteId(id)
-    else removeCollection(id)
-  }
-
-  function handleListKeyDown(e: KeyboardEvent<HTMLUListElement>): void {
-    if (!selectedId || collections.length === 0) return
-    const idx = collections.findIndex(c => c.id === selectedId)
-    if (e.key === 'ArrowDown' && idx < collections.length - 1) {
-      selectCollection(collections[idx + 1].id); e.preventDefault()
-    } else if (e.key === 'ArrowUp' && idx > 0) {
-      selectCollection(collections[idx - 1].id); e.preventDefault()
-    } else if (e.key === 'Backspace' || e.key === 'Delete') {
-      requestDelete(selectedId)
-    }
-  }
+  // Deleting a collection drops it from every member's collectionIds.
+  const deletion = useConfirmedDelete(ids => { for (const id of ids) removeCollection(id) })
+  const confirmDeleteId = deletion.pendingIds[0] ?? null
 
   const confirmCollection = confirmDeleteId
     ? collections.find(c => c.id === confirmDeleteId)
@@ -94,7 +65,12 @@ export function CollectionsTab(): React.JSX.Element {
             <ul
               className={styles.list}
               tabIndex={0}
-              onKeyDown={handleListKeyDown}
+              onKeyDown={listKeys({
+                ids: collections.map(c => c.id),
+                currentId: selectedId,
+                onStep: selectCollection,
+                onDelete: () => selectedId && deletion.request([selectedId])
+              })}
               aria-label="Collections"
             >
               {collections.map(collection => (
@@ -113,16 +89,7 @@ export function CollectionsTab(): React.JSX.Element {
             </ul>
           )}
 
-          <div className={styles.addRow}>
-            <input
-              ref={addInputRef}
-              className={styles.addInput}
-              placeholder="New collection…"
-              value={newName}
-              onChange={e => setNewName(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') handleAdd() }}
-            />
-          </div>
+          <AddRow placeholder="New collection…" onAdd={addCollection} />
 
           {uncoloredCount > 0 && (
             <button type="button" className={styles.bulkBtn} onClick={() => transform(paletteForUncolored)}>
@@ -179,8 +146,8 @@ export function CollectionsTab(): React.JSX.Element {
             : 'This cannot be undone.'
           }
           actionLabel="Delete"
-          onCancel={() => setConfirmDeleteId(null)}
-          onAction={() => { removeCollection(confirmDeleteId!); setConfirmDeleteId(null) }}
+          onCancel={deletion.cancel}
+          onAction={deletion.confirm}
         />
       )}
     </div>

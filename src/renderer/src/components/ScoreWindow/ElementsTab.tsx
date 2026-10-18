@@ -18,7 +18,7 @@
 //   - All single and multi-element deletions follow confirmDeleteData
 //   - There is no delete button in the UI; the keyboard is the only trigger.
 
-import { useRef, useState, useEffect, KeyboardEvent } from 'react'
+import { useEffect } from 'react'
 import { useAppStore } from '../../store/appStore'
 import { history, SCORE_HISTORY_OWNER } from '../../store/history'
 import { historyField } from '../../store/historyBindings'
@@ -31,6 +31,7 @@ import { scoreOwnsKeys } from '../../lib/overlayStack'
 import { hostCapabilities } from '../../lib/host'
 import { sortToggleTitle, useElementSort } from './elementSort'
 import { DEFAULT_ELEMENT_COLOR } from '../../lib/color'
+import { AddRow, listKeys, useConfirmedDelete } from './dataList'
 import styles from './DataTab.module.css'
 
 export function ElementsTab(): React.JSX.Element {
@@ -61,10 +62,15 @@ export function ElementsTab(): React.JSX.Element {
     ? [...elements].sort((a, b) => a.name.localeCompare(b.name))
     : elements
 
-  const [newName,   setNewName]   = useState('')
-  const [confirmIds, setConfirmIds] = useState<string[]>([])
-  const addInputRef = useRef<HTMLInputElement>(null)
   const splitPane = useResizableSplitPane()
+
+  // Every single or batch delete follows the global data preference.
+  const deletion = useConfirmedDelete(ids => {
+    history.run(SCORE_HISTORY_OWNER, () => {
+      for (const id of ids) removeElement(id)
+    })
+    clearSelection()
+  })
 
   // Cmd+D (Mac) / Ctrl+D (Windows/Linux) duplicates the selected element.
   // Registered at document level so it fires even when a detail field has
@@ -89,31 +95,6 @@ export function ElementsTab(): React.JSX.Element {
   }, [selectedId, duplicateElement])
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
-
-  function handleAdd(): void {
-    const name = newName.trim()
-    if (!name) return
-    addElement(name, prefs.defaultElementColor)
-    setNewName('')
-    addInputRef.current?.focus()
-  }
-
-  function handleAddKeyDown(e: KeyboardEvent<HTMLInputElement>): void {
-    if (e.key === 'Enter') handleAdd()
-  }
-
-  // Route every single or batch delete through the global data preference.
-  function requestDelete(ids: string[]): void {
-    if (ids.length === 0) return
-    if (prefs.confirmDeleteData) {
-      setConfirmIds(ids)  // show the confirmation overlay
-    } else {
-      history.run(SCORE_HISTORY_OWNER, () => {
-        for (const id of ids) removeElement(id)
-      })
-      clearSelection()
-    }
-  }
 
   // Whatever a click or arrow key would delete: the whole multi-selection when
   // there is one, otherwise just the anchor.
@@ -154,18 +135,12 @@ export function ElementsTab(): React.JSX.Element {
     selectElement(id)
   }
 
-  function handleListKeyDown(e: KeyboardEvent<HTMLUListElement>): void {
-    if (!selectedId || displayElements.length === 0) return
-    // Use displayElements so ↑ ↓ navigate the visible order, not the store order
-    const idx = displayElements.findIndex(el => el.id === selectedId)
-
-    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-      const next = e.key === 'ArrowDown' ? idx + 1 : idx - 1
-      if (next < 0 || next >= displayElements.length) return
-      e.preventDefault()
-      const targetId = displayElements[next].id
-
-      if (e.shiftKey) {
+  const handleListKeyDown = listKeys({
+    // ↑ ↓ walk the visible order, not the store order.
+    ids: displayElements.map(el => el.id),
+    currentId: selectedId,
+    onStep: (targetId, shift) => {
+      if (shift && selectedId) {
         const base = selectedIds.length > 0 ? selectedIds : [selectedId]
         // Stepping onto an already-highlighted row means the user reversed
         // direction: shrink by dropping the row being left, rather than grow.
@@ -176,12 +151,11 @@ export function ElementsTab(): React.JSX.Element {
         clearSelection()
       }
       selectElement(targetId)
-    } else if (e.key === 'Backspace' || e.key === 'Delete') {
-      requestDelete(deletionTargets())
-    }
-  }
+    },
+    onDelete: () => deletion.request(deletionTargets())
+  })
 
-  const confirmElements = confirmIds
+  const confirmElements = deletion.pendingIds
     .map(id => elements.find(e => e.id === id))
     .filter((e): e is NonNullable<typeof e> => e != null)
 
@@ -240,16 +214,7 @@ export function ElementsTab(): React.JSX.Element {
             </ul>
           )}
 
-          <div className={styles.addRow}>
-            <input
-              ref={addInputRef}
-              className={styles.addInput}
-              placeholder="New element…"
-              value={newName}
-              onChange={e => setNewName(e.target.value)}
-              onKeyDown={handleAddKeyDown}
-            />
-          </div>
+          <AddRow placeholder="New element…" onAdd={name => addElement(name, prefs.defaultElementColor)} />
         </div>
       </div>
 
@@ -339,14 +304,8 @@ export function ElementsTab(): React.JSX.Element {
           }
           detail={confirmElements.length === 1 ? 'Its scores will be lost.' : 'Their scores will be lost.'}
           actionLabel="Delete"
-          onCancel={() => setConfirmIds([])}
-          onAction={() => {
-            history.run(SCORE_HISTORY_OWNER, () => {
-              for (const el of confirmElements) removeElement(el.id)
-            })
-            clearSelection()
-            setConfirmIds([])
-          }}
+          onCancel={deletion.cancel}
+          onAction={deletion.confirm}
         />
       )}
     </div>

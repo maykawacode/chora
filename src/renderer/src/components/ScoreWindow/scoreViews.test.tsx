@@ -11,6 +11,8 @@ import { defaultCategories } from '../../lib/types'
 import { ElementsTab } from './ElementsTab'
 import { ConversionsTab } from './ConversionsTab'
 import { AssessTab } from './ScoresTab'
+import { DimensionsTab } from './DimensionsTab'
+import { CollectionsTab } from './CollectionsTab'
 
 // Behaviour the Score views must keep through refactoring: list keyboard
 // selection, one undo step per field edit or held key, and conversion results.
@@ -47,6 +49,45 @@ describe('Elements list keys', () => {
     expect(useAppStore.getState().selectedElementIds).toEqual(['b', 'c'])
     act(() => { fireEvent.keyDown(list, { key: 'Delete' }) })
     expect(useAppStore.getState().elements.map(e => e.id)).toEqual(['a'])
+  })
+})
+
+describe('Dimensions and Collections lists', () => {
+  beforeEach(() => {
+    study([element('a', 'circle')], [dimension('d'), { ...dimension('e'), poleA: 'Cold', poleB: 'Hot' }])
+    history.dispose()
+    useAppStore.setState({
+      collections: [{ id: 'c1', name: 'One', definition: '', color: '#4080c0' }, { id: 'c2', name: 'Two', definition: '', color: '#c04040' }],
+      selectedCollectionId: 'c1'
+    })
+    history.start()
+  })
+
+  it('steps with the arrow keys and deletes after confirming', () => {
+    usePrefsStore.getState().setPrefs({ ...DEFAULT_PREFERENCES, confirmDeleteData: true })
+    render(<DimensionsTab onOpenStarterPicker={() => {}} />)
+    const list = screen.getByRole('list', { name: 'Dimensions' })
+    fireEvent.keyDown(list, { key: 'ArrowUp' })
+    expect(useAppStore.getState().selectedDimensionId).toBe('d')
+    fireEvent.keyDown(list, { key: 'ArrowDown' })
+    expect(useAppStore.getState().selectedDimensionId).toBe('e')
+    fireEvent.keyDown(list, { key: 'Delete' })
+    expect(useAppStore.getState().dimensions).toHaveLength(2)
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    expect(useAppStore.getState().dimensions.map(d => d.id)).toEqual(['d'])
+  })
+
+  it('deletes at once without confirmation, and adds from the add row', () => {
+    render(<CollectionsTab />)
+    fireEvent.keyDown(screen.getByRole('list', { name: 'Collections' }), { key: 'ArrowDown' })
+    fireEvent.keyDown(screen.getByRole('list', { name: 'Collections' }), { key: 'Backspace' })
+    expect(useAppStore.getState().collections.map(c => c.id)).toEqual(['c1'])
+
+    const add = screen.getByPlaceholderText('New collection…') as HTMLInputElement
+    fireEvent.change(add, { target: { value: '  Three  ' } })
+    fireEvent.keyDown(add, { key: 'Enter' })
+    expect(useAppStore.getState().collections.map(c => c.name)).toEqual(['One', 'Three'])
+    expect(add.value).toBe('')
   })
 })
 
