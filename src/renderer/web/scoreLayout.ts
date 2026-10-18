@@ -150,8 +150,14 @@ export function tabsThatFit(layout: StoredLayout, room: number, keep: Tab): Tab[
 interface ScoreLayout extends StoredLayout {
   animating: boolean
   collapse: () => void
-  /** Opens a closed view or closes an open one; while collapsed, shows the column with it open. */
-  toggleTab: (tab: Tab) => void
+  /**
+   * A tab icon chosen: an open view closes; a closed one opens alone, or with
+   * `add` (⌘-click or right-click) beside those already open. While collapsed,
+   * the column shows with that view alone.
+   */
+  toggleTab: (tab: Tab, add?: boolean) => void
+  /** Shows the column with only this view open (a study just opened). */
+  showOnly: (tab: Tab) => void
   /** Makes sure a view is open and showing (a tab chosen from elsewhere). */
   reveal: (tab: Tab) => void
   /** Closes an open view; closing the last one collapses the column. */
@@ -194,14 +200,17 @@ export const useScoreLayout = create<ScoreLayout>((set, get) => {
     ...readLayout(),
     animating: false,
     collapse: () => toggleTo(true),
-    toggleTab: tab => {
+    toggleTab: (tab, add = false) => {
       const { openTabs, collapsed } = get()
-      if (collapsed || !openTabs.includes(tab)) {
-        open(tab)
-        toggleTo(false)
-        return
-      }
-      get().closeTab(tab)
+      if (!collapsed && openTabs.includes(tab)) return get().closeTab(tab)
+      if (collapsed || !add) return get().showOnly(tab)
+      open(tab)
+      toggleTo(false)
+    },
+    showOnly: tab => {
+      set({ openTabs: [] })
+      open(tab)
+      toggleTo(false)
     },
     closeTab: tab => {
       const rest = get().openTabs.filter(t => t !== tab)

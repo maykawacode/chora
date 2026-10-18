@@ -106,6 +106,8 @@ interface AppStore extends AppState {
   // Session lifecycle
   loadSession:  (state: AppState) => void
   resetToEmpty: () => void
+  /** Counts studies loaded or started (open, import, New); not part of the study. */
+  studyLoads: number
 }
 
 function safeWeightChanges<T extends { weight: number }>(changes: Partial<T>): Partial<T> {
@@ -599,8 +601,9 @@ export const useAppStore = create<AppStore>((set) => ({
 
   // Replaces the entire store state. Used by file open, import, and by
   // map windows when they receive a 'state:push' broadcast.
-  loadSession: (state) => set({ ...state }),
+  loadSession: (state) => set(s => ({ ...state, studyLoads: s.studyLoads + 1 })),
 
   // Resets to an empty session (File → New)
-  resetToEmpty: () => set({ ...emptyState, sessionMeta: defaultSessionMeta(), selectedElementIds: [] })
+  resetToEmpty: () => set(s => ({ ...emptyState, sessionMeta: defaultSessionMeta(), selectedElementIds: [], studyLoads: s.studyLoads + 1 })),
+  studyLoads: 0
 }))

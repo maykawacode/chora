@@ -58,6 +58,46 @@ describe('Score column width', () => {
   })
 })
 
+describe('Choosing Score views from the strip', () => {
+  const start = (openTabs: StoredLayout['openTabs'], collapsed = false): void =>
+    useScoreLayout.setState({ openTabs, paneWidths: {}, collapsed, animating: false })
+  const open = (): StoredLayout['openTabs'] => useScoreLayout.getState().openTabs
+
+  it('opens a view alone, closing the others', () => {
+    start(['notes', 'elements'])
+    useScoreLayout.getState().toggleTab('scores')
+    expect(open()).toEqual(['scores'])
+  })
+
+  it('opens a view beside the others when added', () => {
+    start(['notes'])
+    useScoreLayout.getState().toggleTab('scores', true)
+    expect(open()).toEqual(['notes', 'scores'])
+  })
+
+  it('closes only the chosen view when it is open', () => {
+    start(['notes', 'elements'])
+    useScoreLayout.getState().toggleTab('notes')
+    expect(open()).toEqual(['elements'])
+    useScoreLayout.getState().toggleTab('elements', true)
+    expect(open()).toEqual([])
+    expect(useScoreLayout.getState().collapsed).toBe(true)
+  })
+
+  it('shows only one view for a study just opened', () => {
+    start(['notes', 'elements', 'scores'])
+    useScoreLayout.getState().showOnly('notes')
+    expect(open()).toEqual(['notes'])
+  })
+
+  it('opens the column with only the chosen view while collapsed', () => {
+    start(['notes', 'elements'], true)
+    useScoreLayout.getState().toggleTab('elements', true)
+    expect(open()).toEqual(['elements'])
+    expect(useScoreLayout.getState().collapsed).toBe(false)
+  })
+})
+
 describe('Score views sharing the page', () => {
   const four: StoredLayout = { ...defaults, openTabs: ['notes', 'elements', 'dimensions', 'scores'] }
 

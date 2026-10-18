@@ -3,15 +3,19 @@ import { useAppStore } from '@renderer/store/appStore'
 import { TAB_ACCESSIBLE_LABELS } from '@renderer/components/ScoreWindow/ScoreWindow'
 import { MAP_AREA_MIN_WIDTH, columnWidth, stripWidth, useScoreLayout, type Tab } from './scoreLayout'
 import { Glyph } from './Glyph'
+import { isApple } from './shortcuts'
 import { useStripMenus } from './StripCommands'
 import styles from './ScoreDock.module.css'
 
 // Browser Score column: an always-visible strip beside the Score Window, the
 // page's anchor. One list from the top: Info, File | Notes, Elements,
 // Dimensions, Collections | Assess, Conversions, Maps, then Settings and the
-// names toggle at its foot (commands in StripCommands.tsx). Each tab icon opens or closes its view; open views sit
-// side by side (ScorePanes.tsx) and are highlighted. Closing the last one
-// collapses Score; any tab icon while collapsed opens Score with that view.
+// names toggle at its foot (commands in StripCommands.tsx). Each tab icon
+// opens or closes its view. A click opens the view alone, closing the others;
+// ⌘-click (Ctrl-click elsewhere) or a right-click opens it beside them. Open
+// views sit side by side (ScorePanes.tsx) and are highlighted. Closing the
+// last one collapses Score; any tab icon while collapsed opens Score with
+// that view alone, as does opening, importing or starting a study.
 // A new map shrinks the open views to their minimums; views that cannot all
 // fit beside the maps (or, with none, on the page) close from the right,
 // sparing the one in use (scoreLayout.ts).
@@ -45,6 +49,9 @@ const TAB_GLYPHS: Record<Tab, ReactNode> = {
     <circle cx="13" cy="8" r="1.4" />
   </g>
 }
+
+/** How to open a view beside the others, for the icons' tooltips. */
+const ADD_HINT = isApple ? '⌘-click or right-click' : 'Ctrl-click or right-click'
 
 /** The page width Score may take: all of it with no maps, else what one map tile and the splitter leave. */
 const scoreRoom = (hasMaps: boolean): number => window.innerWidth - (hasMaps ? MAP_AREA_MIN_WIDTH + 1 : 0)
@@ -87,9 +94,11 @@ export function ScoreDock({ children }: { children: ReactNode }): React.JSX.Elem
   // at this width and slides behind the strip rather than reflowing.
   const openWidth = useRef(0)
 
-  // A tab chosen elsewhere (Import, a link in Assess, opening a study) opens its view.
+  // A study opened, imported or started shows only its own view; a tab chosen
+  // elsewhere (a link in Assess) opens its view beside the others.
   useEffect(() => useAppStore.subscribe((s, prev) => {
-    if (s.activeTab !== prev.activeTab) useScoreLayout.getState().reveal(s.activeTab)
+    if (s.studyLoads !== prev.studyLoads) useScoreLayout.getState().showOnly(s.activeTab)
+    else if (s.activeTab !== prev.activeTab) useScoreLayout.getState().reveal(s.activeTab)
   }), [])
 
   // Maps take priority over Score: each new one shrinks Score's views to their minimums.
@@ -121,16 +130,21 @@ export function ScoreDock({ children }: { children: ReactNode }): React.JSX.Elem
     const label = TAB_ACCESSIBLE_LABELS[tab]
     // Open views are highlighted; collapsed, none is.
     const showing = openTabs.includes(tab) && !collapsed
+    const choose = (add: boolean): void => {
+      toggleTab(tab, add)
+      if (useScoreLayout.getState().openTabs.includes(tab)) useAppStore.getState().setActiveTab(tab)
+    }
     return (
       <button
         key={tab}
         className={`${styles.stripButton} ${showing ? styles.stripButtonActive : ''}`}
-        title={showing ? `Close ${label}` : label}
+        title={showing ? `Close ${label}` : `${label} (${ADD_HINT} to open beside)`}
         aria-label={label}
         aria-pressed={showing}
-        onClick={() => {
-          toggleTab(tab)
-          if (useScoreLayout.getState().openTabs.includes(tab)) useAppStore.getState().setActiveTab(tab)
+        onClick={(e) => choose(isApple ? e.metaKey : e.ctrlKey)}
+        onContextMenu={(e) => {
+          e.preventDefault()
+          choose(true)
         }}
       >
         <Glyph>{TAB_GLYPHS[tab]}</Glyph>
