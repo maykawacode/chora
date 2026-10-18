@@ -5,6 +5,7 @@ import { ScoreDock } from './ScoreDock'
 import { ScorePanes } from './ScorePanes'
 import { useScoreLayout } from './scoreLayout'
 import { TitleBanner } from './TitleBanner'
+import { BrowserWelcome } from './BrowserWelcome'
 import './browser.css'
 import { installShortcuts } from './shortcuts'
 import { setScoreSurfaceProbe } from '@renderer/lib/overlayStack'
@@ -29,6 +30,7 @@ void startApp({
   workspace: <BrowserWorkspace />,
   scoreFrame: score => <ScoreDock>{score}</ScoreDock>,
   scorePanes: ScorePanes,
+  welcome: props => <BrowserWelcome {...props} />,
   // Restore-on-reload is parked (see recovery.ts); only the leave warning runs.
   beforeMount: () => {
     clearRecovery()

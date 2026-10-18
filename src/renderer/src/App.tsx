@@ -22,7 +22,7 @@ import { StarterListPicker } from './components/ScoreWindow/StarterListPicker'
 import { ImportPreview } from './components/ImportPreview'
 import { PreferencesDialog } from './components/PreferencesDialog'
 import { showStatusNotice } from './components/ScoreWindow/statusLine'
-import { WelcomeDialog } from './components/WelcomeDialog'
+import { WelcomeDialog, type StartHandlers } from './components/WelcomeDialog'
 import { ConfirmationDisc } from './components/ConfirmationDisc'
 import { OrientationDialog } from './components/OrientationDialog'
 import { UpdateNoticeDialog } from './components/UpdateNoticeDialog'
@@ -96,9 +96,11 @@ interface AppProps {
   scoreFrame?: (score: ReactNode) => ReactNode
   /** Host layout showing several Score views side by side (the browser). */
   scorePanes?: ScorePanesLayout
+  /** Host Welcome in place of the disc (the browser's page), which can also be closed. */
+  welcome?: (start: StartHandlers & { onClose: () => void }) => ReactNode
 }
 
-export function App({ workspace, scoreFrame, scorePanes }: AppProps = {}): React.JSX.Element {
+export function App({ workspace, scoreFrame, scorePanes, welcome }: AppProps = {}): React.JSX.Element {
   const [appVersion] = useState(() => window.api.getAppVersion())
   const filePath      = useAppStore(s => s.filePath)
   const isDirty       = useAppStore(s => s.isDirty)
@@ -442,6 +444,7 @@ export function App({ workspace, scoreFrame, scorePanes }: AppProps = {}): React
         case 'orientation':
           setOrientationMarkdown(await openOrientationDocument())
           break
+        case 'welcome':            setShowWelcome(true);          break
       }
     })
   }, [filePath, isDirty])   // eslint-disable-line react-hooks/exhaustive-deps
@@ -614,22 +617,25 @@ export function App({ workspace, scoreFrame, scorePanes }: AppProps = {}): React
         />
       )}
 
-      {showWelcome && (
-        <WelcomeDialog
-          onExample={async () => {
+      {showWelcome && (() => {
+        const start: StartHandlers = {
+          onExample: async () => {
             const loaded = await handleOpenExample()
             if (loaded) setShowWelcome(false)
-          }}
-          onNew={async () => {
+          },
+          onNew: async () => {
             await handleNew()
             setShowWelcome(false)
-          }}
-          onOpen={async () => {
+          },
+          onOpen: async () => {
             const loaded = await handleOpen()
             if (loaded) setShowWelcome(false)
-          }}
-        />
-      )}
+          }
+        }
+        return welcome
+          ? welcome({ ...start, onClose: () => setShowWelcome(false) })
+          : <WelcomeDialog {...start} />
+      })()}
 
       {updateNotice && (
         <UpdateNoticeDialog
