@@ -12,7 +12,7 @@
 
 import { useRef, useState, useEffect, KeyboardEvent } from 'react'
 import { useAppStore } from '../../store/appStore'
-import { history, SCORE_HISTORY_OWNER } from '../../store/history'
+import { historyField } from '../../store/historyBindings'
 import { useResizableSplitPane } from './useResizableSplitPane'
 import { hostCapabilities } from '../../lib/host'
 import styles from './DataTab.module.css'
@@ -233,12 +233,7 @@ export function DimensionsTab({ onOpenStarterPicker }: Props): React.JSX.Element
           placeholder="Definition…"
           value={selected?.definition ?? ''}
           disabled={!selected}
-          onFocus={() => history.begin(SCORE_HISTORY_OWNER)}
-          onBlur={() => history.end(SCORE_HISTORY_OWNER)}
-          onChange={e => {
-            history.begin(SCORE_HISTORY_OWNER)
-            if (selected) updateDimension(selected.id, { definition: e.target.value })
-          }}
+          {...historyField(value => { if (selected) updateDimension(selected.id, { definition: value }) })}
         />
       </div>
 

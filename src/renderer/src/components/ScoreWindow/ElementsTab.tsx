@@ -21,6 +21,7 @@
 import { useRef, useState, useEffect, KeyboardEvent } from 'react'
 import { useAppStore } from '../../store/appStore'
 import { history, SCORE_HISTORY_OWNER } from '../../store/history'
+import { historyField } from '../../store/historyBindings'
 import { usePrefsStore } from '../../store/prefsStore'
 import { ELEMENT_SHAPES, ELEMENT_SHAPE_SYMBOLS } from '../../lib/types'
 import { useResizableSplitPane } from './useResizableSplitPane'
@@ -279,12 +280,7 @@ export function ElementsTab(): React.JSX.Element {
             className={styles.colorInput}
             value={selected?.color ?? DEFAULT_ELEMENT_COLOR}
             disabled={!selected}
-            onFocus={() => history.begin(SCORE_HISTORY_OWNER)}
-            onBlur={() => history.end(SCORE_HISTORY_OWNER)}
-            onChange={e => {
-              history.begin(SCORE_HISTORY_OWNER)
-              if (selected) updateElement(selected.id, { color: e.target.value })
-            }}
+            {...historyField(value => { if (selected) updateElement(selected.id, { color: value }) })}
           />
         </div>
         <div className={styles.fieldRow}>
@@ -330,12 +326,7 @@ export function ElementsTab(): React.JSX.Element {
           placeholder="Definition…"
           value={selected?.definition ?? ''}
           disabled={!selected}
-          onFocus={() => history.begin(SCORE_HISTORY_OWNER)}
-          onBlur={() => history.end(SCORE_HISTORY_OWNER)}
-          onChange={e => {
-            history.begin(SCORE_HISTORY_OWNER)
-            if (selected) updateElement(selected.id, { definition: e.target.value })
-          }}
+          {...historyField(value => { if (selected) updateElement(selected.id, { definition: value }) })}
         />
       </div>
 

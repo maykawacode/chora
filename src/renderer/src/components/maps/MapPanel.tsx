@@ -7,6 +7,7 @@
 import { useRef, useEffect, useCallback, useContext, useMemo, useState } from 'react'
 import { MapHostContext } from './mapHost'
 import { useAppStore } from '../../store/appStore'
+import { useHistoryGesture } from '../../store/historyBindings'
 import { usePrefsStore } from '../../store/prefsStore'
 import type { CartesianMapConfig, SemanticMapConfig } from '../../lib/types'
 import { MARGIN } from './cartesian/drawCartesian'
@@ -89,7 +90,6 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
   // Drag state is kept in refs (not state) so mouse-move handlers are always
   // synchronous and never see stale values from a React re-render mid-drag.
   const heldRef        = useRef<HeldDot | null>(null)
-  const historyOpenRef = useRef(false)
 
   // Lasso (rubber-band multi-select). Mutated in place during mouse-move so
   // the canvas overlay always reflects the current rect.
@@ -125,33 +125,10 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
     }
   }, [historyModalOpen, historyBridge])
 
-  // Map windows do not own history. They bracket gestures over IPC so the
-  // authoritative Score Window captures one snapshot around every score drag or
-  // compound edit, regardless of how many fine-grained updates it receives.
-  const beginHistory = useCallback((): void => {
-    historyOpenRef.current = true
-    // Repeated begin messages from the same owner are deliberately harmless.
-    // Reasserting before each drag write lets a gesture resume cleanly if Undo,
-    // Redo, or Save finalized its Score-side transaction while the pointer was
-    // still down.
-    historyBridge.historyBegin()
-  }, [historyBridge])
-
-  const finishHistory = useCallback((): void => {
-    if (!historyOpenRef.current) return
-    historyOpenRef.current = false
-    historyBridge.historyEnd()
-  }, [historyBridge])
-
-  // A gesture can end without a canvas mouseup when the window loses focus or
-  // closes. Always close the remote transaction so it cannot absorb a later edit.
-  useEffect(() => {
-    window.addEventListener('blur', finishHistory)
-    return () => {
-      window.removeEventListener('blur', finishHistory)
-      finishHistory()
-    }
-  }, [finishHistory])
+  // Map windows do not own history. They bracket gestures through the bridge
+  // so the authoritative Score Window captures one snapshot around every score
+  // drag or compound edit, however many fine-grained updates it receives.
+  const gesture = useHistoryGesture(historyBridge)
 
   /**
    * Drops every kind of selection — the transient single highlight and the
@@ -352,7 +329,7 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
       }
       const updates = held.drag.moveTo(x, y, e.shiftKey)
       if (updates.length > 0) {
-        beginHistory()
+        gesture.begin()
         setScores(updates)
         for (const u of updates) window.api?.broadcastScore(u.elementId, u.targetId, u.value)
       }
@@ -390,7 +367,7 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
   }
 
   function handleMouseUp(): void {
-    finishHistory()
+    gesture.end()
 
     const lasso = lassoRef.current
     if (lasso) {
@@ -416,7 +393,7 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
   // The pointer leaving the canvas (a fast movement, say) cancels a lasso and
   // ends a drag where it is.
   function handleMouseLeave(): void {
-    finishHistory()
+    gesture.end()
     if (lassoRef.current) {
       lassoRef.current = null
       movedRef.current = false
@@ -429,7 +406,7 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
 
   function handleContextMenu(e: React.MouseEvent<HTMLDivElement>): void {
     e.preventDefault()
-    finishHistory()
+    gesture.end()
     // Modal intercepts mouseup so the canvas would never see it — clear drag
     // state here so it can't leak through after the modal closes.
     heldRef.current = null
@@ -552,7 +529,7 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
               if (changes) {
                 // Membership resolves per element, so each one gets its own
                 // payload; the shared fields are identical across them.
-                beginHistory()
+                gesture.begin()
                 try {
                   for (const id of bulkModalIds) {
                     const forElement = changes.collectionIds
@@ -562,7 +539,7 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
                     window.api?.broadcastElement(id, forElement as Record<string, unknown>)
                   }
                 } finally {
-                  finishHistory()
+                  gesture.end()
                 }
               }
               setBulkModalIds([])

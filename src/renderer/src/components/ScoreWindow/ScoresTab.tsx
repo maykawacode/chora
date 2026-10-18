@@ -9,7 +9,7 @@
 
 import { useRef, useCallback, useEffect, KeyboardEvent } from 'react'
 import { useAppStore } from '../../store/appStore'
-import { history, SCORE_HISTORY_OWNER } from '../../store/history'
+import { useHistoryGesture } from '../../store/historyBindings'
 import { scoreStatus } from '../../lib/types'
 import { useResizableSplitPane } from './useResizableSplitPane'
 import styles from './ScoresTab.module.css'
@@ -35,7 +35,7 @@ export function AssessTab(): React.JSX.Element {
   const setCollection   = useAppStore(s => s.setElementsCollection)
 
   const splitPane = useResizableSplitPane()
-  const keyboardHistoryOpenRef = useRef(false)
+  const keyHold = useHistoryGesture()
 
   const selectedEl  = elements.find(e => e.id === selectedElId)    ?? null
   const selectedDim = dimensions.find(d => d.id === selectedDimId) ?? null
@@ -72,12 +72,6 @@ export function AssessTab(): React.JSX.Element {
   useEffect(() => {
     if (!selectedElId || !selectedDimId || isMultiSelection) return
 
-    const endKeyboardHistory = (): void => {
-      if (!keyboardHistoryOpenRef.current) return
-      keyboardHistoryOpenRef.current = false
-      history.end(SCORE_HISTORY_OWNER)
-    }
-
     const onKeyDown = (event: globalThis.KeyboardEvent): void => {
       if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return
       if (event.metaKey || event.ctrlKey || event.altKey) return
@@ -90,8 +84,7 @@ export function AssessTab(): React.JSX.Element {
           !state.dimensions.some(dimension => dimension.id === selectedDimId)) return
 
       event.preventDefault()
-      history.begin(SCORE_HISTORY_OWNER)
-      keyboardHistoryOpenRef.current = true
+      keyHold.begin()
       const current = state.scores[selectedElId]?.[selectedDimId] ?? 0.5
       const delta = event.key === 'ArrowLeft' ? -0.05 : 0.05
       state.setScore(selectedElId, selectedDimId,
@@ -99,19 +92,17 @@ export function AssessTab(): React.JSX.Element {
     }
 
     const onKeyUp = (event: globalThis.KeyboardEvent): void => {
-      if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') endKeyboardHistory()
+      if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') keyHold.end()
     }
 
     window.addEventListener('keydown', onKeyDown)
     window.addEventListener('keyup', onKeyUp)
-    window.addEventListener('blur', endKeyboardHistory)
     return () => {
       window.removeEventListener('keydown', onKeyDown)
       window.removeEventListener('keyup', onKeyUp)
-      window.removeEventListener('blur', endKeyboardHistory)
-      endKeyboardHistory()
+      keyHold.end()
     }
-  }, [selectedElId, selectedDimId, isMultiSelection])
+  }, [selectedElId, selectedDimId, isMultiSelection, keyHold])
 
   function membership(collectionId: string): Membership {
     if (targetIds.length === 0) return 'none'
@@ -454,21 +445,14 @@ function ScoreSlider({
   onScore
 }: DimSliderProps): React.JSX.Element {
   const trackRef = useRef<HTMLDivElement>(null)
-  const historyOpenRef = useRef(false)
+  const adjustment = useHistoryGesture()
   const removeDragListenersRef = useRef<(() => void) | null>(null)
   const suppressTrackClickRef = useRef(false)
-
-  const endDragHistory = useCallback((): void => {
-    if (!historyOpenRef.current) return
-    historyOpenRef.current = false
-    history.end(SCORE_HISTORY_OWNER)
-  }, [])
 
   useEffect(() => () => {
     removeDragListenersRef.current?.()
     removeDragListenersRef.current = null
-    endDragHistory()
-  }, [endDragHistory])
+  }, [])
 
   const getValueFromEvent = useCallback((clientX: number): number => {
     const rect = trackRef.current?.getBoundingClientRect()
@@ -510,7 +494,7 @@ function ScoreSlider({
         // next deliberate track click.
         window.setTimeout(() => { suppressTrackClickRef.current = false }, 0)
       }
-      endDragHistory()
+      adjustment.end()
     }
 
     function onMove(ev: MouseEvent): void {
@@ -518,8 +502,7 @@ function ScoreSlider({
       // Save can finalize history while the pointer is still down; the next
       // move must then open a fresh transaction instead of recording each
       // remaining mousemove as its own action.
-      history.begin(SCORE_HISTORY_OWNER)
-      historyOpenRef.current = true
+      adjustment.begin()
       wroteScore = true
       onScore(getValueFromEvent(ev.clientX))
     }
@@ -549,14 +532,13 @@ function ScoreSlider({
     e.preventDefault()
     // Key repeat is one continuous adjustment just like pointer drag, so one
     // press-and-hold remains one Undo step. Blur closes a missing keyup.
-    history.begin(SCORE_HISTORY_OWNER)
-    historyOpenRef.current = true
+    adjustment.begin()
     onScore(Math.round(Math.max(0, Math.min(1, next)) * 100) / 100)
   }
 
   function handleTrackKeyUp(e: KeyboardEvent<HTMLDivElement>): void {
     if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) {
-      endDragHistory()
+      adjustment.end()
     }
   }
 
@@ -581,7 +563,7 @@ function ScoreSlider({
           : `${Math.round(score * 100)} percent from ${poleA} toward ${poleB}`}
         onKeyDown={handleTrackKeyDown}
         onKeyUp={handleTrackKeyUp}
-        onBlur={endDragHistory}
+        onBlur={adjustment.end}
         onClick={handleTrackClick}
       >
         <ScoreScale score={score} onDotMouseDown={handleDotMouseDown} />

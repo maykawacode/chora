@@ -12,7 +12,7 @@
 
 import { useRef, useState, KeyboardEvent } from 'react'
 import { useAppStore } from '../../store/appStore'
-import { history, SCORE_HISTORY_OWNER } from '../../store/history'
+import { historyField } from '../../store/historyBindings'
 import { DEFAULT_COLLECTION_COLOR } from '../../lib/color'
 import { useResizableSplitPane } from './useResizableSplitPane'
 import { paletteForUncolored } from '../../store/transforms'
@@ -158,12 +158,7 @@ export function CollectionsTab(): React.JSX.Element {
             className={styles.colorInput}
             value={selected?.color ?? DEFAULT_COLLECTION_COLOR}
             disabled={!selected}
-            onFocus={() => history.begin(SCORE_HISTORY_OWNER)}
-            onBlur={() => history.end(SCORE_HISTORY_OWNER)}
-            onChange={e => {
-              history.begin(SCORE_HISTORY_OWNER)
-              if (selected) updateCollection(selected.id, { color: e.target.value })
-            }}
+            {...historyField(value => { if (selected) updateCollection(selected.id, { color: value }) })}
           />
         </div>
         <textarea
@@ -171,12 +166,7 @@ export function CollectionsTab(): React.JSX.Element {
           placeholder="Definition…"
           value={selected?.definition ?? ''}
           disabled={!selected}
-          onFocus={() => history.begin(SCORE_HISTORY_OWNER)}
-          onBlur={() => history.end(SCORE_HISTORY_OWNER)}
-          onChange={e => {
-            history.begin(SCORE_HISTORY_OWNER)
-            if (selected) updateCollection(selected.id, { definition: e.target.value })
-          }}
+          {...historyField(value => { if (selected) updateCollection(selected.id, { definition: value }) })}
         />
       </div>
 
