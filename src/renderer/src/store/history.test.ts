@@ -76,7 +76,7 @@ function importedState(name: string): AppState {
 }
 
 beforeEach(() => {
-  usePrefsStore.setState({ prefs: { ...DEFAULT_PREFERENCES }, loaded: true })
+  usePrefsStore.setState({ prefs: { ...DEFAULT_PREFERENCES } })
   state().resetToEmpty()
   useAppStore.setState({
     filePath: null,
@@ -102,8 +102,7 @@ describe('HistoryController', () => {
         ...DEFAULT_PREFERENCES,
         defaultElementColor: '#123456',
         defaultElementShape: 'diamond'
-      },
-      loaded: true
+      }
     })
 
     state().addElement('Alpha')

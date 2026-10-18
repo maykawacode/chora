@@ -11,7 +11,7 @@ import { installShortcuts } from './shortcuts'
 import { setScoreSurfaceProbe } from '@renderer/lib/overlayStack'
 import { activeSurface } from './interaction'
 import { setHostCapabilities } from '@renderer/lib/host'
-import { clearRecovery, installLeaveWarning } from './recovery'
+import { installLeaveWarning } from './leaveWarning'
 import { inPlaceSaving } from './fileAccess'
 import { nameUntitledDocument } from './documentName'
 
@@ -23,6 +23,7 @@ setHostCapabilities({
   nameUntitledDocument
 })
 installShortcuts()
+installLeaveWarning()
 // A collapsed Score keeps its tabs mounted; their keyboard handlers stand down.
 setScoreSurfaceProbe(() => activeSurface() === 'score' && !useScoreLayout.getState().collapsed)
 void startApp({
@@ -30,10 +31,5 @@ void startApp({
   workspace: <BrowserWorkspace />,
   scoreFrame: score => <ScoreDock>{score}</ScoreDock>,
   scorePanes: ScorePanes,
-  welcome: props => <BrowserWelcome {...props} />,
-  // Restore-on-reload is parked (see recovery.ts); only the leave warning runs.
-  beforeMount: () => {
-    clearRecovery()
-    installLeaveWarning()
-  }
+  welcome: props => <BrowserWelcome {...props} />
 })

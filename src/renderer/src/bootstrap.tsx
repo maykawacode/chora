@@ -19,8 +19,6 @@ export async function startApp(options: {
   scoreFrame?: (score: ReactNode) => ReactNode
   scorePanes?: ScorePanesLayout
   welcome?: (start: StartHandlers & { onClose: () => void }) => ReactNode
-  /** Runs once history has started and before React mounts (browser recovery). */
-  beforeMount?: () => void
 } = {}): Promise<void> {
   applyUiTheme()
 
@@ -36,7 +34,6 @@ export async function startApp(options: {
   // Only the Score Window owns session history. mapMain.tsx deliberately does
   // not start this controller, so map renderer stores remain disposable mirrors.
   history.start()
-  options.beforeMount?.()
 
   ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>

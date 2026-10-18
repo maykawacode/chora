@@ -53,7 +53,6 @@ interface AppStore extends AppState {
   assignPaletteToUncoloredCollections: () => void
 
   // Membership — binary, and an attribute of the element like its color or shape
-  toggleElementCollection: (elementId: string, collectionId: string) => void
   setElementsCollection:   (elementIds: string[], collectionId: string, member: boolean) => void
 
   // Dimensions
@@ -64,7 +63,6 @@ interface AppStore extends AppState {
   // Scores (dimension scores; membership is not a score — see above)
   setScore:   (elementId: string, targetId: string, value: number) => void
   setScores:  (entries: ScoreEntry[]) => void
-  clearScore: (elementId: string, targetId: string) => void
 
   // Maps
   addMap:          (config: MapConfig) => void
@@ -279,23 +277,10 @@ export const useAppStore = create<AppStore>((set) => ({
 
   // ── Membership ───────────────────────────────────────────────────────────────
   //
-  // Both actions go through updateElement's shape rather than a score write:
+  // Membership goes through updateElement's shape rather than a score write:
   // membership is an element attribute now, so assigning one is the same kind
   // of edit as recoloring, and it rides the same element:update IPC to the
   // other windows.
-
-  toggleElementCollection: (elementId, collectionId) => set((s) => ({
-    elements: s.elements.map(el => {
-      if (el.id !== elementId) return el
-      return {
-        ...el,
-        collectionIds: el.collectionIds.includes(collectionId)
-          ? el.collectionIds.filter(id => id !== collectionId)
-          : [...el.collectionIds, collectionId]
-      }
-    }),
-    isDirty: true
-  })),
 
   // Drives every listed element to the same membership state, rather than
   // flipping each independently — a mixed selection resolves to one answer.
@@ -374,11 +359,6 @@ export const useAppStore = create<AppStore>((set) => ({
       scores[elementId] = { ...scores[elementId], [targetId]: value }
     }
     return { scores, isDirty: true }
-  }),
-
-  clearScore: (elementId, targetId) => set((s) => {
-    const { [targetId]: _removed, ...rest } = s.scores[elementId] ?? {}
-    return { scores: { ...s.scores, [elementId]: rest }, isDirty: true }
   }),
 
   // ── Maps ────────────────────────────────────────────────────────────────────

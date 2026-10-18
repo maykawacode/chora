@@ -901,7 +901,3 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
     </div>
   )
 }
-
-// MapPanelList (embedded maps in the Score Window) was removed. Maps now always
-// open as dedicated BrowserWindows via the map:open IPC channel. If embedded
-// maps are ever needed again, restore this component from git history.

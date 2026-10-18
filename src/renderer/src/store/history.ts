@@ -369,10 +369,8 @@ export class HistoryController {
   get canUndo(): boolean { return this.availability.canUndo }
   get canRedo(): boolean { return this.availability.canRedo }
   get pastCount(): number { return this.past.length }
-  get futureCount(): number { return this.future.length }
   get activeOwner(): HistoryOwner | null { return this.active?.owner ?? null }
   get generation(): number { return this.documentGeneration }
-  get savedFrame(): HistoryFrame { return { ...this.saved } }
 
   captureCurrent(): HistoryFrame {
     return this.frameFromState(this.store.getState())
