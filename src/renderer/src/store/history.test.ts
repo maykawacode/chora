@@ -4,6 +4,10 @@ import { ELEMENT_SHAPES } from '../lib/types'
 import { blackTextContrast } from '../lib/color'
 import { DOT_DEFAULT_RADIUS, DOT_MAX_RADIUS, dotRadius } from '../components/maps/shape'
 import { useAppStore } from './appStore'
+import {
+  randomCollectionAssignments, randomCollectionColors, randomDimensionWeights, randomElementColors,
+  randomElementShapes, randomElementWeights, scoresFromWeights
+} from './transforms'
 import { DEFAULT_PREFERENCES } from '../lib/preferences'
 import { usePrefsStore } from './prefsStore'
 import {
@@ -218,7 +222,7 @@ describe('HistoryController', () => {
       state().addElement('Beta')
     })
 
-    state().randomizeElementWeights()
+    state().transform(randomElementWeights)
     const randomWeights = state().elements.map(element => element.weight)
     controller.undo()
     controller.redo()
@@ -239,7 +243,7 @@ describe('HistoryController', () => {
     state().updateElement(heavy.id, { weight: 250 })
 
     const dimensionId = state().dimensions[0].id
-    state().weightToDimension(dimensionId)
+    state().transform(scoresFromWeights(dimensionId, false))
 
     expect(state().scores[light.id][dimensionId]).toBe(0)
     expect(state().scores[middle.id][dimensionId]).toBe(0.5)
@@ -274,7 +278,7 @@ describe('HistoryController', () => {
       state().addElement('Beta')
     })
 
-    state().randomizeElementColors()
+    state().transform(randomElementColors)
 
     for (const element of state().elements) {
       expect(blackTextContrast(element.color)).toBeGreaterThanOrEqual(4.5)
@@ -291,9 +295,9 @@ describe('HistoryController', () => {
       state().addCollection('B')
     })
 
-    state().randomizeDimensionWeights()
-    state().randomizeCollectionColors()
-    state().randomizeElementShapes()
+    state().transform(randomDimensionWeights)
+    state().transform(randomCollectionColors)
+    state().transform(randomElementShapes)
 
     for (const dimension of state().dimensions) {
       expect(Number.isInteger(dimension.weight)).toBe(true)
@@ -320,7 +324,7 @@ describe('HistoryController', () => {
       .mockReturnValueOnce(0.1).mockReturnValueOnce(0.9)
       .mockReturnValueOnce(0.9).mockReturnValueOnce(0.1)
 
-    state().randomizeCollectionAssignments()
+    state().transform(randomCollectionAssignments)
 
     expect(state().elements.map(element => element.collectionIds)).toEqual([[a.id], [b.id]])
     random.mockRestore()

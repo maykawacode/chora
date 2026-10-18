@@ -15,6 +15,7 @@ import { useAppStore } from '../../store/appStore'
 import { history, SCORE_HISTORY_OWNER } from '../../store/history'
 import { DEFAULT_COLLECTION_COLOR } from '../../lib/color'
 import { useResizableSplitPane } from './useResizableSplitPane'
+import { paletteForUncolored } from '../../store/transforms'
 import { ConfirmationDisc } from '../ConfirmationDisc'
 import { usePrefsStore } from '../../store/prefsStore'
 import { hostCapabilities } from '../../lib/host'
@@ -28,7 +29,7 @@ export function CollectionsTab(): React.JSX.Element {
   const updateCollection = useAppStore(s => s.updateCollection)
   const removeCollection = useAppStore(s => s.removeCollection)
   const selectCollection = useAppStore(s => s.selectCollection)
-  const assignPaletteToUncoloredCollections = useAppStore(s => s.assignPaletteToUncoloredCollections)
+  const transform        = useAppStore(s => s.transform)
   const confirmDeleteData = usePrefsStore(s => s.prefs.confirmDeleteData)
 
   // Collections created before the palette existed all carry
@@ -124,7 +125,7 @@ export function CollectionsTab(): React.JSX.Element {
           </div>
 
           {uncoloredCount > 0 && (
-            <button type="button" className={styles.bulkBtn} onClick={assignPaletteToUncoloredCollections}>
+            <button type="button" className={styles.bulkBtn} onClick={() => transform(paletteForUncolored)}>
               Assign colors to {uncoloredCount} uncolored {uncoloredCount === 1 ? 'collection' : 'collections'}
             </button>
           )}

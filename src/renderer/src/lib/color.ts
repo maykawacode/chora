@@ -43,7 +43,7 @@ export { isHexColor, readHexColor }
 // The color every collection was created with before the palette existed. Still
 // the fallback for a collection carrying no color at all, and the marker for
 // "the user has not chosen a color yet" — see
-// assignPaletteToUncoloredCollections in the store.
+// paletteForUncolored in store/transforms.ts.
 export const DEFAULT_COLLECTION_COLOR = '#808080'
 
 // The color a new element is given, and the fallback for one whose stored color
