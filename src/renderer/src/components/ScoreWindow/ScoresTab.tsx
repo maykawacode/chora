@@ -33,7 +33,6 @@ export function AssessTab(): React.JSX.Element {
   const selectDimension = useAppStore(s => s.selectDimension)
   const setScore        = useAppStore(s => s.setScore)
   const setCollection   = useAppStore(s => s.setElementsCollection)
-  const setActiveTab    = useAppStore(s => s.setActiveTab)
 
   const splitPane = useResizableSplitPane()
   const keyboardHistoryOpenRef = useRef(false)
@@ -227,16 +226,10 @@ export function AssessTab(): React.JSX.Element {
         {elements.length === 0 ? (
           <div className={styles.guidance}>
             <span>Add an element before scoring.</span>
-            <button type="button" className={styles.linkBtn} onClick={() => setActiveTab('elements')}>
-              Go to Elements
-            </button>
           </div>
         ) : dimensions.length === 0 ? (
           <div className={styles.guidance}>
             <span>Add a dimension before scoring.</span>
-            <button type="button" className={styles.linkBtn} onClick={() => setActiveTab('dimensions')}>
-              Go to Dimensions
-            </button>
           </div>
         ) : isMultiSelection ? (
           <p className={styles.multiScoreMessage}>Select one element to change dimension scores.</p>
@@ -317,9 +310,6 @@ export function AssessTab(): React.JSX.Element {
             {dimensions.length === 0 ? (
               <div className={styles.guidance}>
                 <span>No dimensions defined yet.</span>
-                <button type="button" className={styles.linkBtn} onClick={() => setActiveTab('dimensions')}>
-                  Go to Dimensions
-                </button>
               </div>
             ) : (
               <ul
@@ -377,9 +367,6 @@ export function AssessTab(): React.JSX.Element {
             {collections.length === 0 ? (
               <div className={styles.guidance}>
                 <span>No collections defined yet.</span>
-                <button type="button" className={styles.linkBtn} onClick={() => setActiveTab('collections')}>
-                  Go to Collections
-                </button>
               </div>
             ) : (
               <div className={styles.collectionList}>
