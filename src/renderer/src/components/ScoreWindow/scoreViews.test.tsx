@@ -6,7 +6,7 @@ import { useAppStore } from '../../store/appStore'
 import { usePrefsStore } from '../../store/prefsStore'
 import { history } from '../../store/history'
 import { DEFAULT_PREFERENCES } from '../../lib/preferences'
-import type { Dimension, Element } from '../../lib/types'
+import type { Collection, Dimension, Element } from '../../lib/types'
 import { defaultCategories } from '../../lib/types'
 import { ElementsTab } from './ElementsTab'
 import { ConversionsTab } from './ConversionsTab'
@@ -105,3 +105,104 @@ describe('Conversions', () => {
     expect(useAppStore.getState().elements.map(e => e.weight)).toEqual([100, 1])
   })
 })
+
+describe('Every conversion', () => {
+  const c1: Collection = { id: 'c1', name: 'One', definition: '', color: '#4080c0' }
+  const c2: Collection = { id: 'c2', name: 'Two', definition: '', color: '#c04040' }
+  const a = { ...element('a', 'circle'), color: '#c04040', weight: 10, collectionIds: ['c2'] }
+  const b = { ...element('b', 'square'), color: '#4080c0', weight: 20, collectionIds: ['c1', 'c2'] }
+
+  beforeEach(() => {
+    study([a, b], [dimension('d'), { ...dimension('e'), label: 'Low–High', poleA: 'Low', poleB: 'High' }],
+      { a: { d: 0, e: 0.5 }, b: { d: 1 } })
+    history.dispose()
+    useAppStore.setState({ collections: [c1, c2] })
+    history.start()
+  })
+
+  const choose = (label: string, value: string): void => {
+    fireEvent.change(screen.getByRole('combobox', { name: label }), { target: { value } })
+  }
+  const apply = (): void => { fireEvent.click(screen.getByRole('button', { name: 'Apply Conversion' })) }
+  const els = () => useAppStore.getState().elements
+  const scores = () => useAppStore.getState().scores
+
+  it('dimension scores → element weight', () => {
+    render(<ConversionsTab />)
+    choose('Source', 'dim-scores'); choose('Source dimension', 'd'); choose('Destination', 'el-weight'); apply()
+    expect(els().map(e => e.weight)).toEqual([1, 100])
+  })
+
+  it('dimension scores → element colour, between the chosen colours', () => {
+    const { container } = render(<ConversionsTab />)
+    choose('Source', 'dim-scores'); choose('Source dimension', 'd'); choose('Destination', 'el-color')
+    const [low, high] = container.querySelectorAll('input[type=color]')
+    fireEvent.change(low, { target: { value: '#000000' } })
+    fireEvent.change(high, { target: { value: '#ffffff' } })
+    apply()
+    expect(els().map(e => e.color)).toEqual(['#000000', '#ffffff'])
+  })
+
+  it('dimension scores → another dimension, scored elements only', () => {
+    render(<ConversionsTab />)
+    choose('Source', 'dim-scores'); choose('Source dimension', 'd'); choose('Destination', 'dim-scores')
+    choose('Destination dimension', 'e'); apply()
+    expect(scores()).toEqual({ a: { d: 0, e: 0 }, b: { d: 1, e: 1 } })
+  })
+
+  it('element weight → dimension scores across the weight range', () => {
+    render(<ConversionsTab />)
+    choose('Source', 'el-weight'); choose('Destination', 'dim-scores'); choose('Destination dimension', 'e'); apply()
+    expect(scores().a.e).toBe(0)
+    expect(scores().b.e).toBe(1)
+  })
+
+  it('collection membership → element colour, mixing every collection', () => {
+    render(<ConversionsTab />)
+    choose('Source', 'collection'); choose('Destination', 'el-color'); apply()
+    expect(els().map(e => e.color)).toEqual(['#c04040', '#806080'])
+  })
+
+  it('collection membership → element shape, by first collection', () => {
+    render(<ConversionsTab />)
+    choose('Source', 'collection'); choose('Destination', 'el-shape'); apply()
+    expect(els().map(e => e.shape)).toEqual(['square', 'circle'])
+  })
+
+  it('element shape → collection membership, replacing it', () => {
+    render(<ConversionsTab />)
+    choose('Source', 'el-shape'); choose('Destination', 'collection'); apply()
+    expect(els().map(e => e.collectionIds)).toEqual([['c1'], ['c2']])
+  })
+
+  it('element colour → element shape, by hue', () => {
+    render(<ConversionsTab />)
+    choose('Source', 'el-color'); choose('Destination', 'el-shape'); apply()
+    expect(els().map(e => e.shape)).toEqual(['circle', 'triangle'])
+  })
+
+  it('spreads a dimension to fill the range', () => {
+    render(<ConversionsTab />)
+    choose('Dimension to spread', 'd')
+    fireEvent.click(screen.getByRole('button', { name: 'Apply Spread' }))
+    expect(scores().a.d).toBeCloseTo(0.05)
+    expect(scores().b.d).toBeCloseTo(0.95)
+  })
+
+  it('randomizes one dimension after confirming the overwrite', () => {
+    render(<ConversionsTab />)
+    choose('Randomizer', 'dimension:d')
+    fireEvent.click(screen.getByRole('button', { name: 'Overwrite & Randomize' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Randomize' }))
+    for (const id of ['a', 'b']) expect(scores()[id].d).toBeGreaterThanOrEqual(0)
+    expect(history.pastCount).toBe(1)
+  })
+
+  it('offers only the destinations each source supports', () => {
+    render(<ConversionsTab />)
+    choose('Source', 'el-color')
+    const options = [...screen.getByRole('combobox', { name: 'Destination' }).querySelectorAll('option')].map(o => o.value)
+    expect(options).toEqual(['', 'el-shape'])
+  })
+})
+
