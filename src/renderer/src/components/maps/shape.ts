@@ -134,3 +134,16 @@ export function drawSelectionRing(
   ctx.lineWidth = 2
   ctx.stroke()
 }
+
+// ── Layers ────────────────────────────────────────────────────────────────────
+
+/**
+ * Starts a named group; close it with ctx.restore(). On screen this is a plain
+ * save(); in export, svgcanvas opens a <g> that editors show as a layer.
+ */
+export function beginLayer(ctx: CanvasRenderingContext2D, name: string): void {
+  ctx.save()
+  // svgcanvas keeps the open <g> on this private field; a real canvas has none.
+  const group = (ctx as unknown as { __currentElement?: SVGElement }).__currentElement
+  if (group?.nodeName === 'g') group.setAttribute('id', name)
+}

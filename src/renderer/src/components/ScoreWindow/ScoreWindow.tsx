@@ -8,9 +8,8 @@
 // internal `scores` key remains unchanged even though its user-facing label is
 // Assess, avoiding unrelated runtime state and type churn.
 
-import type { ComponentType, ReactNode } from 'react'
+import { Suspense, lazy, type ComponentType, type ReactNode } from 'react'
 import { useAppStore } from '../../store/appStore'
-import { NotesTab } from './NotesTab'
 import { ElementsTab } from './ElementsTab'
 import { DimensionsTab } from './DimensionsTab'
 import { AssessTab } from './ScoresTab'
@@ -22,6 +21,9 @@ import { sortToggleTitle, useElementSort } from './elementSort'
 import { hostCapabilities } from '../../lib/host'
 import styles from './ScoreWindow.module.css'
 
+// Notes loads its rich-text editor (Trix) on first show, keeping it out of startup.
+const NotesTab = lazy(() => import('./NotesTab').then(m => ({ default: m.NotesTab })))
+
 /** Host layout for several views at once; `renderTab` draws one view under its title. */
 export type ScorePanesLayout = ComponentType<{ renderTab: (tab: Tab) => ReactNode }>
 
@@ -32,7 +34,7 @@ interface Props {
 
 function TabBody({ tab, onOpenStarterPicker }: { tab: Tab; onOpenStarterPicker: () => void }): React.JSX.Element {
   switch (tab) {
-    case 'notes':       return <NotesTab />
+    case 'notes':       return <Suspense fallback={null}><NotesTab /></Suspense>
     case 'elements':    return <ElementsTab />
     case 'collections': return <CollectionsTab />
     case 'dimensions':  return <DimensionsTab onOpenStarterPicker={onOpenStarterPicker} />

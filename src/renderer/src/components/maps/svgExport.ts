@@ -18,17 +18,6 @@ const MAX_LAYOUT_HEIGHT = 585
 const ARIAL_ASCENT = 0.905
 const ARIAL_DESCENT = 0.212
 
-/**
- * Starts a named group; close it with ctx.restore(). On screen this is a plain
- * save(); in export, svgcanvas opens a <g> that editors show as a layer.
- */
-export function beginLayer(ctx: CanvasRenderingContext2D, name: string): void {
-  ctx.save()
-  // svgcanvas keeps the open <g> on this private field; a real canvas has none.
-  const group = (ctx as unknown as { __currentElement?: Element }).__currentElement
-  if (group?.nodeName === 'g') group.setAttribute('id', name)
-}
-
 /** Largest size with the on-screen proportions that fits the slide-sized layout. */
 export function exportLayoutSize(width: number, height: number): { width: number; height: number } {
   const fit = Math.min(MAX_LAYOUT_WIDTH / width, MAX_LAYOUT_HEIGHT / height)

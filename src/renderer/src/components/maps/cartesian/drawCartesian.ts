@@ -23,8 +23,7 @@ import type { CartesianMapConfig, Element, Dimension, Collection, ScoreMap } fro
 import { blobPadding, setBlobPath, type BlobPoint, type Pt } from '../blob'
 import { resolveElementColor } from '../color'
 import { cartesianElements, shownCollections } from '../collections'
-import { DOT_DEFAULT_RADIUS, dotRadius, drawMark, drawSelectionRing, markShapeIndex, normalizeDefaultDotRadius } from '../shape'
-import { beginLayer } from '../svgExport'
+import { DOT_DEFAULT_RADIUS, beginLayer, dotRadius, drawMark, drawSelectionRing, markShapeIndex, normalizeDefaultDotRadius } from '../shape'
 import { numericRange } from '../../../lib/numericRange'
 import { uiTheme } from '../../../design/theme'
 

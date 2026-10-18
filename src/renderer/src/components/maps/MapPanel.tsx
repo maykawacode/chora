@@ -9,7 +9,6 @@ import { MapHostContext } from './mapHost'
 import { useAppStore, type ScoreEntry } from '../../store/appStore'
 import { usePrefsStore } from '../../store/prefsStore'
 import type { CartesianMapConfig, SemanticMapConfig } from '../../lib/types'
-import { buildMapSvg } from './svgExport'
 import { cartesianPlot, drawCartesian, MARGIN } from './cartesian/drawCartesian'
 import { drawSemantic, semanticElements } from './semantic/drawSemantic'
 import { scoreAtX, semanticLayout, type SemanticLayout } from './semantic/semanticLayout'
@@ -218,11 +217,13 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
     return () => window.removeEventListener('keydown', onKey)
   }, [deselectAll, mapHost, axisPicker, semanticPicker])
 
-  function handleExportSvg(): void {
+  // SVG export loads its library on first use, keeping it out of startup.
+  async function handleExportSvg(): Promise<void> {
     const wrapper = wrapperRef.current
     if (!wrapper || !config) return
     const rect = wrapper.getBoundingClientRect()
     if (rect.width <= 0 || rect.height <= 0) return
+    const { buildMapSvg } = await import('./svgExport')
     // Exports leave out selection highlights.
     const svg = buildMapSvg(rect.width, rect.height, (ctx, w, h) => {
       if (config.type === 'cartesian') {
@@ -894,7 +895,7 @@ export function MapPanel({ mapId }: Props): React.JSX.Element | null {
         <MapSidebar
           config={config}
           updateConfig={updateConfig}
-          onExportSvg={handleExportSvg}
+          onExportSvg={() => void handleExportSvg()}
         />
       </div>
 

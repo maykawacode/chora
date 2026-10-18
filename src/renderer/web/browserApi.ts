@@ -1,7 +1,5 @@
 import type { ChoraApi, HistoryPhase, MenuAction, Preferences } from '../../shared/contracts'
 import { mergePreferences } from '../../shared/contracts'
-import sampleDataset from '../../../resources/examples/sample-dataset.chora?raw'
-import orientationHelp from '../../../resources/help/orientation.md?raw'
 import { pickFile, readHeldFile } from './files'
 import {
   chooseSaveTarget, hasHandle, inPlaceSaving, openStudyWithHandle, takeSuggestedSaveName, writeToHandle
@@ -20,8 +18,11 @@ import { choraFileName } from '@renderer/lib/documentWorkflows'
 const PREFS_KEY = 'chora:preferences'
 const BROWSER_OWNER = -1   // History owner for map tiles; per-surface owners arrive in step 1d
 
-const BUNDLED_EXAMPLES: Record<string, string> = { 'sample-dataset.chora': sampleDataset }
-const HELP_DOCUMENTS: Record<string, string> = { 'orientation.md': orientationHelp }
+// Bundled files load when first asked for, keeping them out of startup.
+const BUNDLED: Record<string, () => Promise<{ default: string }>> = {
+  'sample-dataset.chora': () => import('../../../resources/examples/sample-dataset.chora?raw'),
+  'orientation.md': () => import('../../../resources/help/orientation.md?raw')
+}
 
 type HistoryListener = (ownerId: number, phase: HistoryPhase) => void
 const historyListeners = new Set<HistoryListener>()
@@ -60,11 +61,10 @@ function readStoredPreferences(): Preferences {
   return { ...mergePreferences(stored), ...BROWSER_OVERRIDES }
 }
 
-function bundled(table: Record<string, string>, fileName: string): Promise<string> {
-  const text = table[fileName]
-  return text === undefined
-    ? Promise.reject(new Error(`No bundled file named ${fileName}`))
-    : Promise.resolve(text)
+async function bundled(fileName: string): Promise<string> {
+  const load = BUNDLED[fileName]
+  if (!load) throw new Error(`No bundled file named ${fileName}`)
+  return (await load()).default
 }
 
 function emitHistory(phase: HistoryPhase): void {
@@ -86,8 +86,8 @@ export const browserApi: ChoraApi = {
   writeFile:          (path, text) => hasHandle(path)
     ? writeToHandle(path, text)
     : Promise.reject(new Error('This browser saves by downloading.')),
-  readBundledExample: (fileName) => bundled(BUNDLED_EXAMPLES, fileName),
-  readHelpDocument:   (fileName) => bundled(HELP_DOCUMENTS, fileName),
+  readBundledExample: bundled,
+  readHelpDocument:   bundled,
 
   getAppVersion:   () => __CHORA_VERSION__,
   getUpdateNotice: () => Promise.resolve(null),
