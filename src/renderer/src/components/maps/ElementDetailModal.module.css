@@ -132,6 +132,14 @@
 
 .shapeBtn:hover { background: var(--color-surface-chrome-strong); }
 
+/* Sized to the text it replaced; takes the button's text colour. */
+.shapeIcon {
+  display: block;
+  width: 1.2em;
+  height: 1.2em;
+  fill: currentColor;
+}
+
 .shapeBtnActive {
   background: var(--color-selection-strong) !important;
   border-color: var(--color-selection-strong) !important;

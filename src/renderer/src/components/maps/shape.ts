@@ -71,14 +71,47 @@ export function dotRadius(
 const SIN60 = Math.sin(Math.PI / 3)   // √3/2 ≈ 0.866
 const COS60 = Math.cos(Math.PI / 3)   // 0.5
 
+// Each shape's size against r for an area of πr². Square half-side √π/2;
+// triangle circumradius √(4π / 3√3); diamond half-diagonal √(π/2). The
+// triangle is then trimmed 4% by eye: its long points make it read larger
+// than its area.
+const SQUARE_HALF_SIDE = Math.sqrt(Math.PI) / 2        // ≈ 0.886
+const TRIANGLE_RADIUS  = Math.sqrt(4 * Math.PI / (3 * Math.sqrt(3))) * 0.96  // ≈ 1.493
+const DIAMOND_RADIUS   = Math.sqrt(Math.PI / 2)        // ≈ 1.253
+
+/**
+ * One mark's outline at radius r around the origin: a circle, or the corners
+ * of a polygon. Map painters and the dialogs' shape buttons both draw from it,
+ * so a button looks exactly like the dot it sets.
+ *
+ * Every shape covers the same area as the circle of radius r, so all four
+ * carry the same visual weight: matched by circumradius instead, the corners
+ * reach the radius but less of the area inside it is filled, and they read
+ * as smaller.
+ */
+export function markOutline(shapeIndex: number, r: number): 'circle' | [number, number][] {
+  switch (shapeIndex % 4) {
+    case 1: { // square, axis-aligned
+      const h = r * SQUARE_HALF_SIDE
+      return [[-h, -h], [h, -h], [h, h], [-h, h]]
+    }
+    case 2: { // equilateral triangle, pointing up
+      const t = r * TRIANGLE_RADIUS
+      return [[0, -t], [t * SIN60, t * COS60], [-t * SIN60, t * COS60]]
+    }
+    case 3: { // diamond (square rotated 45°)
+      const d = r * DIAMOND_RADIUS
+      return [[0, -d], [d, 0], [0, d], [-d, 0]]
+    }
+    default:
+      return 'circle'
+  }
+}
+
 /**
  * Traces one mark centered on (cx, cy) at radius r. Only builds the path —
  * the caller fills and strokes it, which is what lets the same call serve a
  * dot, its selection ring, and the dashed ring on an unscored element.
- *
- * Square and triangle are drawn slightly large on purpose: matched to a circle
- * by circumradius they read as smaller, because less of the area near the
- * radius is filled.
  */
 export function drawMark(
   ctx: CanvasRenderingContext2D,
@@ -87,33 +120,14 @@ export function drawMark(
   cy: number,
   r: number
 ): void {
-  const s = r / Math.SQRT2   // half-side of circumscribed square
+  const outline = markOutline(shapeIndex, r)
   ctx.beginPath()
-  switch (shapeIndex % 4) {
-    case 0: // circle
-      ctx.arc(cx, cy, r, 0, Math.PI * 2)
-      break
-    case 1: { // square, axis-aligned
-      const ss = s * 1.25
-      ctx.rect(cx - ss, cy - ss, ss * 2, ss * 2)
-      break
-    }
-    case 2: { // equilateral triangle, pointing up
-      const tr = r * 1.28
-      ctx.moveTo(cx,               cy - tr)
-      ctx.lineTo(cx + tr * SIN60,  cy + tr * COS60)
-      ctx.lineTo(cx - tr * SIN60,  cy + tr * COS60)
-      ctx.closePath()
-      break
-    }
-    case 3: // diamond (square rotated 45°)
-      ctx.moveTo(cx,     cy - r)
-      ctx.lineTo(cx + r, cy)
-      ctx.lineTo(cx,     cy + r)
-      ctx.lineTo(cx - r, cy)
-      ctx.closePath()
-      break
+  if (outline === 'circle') {
+    ctx.arc(cx, cy, r, 0, Math.PI * 2)
+    return
   }
+  outline.forEach(([x, y], i) => i === 0 ? ctx.moveTo(cx + x, cy + y) : ctx.lineTo(cx + x, cy + y))
+  ctx.closePath()
 }
 
 /** White halo plus graphite outline shared by both map renderers. */

@@ -7,10 +7,11 @@
 
 import { useState } from 'react'
 import { useAppStore } from '../../store/appStore'
-import { ELEMENT_SHAPES, ELEMENT_SHAPE_SYMBOLS, type ElementShape } from '../../lib/types'
+import { ELEMENT_SHAPES, type ElementShape } from '../../lib/types'
 import { formatRange, type NumericRange } from '../../lib/numericRange'
 import { DEFAULT_ELEMENT_COLOR, isHexColor } from '../../lib/color'
 import { CollectionChoiceRow } from '../CollectionChoiceRow'
+import { markOutline } from './shape'
 import styles from './ElementDetailModal.module.css'
 
 /** Swatch plus hex entry; the hex text applies once it is a full colour, and settles back to it on blur. */
@@ -45,6 +46,22 @@ export function ColorField({ color, onChange, several = false }: {
   )
 }
 
+// Drawn at the map's default dot proportions in a 1em box: radius 6 of 20.
+// At button size the triangle and diamond read large, so they are drawn 5%
+// smaller here than on the map.
+const ICON_SCALE: Partial<Record<ElementShape, number>> = { triangle: 0.95, diamond: 0.95 }
+
+function ShapeIcon({ shape }: { shape: ElementShape }): React.JSX.Element {
+  const outline = markOutline(ELEMENT_SHAPES.indexOf(shape), 6 * (ICON_SCALE[shape] ?? 1))
+  return (
+    <svg className={styles.shapeIcon} viewBox="-10 -10 20 20" aria-hidden="true">
+      {outline === 'circle'
+        ? <circle r={6} />
+        : <polygon points={outline.map(p => p.join(',')).join(' ')} />}
+    </svg>
+  )
+}
+
 export function ShapeField({ shape, onPick }: {
   shape: ElementShape | null
   onPick: (shape: ElementShape) => void
@@ -60,7 +77,7 @@ export function ShapeField({ shape, onPick }: {
             onClick={() => onPick(s)}
             title={s.charAt(0).toUpperCase() + s.slice(1)}
           >
-            <span className="elementShapeGlyph" data-shape={s}>{ELEMENT_SHAPE_SYMBOLS[s]}</span>
+            <ShapeIcon shape={s} />
           </button>
         ))}
       </div>
