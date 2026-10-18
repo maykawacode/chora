@@ -10,7 +10,7 @@ import type { Collection, Dimension, Element } from '../../lib/types'
 import { defaultCategories } from '../../lib/types'
 import { ElementsTab } from './ElementsTab'
 import { ConversionsTab } from './ConversionsTab'
-import { AssessTab } from './ScoresTab'
+import { AssessTab } from './AssessTab'
 import { DimensionsTab } from './DimensionsTab'
 import { CollectionsTab } from './CollectionsTab'
 

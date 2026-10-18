@@ -166,7 +166,7 @@ function Splitter(): React.JSX.Element {
       onKeyDown={(e) => {
         if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return
         e.preventDefault()
-        // Keep the arrows from also nudging the selected score (ScoresTab listens on window).
+        // Keep the arrows from also nudging the selected score (AssessTab listens on window).
         e.stopPropagation()
         const left = e.currentTarget.getBoundingClientRect().left
         onChange(left + (e.key === 'ArrowLeft' ? -KEY_STEP : KEY_STEP), false)
@@ -319,7 +319,7 @@ function TileDivider({ divider, arrangementRef }: {
         const forward = horizontal ? 'ArrowRight' : 'ArrowDown'
         if (e.key !== back && e.key !== forward) return
         e.preventDefault()
-        // Keep the arrows from also nudging the selected score (ScoresTab listens on window).
+        // Keep the arrows from also nudging the selected score (AssessTab listens on window).
         e.stopPropagation()
         resizeBy(e.key === back ? -KEY_STEP : KEY_STEP)
       }}
