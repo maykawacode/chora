@@ -181,8 +181,11 @@ export function DimensionsTab({ onOpenStarterPicker }: Props): React.JSX.Element
         </div>
         <div className={styles.fieldRow}>
           <label className={styles.label}>Weight</label>
+          {/* Keyed on the live weight too, as in Elements: Randomize and a map's
+              axis dialog change it without changing selection, and a stale
+              field would write the old value back on blur. */}
           <input
-            key={`weight-${selected?.id ?? 'none'}`}
+            key={`weight-${selected?.id ?? 'none'}-${selected?.weight ?? 1}`}
             className={styles.weightInput}
             type="number"
             min={0}

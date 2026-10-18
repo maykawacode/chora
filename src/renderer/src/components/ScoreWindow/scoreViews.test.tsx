@@ -77,6 +77,15 @@ describe('Dimensions and Collections lists', () => {
     expect(useAppStore.getState().dimensions.map(d => d.id)).toEqual(['d'])
   })
 
+  it('shows a dimension weight changed elsewhere, and does not write the old one back', () => {
+    render(<DimensionsTab onOpenStarterPicker={() => {}} />)
+    act(() => useAppStore.getState().updateDimension('d', { weight: 63 }))
+    const weight = screen.getByRole('spinbutton') as HTMLInputElement
+    expect(weight.value).toBe('63')
+    fireEvent.blur(weight)
+    expect(useAppStore.getState().dimensions[0].weight).toBe(63)
+  })
+
   it('deletes at once without confirmation, and adds from the add row', () => {
     render(<CollectionsTab />)
     fireEvent.keyDown(screen.getByRole('list', { name: 'Collections' }), { key: 'ArrowDown' })
