@@ -5,7 +5,7 @@ import {
   useScoreLayout, type StoredLayout
 } from './scoreLayout'
 
-const record = (fields: object) => JSON.stringify({ version: 1, ...fields })
+const record = (fields: object) => JSON.stringify({ version: 3, ...fields })
 const defaults: StoredLayout = { openTabs: ['notes'], paneWidths: {}, collapsed: false, labels: false }
 
 describe('stored Score layout', () => {
@@ -18,7 +18,7 @@ describe('stored Score layout', () => {
   it('gives the defaults for missing, corrupt and foreign-version records', () => {
     expect(parseLayout(null)).toEqual(defaults)
     expect(parseLayout('{not json')).toEqual(defaults)
-    expect(parseLayout(record({ version: 2 }))).toEqual(defaults)
+    expect(parseLayout(record({ version: 4 }))).toEqual(defaults)
     expect(parseLayout('null')).toEqual(defaults)
   })
 
@@ -31,11 +31,27 @@ describe('stored Score layout', () => {
     expect(parseLayout(record({ openTabs: [] }))).toMatchObject({ openTabs: [], collapsed: true })
   })
 
-  it('carries a single Score width from before side-by-side views to each list-and-detail view', () => {
-    const layout = parseLayout(record({ scoreWidth: 520, collapsed: false }))
+  it('carries a single Score width from before side-by-side views to Assess and Conversions', () => {
+    const layout = parseLayout(record({ version: 1, scoreWidth: 520, collapsed: false }))
     expect(layout.openTabs).toEqual(['notes'])
-    expect(layout.paneWidths.elements).toBe(520 - STRIP_WIDTH)
+    expect(layout.paneWidths.scores).toBe(520 - STRIP_WIDTH)
+    expect(layout.paneWidths.elements).toBeUndefined()
     expect(layout.paneWidths.notes).toBeUndefined()
+  })
+
+  it('drops the Elements, Dimensions and Collections widths an older record kept, once', () => {
+    const widths = { notes: 200, elements: 440, dimensions: 300, collections: 500, scores: 600 }
+    for (const version of [1, 2]) {
+      expect(parseLayout(record({ version, paneWidths: widths })).paneWidths).toEqual({ notes: 200, scores: 600 })
+    }
+    expect(parseLayout(record({ paneWidths: widths })).paneWidths).toEqual(widths)
+  })
+
+  it('opens Elements, Dimensions and Collections at 200px, squeezing to 150px', () => {
+    for (const tab of ['elements', 'dimensions', 'collections'] as const) {
+      expect(paneWidth({ paneWidths: {} }, tab)).toBe(200)
+      expect(paneMinWidth(tab)).toBe(150)
+    }
   })
 })
 
@@ -46,8 +62,8 @@ describe('Score column width', () => {
     expect(columnMinWidth(layout)).toBe(STRIP_WIDTH + paneMinWidth('notes') + paneMinWidth('elements') + 1)
   })
 
-  it('lets Notes go thinner than a list-and-detail view, never below its snap width', () => {
-    expect(paneMinWidth('notes')).toBeLessThan(paneMinWidth('elements'))
+  it('lets Notes go thinner than Assess, never below its snap width', () => {
+    expect(paneMinWidth('notes')).toBeLessThan(paneMinWidth('scores'))
     expect(paneWidth({ paneWidths: { notes: 10 } }, 'notes')).toBe(paneSnapWidth('notes'))
   })
 

@@ -13,10 +13,9 @@
 import { useAppStore } from '../../store/appStore'
 import { historyField } from '../../store/historyBindings'
 import { DEFAULT_COLLECTION_COLOR } from '../../lib/color'
-import { useResizableSplitPane } from './useResizableSplitPane'
 import { paletteForUncolored } from '../../store/transforms'
 import { ConfirmationDisc } from '../ConfirmationDisc'
-import { AddRow, listKeys, useConfirmedDelete } from './dataList'
+import { AddRow, listKeys, selectAllOnEntry, useConfirmedDelete, useDataViewLayout } from './dataList'
 import { hostCapabilities } from '../../lib/host'
 import styles from './DataTab.module.css'
 
@@ -38,7 +37,7 @@ export function CollectionsTab(): React.JSX.Element {
 
   const selected = collections.find(c => c.id === selectedId) ?? null
 
-  const splitPane = useResizableSplitPane()
+  const { stacked, splitPane, className } = useDataViewLayout()
 
   // Deleting a collection drops it from every member's collectionIds.
   const deletion = useConfirmedDelete(ids => { for (const id of ids) removeCollection(id) })
@@ -52,7 +51,7 @@ export function CollectionsTab(): React.JSX.Element {
     : 0
 
   return (
-    <div className={styles.tab} ref={splitPane.containerRef} style={splitPane.containerStyle}>
+    <div className={className} ref={splitPane.containerRef} style={splitPane.containerStyle}>
       {/* ── List pane ── */}
       <div className={styles.listPane} style={splitPane.leftPaneStyle}>
         {/* The browser shows the count in Score's title instead. */}
@@ -83,7 +82,7 @@ export function CollectionsTab(): React.JSX.Element {
                     className={styles.collectionSwatch}
                     style={{ background: collection.color, borderColor: collection.color }}
                   />
-                  <span className={styles.name}>{collection.name}</span>
+                  <span className={styles.name} title={stacked ? collection.name : undefined}>{collection.name}</span>
                 </li>
               ))}
             </ul>
@@ -111,6 +110,7 @@ export function CollectionsTab(): React.JSX.Element {
             className={styles.poleInput}
             defaultValue={selected?.name ?? ''}
             disabled={!selected}
+            {...(stacked ? selectAllOnEntry : {})}
             onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Tab') e.currentTarget.blur() }}
             onBlur={e => {
               const v = e.target.value.trim()

@@ -13,21 +13,22 @@
 import { useRef, useState, useEffect } from 'react'
 import { useAppStore } from '../../store/appStore'
 import { historyField } from '../../store/historyBindings'
-import { useResizableSplitPane } from './useResizableSplitPane'
 import { hostCapabilities } from '../../lib/host'
 import styles from './DataTab.module.css'
-import { formatRange, numericRange, openWeight } from '../../lib/numericRange'
+import { formatRange, numericRange } from '../../lib/numericRange'
 import { ConfirmationDisc } from '../ConfirmationDisc'
-import { AddRow, listKeys, useConfirmedDelete } from './dataList'
+import { AddRow, WeightInput, listKeys, selectAllOnEntry, useConfirmedDelete, useDataViewLayout } from './dataList'
 
 interface Props { onOpenStarterPicker: () => void }
 
 interface DimensionListLabelProps {
   poleA: string
   poleB: string
+  /** Break onto two lines, one pole each, when the label does not fit; otherwise shorten it with "…". */
+  wrap: boolean
 }
 
-function DimensionListLabel({ poleA, poleB }: DimensionListLabelProps): React.JSX.Element {
+function DimensionListLabel({ poleA, poleB, wrap }: DimensionListLabelProps): React.JSX.Element {
   const containerRef = useRef<HTMLSpanElement>(null)
   const measureRef = useRef<HTMLSpanElement>(null)
   const [isWrapped, setIsWrapped] = useState(false)
@@ -36,7 +37,7 @@ function DimensionListLabel({ poleA, poleB }: DimensionListLabelProps): React.JS
   useEffect(() => {
     const container = containerRef.current
     const measure = measureRef.current
-    if (!container || !measure) return
+    if (!wrap || !container || !measure) return
 
     const updateWrapping = (): void => {
       setIsWrapped(measure.scrollWidth > container.clientWidth)
@@ -47,7 +48,11 @@ function DimensionListLabel({ poleA, poleB }: DimensionListLabelProps): React.JS
     observer.observe(container)
     observer.observe(measure)
     return () => observer.disconnect()
-  }, [displayLabel])
+  }, [displayLabel, wrap])
+
+  if (!wrap) {
+    return <span className={`${styles.name} ${styles.dimensionName}`} title={displayLabel}>{displayLabel}</span>
+  }
 
   return (
     <span
@@ -77,7 +82,7 @@ export function DimensionsTab({ onOpenStarterPicker }: Props): React.JSX.Element
   const scores          = useAppStore(s => s.scores)
 
   const selected = dimensions.find(d => d.id === selectedId) ?? null
-  const splitPane = useResizableSplitPane()
+  const { stacked, splitPane, className } = useDataViewLayout()
   const deletion = useConfirmedDelete(ids => { for (const id of ids) removeDimension(id) })
   const confirmDeleteId = deletion.pendingIds[0] ?? null
 
@@ -100,7 +105,7 @@ export function DimensionsTab({ onOpenStarterPicker }: Props): React.JSX.Element
   // ── Render ────────────────────────────────────────────────────────────────────
 
   return (
-    <div className={styles.tab} ref={splitPane.containerRef} style={splitPane.containerStyle}>
+    <div className={className} ref={splitPane.containerRef} style={splitPane.containerStyle}>
       {/* ── List pane ── */}
       <div className={styles.listPane} style={splitPane.leftPaneStyle}>
         {/* The browser shows the count in Score's title instead. */}
@@ -127,7 +132,7 @@ export function DimensionsTab({ onOpenStarterPicker }: Props): React.JSX.Element
                   className={`${styles.listItem} ${dim.id === selectedId ? styles.selected : ''}`}
                   onClick={() => selectDimension(dim.id)}
                 >
-                  <DimensionListLabel poleA={dim.poleA} poleB={dim.poleB} />
+                  <DimensionListLabel poleA={dim.poleA} poleB={dim.poleB} wrap={!stacked} />
                 </li>
               ))}
             </ul>
@@ -158,6 +163,7 @@ export function DimensionsTab({ onOpenStarterPicker }: Props): React.JSX.Element
             className={styles.poleInput}
             defaultValue={selected?.poleA ?? ''}
             disabled={!selected}
+            {...(stacked ? selectAllOnEntry : {})}
             onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Tab') e.currentTarget.blur() }}
             onBlur={e => {
               const v = e.target.value.trim()
@@ -172,6 +178,7 @@ export function DimensionsTab({ onOpenStarterPicker }: Props): React.JSX.Element
             className={styles.poleInput}
             defaultValue={selected?.poleB ?? ''}
             disabled={!selected}
+            {...(stacked ? selectAllOnEntry : {})}
             onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Tab') e.currentTarget.blur() }}
             onBlur={e => {
               const v = e.target.value.trim()
@@ -181,20 +188,12 @@ export function DimensionsTab({ onOpenStarterPicker }: Props): React.JSX.Element
         </div>
         <div className={styles.fieldRow}>
           <label className={styles.label}>Weight</label>
-          {/* Keyed on the live weight too, as in Elements: Randomize and a map's
-              axis dialog change it without changing selection, and a stale
-              field would write the old value back on blur. */}
-          <input
+          <WeightInput
             key={`weight-${selected?.id ?? 'none'}-${selected?.weight ?? 1}`}
-            className={styles.weightInput}
-            type="number"
-            min={0}
-            defaultValue={selected?.weight ?? 1}
+            weight={selected?.weight ?? 1}
             disabled={!selected}
-            onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur() }}
-            onBlur={e => selected && updateDimension(selected.id, {
-              weight: openWeight(Number(e.target.value))
-            })}
+            wholeNumbers={stacked}
+            onCommit={weight => { if (selected) updateDimension(selected.id, { weight }) }}
           />
           <span className={styles.range}>{formatRange(weightRange)}</span>
         </div>

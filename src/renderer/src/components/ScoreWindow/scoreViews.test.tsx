@@ -8,6 +8,7 @@ import { history } from '../../store/history'
 import { DEFAULT_PREFERENCES } from '../../lib/preferences'
 import type { Collection, Dimension, Element } from '../../lib/types'
 import { defaultCategories } from '../../lib/types'
+import { setHostCapabilities } from '../../lib/host'
 import { ElementsTab } from './ElementsTab'
 import { ConversionsTab } from './ConversionsTab'
 import { AssessTab } from './AssessTab'
@@ -97,6 +98,79 @@ describe('Dimensions and Collections lists', () => {
     fireEvent.keyDown(add, { key: 'Enter' })
     expect(useAppStore.getState().collections.map(c => c.name)).toEqual(['One', 'Three'])
     expect(add.value).toBe('')
+  })
+})
+
+describe('Stacked list-and-detail views (browser)', () => {
+  beforeEach(() => {
+    setHostCapabilities({ stackedDataViews: true })
+    study([element('a')], [{ ...dimension('d'), poleA: 'A very long first pole', poleB: 'An even longer second pole' }])
+  })
+  afterEach(() => setHostCapabilities({ stackedDataViews: false }))
+
+  it('keeps the detail below the list at any width', () => {
+    const { container } = render(<ElementsTab />)
+    const view = container.firstElementChild as HTMLElement
+    expect(view.style.gridTemplateColumns).toBe('minmax(0, 1fr)')
+    expect(view.style.gridTemplateRows).not.toBe('')
+  })
+
+  it('shows a dimension on one line, with its full name on hover', () => {
+    render(<DimensionsTab onOpenStarterPicker={() => {}} />)
+    const label = screen.getByTitle('A very long first pole - An even longer second pole')
+    expect(label.textContent).toBe('A very long first pole - An even longer second pole')
+  })
+
+  it('takes a weight as a whole number, without stepper arrows', () => {
+    render(<ElementsTab />)
+    expect(screen.queryByRole('spinbutton')).toBeNull()
+    const weight = screen.getByRole('textbox', { name: 'Weight' }) as HTMLInputElement
+    fireEvent.change(weight, { target: { value: '3.6' } })
+    fireEvent.blur(weight)
+    expect(useAppStore.getState().elements[0].weight).toBe(4)
+    expect(weight.value).toBe('4')
+  })
+
+  it('stops at 1, and answers a non-number with the whole weight before it or 1', () => {
+    const typeWeight = (value: string): number => {
+      const weight = screen.getByRole('textbox', { name: 'Weight' }) as HTMLInputElement
+      fireEvent.change(weight, { target: { value } })
+      fireEvent.blur(weight)
+      return useAppStore.getState().dimensions[0].weight
+    }
+    render(<DimensionsTab onOpenStarterPicker={() => {}} />)
+    expect(typeWeight('-7')).toBe(1)
+    expect(typeWeight('0.2')).toBe(1)
+    expect(typeWeight('5')).toBe(5)
+    expect(typeWeight('heavy')).toBe(5)
+    expect(typeWeight('')).toBe(5)
+    act(() => useAppStore.getState().updateDimension('d', { weight: 2.5 }))
+    expect(typeWeight('heavy')).toBe(1)
+  })
+
+  it('selects the whole name or weight when either is entered', () => {
+    const { container } = render(<ElementsTab />)
+    const name = container.querySelector<HTMLInputElement>('input[value="A"]')!
+    const weight = screen.getByRole('textbox', { name: 'Weight' }) as HTMLInputElement
+    for (const field of [name, weight]) {
+      act(() => field.focus())
+      expect([field.selectionStart, field.selectionEnd]).toEqual([0, field.value.length])
+    }
+  })
+
+  it('selects the whole of either pole when it is entered', () => {
+    const { container } = render(<DimensionsTab onOpenStarterPicker={() => {}} />)
+    for (const value of ['A very long first pole', 'An even longer second pole']) {
+      const pole = container.querySelector<HTMLInputElement>(`input[value="${value}"]`)!
+      act(() => pole.focus())
+      expect([pole.selectionStart, pole.selectionEnd]).toEqual([0, value.length])
+    }
+  })
+
+  it('leaves list and detail side by side where the host does not stack them', () => {
+    setHostCapabilities({ stackedDataViews: false })
+    const { container } = render(<ElementsTab />)
+    expect((container.firstElementChild as HTMLElement).style.gridTemplateRows).toBe('minmax(0, 1fr)')
   })
 })
 

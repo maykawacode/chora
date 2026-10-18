@@ -24,14 +24,13 @@ import { history, SCORE_HISTORY_OWNER } from '../../store/history'
 import { historyField } from '../../store/historyBindings'
 import { usePrefsStore } from '../../store/prefsStore'
 import { ELEMENT_SHAPES, ELEMENT_SHAPE_SYMBOLS } from '../../lib/types'
-import { useResizableSplitPane } from './useResizableSplitPane'
-import { formatRange, numericRange, openWeight } from '../../lib/numericRange'
+import { formatRange, numericRange } from '../../lib/numericRange'
 import { ConfirmationDisc } from '../ConfirmationDisc'
 import { scoreOwnsKeys } from '../../lib/overlayStack'
 import { hostCapabilities } from '../../lib/host'
 import { sortToggleTitle, useElementSort } from './elementSort'
 import { DEFAULT_ELEMENT_COLOR } from '../../lib/color'
-import { AddRow, listKeys, useConfirmedDelete } from './dataList'
+import { AddRow, WeightInput, listKeys, selectAllOnEntry, useConfirmedDelete, useDataViewLayout } from './dataList'
 import styles from './DataTab.module.css'
 
 export function ElementsTab(): React.JSX.Element {
@@ -62,7 +61,7 @@ export function ElementsTab(): React.JSX.Element {
     ? [...elements].sort((a, b) => a.name.localeCompare(b.name))
     : elements
 
-  const splitPane = useResizableSplitPane()
+  const { stacked, splitPane, className } = useDataViewLayout()
 
   // Every single or batch delete follows the global data preference.
   const deletion = useConfirmedDelete(ids => {
@@ -162,7 +161,7 @@ export function ElementsTab(): React.JSX.Element {
   // ── Render ────────────────────────────────────────────────────────────────────
 
   return (
-    <div className={styles.tab} ref={splitPane.containerRef} style={splitPane.containerStyle}>
+    <div className={className} ref={splitPane.containerRef} style={splitPane.containerStyle}>
       {/* ── List pane ── */}
       <div className={styles.listPane} style={splitPane.leftPaneStyle}>
         {/* Header doubles as a sort toggle — click cycles creation order ↔ A–Z.
@@ -207,7 +206,7 @@ export function ElementsTab(): React.JSX.Element {
                         {ELEMENT_SHAPE_SYMBOLS[el.shape]}
                       </span>
                     </span>
-                    <span className={styles.name}>{el.name}</span>
+                    <span className={styles.name} title={stacked ? el.name : undefined}>{el.name}</span>
                   </li>
                 )
               })}
@@ -231,6 +230,7 @@ export function ElementsTab(): React.JSX.Element {
             className={styles.poleInput}
             defaultValue={selected?.name ?? ''}
             disabled={!selected}
+            {...(stacked ? selectAllOnEntry : {})}
             onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Tab') e.currentTarget.blur() }}
             onBlur={e => {
               const v = e.target.value.trim()
@@ -269,20 +269,12 @@ export function ElementsTab(): React.JSX.Element {
         </div>
         <div className={styles.fieldRow}>
           <label className={styles.label}>Weight</label>
-          {/* Batch transforms and map edits can change weight without changing
-              selection. Include the live value so this uncontrolled field
-              cannot display—or later write back—a stale pre-transform value. */}
-          <input
+          <WeightInput
             key={`weight-${selected?.id ?? 'none'}-${selected?.weight ?? 1}`}
-            className={styles.weightInput}
-            type="number"
-            min={0}
-            defaultValue={selected?.weight ?? 1}
+            weight={selected?.weight ?? 1}
             disabled={!selected}
-            onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur() }}
-            onBlur={e => selected && updateElement(selected.id, {
-              weight: openWeight(Number(e.target.value))
-            })}
+            wholeNumbers={stacked}
+            onCommit={weight => { if (selected) updateElement(selected.id, { weight }) }}
           />
           <span className={styles.range}>{formatRange(weightRange)}</span>
         </div>

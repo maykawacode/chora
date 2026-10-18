@@ -12,12 +12,18 @@ export const stripWidth = (labels: boolean): number => labels ? STRIP_WIDTH_LABE
 const PANE_DIVIDER = 1
 
 /**
- * Notes is one text field and can go thin. The others hold a list and its
- * detail, side by side from STACK_BELOW_WIDTH and stacked below it
- * (useResizableSplitPane.ts), so they can go narrower than two panes.
+ * Elements, Dimensions and Collections keep their detail below the list
+ * (useDataViewLayout), so they open as narrow as a side panel. Notes is one
+ * text field and can go thin too. Assess and Conversions hold a list and its
+ * detail side by side, stacking below STACK_BELOW_WIDTH
+ * (useResizableSplitPane.ts), so they go narrower than two panes.
  */
-export const paneMinWidth = (tab: Tab): number => tab === 'notes' ? 160 : 240
-const paneDefaultWidth = (tab: Tab): number => tab === 'notes' ? 260 : 440
+const LIST_VIEWS: readonly Tab[] = ['elements', 'dimensions', 'collections']
+
+export const paneMinWidth = (tab: Tab): number =>
+  LIST_VIEWS.includes(tab) ? 150 : tab === 'notes' ? 160 : 240
+const paneDefaultWidth = (tab: Tab): number =>
+  LIST_VIEWS.includes(tab) ? 200 : tab === 'notes' ? 260 : 440
 
 /** The map area keeps room for at least one tile. */
 export const MAP_AREA_MIN_WIDTH = 360
@@ -50,7 +56,12 @@ export const snapsClosed = (tab: Tab, width: number): boolean => width < paneSna
 
 const MOTION_FALLBACK_MS = 400
 const STORAGE_KEY = 'chora:layout'
-const VERSION = 1
+/**
+ * 2 and 3: Elements, Dimensions and Collections narrowed to 150px, then
+ * opening at 200px. An older record's widths for those three are dropped
+ * once, so they open at the new default.
+ */
+const VERSION = 3
 
 export interface StoredLayout {
   openTabs: Tab[]
@@ -70,7 +81,7 @@ export function parseLayout(raw: string | null): StoredLayout {
   if (!raw) return DEFAULT_LAYOUT
   try {
     const v = JSON.parse(raw)
-    if (v?.version !== VERSION) return DEFAULT_LAYOUT
+    if (![1, 2, VERSION].includes(v?.version)) return DEFAULT_LAYOUT
     const paneWidths: StoredLayout['paneWidths'] = {}
     if (v.paneWidths && typeof v.paneWidths === 'object') {
       for (const [tab, w] of Object.entries(v.paneWidths)) {
@@ -82,6 +93,7 @@ export function parseLayout(raw: string | null): StoredLayout {
       const strip = stripWidth(v.labels === true)
       for (const tab of TABS) if (tab !== 'notes') paneWidths[tab] = Math.round(v.scoreWidth - strip)
     }
+    if (v.version !== VERSION) for (const tab of LIST_VIEWS) delete paneWidths[tab]
     const openTabs = Array.isArray(v.openTabs) ? inStripOrder(v.openTabs.filter(isTab)) : DEFAULT_LAYOUT.openTabs
     return {
       openTabs,

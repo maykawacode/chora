@@ -171,6 +171,14 @@
   user-select: none;
 }
 
+/* A narrow view shortens its title with "…" rather than overflowing. */
+.paneTitle > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* Elements sort toggle at the title's right end (the desktop's list-header badge). */
 .paneSort {
   flex: none;

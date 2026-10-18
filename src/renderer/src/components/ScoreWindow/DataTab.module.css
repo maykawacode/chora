@@ -448,3 +448,35 @@
   background: var(--color-surface-disabled);
   color: var(--color-text-disabled);
 }
+
+/* ── Stacked views (browser; useDataViewLayout) ─────────────────────────────
+   The detail sits below the list at every width, so the view can be as
+   narrow as a side panel. Nothing scrolls sideways: list names stay on one
+   line and end in "…" (the full name is the row's tooltip). */
+
+.stacked .listEditor {
+  overflow-x: hidden;
+}
+
+.stacked .name {
+  white-space: nowrap;
+  overflow: hidden;
+  overflow-wrap: normal;
+  text-overflow: ellipsis;
+}
+
+/* Fields start 10px nearer their labels: a 43px column (still clear of
+   "Weight") and 5px taken from the row's gap after it. */
+.stacked .label {
+  width: 43px;
+  margin-right: -5px;
+}
+
+/* The definition takes whatever height the detail has left, rather than a
+   fixed 160px that runs past the bottom of a short window. Below about three
+   lines it stops shrinking and the detail scrolls instead. */
+.stacked .description {
+  flex: 1 1 0;
+  height: auto;
+  min-height: 56px;
+}

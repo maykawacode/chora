@@ -14,6 +14,12 @@ export interface HostCapabilities {
    * them in its page banner, strip and pane titles instead.
    */
   scoreChrome: boolean
+  /**
+   * Elements, Dimensions and Collections keep their detail below the list at
+   * every width, and list names on one line ending in "…". The browser's narrow side-by-side views do; the
+   * desktop keeps list and detail side by side.
+   */
+  stackedDataViews: boolean
   /** Settings offers startup and window choices: reopen last file, window positions, update checks. */
   startupSettings: boolean
   /** Export always hands over a download, even where Save writes in place. */
@@ -33,6 +39,7 @@ export interface HostCapabilities {
 let capabilities: HostCapabilities = {
   kind: 'desktop',
   scoreChrome: true,
+  stackedDataViews: false,
   startupSettings: true,
   exportByDownload: false,
   documentSave: 'file'

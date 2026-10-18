@@ -40,15 +40,17 @@ function clampDividerRatio(desiredRatio: number, length: number, paneMin: number
  * and responds to window resizing without pixel synchronization. Narrower
  * than two panes side by side, the panes stack, list above detail, and the
  * divider resizes their heights; an observer watches the width for that.
+ * `alwaysStacked` keeps them stacked at every width.
  */
-export function useResizableSplitPane(): ResizableSplitPane {
+export function useResizableSplitPane(alwaysStacked = false): ResizableSplitPane {
   const containerEl = useRef<HTMLDivElement | null>(null)
   const observer = useRef<ResizeObserver | null>(null)
   const activePointerId = useRef<number | null>(null)
   const lastClient = useRef<number | null>(null)
   const dividerRatioRef = useRef(0.5)
   const [dividerRatio, setDividerRatio] = useState(0.5)
-  const [stacked, setStacked] = useState(false)
+  const [narrow, setNarrow] = useState(false)
+  const stacked = alwaysStacked || narrow
 
   const containerRef = useCallback((el: HTMLDivElement | null) => {
     observer.current?.disconnect()
@@ -57,7 +59,7 @@ export function useResizableSplitPane(): ResizableSplitPane {
     if (!el) return
     const check = (): void => {
       // A hidden container (Score collapsed) measures 0; keep its last layout.
-      if (el.clientWidth > 0) setStacked(el.clientWidth < STACK_BELOW_WIDTH)
+      if (el.clientWidth > 0) setNarrow(el.clientWidth < STACK_BELOW_WIDTH)
     }
     check()
     observer.current = new ResizeObserver(check)
