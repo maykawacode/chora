@@ -1,6 +1,5 @@
 import { create } from 'zustand'
 import type { AppState } from '@renderer/lib/types'
-import { PANE_MIN_WIDTH } from '../src/components/ScoreWindow/useResizableSplitPane'
 
 export type Tab = AppState['activeTab']
 
@@ -17,8 +16,12 @@ export const TAB_ORDER: readonly Tab[] = ['notes', 'elements', 'dimensions', 'co
 /** Line between two open views. */
 export const PANE_DIVIDER = 1
 
-/** Notes is one text field and can go thin; the others hold a list and its detail side by side. */
-export const paneMinWidth = (tab: Tab): number => tab === 'notes' ? 160 : 2 * PANE_MIN_WIDTH
+/**
+ * Notes is one text field and can go thin. The others hold a list and its
+ * detail, side by side from STACK_BELOW_WIDTH and stacked below it
+ * (useResizableSplitPane.ts), so they can go narrower than two panes.
+ */
+export const paneMinWidth = (tab: Tab): number => tab === 'notes' ? 160 : 240
 const paneDefaultWidth = (tab: Tab): number => tab === 'notes' ? 260 : 440
 
 /** The map area keeps room for at least one tile. */
