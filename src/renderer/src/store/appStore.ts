@@ -16,7 +16,7 @@ import type {
   AppState, Element, Collection, Dimension, DimensionCategories, SessionMeta,
   MapConfig, CartesianMapConfig, SemanticMapConfig, ElementShape, Tab
 } from '../lib/types'
-import { DEFAULT_COLLECTION_COLOR, paletteColor, mixCollectionColors, randomReadableColor } from '../lib/color'
+import { DEFAULT_COLLECTION_COLOR, hexHue, paletteColor, mixCollectionColors, randomReadableColor } from '../lib/color'
 import { defaultCategories, defaultSessionMeta, ELEMENT_SHAPES, parsePoles } from '../lib/types'
 import { usePrefsStore } from './prefsStore'
 import { openWeight } from '../lib/numericRange'
@@ -142,20 +142,6 @@ const SHAPE_COLORS: Record<ElementShape, string> = {
   square:   '#c04040',
   triangle: '#40a040',
   diamond:  '#a040a0',
-}
-
-function hexToHue(hex: string): number {
-  const r = parseInt(hex.slice(1, 3), 16) / 255
-  const g = parseInt(hex.slice(3, 5), 16) / 255
-  const b = parseInt(hex.slice(5, 7), 16) / 255
-  const max = Math.max(r, g, b), min = Math.min(r, g, b)
-  if (max === min) return 0
-  const d = max - min
-  let h: number
-  if (max === r)      h = (g - b) / d + (g < b ? 6 : 0)
-  else if (max === g) h = (b - r) / d + 2
-  else                h = (r - g) / d + 4
-  return (h / 6) * 360
 }
 
 function hueToShape(hue: number): ElementShape {
@@ -537,7 +523,7 @@ export const useAppStore = create<AppStore>((set) => ({
 
   // Sets each element's shape by mapping its color's hue to a shape bucket.
   colorToShape: () => set((s) => ({
-    elements: s.elements.map(el => ({ ...el, shape: hueToShape(hexToHue(el.color)) })),
+    elements: s.elements.map(el => ({ ...el, shape: hueToShape(hexHue(el.color)) })),
     isDirty: true
   })),
 

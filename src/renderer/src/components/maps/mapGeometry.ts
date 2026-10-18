@@ -7,8 +7,9 @@ import type {
 } from '../../lib/types'
 import { numericRange } from '../../lib/numericRange'
 import { cartesianElements } from './collections'
-import { POLE_LABEL_HIT_SPAN, cartesianDotRadius, cartesianPlot } from './cartesian/drawCartesian'
-import { SEM_DOT_MAX_R, semDotRadius, semanticElements } from './semantic/drawSemantic'
+import { POLE_LABEL_HIT_SPAN, cartesianPlot } from './cartesian/drawCartesian'
+import { semanticElements } from './semantic/drawSemantic'
+import { DOT_MAX_RADIUS, dotRadius } from './shape'
 import { axisX, type SemanticLayout } from './semantic/semanticLayout'
 
 export type Edge = 'left' | 'right' | 'top' | 'bottom'
@@ -153,7 +154,7 @@ export function cartesianHitDot(
       scores[element.id]?.[config.yDimensionId] ?? 0.5
     )
     const hitRadius = Math.max(
-      cartesianDotRadius(config, element.weight, weightRange, defaultDotRadius),
+      dotRadius(config, element.weight, weightRange, defaultDotRadius),
       8
     )
     if ((x - point.x) ** 2 + (y - point.y) ** 2 <= hitRadius ** 2) {
@@ -184,13 +185,13 @@ export function semanticHitDot(
 
   for (const axis of layout.axes) {
     const { dimension, y: axisY } = axis
-    if (Math.abs(y - axisY) > Math.max(SEM_DOT_MAX_R, 8)) continue
+    if (Math.abs(y - axisY) > Math.max(DOT_MAX_RADIUS.semantic, 8)) continue
     for (const element of visible) {
       const raw = scores[element.id]?.[dimension.id]
       if (raw === undefined) continue
       const dotX = axisX(layout, axis, raw)
       const hitRadius = Math.max(
-        semDotRadius(config, element.weight, weightRange, defaultDotRadius),
+        dotRadius(config, element.weight, weightRange, defaultDotRadius),
         8
       )
       if ((x - dotX) ** 2 + (y - axisY) ** 2 <= hitRadius ** 2) {

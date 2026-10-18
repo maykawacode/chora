@@ -2,11 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AppState, CartesianMapConfig } from '../lib/types'
 import { ELEMENT_SHAPES } from '../lib/types'
 import { blackTextContrast } from '../lib/color'
-import {
-  cartesianDotRadius,
-  DOT_DEFAULT_RADIUS,
-  DOT_MAX_RADIUS
-} from '../components/maps/cartesian/drawCartesian'
+import { DOT_DEFAULT_RADIUS, DOT_MAX_RADIUS, dotRadius } from '../components/maps/shape'
 import { useAppStore } from './appStore'
 import { DEFAULT_PREFERENCES } from '../lib/preferences'
 import { usePrefsStore } from './prefsStore'
@@ -634,16 +630,16 @@ describe('HistoryController', () => {
   })
 })
 
-describe('cartesianDotRadius', () => {
+describe('dotRadius', () => {
   it('uses the complete current range while retaining the default size', () => {
     const weighted = cartesianMap()
     const range = { min: 0, max: 250 }
-    expect(cartesianDotRadius(weighted, 0, range)).toBe(DOT_DEFAULT_RADIUS)
-    expect(cartesianDotRadius(weighted, 125, range)).toBe(41)
-    expect(cartesianDotRadius(weighted, 250, range)).toBe(76)
-    expect(DOT_MAX_RADIUS).toBe(76)
+    expect(dotRadius(weighted, 0, range)).toBe(DOT_DEFAULT_RADIUS)
+    expect(dotRadius(weighted, 125, range)).toBe(41)
+    expect(dotRadius(weighted, 250, range)).toBe(76)
+    expect(DOT_MAX_RADIUS.cartesian).toBe(76)
 
-    expect(cartesianDotRadius({ ...weighted, sizeByWeight: false }, 250, range))
+    expect(dotRadius({ ...weighted, sizeByWeight: false }, 250, range))
       .toBe(DOT_DEFAULT_RADIUS)
   })
 
@@ -651,9 +647,9 @@ describe('cartesianDotRadius', () => {
     const weighted = cartesianMap()
     const range = { min: 0, max: 250 }
 
-    expect(cartesianDotRadius(weighted, 0, range, 10)).toBe(10)
-    expect(cartesianDotRadius(weighted, 125, range, 10)).toBe(43)
-    expect(cartesianDotRadius({ ...weighted, sizeByWeight: false }, 250, range, 10)).toBe(10)
-    expect(cartesianDotRadius(weighted, 0, range, 100)).toBe(16)
+    expect(dotRadius(weighted, 0, range, 10)).toBe(10)
+    expect(dotRadius(weighted, 125, range, 10)).toBe(43)
+    expect(dotRadius({ ...weighted, sizeByWeight: false }, 250, range, 10)).toBe(10)
+    expect(dotRadius(weighted, 0, range, 100)).toBe(16)
   })
 })

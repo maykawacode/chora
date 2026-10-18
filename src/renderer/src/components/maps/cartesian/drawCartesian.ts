@@ -23,9 +23,9 @@ import type { CartesianMapConfig, Element, Dimension, Collection, ScoreMap } fro
 import { blobPadding, setBlobPath, type BlobPoint, type Pt } from '../blob'
 import { resolveElementColor } from '../color'
 import { cartesianElements, shownCollections } from '../collections'
-import { drawMark, drawSelectionRing, markShapeIndex } from '../shape'
+import { DOT_DEFAULT_RADIUS, dotRadius, drawMark, drawSelectionRing, markShapeIndex, normalizeDefaultDotRadius } from '../shape'
 import { beginLayer } from '../svgExport'
-import { normalizeInRange, numericRange, type NumericRange } from '../../../lib/numericRange'
+import { numericRange } from '../../../lib/numericRange'
 import { uiTheme } from '../../../design/theme'
 
 // Guide lines (crosshair, placeholder and partial-score rings) are dotted:
@@ -50,33 +50,6 @@ const MARGIN_TOP = 44
 /** The plot area inside the pole-label margins; drawing and hit-testing share it. */
 export function cartesianPlot(W: number, H: number): { left: number; top: number; right: number; bottom: number } {
   return { left: MARGIN, top: MARGIN_TOP, right: W - MARGIN, bottom: H - MARGIN }
-}
-
-// Dot radius range — the current lightest Element → min, heaviest → max.
-// Uniform radius used when sizeByWeight is off — the same as the current
-// lightest weighted dot.
-export const DOT_DEFAULT_RADIUS = 6
-export const DOT_MAX_RADIUS = 76
-const DOT_DEFAULT_RADIUS_MIN = 3
-const DOT_DEFAULT_RADIUS_MAX = 16
-
-/** Keeps saved or hand-edited preferences inside the range supported by maps. */
-export function normalizeDefaultDotRadius(radius: number = DOT_DEFAULT_RADIUS): number {
-  if (!Number.isFinite(radius)) return DOT_DEFAULT_RADIUS
-  return Math.max(DOT_DEFAULT_RADIUS_MIN, Math.min(DOT_DEFAULT_RADIUS_MAX, radius))
-}
-
-/** Shared by painting and hit-testing so large marks remain fully interactive. */
-export function cartesianDotRadius(
-  config: CartesianMapConfig,
-  weight: number,
-  range: NumericRange,
-  defaultRadius: number = DOT_DEFAULT_RADIUS
-): number {
-  const baseRadius = normalizeDefaultDotRadius(defaultRadius)
-  return config.sizeByWeight
-    ? baseRadius + normalizeInRange(weight, range) * (DOT_MAX_RADIUS - baseRadius)
-    : baseRadius
 }
 
 // Gap between dot edge and element name label
@@ -281,7 +254,7 @@ export function drawCartesian(
         const pt = project(xScore, yScore)
         pts.push({
           ...pt,
-          padding: blobPadding(cartesianDotRadius(config, el.weight, weightRange, baseDotRadius))
+          padding: blobPadding(dotRadius(config, el.weight, weightRange, baseDotRadius))
         })
         sumX += pt.x
         sumY += pt.y
@@ -343,7 +316,7 @@ export function drawCartesian(
     // Unscored or partially scored: use 0.5 as placeholder for any missing axis
     const isPartial = xScore === undefined || yScore === undefined
     const { x: cx, y: cy } = project(xScore ?? 0.5, yScore ?? 0.5)
-    const r = cartesianDotRadius(config, el.weight, weightRange, baseDotRadius)
+    const r = dotRadius(config, el.weight, weightRange, baseDotRadius)
 
     const shapeIndex = markShapeIndex(config.marks, el)
     if (shapeIndex !== null) {

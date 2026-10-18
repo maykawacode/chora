@@ -13,16 +13,12 @@
 import type { SemanticMapConfig, Element, Collection, Dimension, ScoreMap } from '../../../lib/types'
 // labelFont and LABEL_SIZE_DEFAULT are defined once in drawCartesian and shared
 // here so there is a single source of truth for map typography.
-import {
-  labelFont,
-  LABEL_SIZE_DEFAULT,
-  normalizeDefaultDotRadius
-} from '../cartesian/drawCartesian'
+import { labelFont, LABEL_SIZE_DEFAULT } from '../cartesian/drawCartesian'
 import { resolveElementColor } from '../color'
 import { shownCollections } from '../collections'
-import { drawMark, drawSelectionRing, markShapeIndex } from '../shape'
+import { DOT_DEFAULT_RADIUS, dotRadius, drawMark, drawSelectionRing, markShapeIndex } from '../shape'
 import { beginLayer } from '../svgExport'
-import { normalizeInRange, numericRange, type NumericRange } from '../../../lib/numericRange'
+import { numericRange } from '../../../lib/numericRange'
 import { uiTheme } from '../../../design/theme'
 import { EDGE_PAD, LABEL_GAP, SEM_MARGIN_V, axisX, fitText, semanticLayout } from './semanticLayout'
 
@@ -34,31 +30,6 @@ import { EDGE_PAD, LABEL_GAP, SEM_MARGIN_V, axisX, fitText, semanticLayout } fro
 // the default label size, and must not be updated when that default changes.
 const LABEL_WIDTH_BUDGET = 88
 const LABEL_WIDTH_CALIBRATION_SIZE = 11
-
-// Radius of the score dot drawn at each element × dimension intersection,
-// and the ceiling when config.sizeByWeight scales dots by element weight.
-//
-// The weighted ceiling is deliberately far below the cartesian map's 76px:
-// semantic axes are stacked only ~110px apart in a default window, so full-size
-// dots would collide across neighbouring rows and bury the axis lines.
-const SEM_DOT_R     = 6
-export const SEM_DOT_MAX_R = 18
-
-/**
- * Radius of an element's dot, honouring the weight-sizing toggle.
- * Exported so MapPanel's hit-testing matches what's actually painted.
- */
-export function semDotRadius(
-  config: SemanticMapConfig,
-  weight: number,
-  range: NumericRange,
-  defaultRadius: number = SEM_DOT_R
-): number {
-  const baseRadius = normalizeDefaultDotRadius(defaultRadius)
-  return config.sizeByWeight
-    ? baseRadius + normalizeInRange(weight, range) * (SEM_DOT_MAX_R - baseRadius)
-    : baseRadius
-}
 
 /**
  * The elements this map draws, in draw order before any weight sorting.
@@ -104,6 +75,15 @@ export function hasVisibleScores(
   )
 }
 
+/** A muted one-line message in place of a map that has nothing to draw. */
+function drawNotice(ctx: CanvasRenderingContext2D, text: string, x: number, y: number): void {
+  ctx.fillStyle = uiTheme.map.labelMuted
+  ctx.font = labelFont(LABEL_SIZE_DEFAULT)
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.fillText(text, x, y)
+}
+
 export function drawSemantic(
   ctx: CanvasRenderingContext2D,
   W: number,
@@ -118,9 +98,8 @@ export function drawSemantic(
   elementLabelSize: number = LABEL_SIZE_DEFAULT,
   dimensionLabelSize: number = LABEL_SIZE_DEFAULT,
   selectedElementIds: string[] = [],
-  defaultDotRadius: number = SEM_DOT_R
+  defaultDotRadius: number = DOT_DEFAULT_RADIUS
 ): void {
-  const baseDotRadius = normalizeDefaultDotRadius(defaultDotRadius)
   const layout = semanticLayout(W, H, config, dimensions, dimensionLabelSize)
   const { axisLeft, axisRight, axes } = layout
 
@@ -134,11 +113,7 @@ export function drawSemantic(
 
   if (axes.length === 0) {
     // Placeholder when no dimensions are selected
-    ctx.fillStyle = uiTheme.map.labelMuted
-    ctx.font = '13px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif'
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
-    ctx.fillText('No dimensions selected.', W / 2, H / 2)
+    drawNotice(ctx, 'No dimensions selected.', W / 2, H / 2)
     return
   }
 
@@ -172,11 +147,7 @@ export function drawSemantic(
   ctx.restore()
 
   if (elements.length === 0) {
-    ctx.fillStyle = uiTheme.map.labelMuted
-    ctx.font = '13px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif'
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
-    ctx.fillText('No elements to show.', W / 2, H / 2)
+    drawNotice(ctx, 'No elements to show.', W / 2, H / 2)
     return
   }
 
@@ -186,13 +157,9 @@ export function drawSemantic(
   // when a selection caused it: a session with no elements at all draws empty
   // for a reason the user is not in the middle of doing something about.
   if (els.length === 0 && config.shownCollectionIds.length > 0) {
-    ctx.fillStyle = uiTheme.map.labelMuted
-    ctx.font = '13px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif'
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
     // Above the first axis, in the band the 45° element labels would occupy —
     // free by definition here, since there are no elements to label.
-    ctx.fillText('No elements in the selected collections.', W / 2, SEM_MARGIN_V / 2)
+    drawNotice(ctx, 'No elements in the selected collections.', W / 2, SEM_MARGIN_V / 2)
     return
   }
 
@@ -201,11 +168,7 @@ export function drawSemantic(
     axes.map(axis => axis.dimension.id),
     scores
   )) {
-    ctx.fillStyle = uiTheme.map.labelMuted
-    ctx.font = '13px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif'
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
-    ctx.fillText('No scores to show. Add scores in Assess.', W / 2, H / 2)
+    drawNotice(ctx, 'No scores to show. Add scores in Assess.', W / 2, H / 2)
     return
   }
 
@@ -243,7 +206,7 @@ export function drawSemantic(
   for (const el of drawOrder) {
     const shapeIndex = markShapeIndex(config.marks, el)
     const color      = resolveElementColor(config.colorMode, el, collections, claiming)
-    const dotR       = semDotRadius(config, el.weight, weightRange, baseDotRadius)
+    const dotR       = dotRadius(config, el.weight, weightRange, defaultDotRadius)
     const points: Array<{ x: number; y: number }> = []
 
     for (const axis of axes) {

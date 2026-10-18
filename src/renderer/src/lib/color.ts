@@ -84,6 +84,20 @@ function rgbToHex(r: number, g: number, b: number): string {
   return '#' + [r, g, b].map(v => Math.round(v).toString(16).padStart(2, '0')).join('')
 }
 
+/** Hue of a hex color in degrees (0–360); 0 for grays and unreadable colors. */
+export function hexHue(hex: string): number {
+  const rgb = hexToRgb(hex)
+  if (!rgb) return 0
+  const [r, g, b] = rgb.map(v => v / 255)
+  const max = Math.max(r, g, b), min = Math.min(r, g, b)
+  if (max === min) return 0
+  const d = max - min
+  const h = max === r ? (g - b) / d + (g < b ? 6 : 0)
+    : max === g ? (b - r) / d + 2
+    : (r - g) / d + 4
+  return (h / 6) * 360
+}
+
 function linearChannel(value: number): number {
   const channel = value / 255
   return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4
@@ -123,7 +137,7 @@ export function randomReadableColor(random: () => number = Math.random): string 
  * Returns null when that leaves nothing to average, so each caller can decide
  * what "no color" means for it rather than being handed a misleading black.
  */
-function mixColors(parts: Array<{ color: string; weight: number }>): string | null {
+export function mixColors(parts: Array<{ color: string; weight: number }>): string | null {
   let r = 0, g = 0, b = 0, total = 0
   for (const { color, weight } of parts) {
     if (weight <= 0) continue

@@ -1,5 +1,6 @@
 import type { Element, ScoreMap } from '../lib/types'
 import { normalizeInRange, numericRange } from '../lib/numericRange'
+import { mixColors } from '../lib/color'
 
 export function dimensionScoresToWeights(
   elements: Element[],
@@ -30,11 +31,6 @@ export function weightsToDimensionScores(
   return next
 }
 
-function hexToRgb(hex: string): [number, number, number] {
-  const value = parseInt(hex.slice(1), 16)
-  return [(value >> 16) & 0xff, (value >> 8) & 0xff, value & 0xff]
-}
-
 export function dimensionScoresToColors(
   elements: Element[],
   scores: ScoreMap,
@@ -42,16 +38,11 @@ export function dimensionScoresToColors(
   lowColor: string,
   highColor: string
 ): Element[] {
-  const low = hexToRgb(lowColor)
-  const high = hexToRgb(highColor)
   return elements.map(element => {
     const score = scores[element.id]?.[dimensionId]
     if (score === undefined) return element
-    const channels = low.map((channel, index) =>
-      Math.round(channel + (high[index] - channel) * score)
-    )
-    const color = `#${channels.map(channel => channel.toString(16).padStart(2, '0')).join('')}`
-    return { ...element, color }
+    const color = mixColors([{ color: lowColor, weight: 1 - score }, { color: highColor, weight: score }])
+    return color === null ? element : { ...element, color }
   })
 }
 

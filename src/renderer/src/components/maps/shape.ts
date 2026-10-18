@@ -14,7 +14,8 @@
 // conversions think in cycles — "1st type circle, 2nd square, …" — and an index
 // wraps naturally. ELEMENT_SHAPES in lib/types.ts fixes that order.
 
-import { ELEMENT_SHAPES, type Element, type MarkMode } from '../../lib/types'
+import { ELEMENT_SHAPES, type Element, type MapConfig, type MarkMode } from '../../lib/types'
+import { normalizeInRange, type NumericRange } from '../../lib/numericRange'
 import { uiTheme } from '../../design/theme'
 
 const CIRCLE = 0
@@ -31,6 +32,38 @@ export function markShapeIndex(mode: MarkMode, el: Element): number | null {
     case 'circle':  return CIRCLE
     case 'element': return Math.max(CIRCLE, ELEMENT_SHAPES.indexOf(el.shape))
   }
+}
+
+// ── Size ──────────────────────────────────────────────────────────────────────
+//
+// Every mark starts at the default radius (a preference, kept within range).
+// With config.sizeByWeight it grows with the element's weight across the
+// current Element range, up to a ceiling per map type. The semantic ceiling is
+// far below the cartesian one: its axes sit only ~110px apart in a default
+// window, so full-size dots would collide across rows and bury the axis lines.
+
+export const DOT_DEFAULT_RADIUS = 6
+const DOT_DEFAULT_RADIUS_MIN = 3
+const DOT_DEFAULT_RADIUS_MAX = 16
+export const DOT_MAX_RADIUS: Record<MapConfig['type'], number> = { cartesian: 76, semantic: 18 }
+
+/** Keeps saved or hand-edited preferences inside the range supported by maps. */
+export function normalizeDefaultDotRadius(radius: number = DOT_DEFAULT_RADIUS): number {
+  if (!Number.isFinite(radius)) return DOT_DEFAULT_RADIUS
+  return Math.max(DOT_DEFAULT_RADIUS_MIN, Math.min(DOT_DEFAULT_RADIUS_MAX, radius))
+}
+
+/** An element's mark radius, shared by painting and hit-testing so large marks stay fully interactive. */
+export function dotRadius(
+  config: MapConfig,
+  weight: number,
+  range: NumericRange,
+  defaultRadius: number = DOT_DEFAULT_RADIUS
+): number {
+  const base = normalizeDefaultDotRadius(defaultRadius)
+  return config.sizeByWeight
+    ? base + normalizeInRange(weight, range) * (DOT_MAX_RADIUS[config.type] - base)
+    : base
 }
 
 // ── Geometry ──────────────────────────────────────────────────────────────────
