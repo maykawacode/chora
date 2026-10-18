@@ -35,7 +35,7 @@
   overflow-y: auto;
   padding: var(--space-four);
   /* The sections stack in one column wherever Settings is narrow: a small
-     window, or the browser's Score column. */
+     window or browser popup (CenteredPopup.module.css). */
   container-type: inline-size;
 }
 

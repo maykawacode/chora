@@ -3,7 +3,6 @@ import { useAppStore } from '@renderer/store/appStore'
 import { useStatusLine } from '@renderer/components/ScoreWindow/statusLine'
 import { displayName, editableName, renameDocument } from './documentName'
 import { NamePrompt } from './NamePrompt'
-import { useScoreLayout } from './scoreLayout'
 import styles from './TitleBanner.module.css'
 
 // Banner across the top of the browser page: the product name, the study's
@@ -15,8 +14,6 @@ import styles from './TitleBanner.module.css'
 // for this tab.
 
 const NOTICE_KEY = 'chora:device-notice-dismissed'
-// While Settings shows in the Score column, the status line speaks to it.
-const SETTINGS_HINT = 'Changes apply as you make them. Restore defaults resets every setting.'
 const NARROW_PX = 900
 
 function shouldShowNotice(): boolean {
@@ -27,8 +24,7 @@ function shouldShowNotice(): boolean {
 export function TitleBanner(): React.JSX.Element {
   const filePath = useAppStore(s => s.filePath)
   const isDirty = useAppStore(s => s.isDirty)
-  const settingsShowing = useScoreLayout(s => s.view === 'settings' && !s.collapsed)
-  const status = useStatusLine(settingsShowing ? SETTINGS_HINT : undefined)
+  const status = useStatusLine()
   const [notice, setNotice] = useState(shouldShowNotice)
   const [draft, setDraft] = useState<string | null>(null)
   // Escape cancels; the blur that follows must not then commit.

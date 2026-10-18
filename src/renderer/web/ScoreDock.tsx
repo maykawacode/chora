@@ -4,16 +4,14 @@ import { TAB_ACCESSIBLE_LABELS } from '@renderer/components/ScoreWindow/ScoreWin
 import { MAP_AREA_MIN_WIDTH, columnWidth, stripWidth, useScoreLayout, type Tab } from './scoreLayout'
 import { Glyph } from './Glyph'
 import { useStripMenus } from './StripCommands'
-import { SettingsPanel } from './SettingsPanel'
 import styles from './ScoreDock.module.css'
 
 // Browser Score column: an always-visible strip beside the Score Window, the
 // page's anchor. One list from the top: Info, File | Notes, Elements,
-// Dimensions, Collections | Assess, Conversions, Maps | Settings (commands in
-// StripCommands.tsx). Each tab icon opens or closes its view; open views sit
+// Dimensions, Collections | Assess, Conversions, Maps, then Settings and the
+// names toggle at its foot (commands in StripCommands.tsx). Each tab icon opens or closes its view; open views sit
 // side by side (ScorePanes.tsx) and are highlighted. Closing the last one
 // collapses Score; any tab icon while collapsed opens Score with that view.
-// The gear shows Settings in Score's place, and collapses Score if chosen again.
 // A new map shrinks the open views to their minimums; views that cannot all
 // fit beside the maps (or, with none, on the page) close from the right,
 // sparing the one in use (scoreLayout.ts).
@@ -78,7 +76,6 @@ function usePageWidth(): number {
 export function ScoreDock({ children }: { children: ReactNode }): React.JSX.Element {
   const collapsed = useScoreLayout(s => s.collapsed)
   const animating = useScoreLayout(s => s.animating)
-  const view = useScoreLayout(s => s.view)
   const labels = useScoreLayout(s => s.labels)
   const openTabs = useScoreLayout(s => s.openTabs)
   const { toggleTab, toggleLabels } = useScoreLayout.getState()
@@ -103,9 +100,9 @@ export function ScoreDock({ children }: { children: ReactNode }): React.JSX.Elem
   // Views that no longer fit close from the right, sparing the one in use. Run
   // after render, so a view just opened is already the active tab.
   useEffect(() => {
-    if (collapsed || view !== 'score') return
+    if (collapsed) return
     useScoreLayout.getState().fit(scoreRoom(hasMaps), activeTab)
-  }, [openTabs, activeTab, hasMaps, pageWidth, labels, collapsed, view])
+  }, [openTabs, activeTab, hasMaps, pageWidth, labels, collapsed])
 
   useEffect(() => {
     const el = scoreRef.current
@@ -122,8 +119,8 @@ export function ScoreDock({ children }: { children: ReactNode }): React.JSX.Elem
 
   const tabButton = (tab: Tab): React.JSX.Element => {
     const label = TAB_ACCESSIBLE_LABELS[tab]
-    // Open views are highlighted; collapsed or with Settings in their place, none is.
-    const showing = openTabs.includes(tab) && !collapsed && view === 'score'
+    // Open views are highlighted; collapsed, none is.
+    const showing = openTabs.includes(tab) && !collapsed
     return (
       <button
         key={tab}
@@ -158,11 +155,10 @@ export function ScoreDock({ children }: { children: ReactNode }): React.JSX.Elem
         {divider('b')}
         {(['scores', 'conversions'] as const).map(tabButton)}
         {menus.menuButton('Maps')}
-        {divider('c')}
         {menus.settingsButton}
         <button
           type="button"
-          className={`${styles.stripButton} ${styles.stripFoot}`}
+          className={styles.stripButton}
           title={labels ? 'Hide names' : 'Show names'}
           aria-label={labels ? 'Hide names' : 'Show names'}
           aria-pressed={labels}
@@ -178,11 +174,10 @@ export function ScoreDock({ children }: { children: ReactNode }): React.JSX.Elem
           className={styles.scoreInner}
           style={animating ? { flex: `0 0 ${openWidth.current || estimatedOpenWidth()}px` } : undefined}
         >
-          {/* Score stays mounted under Settings, so its tab state and pending edits survive. */}
-          <div className={styles.view} hidden={view !== 'score'}>{children}</div>
-          {view === 'settings' && <div className={styles.view}><SettingsPanel /></div>}
+          <div className={styles.view}>{children}</div>
         </div>
       </div>
+      {menus.settingsPopup}
     </>
   )
 }

@@ -1,7 +1,7 @@
 // ── PreferencesDialog ─────────────────────────────────────────────────────────
 //
 // Modal dialog for editing user preferences. Opened via Cmd+, or the app menu.
-// The sections are shared with the browser's Settings panel (web/SettingsPanel).
+// The sections are shared with the browser's Settings panel (web/SettingsPopup).
 //
 // Uses a local `draft` copy of the preferences so the user can cancel without
 // committing any changes. On Save, the draft is written to both the Zustand

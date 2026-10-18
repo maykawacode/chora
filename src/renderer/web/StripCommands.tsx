@@ -9,12 +9,13 @@ import { arrangeMapsInGrid } from './tileLayout'
 import { MAP_TYPES } from '@renderer/components/maps/mapTypes'
 import { Glyph } from './Glyph'
 import { promptRename } from './documentName'
-import { useScoreLayout } from './scoreLayout'
+import { SettingsPopup } from './SettingsPopup'
 import dock from './ScoreDock.module.css'
 import styles from './StripCommands.module.css'
 
 // The browser's commands, as icons in the tab strip: File, Maps and Info open
-// a menu beside the strip; the gear shows Settings in the Score column. They dispatch through
+// a menu beside the strip; the gear, at the strip's foot, opens Settings as a
+// centred popup (SettingsPopup.tsx). Menu items dispatch through
 // the desktop application menu's MenuAction path. Undo and Redo have no menu;
 // they stay on their shortcuts (shortcuts.ts). Shortcuts shown are only those
 // the browser leaves to the page.
@@ -170,6 +171,8 @@ export interface StripMenus {
   settingsButton: React.JSX.Element
   /** The open menu, if any; render it once anywhere in the strip. */
   flyout: React.JSX.Element | null
+  /** The Settings popup while open; render it once, outside the strip. */
+  settingsPopup: React.JSX.Element | null
 }
 
 /**
@@ -180,8 +183,7 @@ export interface StripMenus {
  */
 export function useStripMenus(): StripMenus {
   const [open, setOpen] = useState<MenuName | null>(null)
-  const layoutView = useScoreLayout(s => s.view)
-  const collapsed = useScoreLayout(s => s.collapsed)
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const buttons = useRef<Partial<Record<MenuName, HTMLButtonElement | null>>>({})
 
   useEffect(() => {
@@ -226,21 +228,16 @@ export function useStripMenus(): StripMenus {
     )
   }
 
-  // Settings shows in the Score column and behaves like a tab icon: choosing
-  // it while showing collapses the column.
-  const settingsShowing = layoutView === 'settings' && !collapsed
+  // The gear leads the strip's foot, above the names toggle.
   const settingsButton = (
     <button
       type="button"
-      className={`${dock.stripButton} ${settingsShowing ? dock.stripButtonActive : ''}`}
-      title={settingsShowing ? 'Settings (click to collapse)' : 'Settings'}
+      className={`${dock.stripButton} ${dock.stripFoot} ${settingsOpen ? dock.stripButtonActive : ''}`}
+      title="Settings"
       aria-label="Settings"
-      aria-pressed={settingsShowing}
-      onClick={() => {
-        const layout = useScoreLayout.getState()
-        if (settingsShowing) layout.collapse()
-        else layout.show('settings')
-      }}
+      aria-haspopup="dialog"
+      aria-expanded={settingsOpen}
+      onClick={() => setSettingsOpen(true)}
     >
       <Glyph>
         <path d={GEAR} />
@@ -255,5 +252,7 @@ export function useStripMenus(): StripMenus {
     ? <MenuFlyout menu={MENUS.find(m => m.label === open)!} anchor={anchor} onClose={() => setOpen(null)} />
     : null
 
-  return { menuButton, settingsButton, flyout }
+  const settingsPopup = settingsOpen ? <SettingsPopup onClose={() => setSettingsOpen(false)} /> : null
+
+  return { menuButton, settingsButton, flyout, settingsPopup }
 }

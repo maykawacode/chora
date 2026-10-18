@@ -1,0 +1,5 @@
+/* Inset like the popup's header; the popup's body scrolls and decides when
+   the sections stack (PreferencesDialog.module.css). */
+.content {
+  padding: var(--space-four);
+}

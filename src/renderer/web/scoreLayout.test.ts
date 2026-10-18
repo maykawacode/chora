@@ -46,12 +46,6 @@ describe('Score column width', () => {
     expect(columnMinWidth(layout)).toBe(STRIP_WIDTH + paneMinWidth('notes') + paneMinWidth('elements') + 1)
   })
 
-  it('keeps room for Settings when it shows in place of the views', () => {
-    const notesOnly: StoredLayout = { ...defaults, paneWidths: { notes: 200 } }
-    expect(columnWidth({ ...notesOnly, view: 'settings' })).toBeGreaterThan(columnWidth(notesOnly))
-    expect(columnWidth({ ...notesOnly, openTabs: [], view: 'settings' })).toBe(columnWidth({ ...notesOnly, view: 'settings' }))
-  })
-
   it('lets Notes go thinner than a list-and-detail view, never below its snap width', () => {
     expect(paneMinWidth('notes')).toBeLessThan(paneMinWidth('elements'))
     expect(paneWidth({ paneWidths: { notes: 10 } }, 'notes')).toBe(paneSnapWidth('notes'))
@@ -85,7 +79,7 @@ describe('Score views sharing the page', () => {
   })
 
   it('reopens a view dragged below its minimum, or snapped closed, at its minimum', () => {
-    useScoreLayout.setState({ openTabs: ['notes'], paneWidths: { elements: paneSnapWidth('elements') + 5 }, collapsed: false, view: 'score' })
+    useScoreLayout.setState({ openTabs: ['notes'], paneWidths: { elements: paneSnapWidth('elements') + 5 }, collapsed: false })
     useScoreLayout.getState().toggleTab('elements')
     expect(useScoreLayout.getState().paneWidths.elements).toBe(paneMinWidth('elements'))
   })
@@ -98,7 +92,7 @@ describe('Score views sharing the page', () => {
   })
 
   it('closes the last view when the splitter drags it well below its minimum', () => {
-    useScoreLayout.setState({ openTabs: ['notes', 'elements'], paneWidths: {}, collapsed: false, view: 'score' })
+    useScoreLayout.setState({ openTabs: ['notes', 'elements'], paneWidths: {}, collapsed: false })
     const layout = useScoreLayout.getState()
     layout.resizeColumn(columnWidth(layout) - paneWidth(layout, 'elements') + paneMinWidth('elements') - 10)
     expect(useScoreLayout.getState().openTabs).toEqual(['notes', 'elements'])

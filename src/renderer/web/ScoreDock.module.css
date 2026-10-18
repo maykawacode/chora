@@ -18,16 +18,12 @@
   min-height: 0;
 }
 
-/* One view at a time in the column: Score, or Settings in its place. */
+/* The Score Window fills the column. */
 .view {
   display: flex;
   flex: 1 1 0;
   min-width: 0;
   min-height: 0;
-}
-
-.view[hidden] {
-  display: none;
 }
 
 .score[hidden] {
@@ -96,7 +92,7 @@
   display: none;
 }
 
-/* The names toggle sits at the strip's foot. */
+/* Settings and the names toggle sit at the strip's foot. */
 .stripFoot {
   margin-top: auto;
 }

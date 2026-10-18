@@ -36,9 +36,8 @@ export const snapsClosed = (tab: Tab, width: number): boolean => width < paneSna
 
 // Browser layout of the Score column: which views are open side by side and
 // each one's width, whether the column is collapsed to the icon strip, whether
-// the strip shows each icon's name, and which view the column shows (Score's
-// views, or Settings in their place; it always starts as Score). The column is
-// as wide as the strip plus its open views; closing the last view collapses it.
+// the strip shows each icon's name. The column is as wide as the strip plus
+// its open views; closing the last view collapses it.
 //
 // Space between Score and the maps follows a priority rule, like VS Code's
 // split views: with maps showing, the maps take priority, so each new map
@@ -46,8 +45,7 @@ export const snapsClosed = (tab: Tab, width: number): boolean => width < paneSna
 // maps, Score's views fill the page (ScorePanes.tsx). A view dragged well
 // below its minimum snaps closed (snapsClosed), and views that cannot all fit
 // at their minimums close from the right, sparing the one in use (tabsThatFit).
-// Everything but the view is remembered in localStorage across reloads and
-// tabs; it is browser layout, not study content. `animating` holds while a
+// It is remembered in localStorage across reloads and tabs; it is browser layout, not study content. `animating` holds while a
 // collapse or expand plays, so only those changes animate (not drags or window
 // resizes). The map area's transitionend ends it; the timer covers reduced
 // motion and interrupted transitions, which fire no transitionend.
@@ -110,8 +108,6 @@ function writeLayout({ openTabs, paneWidths, collapsed, labels }: StoredLayout):
   } catch { /* storage blocked or full: layout lasts for this page only */ }
 }
 
-export type ColumnView = 'score' | 'settings'
-
 /** A view's width: as last set, never below its snap width. */
 export function paneWidth(layout: Pick<StoredLayout, 'paneWidths'>, tab: Tab): number {
   return Math.max(paneSnapWidth(tab), layout.paneWidths[tab] ?? paneDefaultWidth(tab))
@@ -123,32 +119,25 @@ export const paneFloor = (layout: Pick<StoredLayout, 'paneWidths'>, tab: Tab): n
 
 const dividers = (count: number): number => PANE_DIVIDER * Math.max(0, count - 1)
 
-/** Settings, shown in place of the views, never narrower than this. */
-const SETTINGS_WIDTH = 2 * PANE_MIN_WIDTH
-
-type ColumnLayout = StoredLayout & { view?: ColumnView }
-
-/** The strip plus every open view (or Settings in their place): how wide the column wants to be. */
-export function columnWidth(layout: ColumnLayout): number {
+/** The strip plus every open view: how wide the column wants to be. */
+export function columnWidth(layout: StoredLayout): number {
   const { openTabs } = layout
-  const views = openTabs.reduce((sum, t) => sum + paneWidth(layout, t), 0) + dividers(openTabs.length)
-  return stripWidth(layout.labels) + (layout.view === 'settings' ? Math.max(views, SETTINGS_WIDTH) : views)
+  return stripWidth(layout.labels) + openTabs.reduce((sum, t) => sum + paneWidth(layout, t), 0) + dividers(openTabs.length)
 }
 
 /** The strip plus every open view at its minimum; past this the column scrolls sideways. */
-export function columnMinWidth(layout: ColumnLayout): number {
+export function columnMinWidth(layout: StoredLayout): number {
   const { openTabs } = layout
-  const views = openTabs.reduce((sum, t) => sum + paneFloor(layout, t), 0) + dividers(openTabs.length)
-  return stripWidth(layout.labels) + (layout.view === 'settings' ? SETTINGS_WIDTH : views)
+  return stripWidth(layout.labels) + openTabs.reduce((sum, t) => sum + paneFloor(layout, t), 0) + dividers(openTabs.length)
 }
 
 /**
  * The open views that fit in `room` (strip included) at their minimums,
  * closing from the right; `keep` is never closed, and one view always stays.
  */
-export function tabsThatFit(layout: ColumnLayout, room: number, keep: Tab): Tab[] {
+export function tabsThatFit(layout: StoredLayout, room: number, keep: Tab): Tab[] {
   let tabs = layout.openTabs
-  while (tabs.length > 1 && columnMinWidth({ ...layout, openTabs: tabs, view: 'score' }) > room) {
+  while (tabs.length > 1 && columnMinWidth({ ...layout, openTabs: tabs }) > room) {
     const drop = [...tabs].reverse().find(t => t !== keep)!
     tabs = tabs.filter(t => t !== drop)
   }
@@ -156,11 +145,8 @@ export function tabsThatFit(layout: ColumnLayout, room: number, keep: Tab): Tab[
 }
 
 interface ScoreLayout extends StoredLayout {
-  view: ColumnView
   animating: boolean
   collapse: () => void
-  /** Shows the view, expanding the column if it is collapsed. */
-  show: (view: ColumnView) => void
   /** Opens a closed view or closes an open one; while collapsed, shows the column with it open. */
   toggleTab: (tab: Tab) => void
   /** Makes sure a view is open and showing (a tab chosen from elsewhere). */
@@ -203,18 +189,13 @@ export const useScoreLayout = create<ScoreLayout>((set, get) => {
   }
   return {
     ...readLayout(),
-    view: 'score',
     animating: false,
     collapse: () => toggleTo(true),
-    show: view => {
-      if (get().view !== view) set({ view })
-      toggleTo(false)
-    },
     toggleTab: tab => {
-      const { openTabs, collapsed, view } = get()
-      if (collapsed || view !== 'score' || !openTabs.includes(tab)) {
+      const { openTabs, collapsed } = get()
+      if (collapsed || !openTabs.includes(tab)) {
         open(tab)
-        get().show('score')
+        toggleTo(false)
         return
       }
       get().closeTab(tab)
@@ -226,7 +207,7 @@ export const useScoreLayout = create<ScoreLayout>((set, get) => {
     },
     reveal: tab => {
       open(tab)
-      get().show('score')
+      toggleTo(false)
     },
     setPaneWidth: (tab, width) => get().setPaneWidths({ [tab]: width }),
     setPaneWidths: widths => {
@@ -249,7 +230,7 @@ export const useScoreLayout = create<ScoreLayout>((set, get) => {
     resizeColumn: width => {
       const layout = get()
       const last = layout.openTabs[layout.openTabs.length - 1]
-      if (!last || layout.view !== 'score') return
+      if (!last) return
       const next = paneWidth(layout, last) + width - columnWidth(layout)
       if (snapsClosed(last, next)) layout.closeTab(last)
       else layout.setPaneWidth(last, next)
