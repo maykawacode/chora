@@ -14,14 +14,12 @@
 
 import { useState, useRef, useCallback } from 'react'
 import { useAppStore } from '../../store/appStore'
-import { ELEMENT_SHAPES, ELEMENT_SHAPE_SYMBOLS } from '../../lib/types'
 import type { Element, ElementShape } from '../../lib/types'
 import styles from './ElementDetailModal.module.css'
 import { openWeight } from '../../lib/numericRange'
-import { CollectionChoiceRow } from '../CollectionChoiceRow'
 import { ForwardActionButton } from '../ConfirmationDisc'
 import { ModalShell } from '../ModalShell'
-import { DEFAULT_ELEMENT_COLOR, isHexColor } from '../../lib/color'
+import { CollectionsField, ColorField, ShapeField, WeightField } from './ElementFields'
 
 interface BulkChanges {
   /** Applied identically to every selected element. */
@@ -40,7 +38,6 @@ export function BulkEditModal({ elementIds, elements, onClose }: Props): React.J
   const selected = elements.filter(e => elementIds.includes(e.id))
 
   const collections   = useAppStore(s => s.collections)
-  const addCollection = useAppStore(s => s.addCollection)
 
   // Derive initial element field values
   const allSameColor  = selected.length > 0 && selected.every(e => e.color  === selected[0].color)
@@ -48,14 +45,12 @@ export function BulkEditModal({ elementIds, elements, onClose }: Props): React.J
   const allSameWeight = selected.length > 0 && selected.every(e => e.weight === selected[0].weight)
 
   const [color,    setColor]    = useState<string | null>(allSameColor  ? selected[0].color  : null)
-  const [hexInput, setHexInput] = useState(allSameColor ? selected[0].color : '')
   const [shape,    setShape]    = useState<ElementShape | null>(allSameShape ? selected[0].shape : null)
   const [weight,   setWeight]   = useState(allSameWeight ? String(selected[0].weight) : '')
 
   // true → every selected element joins, false → every one leaves,
   // absent → untouched, and each element keeps whatever it already had.
   const [membership, setMembership] = useState<Record<string, boolean>>({})
-  const [newCollectionName, setNewCollectionName] = useState('')
 
   function initialState(collectionId: string): 'all' | 'none' | 'mixed' {
     const count = selected.filter(e => e.collectionIds.includes(collectionId)).length
@@ -75,15 +70,6 @@ export function BulkEditModal({ elementIds, elements, onClose }: Props): React.J
   function toggleCollection(collectionId: string): void {
     const next = effectiveState(collectionId) !== 'all'
     setMembership(prev => ({ ...prev, [collectionId]: next }))
-  }
-
-  function handleAddCollection(): void {
-    const name = newCollectionName.trim()
-    if (!name) return
-    const id = addCollection(name)
-    window.api?.broadcastNewCollection(id, name)
-    setMembership(prev => ({ ...prev, [id]: true }))
-    setNewCollectionName('')
   }
 
   const handleCloseRef = useRef<(apply: boolean) => void>(() => {})
@@ -116,110 +102,23 @@ export function BulkEditModal({ elementIds, elements, onClose }: Props): React.J
   const handleApply  = useCallback(() => handleCloseRef.current(true),  [])
   const handleCancel = useCallback(() => handleCloseRef.current(false), [])
 
-  function handleColorPicker(value: string): void {
-    setColor(value)
-    setHexInput(value)
-  }
-
-  function handleHexInput(value: string): void {
-    setHexInput(value)
-    if (isHexColor(value)) setColor(value)
-  }
-
   return (
     <ModalShell overlayClassName={styles.overlay} dialogClassName={styles.modal} onClose={handleCancel}>
         <div className={styles.header}>
           <span className={styles.name}>Edit {elementIds.length} Elements</span>
         </div>
 
-        <div className={styles.fieldRow}>
-          <label className={styles.label}>Color</label>
-          <div className={styles.colorRow}>
-            <input
-              type="color"
-              className={styles.colorSwatch}
-              value={color ?? DEFAULT_ELEMENT_COLOR}
-              onChange={e => handleColorPicker(e.target.value)}
-            />
-            <input
-              type="text"
-              className={styles.hexInput}
-              value={hexInput}
-              placeholder="mixed"
-              onChange={e => handleHexInput(e.target.value)}
-              onBlur={() => { if (color) setHexInput(color) }}
-              spellCheck={false}
-              maxLength={7}
-            />
-          </div>
-        </div>
+        <ColorField color={color} onChange={setColor} several />
+        {/* Picking the chosen shape again clears it, back to "unchanged". */}
+        <ShapeField shape={shape} onPick={s => setShape(prev => prev === s ? null : s)} />
+        <WeightField weight={weight} onChange={setWeight} several />
 
-        <div className={styles.fieldRow}>
-          <label className={styles.label}>Shape</label>
-          <div className={styles.shapePicker}>
-            {ELEMENT_SHAPES.map(s => (
-              <button
-                key={s}
-                className={`${styles.shapeBtn} ${shape === s ? styles.shapeBtnActive : ''}`}
-                onClick={() => setShape(prev => prev === s ? null : s)}
-                title={s.charAt(0).toUpperCase() + s.slice(1)}
-              >
-                {ELEMENT_SHAPE_SYMBOLS[s]}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className={styles.fieldRow}>
-          <label className={styles.label}>Weight</label>
-          <input
-            type="number"
-            className={styles.weightInput}
-            min={0}
-            value={weight}
-            placeholder="mixed"
-            onChange={e => setWeight(e.target.value)}
-          />
-        </div>
-
-        <div className={`${styles.collectionsSection} ${styles.bulkCollectionsSection}`}>
-          <span className={styles.collectionsLabel}>Collections</span>
-          {collections.length > 0 && (
-            <div className={styles.collectionList}>
-              {collections.map(c => {
-                const state = effectiveState(c.id)
-                return (
-                  <CollectionChoiceRow
-                    key={c.id}
-                    name={c.name || 'Untitled collection'}
-                    color={c.color}
-                    state={state}
-                    onToggle={() => toggleCollection(c.id)}
-                  />
-                )
-              })}
-            </div>
-          )}
-          {collections.length === 0 && (
-            <span className={styles.collectionsEmpty}>No collections — add one below</span>
-          )}
-          <div className={styles.newCollectionRow}>
-            <input
-              className={styles.newCollectionInput}
-              value={newCollectionName}
-              placeholder="New collection…"
-              onChange={e => setNewCollectionName(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter' && newCollectionName.trim()) handleAddCollection()
-              }}
-            />
-            <button
-              className={styles.addCollectionBtn}
-              disabled={!newCollectionName.trim()}
-              onClick={handleAddCollection}
-            >Add</button>
-          </div>
-        </div>
+        <CollectionsField
+          className={styles.bulkCollectionsSection}
+          stateOf={effectiveState}
+          onToggle={toggleCollection}
+          onCreated={id => setMembership(prev => ({ ...prev, [id]: true }))}
+        />
 
         <div className={styles.footer}>
           <ForwardActionButton label="Apply changes" onClick={handleApply} />

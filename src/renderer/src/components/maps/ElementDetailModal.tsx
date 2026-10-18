@@ -14,14 +14,13 @@
 
 import { useState, useRef, useCallback } from 'react'
 import { useAppStore } from '../../store/appStore'
-import { ELEMENT_SHAPES, ELEMENT_SHAPE_SYMBOLS } from '../../lib/types'
 import type { Element, ElementShape } from '../../lib/types'
 import styles from './ElementDetailModal.module.css'
-import { formatRange, numericRange, openWeight } from '../../lib/numericRange'
-import { CollectionChoiceRow } from '../CollectionChoiceRow'
+import { numericRange, openWeight } from '../../lib/numericRange'
 import { ForwardActionButton } from '../ConfirmationDisc'
 import { ModalShell } from '../ModalShell'
-import { DEFAULT_ELEMENT_COLOR, isHexColor } from '../../lib/color'
+import { DEFAULT_ELEMENT_COLOR } from '../../lib/color'
+import { CollectionsField, ColorField, ShapeField, WeightField } from './ElementFields'
 
 // Membership is a set; the array only records it. Two lists holding the same
 // ids in a different order are the same membership and must not read as an
@@ -39,33 +38,18 @@ export function ElementDetailModal({ elementId, onClose }: Props): React.JSX.Ele
   const elements      = useAppStore(s => s.elements)
   const element       = elements.find(e => e.id === elementId)
   const collections   = useAppStore(s => s.collections)
-  const addCollection = useAppStore(s => s.addCollection)
 
   const [name,       setName]       = useState(element?.name ?? '')
   const [color,      setColor]      = useState(element?.color ?? DEFAULT_ELEMENT_COLOR)
-  const [hexInput,   setHexInput]   = useState(element?.color ?? DEFAULT_ELEMENT_COLOR)
   const [shape,      setShape]      = useState<ElementShape>(element?.shape ?? 'circle')
   const [weight,     setWeight]     = useState(String(element?.weight ?? 1))
   const [definition, setDefinition] = useState(element?.definition ?? '')
   const [memberOf,   setMemberOf]   = useState<string[]>(element?.collectionIds ?? [])
-  const [newCollectionName, setNewCollectionName] = useState('')
 
   function toggleCollection(collectionId: string): void {
     setMemberOf(prev => prev.includes(collectionId)
       ? prev.filter(id => id !== collectionId)
       : [...prev, collectionId])
-  }
-
-  // The collection has to exist in the store before a chip can be drawn for it,
-  // so this one edit is applied immediately rather than held in the draft. The
-  // membership it implies still goes through the draft like any other.
-  function handleAddCollection(): void {
-    const name = newCollectionName.trim()
-    if (!name) return
-    const id = addCollection(name)
-    window.api?.broadcastNewCollection(id, name)
-    setMemberOf(prev => [...prev, id])
-    setNewCollectionName('')
   }
 
   // Re-assigned every render so the closure always captures latest state
@@ -95,16 +79,6 @@ export function ElementDetailModal({ elementId, onClose }: Props): React.JSX.Ele
 
   const weightRange = numericRange(elements.map(item => item.weight))
 
-  function handleColorPicker(value: string): void {
-    setColor(value)
-    setHexInput(value)
-  }
-
-  function handleHexInput(value: string): void {
-    setHexInput(value)
-    if (isHexColor(value)) setColor(value)
-  }
-
   return (
     <ModalShell overlayClassName={styles.overlay} dialogClassName={styles.modal} onClose={handleCancel}>
         <div className={styles.header}>
@@ -117,56 +91,9 @@ export function ElementDetailModal({ elementId, onClose }: Props): React.JSX.Ele
           />
         </div>
 
-        <div className={styles.fieldRow}>
-          <label className={styles.label}>Color</label>
-          <div className={styles.colorRow}>
-            <input
-              type="color"
-              className={styles.colorSwatch}
-              value={color}
-              onChange={e => handleColorPicker(e.target.value)}
-            />
-            <input
-              type="text"
-              className={styles.hexInput}
-              value={hexInput}
-              onChange={e => handleHexInput(e.target.value)}
-              onBlur={() => setHexInput(color)}
-              spellCheck={false}
-              maxLength={7}
-            />
-          </div>
-        </div>
-
-        <div className={styles.fieldRow}>
-          <label className={styles.label}>Shape</label>
-          <div className={styles.shapePicker}>
-            {ELEMENT_SHAPES.map(s => (
-              <button
-                key={s}
-                className={`${styles.shapeBtn} ${shape === s ? styles.shapeBtnActive : ''}`}
-                onClick={() => setShape(s)}
-                title={s.charAt(0).toUpperCase() + s.slice(1)}
-              >
-                <span className="elementShapeGlyph" data-shape={s}>
-                  {ELEMENT_SHAPE_SYMBOLS[s]}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className={styles.fieldRow}>
-          <label className={styles.label}>Weight</label>
-          <input
-            type="number"
-            className={styles.weightInput}
-            min={0}
-            value={weight}
-            onChange={e => setWeight(e.target.value)}
-          />
-          <span className={styles.range}>{formatRange(weightRange)}</span>
-        </div>
+        <ColorField color={color} onChange={setColor} />
+        <ShapeField shape={shape} onPick={setShape} />
+        <WeightField weight={weight} onChange={setWeight} range={weightRange} />
 
         <textarea
           className={styles.description}
@@ -176,44 +103,11 @@ export function ElementDetailModal({ elementId, onClose }: Props): React.JSX.Ele
           onChange={e => setDefinition(e.target.value)}
         />
 
-        <div className={styles.collectionsSection}>
-          <span className={styles.collectionsLabel}>Collections</span>
-          {collections.length > 0 && (
-            <div className={styles.collectionList}>
-              {collections.map(c => {
-                const member = memberOf.includes(c.id)
-                return (
-                  <CollectionChoiceRow
-                    key={c.id}
-                    name={c.name || 'Untitled collection'}
-                    color={c.color}
-                    state={member ? 'all' : 'none'}
-                    onToggle={() => toggleCollection(c.id)}
-                  />
-                )
-              })}
-            </div>
-          )}
-          {collections.length === 0 && (
-            <span className={styles.collectionsEmpty}>No collections — add one below</span>
-          )}
-          <div className={styles.newCollectionRow}>
-            <input
-              className={styles.newCollectionInput}
-              value={newCollectionName}
-              placeholder="New collection…"
-              onChange={e => setNewCollectionName(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter' && newCollectionName.trim()) handleAddCollection()
-              }}
-            />
-            <button
-              className={styles.addCollectionBtn}
-              disabled={!newCollectionName.trim()}
-              onClick={handleAddCollection}
-            >Add</button>
-          </div>
-        </div>
+        <CollectionsField
+          stateOf={id => memberOf.includes(id) ? 'all' : 'none'}
+          onToggle={toggleCollection}
+          onCreated={id => setMemberOf(prev => [...prev, id])}
+        />
 
         <div className={styles.footer}>
           <ForwardActionButton label="Apply element changes" onClick={handleApply} />

@@ -191,6 +191,27 @@ describe('Cartesian map pointer', () => {
     expect(screen.getByText('Low–High')).toBeTruthy()
   })
 
+  it('applies an element dialog draft only through its arrow', () => {
+    fireEvent.contextMenu(renderMap(), at(...A))
+    fireEvent.change(document.querySelector('input[maxlength="7"]')!, { target: { value: '#123456' } })
+    fireEvent.click(screen.getByTitle('Square'))
+    fireEvent.change(screen.getByRole('spinbutton'), { target: { value: '7' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Apply element changes' }))
+    expect(state().elements[0]).toMatchObject({ color: '#123456', shape: 'square', weight: 7 })
+  })
+
+  it('applies a bulk dialog to every selected element, including a new collection', () => {
+    useAppStore.setState({ selectedElementIds: ['a', 'b'] })
+    fireEvent.contextMenu(renderMap(), at(...A))
+    fireEvent.click(screen.getByTitle('Triangle'))
+    fireEvent.change(screen.getByPlaceholderText('New collection…'), { target: { value: 'Warm' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Apply changes' }))
+    const warm = state().collections.find(c => c.name === 'Warm')!
+    for (const el of state().elements.slice(0, 2)) expect(el).toMatchObject({ shape: 'triangle', collectionIds: [warm.id] })
+    expect(state().elements[2]).toMatchObject({ shape: 'circle', collectionIds: [] })
+  })
+
   it('shows what the pointer is over through the cursor', () => {
     const surface = renderMap()
     fireEvent.mouseMove(surface, at(...A))
