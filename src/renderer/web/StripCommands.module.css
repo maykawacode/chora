@@ -13,14 +13,6 @@
   user-select: none;
 }
 
-/* The menu's name, so "File › Open…" still reads as it does in help and messages. */
-.header {
-  padding: var(--space-one) var(--space-three);
-  color: var(--color-text-muted);
-  font-size: var(--font-size-meta);
-  font-weight: var(--font-weight-semibold);
-}
-
 .item {
   display: flex;
   justify-content: space-between;

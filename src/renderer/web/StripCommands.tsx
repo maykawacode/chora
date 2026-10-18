@@ -139,7 +139,6 @@ function MenuFlyout({ menu, anchor, onClose }: {
         }
       }}
     >
-      <div className={styles.header} aria-hidden="true">{menu.label}</div>
       {menu.items.map((item, i) => {
         if (item === 'separator') return <div key={i} className={styles.separator} role="separator" />
         const run = 'href' in item
