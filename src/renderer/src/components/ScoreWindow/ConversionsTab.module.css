@@ -28,7 +28,7 @@
   flex-direction: column;
 }
 
-/* ── FROM / TO sections ──────────────────────────────────────────────────── */
+/* ── Fields ──────────────────────────────────────────────────────────────── */
 
 .section {
   background: var(--color-surface-field);
@@ -81,14 +81,7 @@
   color: var(--color-text-secondary);
 }
 
-/* ── Descriptors and hints ───────────────────────────────────────────────── */
-
-.descriptor {
-  font-size: var(--font-size-control);
-  color: var(--color-text-secondary);
-  margin: 0;
-  font-style: italic;
-}
+/* ── Hints ───────────────────────────────────────────────────────────────── */
 
 .hint {
   font-size: var(--font-size-control);
@@ -120,27 +113,7 @@
   cursor: pointer;
 }
 
-/* ── Divider between FROM and TO ─────────────────────────────────────────── */
 
-.pipeline {
-  display: flex;
-  flex-direction: column;
-}
-
-.sectionBody {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-two);
-}
-
-.divider {
-  text-align: center;
-  font-size: var(--font-size-title);
-  color: var(--color-border-control);
-  padding: var(--space-two) 0;
-  flex-shrink: 0;
-  user-select: none;
-}
 
 /* ── Pole toggle ─────────────────────────────────────────────────────────── */
 
@@ -180,120 +153,41 @@
   font-weight: var(--font-weight-medium);
 }
 
-/* ── Footer: summary, warning, apply button ──────────────────────────────── */
+/* ── Narrow widths ────────────────────────────────────────────────────────────
+   Everything shrinks with the view and nothing scrolls sideways: headings
+   and labels stay on one line and end in "…", and the dropdowns shorten
+   their chosen option. Result texts still wrap. */
 
-.footer {
-  padding-top: var(--space-three);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-two);
-}
-
-.summary {
-  font-size: var(--font-size-control);
-  color: var(--color-text-secondary);
-  margin: 0;
-  line-height: var(--line-height-reading);
-  background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-control);
-  padding: var(--space-two) var(--space-three);
-}
-
-.warning {
-  font-size: var(--font-size-control);
-  color: var(--color-warning-text);
-  background: var(--color-warning-surface);
-  border: 1px solid var(--color-warning-border);
-  border-radius: var(--radius-control);
-  padding: var(--space-two) var(--space-three);
-  margin: 0;
-  line-height: var(--line-height-interface);
-}
-
-.applyBtn {
-  padding: var(--space-two) var(--space-four);
-  border: 1px solid var(--color-action-strong);
-  border-radius: var(--radius-control);
-  background: var(--color-action-strong);
-  color: var(--color-text-inverse);
-  font-size: var(--font-size-body);
-  font-family: inherit;
-  font-weight: var(--font-weight-medium);
-  cursor: pointer;
-  align-self: flex-end;
-}
-
-.applyBtn:hover {
-  background: var(--color-action-hover);
-  border-color: var(--color-action-hover);
-}
-
-.applyBtnDone {
-  padding: var(--space-two) var(--space-four);
-  border: 1px solid var(--color-border-control);
-  border-radius: var(--radius-control);
-  background: var(--color-surface-chrome-strong);
-  color: var(--color-text-disabled);
-  font-size: var(--font-size-body);
-  font-family: inherit;
-  font-weight: var(--font-weight-medium);
-  cursor: default;
-  align-self: flex-end;
-}
-
-.applyBtnOverwrite {
-  padding: var(--space-two) var(--space-four);
-  border: 1px solid var(--color-destructive-hover);
-  border-radius: var(--radius-control);
-  background: var(--color-destructive);
-  color: var(--color-text-inverse);
-  font-size: var(--font-size-body);
-  font-family: inherit;
-  font-weight: var(--font-weight-medium);
-  cursor: pointer;
-  align-self: flex-end;
-}
-
-.applyBtnOverwrite:hover {
-  background: var(--color-destructive-hover);
-}
-
-/* ── Narrow views (browser; narrowDataViews) ────────────────────────────────
-   Everything shrinks with the view and nothing scrolls sideways: headings,
-   labels and buttons stay on one line and end in "…", and the dropdowns
-   shorten their chosen option. Descriptions and summaries still wrap. */
-
-.narrow {
+.tab {
   overflow-x: hidden;
 }
 
-.narrow .groupTitle,
-.narrow .sectionLabel,
-.narrow .subLabel,
-.narrow .applyBtn,
-.narrow .applyBtnDone,
-.narrow .applyBtnOverwrite {
+.groupTitle,
+.sectionLabel,
+.subLabel {
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.narrow .select {
+.select {
   min-width: 0;
   text-overflow: ellipsis;
 }
 
-.narrow .colorField {
+.colorField {
   flex: 1 1 0;
   min-width: 0;
 }
 
-/* FROM, TO and the result share one field. Each label sits at the field's
+/* ── Mapping field ───────────────────────────────────────────────────────────
+   FROM, TO and the result share one field. Each label sits at the field's
    left edge with its contents indented beside a thin arrow that runs from
    under the label down to the next step: FROM to TO, and TO to the result. */
-.narrow .pipeline {
+.pipeline {
+  display: flex;
+  flex-direction: column;
   gap: var(--space-five);
   background: var(--color-surface-field);
   border: 1px solid var(--color-border-control);
@@ -301,14 +195,16 @@
   padding: var(--space-three);
 }
 
-.narrow .pipeline .section {
-  background: none;
-  border: none;
-  border-radius: 0;
-  padding: 0;
+.step {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-two);
 }
 
-.narrow .sectionBody {
+.sectionBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-two);
   --flow-gap: var(--space-five);
   position: relative;
   padding-left: 20px; /* raw: indent beside the flow arrows */
@@ -336,7 +232,13 @@
   transform: rotate(45deg);
 }
 
-/* What the mapping will do, and the green arrow that applies it. */
+/* A one-step field (Scaling): its control, then the result, as far apart as
+   the mapping field's steps. */
+.stepField {
+  gap: var(--space-five);
+}
+
+/* What the mapping or scaling will do, and the green arrow that applies it. */
 .pipelineFooter {
   display: flex;
   flex-direction: column;

@@ -264,6 +264,14 @@ trix-editor:focus {
   background: var(--color-confirmation-hover);
 }
 
+.forwardActionButtonDestructive {
+  background: var(--color-destructive);
+}
+
+.forwardActionButtonDestructive:hover:not(:disabled) {
+  background: var(--color-destructive-hover);
+}
+
 .forwardActionButton:disabled {
   opacity: 0.4;
   cursor: default;

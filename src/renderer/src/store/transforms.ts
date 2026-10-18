@@ -161,10 +161,28 @@ export const randomCollectionAssignments: Transform = eachElement((_, { collecti
   collectionIds: collections.filter(() => Math.random() < 0.5).map(c => c.id)
 }))
 
-export const randomDimensionWeights: Transform = ({ dimensions }) => ({
-  dimensions: dimensions.map(d => ({ ...d, weight: randomWeight() }))
+export const randomDimensionWeight = (dimensionId: string): Transform => ({ dimensions }) => ({
+  dimensions: dimensions.map(d => d.id === dimensionId ? { ...d, weight: randomWeight() } : d)
 })
 
 export const randomCollectionColors: Transform = ({ collections }) => ({
   collections: collections.map(c => ({ ...c, color: randomReadableColor() }))
 })
+
+/**
+ * Every randomizer at once, as one change: each element's weight, color,
+ * shape and collections, each dimension's weight, each collection's color,
+ * and every element's score on every dimension. For filling a blank study
+ * quickly, or scrambling one.
+ */
+export const randomizeAll: Transform = study => {
+  const steps: Transform[] = [
+    randomElementWeights, randomElementColors, randomElementShapes, randomCollectionAssignments,
+    randomCollectionColors,
+    ({ dimensions }) => ({ dimensions: dimensions.map(d => ({ ...d, weight: randomWeight() })) }),
+    ...study.dimensions.map(d => randomScores(d.id))
+  ]
+  let next = study
+  for (const step of steps) next = { ...next, ...step(next) }
+  return { elements: next.elements, dimensions: next.dimensions, collections: next.collections, scores: next.scores }
+}

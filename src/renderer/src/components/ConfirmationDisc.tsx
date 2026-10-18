@@ -16,6 +16,8 @@ interface ForwardActionButtonProps {
   onClick: () => void
   disabled?: boolean
   autoFocus?: boolean
+  /** Red instead of green, for actions that replace a lot of work. */
+  destructive?: boolean
 }
 
 function ForwardArrow(): React.JSX.Element {
@@ -31,12 +33,13 @@ export function ForwardActionButton({
   label,
   onClick,
   disabled = false,
-  autoFocus = false
+  autoFocus = false,
+  destructive = false
 }: ForwardActionButtonProps): React.JSX.Element {
   return (
     <button
       type="button"
-      className="forwardActionButton"
+      className={destructive ? 'forwardActionButton forwardActionButtonDestructive' : 'forwardActionButton'}
       aria-label={label}
       title={label}
       disabled={disabled}

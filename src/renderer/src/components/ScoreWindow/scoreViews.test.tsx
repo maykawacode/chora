@@ -330,11 +330,46 @@ describe('Every conversion', () => {
 
   it('randomizes one dimension after confirming the overwrite', () => {
     render(<ConversionsTab />)
-    choose('Randomizer', 'dimension:d')
+    choose('Randomize for', 'dimensions')
+    choose('Dimension to randomize', 'd')
+    choose('Attribute to randomize', 'scores')
     fireEvent.click(screen.getByRole('button', { name: 'Overwrite & Randomize' }))
     fireEvent.click(screen.getByRole('button', { name: 'Randomize' }))
     for (const id of ['a', 'b']) expect(scores()[id].d).toBeGreaterThanOrEqual(0)
     expect(history.pastCount).toBe(1)
+  })
+
+  it('randomizes every value in the study as one undoable change', () => {
+    render(<ConversionsTab />)
+    choose('Advanced conversion', 'randomize-all')
+    fireEvent.click(screen.getByRole('button', { name: 'Randomize All Values' }))
+    for (const id of ['a', 'b']) expect(scores()[id].d).toBeGreaterThanOrEqual(0)
+    for (const el of els()) expect(el.weight).toBeGreaterThanOrEqual(1)
+    expect(history.pastCount).toBe(1)
+  })
+
+  it('offers each kind of item only the attributes it can randomize', () => {
+    render(<ConversionsTab />)
+    const offered = (target: string): string[] => {
+      choose('Randomize for', target)
+      return [...screen.getByRole('combobox', { name: 'Attribute to randomize' }).querySelectorAll('option')].map(o => o.value)
+    }
+    expect(offered('elements')).toEqual(['', 'weights', 'colors', 'shapes'])
+    expect(offered('collections')).toEqual(['', 'colors', 'members'])
+    // A dimension is chosen first, then what to randomize on it.
+    expect(offered('dimensions')).toEqual([''])
+    choose('Dimension to randomize', 'd')
+    expect([...screen.getByRole('combobox', { name: 'Attribute to randomize' }).querySelectorAll('option')].map(o => o.value))
+      .toEqual(['', 'scores', 'weight'])
+  })
+
+  it('randomizes element weights without asking', () => {
+    render(<ConversionsTab />)
+    choose('Randomize for', 'elements')
+    choose('Attribute to randomize', 'weights')
+    fireEvent.click(screen.getByRole('button', { name: 'Apply Randomizer' }))
+    for (const el of els()) expect(el.weight).toBeGreaterThanOrEqual(1)
+    expect(screen.getByRole('button', { name: 'Applied' })).toBeTruthy()
   })
 
   it('offers only the destinations each source supports', () => {

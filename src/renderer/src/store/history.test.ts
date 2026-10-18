@@ -5,7 +5,7 @@ import { blackTextContrast } from '../lib/color'
 import { DOT_DEFAULT_RADIUS, DOT_MAX_RADIUS, dotRadius } from '../components/maps/shape'
 import { useAppStore } from './appStore'
 import {
-  randomCollectionAssignments, randomCollectionColors, randomDimensionWeights, randomElementColors,
+  randomCollectionAssignments, randomCollectionColors, randomDimensionWeight, randomElementColors,
   randomElementShapes, randomElementWeights, scoresFromWeights
 } from './transforms'
 import { DEFAULT_PREFERENCES } from '../lib/preferences'
@@ -295,7 +295,7 @@ describe('HistoryController', () => {
       state().addCollection('B')
     })
 
-    state().transform(randomDimensionWeights)
+    for (const { id } of state().dimensions) state().transform(randomDimensionWeight(id))
     state().transform(randomCollectionColors)
     state().transform(randomElementShapes)
 
