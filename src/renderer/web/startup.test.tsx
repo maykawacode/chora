@@ -2,6 +2,8 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { installDomStubs } from '../test/dom'
+import { dispatchMenuAction } from './browserApi'
+import { useAppStore } from '../src/store/appStore'
 
 // Starts the real browser entry (main.tsx) in a simulated DOM and fails on any
 // error thrown or logged while starting, or while opening the example study.
@@ -43,6 +45,22 @@ describe('browser startup', () => {
     })
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Chora' })).toBeNull())
     expect(screen.getByRole('navigation', { name: 'Score tabs and commands' })).toBeTruthy()
+    expect(errors).toEqual([])
+  })
+
+  it('asks before New discards unsaved changes, and keeps them on cancel', async () => {
+    act(() => { useAppStore.getState().addElement('Extra', '#9d9d53') })
+    const count = useAppStore.getState().elements.length
+
+    await act(async () => { dispatchMenuAction('new') })
+    expect(await screen.findByRole('alertdialog', { name: 'Discard unsaved changes?' })).toBeTruthy()
+    fireEvent.keyDown(window, { key: 'Escape' })
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull())
+    expect(useAppStore.getState().elements).toHaveLength(count)
+
+    await act(async () => { dispatchMenuAction('new') })
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Discard changes' })) })
+    await waitFor(() => expect(useAppStore.getState().elements).toHaveLength(0))
     expect(errors).toEqual([])
   })
 })

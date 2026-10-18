@@ -86,6 +86,27 @@ function encodeStateEnvelope(state: StoreState): string {
   })
 }
 
+/**
+ * The one dialog in front of the Score Window. Welcome, an import preview and
+ * an update notice are separate layers beneath it: a confirmation can open
+ * over each of them.
+ */
+type Dialog =
+  | { kind: 'quit' | 'discard' | 'replace-on-import' | 'starters' | 'settings' | 'about' }
+  | { kind: 'create-map'; type: MapType }
+  | { kind: 'orientation'; markdown: string }
+
+type Confirmation = Extract<Dialog['kind'], 'quit' | 'discard' | 'replace-on-import'>
+
+const CONFIRMATIONS: Record<Confirmation, { title: string; detail: ReactNode; actionLabel: string }> = {
+  'quit':              { title: 'Quit without saving?',     detail: <>Unsaved changes<br />will be lost.</>, actionLabel: 'Yes, quit' },
+  'discard':           { title: 'Discard unsaved changes?', detail: <>Unsaved changes<br />will be lost.</>, actionLabel: 'Discard changes' },
+  'replace-on-import': { title: 'Replace current session?', detail: <>Existing data<br />will be replaced.</>, actionLabel: 'Replace session' }
+}
+
+const isConfirmation = (dialog: Dialog | null): dialog is { kind: Confirmation } =>
+  dialog !== null && dialog.kind in CONFIRMATIONS
+
 interface AppProps {
   /** Host-supplied surface beside the Score Window (the browser's map tiles). */
   workspace?: ReactNode
@@ -119,23 +140,14 @@ export function App({ workspace, scoreFrame, scorePanes, welcome }: AppProps = {
     return !(prefs.reopenLastFile && !!prefs.lastFilePath)
   })
 
-  const [showQuitConfirm,       setShowQuitConfirm]       = useState(false)
-  const [showDiscardConfirm,    setShowDiscardConfirm]    = useState(false)
-  const [showImportReplaceConfirm, setShowImportReplaceConfirm] = useState(false)
-  const [creatingMap,          setCreatingMap]          = useState<MapType | null>(null)
-  const [showStarterPicker,    setShowStarterPicker]    = useState(false)
-  const [showPreferences,      setShowPreferences]      = useState(false)
-  const [showAbout,            setShowAbout]            = useState(false)
-  const [orientationMarkdown, setOrientationMarkdown] = useState<string | null>(null)
-  const [importPreview,        setImportPreview]        = useState<ImportPreviewData | null>(null)
-  const [updateNotice,         setUpdateNotice]         = useState<UpdateNotice | null>(null)
+  const [dialog,        setDialog]        = useState<Dialog | null>(null)
+  const [importPreview, setImportPreview] = useState<ImportPreviewData | null>(null)
+  const [updateNotice,  setUpdateNotice]  = useState<UpdateNotice | null>(null)
+  const closeDialog = (): void => setDialog(null)
 
   // True while any modal is open — used to bring the Score Window to the front
   // so it is not obscured by map BrowserWindows
-  const isModalOpen = showWelcome || creatingMap !== null ||
-                      showStarterPicker || showPreferences || showAbout || showQuitConfirm || showDiscardConfirm ||
-                      showImportReplaceConfirm || orientationMarkdown !== null || importPreview !== null ||
-                      updateNotice !== null
+  const isModalOpen = showWelcome || dialog !== null || importPreview !== null || updateNotice !== null
 
   // ── suppressBroadcast ref ─────────────────────────────────────────────────────
   //
@@ -169,14 +181,7 @@ export function App({ workspace, scoreFrame, scorePanes, welcome }: AppProps = {
   function cancelOpenModalViews(): void {
     window.dispatchEvent(new Event(CANCEL_MODAL_EVENT))
     setShowWelcome(false)
-    setShowQuitConfirm(false)
-    setShowDiscardConfirm(false)
-    setShowImportReplaceConfirm(false)
-    setCreatingMap(null)
-    setShowStarterPicker(false)
-    setShowPreferences(false)
-    setShowAbout(false)
-    setOrientationMarkdown(null)
+    setDialog(null)
     setImportPreview(null)
 
     const resolveDiscard = discardConfirmationResolver.current
@@ -339,7 +344,7 @@ export function App({ workspace, scoreFrame, scorePanes, welcome }: AppProps = {
     const removeQuitRequested = window.api.onQuitRequested(() => {
       cancelOpenModalViews()
       if (useAppStore.getState().isDirty) {
-        setShowQuitConfirm(true)
+        setDialog({ kind: 'quit' })
       } else {
         window.api.confirmQuit()
       }
@@ -431,13 +436,15 @@ export function App({ workspace, scoreFrame, scorePanes, welcome }: AppProps = {
         case 'download-copy':      notifyDownload('copy'); break
         case 'import-spreadsheet': await handleImport();          break
         case 'export-spreadsheet': await handleExport();          break
-        case 'create-cartesian':   setCreatingMap('cartesian');   break
-        case 'create-semantic':    setCreatingMap('semantic');    break
-        case 'preferences':        setShowPreferences(true);      break
-        case 'about':              setShowAbout(true);            break
-        case 'orientation':
-          setOrientationMarkdown(await openOrientationDocument())
+        case 'create-cartesian':   setDialog({ kind: 'create-map', type: 'cartesian' }); break
+        case 'create-semantic':    setDialog({ kind: 'create-map', type: 'semantic' });  break
+        case 'preferences':        setDialog({ kind: 'settings' }); break
+        case 'about':              setDialog({ kind: 'about' });    break
+        case 'orientation': {
+          const markdown = await openOrientationDocument()
+          if (markdown !== null) setDialog({ kind: 'orientation', markdown })
           break
+        }
         case 'welcome':            setShowWelcome(true);          break
       }
     })
@@ -463,20 +470,23 @@ export function App({ workspace, scoreFrame, scorePanes, welcome }: AppProps = {
     showStatusNotice(`Download started: ${download(kind)}`)
   }
 
+  /** Whether unsaved changes may go: none, or the user agreed to discard them. */
+  async function mayReplaceDocument(): Promise<boolean> {
+    return !isDirty || await confirmDiscard()
+  }
+
   async function handleNew(): Promise<void> {
-    if (isDirty && !await confirmDiscard()) return
+    if (!await mayReplaceDocument()) return
     history.replaceDocument(() => resetToEmpty())
     window.api.restoreMainWindowBounds()
   }
 
   async function handleOpen(): Promise<boolean> {
-    if (isDirty && !await confirmDiscard()) return false
-    return openDocument()
+    return await mayReplaceDocument() && openDocument()
   }
 
   async function handleOpenExample(): Promise<boolean> {
-    if (isDirty && !await confirmDiscard()) return false
-    return openBundledExample()
+    return await mayReplaceDocument() && openBundledExample()
   }
 
   async function handleSave(forceDialog: boolean): Promise<boolean> {
@@ -517,14 +527,14 @@ export function App({ workspace, scoreFrame, scorePanes, welcome }: AppProps = {
   async function confirmDiscard(): Promise<boolean> {
     await window.api.focusMainWindow()
     discardConfirmationResolver.current?.(false)
-    setShowDiscardConfirm(true)
+    setDialog({ kind: 'discard' })
     return new Promise(resolve => {
       discardConfirmationResolver.current = resolve
     })
   }
 
   function resolveDiscardConfirmation(confirmed: boolean): void {
-    setShowDiscardConfirm(false)
+    setDialog(null)
     const resolve = discardConfirmationResolver.current
     discardConfirmationResolver.current = null
     resolve?.(confirmed)
@@ -547,8 +557,17 @@ export function App({ workspace, scoreFrame, scorePanes, welcome }: AppProps = {
       })
       selectElements([])
     })
-    setShowImportReplaceConfirm(false)
+    setDialog(null)
     setImportPreview(null)
+  }
+
+  /** What a confirmation disc's arrow and dismissal do. */
+  function confirmationAnswers(kind: Confirmation): { onAction: () => void; onCancel: () => void } {
+    switch (kind) {
+      case 'quit':              return { onAction: () => window.api.confirmQuit(), onCancel: closeDialog }
+      case 'discard':           return { onAction: () => resolveDiscardConfirmation(true), onCancel: () => resolveDiscardConfirmation(false) }
+      case 'replace-on-import': return { onAction: applyImportPreview, onCancel: closeDialog }
+    }
   }
 
   // ── Render ────────────────────────────────────────────────────────────────────
@@ -556,7 +575,7 @@ export function App({ workspace, scoreFrame, scorePanes, welcome }: AppProps = {
   return (
     <div className={styles.root}>
       {(scoreFrame ?? (score => score))(
-        <ScoreWindow onOpenStarterPicker={() => setShowStarterPicker(true)} panes={scorePanes} />
+        <ScoreWindow onOpenStarterPicker={() => setDialog({ kind: 'starters' })} panes={scorePanes} />
       )}
       {workspace}
 
@@ -566,53 +585,20 @@ export function App({ workspace, scoreFrame, scorePanes, welcome }: AppProps = {
           result={importPreview.result}
           onCancel={() => setImportPreview(null)}
           onConfirm={() => {
-            if (hasDocumentContent) setShowImportReplaceConfirm(true)
+            if (hasDocumentContent) setDialog({ kind: 'replace-on-import' })
             else applyImportPreview()
           }}
         />
       )}
 
-      {showStarterPicker      && <StarterListPicker       onClose={() => setShowStarterPicker(false)} />}
-      {creatingMap            && <CreateMapDialog type={creatingMap} onClose={() => setCreatingMap(null)} />}
-      {showPreferences      && <PreferencesDialog    onClose={() => setShowPreferences(false)} />}
+      {dialog?.kind === 'starters'    && <StarterListPicker onClose={closeDialog} />}
+      {dialog?.kind === 'create-map'  && <CreateMapDialog type={dialog.type} onClose={closeDialog} />}
+      {dialog?.kind === 'settings'    && <PreferencesDialog onClose={closeDialog} />}
+      {dialog?.kind === 'orientation' && <OrientationDialog markdown={dialog.markdown} onClose={closeDialog} />}
+      {dialog?.kind === 'about'       && <AboutDialog version={appVersion} onClose={closeDialog} />}
 
-      {orientationMarkdown !== null && (
-        <OrientationDialog markdown={orientationMarkdown} onClose={() => setOrientationMarkdown(null)} />
-      )}
-
-      {showAbout && <AboutDialog version={appVersion} onClose={() => setShowAbout(false)} />}
-
-      {showQuitConfirm && (
-        <ConfirmationDisc
-          fixed
-          title="Quit without saving?"
-          detail={<>Unsaved changes<br />will be lost.</>}
-          actionLabel="Yes, quit"
-          onCancel={() => setShowQuitConfirm(false)}
-          onAction={() => window.api.confirmQuit()}
-        />
-      )}
-
-      {showDiscardConfirm && (
-        <ConfirmationDisc
-          fixed
-          title="Discard unsaved changes?"
-          detail={<>Unsaved changes<br />will be lost.</>}
-          actionLabel="Discard changes"
-          onCancel={() => resolveDiscardConfirmation(false)}
-          onAction={() => resolveDiscardConfirmation(true)}
-        />
-      )}
-
-      {showImportReplaceConfirm && (
-        <ConfirmationDisc
-          fixed
-          title="Replace current session?"
-          detail={<>Existing data<br />will be replaced.</>}
-          actionLabel="Replace session"
-          onCancel={() => setShowImportReplaceConfirm(false)}
-          onAction={applyImportPreview}
-        />
+      {isConfirmation(dialog) && (
+        <ConfirmationDisc fixed {...CONFIRMATIONS[dialog.kind]} {...confirmationAnswers(dialog.kind)} />
       )}
 
       {showWelcome && (() => {
