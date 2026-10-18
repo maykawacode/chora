@@ -1,10 +1,11 @@
-/* Top banner: title on the left, then the status line, which shortens first;
-   the device notice, when shown, on the right, wrapping below when the page
-   is too narrow. 10px taller than the desktop title bar for breathing room. */
+/* Top banner in three columns: the file name on the left, important
+   messages centred in the window, and the product name and version on the
+   right. The two sides share the width equally, so the centre stays centred.
+   10px taller than the desktop title bar for breathing room. */
 .banner {
   flex: 0 0 auto;
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
   column-gap: var(--space-four);
   row-gap: var(--space-one);
@@ -17,28 +18,31 @@
 }
 
 .title {
+  grid-column: 1;
   display: flex;
-  flex: 0 1 auto;
   align-items: baseline;
   gap: var(--space-two);
   min-width: 0;
   user-select: none;
 }
 
-.productName,
-.divider {
-  flex: none;
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text-secondary);
+.product {
+  grid-column: 3;
+  justify-self: end;
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-one);
+  user-select: none;
 }
 
-/* The product name in the primary text colour, like the file name. */
 .productName {
+  font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
 }
 
-.divider {
-  color: var(--color-border-strong);
+.version {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-control);
 }
 
 .fileName {
@@ -78,21 +82,3 @@
   white-space: nowrap;
 }
 
-.notice {
-  display: flex;
-  flex: 1 1 320px;
-  align-items: center;
-  justify-content: flex-end;
-  gap: var(--space-three);
-  color: var(--color-text-primary);
-  font-size: var(--font-size-control);
-}
-
-.dismiss {
-  flex: none;
-  padding: 2px var(--space-two);
-  border: 1px solid var(--color-border-control);
-  background: var(--color-surface-app);
-  color: var(--color-text-primary);
-  font: inherit;
-}

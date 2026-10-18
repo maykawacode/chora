@@ -4,7 +4,8 @@ import { resolveStatusMessage } from './statusRules'
 
 // The status line: a brief notice (browser downloads) when one is showing,
 // otherwise the contextual hint for the current study. The Score Window shows
-// it on the desktop; the browser shows it in its page banner.
+// it on the desktop. The browser's page banner shows only the notices
+// (useStatusNotices), keeping that space for what matters.
 
 const NOTICE_MS = 4000
 
@@ -18,9 +19,14 @@ export function showStatusNotice(message: string): void {
   timer = setTimeout(() => useStatusNotice.setState({ message: null }), NOTICE_MS)
 }
 
-/** The status line; `contextHint` replaces the study hint (browser Settings). */
-export function useStatusLine(contextHint?: string): string {
+/** The status line: the current notice, otherwise the study hint. */
+export function useStatusLine(): string {
   const notice = useStatusNotice(s => s.message)
   const hint = useAppStore(resolveStatusMessage)
-  return notice ?? contextHint ?? hint
+  return notice ?? hint
+}
+
+/** The current notice alone, without study hints. */
+export function useStatusNotices(): string | null {
+  return useStatusNotice(s => s.message)
 }
