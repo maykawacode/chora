@@ -83,8 +83,10 @@ export function AssessTab(): React.JSX.Element {
       if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return
       if (event.metaKey || event.ctrlKey || event.altKey) return
       if (!scoreOwnsKeys()) return
-
+      // With views side by side (browser), only while Assess is the one in use.
       const state = useAppStore.getState()
+      if (state.activeTab !== 'scores') return
+
       if (!state.elements.some(element => element.id === selectedElId) ||
           !state.dimensions.some(dimension => dimension.id === selectedDimId)) return
 

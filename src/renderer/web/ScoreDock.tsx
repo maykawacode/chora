@@ -1,8 +1,7 @@
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useAppStore } from '@renderer/store/appStore'
 import { TAB_ACCESSIBLE_LABELS } from '@renderer/components/ScoreWindow/ScoreWindow'
-import type { AppState } from '@renderer/lib/types'
-import { DEFAULT_SHARE, MAP_AREA_MIN_WIDTH, SCORE_MIN_WIDTH, stripWidth, useScoreLayout } from './scoreLayout'
+import { MAP_AREA_MIN_WIDTH, columnWidth, stripWidth, useScoreLayout, type Tab } from './scoreLayout'
 import { Glyph } from './Glyph'
 import { useStripMenus } from './StripCommands'
 import { SettingsPanel } from './SettingsPanel'
@@ -11,15 +10,17 @@ import styles from './ScoreDock.module.css'
 // Browser Score column: an always-visible strip beside the Score Window, the
 // page's anchor. One list from the top: Info, File | Notes, Elements,
 // Dimensions, Collections | Assess, Conversions, Maps | Settings (commands in
-// StripCommands.tsx). Choosing the tab already showing collapses Score and
-// clears the highlight; any tab icon while collapsed opens Score on that tab.
-// The gear works the same way for Settings, which shows in Score's place.
+// StripCommands.tsx). Each tab icon opens or closes its view; open views sit
+// side by side (ScorePanes.tsx) and are highlighted. Closing the last one
+// collapses Score; any tab icon while collapsed opens Score with that view.
+// The gear shows Settings in Score's place, and collapses Score if chosen again.
+// A new map shrinks the open views to their minimums; views that cannot all
+// fit beside the maps (or, with none, on the page) close from the right,
+// sparing the one in use (scoreLayout.ts).
 // Collapsing hides the Score Window, still mounted so tab state and pending
 // edits survive. In the browser the strip replaces Score's tab bar. The
 // toggle at its foot widens it to show each icon's name; every button carries
 // its name, which the strip's labelled style reveals.
-
-type Tab = AppState['activeTab']
 
 const TAB_GLYPHS: Record<Tab, ReactNode> = {
   notes: <>
@@ -47,17 +48,31 @@ const TAB_GLYPHS: Record<Tab, ReactNode> = {
   </g>
 }
 
+/** The page width Score may take: all of it with no maps, else what one map tile and the splitter leave. */
+const scoreRoom = (hasMaps: boolean): number => window.innerWidth - (hasMaps ? MAP_AREA_MIN_WIDTH + 1 : 0)
+
 /**
  * Score's open width before it has been measured (the page loaded collapsed):
- * the remembered width less the strip, or the default share, within the
- * splitter's limits (BrowserWorkspace.tsx).
+ * its open views' widths within the room the map area leaves, or the whole
+ * page with no maps.
  */
 function estimatedOpenWidth(): number {
-  const { scoreWidth, labels } = useScoreLayout.getState()
-  const strip = stripWidth(labels)
-  const left = scoreWidth ?? DEFAULT_SHARE * window.innerWidth + strip
-  const max = window.innerWidth - MAP_AREA_MIN_WIDTH - strip
-  return Math.round(Math.max(SCORE_MIN_WIDTH, Math.min(left - strip, max)))
+  const layout = useScoreLayout.getState()
+  const hasMaps = useAppStore.getState().maps.length > 0
+  const strip = stripWidth(layout.labels)
+  const width = hasMaps ? Math.min(columnWidth(layout), scoreRoom(true)) : scoreRoom(false)
+  return Math.round(width - strip)
+}
+
+/** The window's width, kept current. */
+function usePageWidth(): number {
+  const [width, setWidth] = useState(window.innerWidth)
+  useEffect(() => {
+    const onResize = (): void => setWidth(window.innerWidth)
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
+  return width
 }
 
 export function ScoreDock({ children }: { children: ReactNode }): React.JSX.Element {
@@ -65,18 +80,32 @@ export function ScoreDock({ children }: { children: ReactNode }): React.JSX.Elem
   const animating = useScoreLayout(s => s.animating)
   const view = useScoreLayout(s => s.view)
   const labels = useScoreLayout(s => s.labels)
-  const { collapse, show, toggleLabels } = useScoreLayout.getState()
+  const openTabs = useScoreLayout(s => s.openTabs)
+  const { toggleTab, toggleLabels } = useScoreLayout.getState()
+  const activeTab = useAppStore(s => s.activeTab)
+  const hasMaps = useAppStore(s => s.maps.length > 0)
+  const pageWidth = usePageWidth()
   const scoreRef = useRef<HTMLDivElement>(null)
   // Score's settled open width. While collapsing or expanding, Score is held
   // at this width and slides behind the strip rather than reflowing.
   const openWidth = useRef(0)
-  const activeTab = useAppStore(s => s.activeTab)
-  const setActiveTab = useAppStore(s => s.setActiveTab)
 
-  // A tab change from elsewhere (Import, a menu command) brings Score back into view.
+  // A tab chosen elsewhere (Import, a link in Assess, opening a study) opens its view.
   useEffect(() => useAppStore.subscribe((s, prev) => {
-    if (s.activeTab !== prev.activeTab) useScoreLayout.getState().show('score')
+    if (s.activeTab !== prev.activeTab) useScoreLayout.getState().reveal(s.activeTab)
   }), [])
+
+  // Maps take priority over Score: each new one shrinks Score's views to their minimums.
+  useEffect(() => useAppStore.subscribe((s, prev) => {
+    if (s.maps.length > prev.maps.length) useScoreLayout.getState().squeeze()
+  }), [])
+
+  // Views that no longer fit close from the right, sparing the one in use. Run
+  // after render, so a view just opened is already the active tab.
+  useEffect(() => {
+    if (collapsed || view !== 'score') return
+    useScoreLayout.getState().fit(scoreRoom(hasMaps), activeTab)
+  }, [openTabs, activeTab, hasMaps, pageWidth, labels, collapsed, view])
 
   useEffect(() => {
     const el = scoreRef.current
@@ -93,20 +122,18 @@ export function ScoreDock({ children }: { children: ReactNode }): React.JSX.Elem
 
   const tabButton = (tab: Tab): React.JSX.Element => {
     const label = TAB_ACCESSIBLE_LABELS[tab]
-    // Only the tab Score is showing is highlighted; collapsed or with
-    // Settings in its place, none is.
-    const showing = tab === activeTab && !collapsed && view === 'score'
+    // Open views are highlighted; collapsed or with Settings in their place, none is.
+    const showing = openTabs.includes(tab) && !collapsed && view === 'score'
     return (
       <button
         key={tab}
         className={`${styles.stripButton} ${showing ? styles.stripButtonActive : ''}`}
-        title={showing ? `${label} (click to collapse Score)` : label}
+        title={showing ? `Close ${label}` : label}
         aria-label={label}
         aria-pressed={showing}
         onClick={() => {
-          if (showing) return collapse()
-          setActiveTab(tab)
-          show('score')
+          toggleTab(tab)
+          if (useScoreLayout.getState().openTabs.includes(tab)) useAppStore.getState().setActiveTab(tab)
         }}
       >
         <Glyph>{TAB_GLYPHS[tab]}</Glyph>

@@ -1,11 +1,14 @@
 // ── ScoreWindow ───────────────────────────────────────────────────────────────
 //
-// Top-level shell of the main application window. Renders the tab bar and
-// delegates to one of six tab components based on the active tab in the store.
+// Top-level shell of the main application window. The desktop renders the tab
+// bar and one of six tab components, the active tab in the store. The browser
+// passes a `panes` layout instead, which shows any of the views side by side,
+// each under its own title; the active tab is then the one being worked in.
 // Dialog callbacks bubble up to App.tsx, which owns all modal state. The
 // internal `scores` key remains unchanged even though its user-facing label is
 // Assess, avoiding unrelated runtime state and type churn.
 
+import type { ComponentType, ReactNode } from 'react'
 import { useAppStore } from '../../store/appStore'
 import { NotesTab } from './NotesTab'
 import { ElementsTab } from './ElementsTab'
@@ -41,8 +44,25 @@ export const TAB_ACCESSIBLE_LABELS: Record<AppState['activeTab'], string> = {
 
 export const TAB_ORDER = ['notes', 'elements', 'dimensions', 'collections', 'scores', 'conversions'] as const
 
+export type ScoreTab = AppState['activeTab']
+
+/** Host layout for several views at once; `renderTab` draws one view under its title. */
+export type ScorePanesLayout = ComponentType<{ renderTab: (tab: ScoreTab) => ReactNode }>
+
 interface Props {
   onOpenStarterPicker: () => void
+  panes?: ScorePanesLayout
+}
+
+function TabBody({ tab, onOpenStarterPicker }: { tab: ScoreTab; onOpenStarterPicker: () => void }): React.JSX.Element {
+  switch (tab) {
+    case 'notes':       return <NotesTab />
+    case 'elements':    return <ElementsTab />
+    case 'collections': return <CollectionsTab />
+    case 'dimensions':  return <DimensionsTab onOpenStarterPicker={onOpenStarterPicker} />
+    case 'scores':      return <AssessTab />
+    case 'conversions': return <ConversionsTab />
+  }
 }
 
 /** Browser: the current tab's name, with the list count where it has one. */
@@ -66,7 +86,7 @@ function PaneTitle({ tab }: { tab: AppState['activeTab'] }): React.JSX.Element {
   )
 }
 
-export function ScoreWindow({ onOpenStarterPicker }: Props): React.JSX.Element {
+export function ScoreWindow({ onOpenStarterPicker, panes: Panes }: Props): React.JSX.Element {
   const activeTab    = useAppStore(s => s.activeTab)
   const setActiveTab = useAppStore(s => s.setActiveTab)
   const filePath     = useAppStore(s => s.filePath)
@@ -78,6 +98,21 @@ export function ScoreWindow({ onOpenStarterPicker }: Props): React.JSX.Element {
   const desktop = hostCapabilities().kind === 'desktop'
 
   const fileName = filePath ? (filePath.split('/').pop() ?? 'Untitled') : 'Untitled'
+
+  if (!desktop && Panes) {
+    return (
+      <div className={styles.window}>
+        <Panes renderTab={tab => (
+          <>
+            <PaneTitle tab={tab} />
+            <div className={`${styles.tabContent} ${styles.tabContentUnderTitle}`} data-list-headers="hidden">
+              <TabBody tab={tab} onOpenStarterPicker={onOpenStarterPicker} />
+            </div>
+          </>
+        )} />
+      </div>
+    )
+  }
 
   return (
     <div className={styles.window}>
@@ -127,12 +162,7 @@ export function ScoreWindow({ onOpenStarterPicker }: Props): React.JSX.Element {
         className={`${styles.tabContent} ${desktop ? '' : styles.tabContentUnderTitle}`}
         data-list-headers={desktop ? 'shown' : 'hidden'}
       >
-        {activeTab === 'notes'       && <NotesTab />}
-        {activeTab === 'elements'    && <ElementsTab />}
-        {activeTab === 'collections' && <CollectionsTab />}
-        {activeTab === 'dimensions'  && <DimensionsTab onOpenStarterPicker={onOpenStarterPicker} />}
-        {activeTab === 'scores'      && <AssessTab />}
-        {activeTab === 'conversions' && <ConversionsTab />}
+        <TabBody tab={activeTab} onOpenStarterPicker={onOpenStarterPicker} />
       </div>
     </div>
   )

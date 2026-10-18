@@ -5,7 +5,9 @@ import { MapHostContext, type MapHost } from '@renderer/components/maps/mapHost'
 import {
   activateSurface, activeSurface, beginTransaction, endTransaction, releaseSurface, setModalLock
 } from './interaction'
-import { MAP_AREA_MIN_WIDTH, leftMinWidth, stripWidth, useScoreLayout } from './scoreLayout'
+import {
+  MAP_AREA_MIN_WIDTH, columnMinWidth, columnWidth, paneSnapWidth, paneWidth, stripWidth, useScoreLayout
+} from './scoreLayout'
 import {
   FILL, columnsFor, computeArrangement, findSplit, minSize, moveTile, reconcile, setSplitSizes, useTileLayout,
   type Arrangement, type Divider, type FluidRect, type Rect, type Side, type Span
@@ -122,16 +124,28 @@ function useSurfaceTracking(): void {
 
 const KEY_STEP = 16
 
-const clampScoreWidth = (width: number, min: number): number =>
-  Math.round(Math.max(min, Math.min(width, window.innerWidth - MAP_AREA_MIN_WIDTH)))
+/** Score never pushes the maps below one tile; its last view shrinks to its snap width, then closes. */
+const clampScoreWidth = (width: number): number =>
+  Math.round(Math.min(width, window.innerWidth - MAP_AREA_MIN_WIDTH))
 
 /**
- * Divider on Score's right edge. Drag, or focus it and use the arrow keys, to
- * resize Score; double-click returns to the default share. The strip and Score
- * start at the page's left edge, so their width is the divider's x position.
+ * Divider on Score's right edge, shown only beside maps. Drag, or focus it and
+ * use the arrow keys, to resize Score's last open view; dragged well below its
+ * minimum, the view shrinks to its snap width, then closes. Double-click returns every view to its
+ * default width. The strip and Score start at the page's left edge, so their
+ * width is the divider's x position.
  */
-function Splitter({ width, onChange }: { width: number | null; onChange: (w: number | null) => void }): React.JSX.Element {
-  const min = useScoreLayout(s => leftMinWidth(s.labels))
+function Splitter(): React.JSX.Element {
+  const width = useScoreLayout(columnWidth)
+  const min = useScoreLayout(columnMinWidth)
+  const { resizeColumn, resetWidths } = useScoreLayout.getState()
+  // The keys stop the last view at its snap width rather than closing it.
+  const onChange = (w: number, snap = true): void => {
+    const layout = useScoreLayout.getState()
+    const last = layout.openTabs[layout.openTabs.length - 1]
+    const floor = last ? columnWidth(layout) - paneWidth(layout, last) + paneSnapWidth(last) : min
+    resizeColumn(clampScoreWidth(snap ? w : Math.max(floor, w)))
+  }
   return (
     <div
       className={styles.splitter}
@@ -139,23 +153,23 @@ function Splitter({ width, onChange }: { width: number | null; onChange: (w: num
       aria-orientation="vertical"
       aria-label="Resize Score"
       aria-valuemin={min}
-      aria-valuenow={width ?? undefined}
+      aria-valuenow={width}
       tabIndex={0}
       onPointerDown={(e) => {
         e.preventDefault()
         e.currentTarget.setPointerCapture(e.pointerId)
       }}
       onPointerMove={(e) => {
-        if (e.currentTarget.hasPointerCapture(e.pointerId)) onChange(clampScoreWidth(e.clientX, min))
+        if (e.currentTarget.hasPointerCapture(e.pointerId)) onChange(e.clientX)
       }}
-      onDoubleClick={() => onChange(null)}
+      onDoubleClick={resetWidths}
       onKeyDown={(e) => {
         if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return
         e.preventDefault()
         // Keep the arrows from also nudging the selected score (ScoresTab listens on window).
         e.stopPropagation()
         const left = e.currentTarget.getBoundingClientRect().left
-        onChange(clampScoreWidth(left + (e.key === 'ArrowLeft' ? -KEY_STEP : KEY_STEP), min))
+        onChange(left + (e.key === 'ArrowLeft' ? -KEY_STEP : KEY_STEP), false)
       }}
     />
   )
@@ -315,14 +329,13 @@ function TileDivider({ divider, arrangementRef }: {
 
 export function BrowserWorkspace(): React.JSX.Element {
   useSurfaceTracking()
-  // Null keeps the default proportional width; remembered across reloads (scoreLayout.ts).
-  const scoreWidth = useScoreLayout(s => s.scoreWidth)
-  const setScoreWidth = useScoreLayout(s => s.setScoreWidth)
   const mapIds = useAppStore(s => s.maps.map(m => m.id).join('\n'))
   const [maximizedId, setMaximizedId] = useState<string | null>(null)
   const scoreCollapsed = useScoreLayout(s => s.collapsed)
   const scoreMotion = useScoreLayout(s => s.animating)
   const labels = useScoreLayout(s => s.labels)
+  const scoreWidth = useScoreLayout(columnWidth)
+  const scoreMinWidth = useScoreLayout(columnMinWidth)
   const root = useTileLayout(s => s.root)
   const columns = useTileLayout(s => s.columns)
 
@@ -369,21 +382,22 @@ export function BrowserWorkspace(): React.JSX.Element {
 
   return (
     <>
-    {!scoreCollapsed && <Splitter width={scoreWidth} onChange={setScoreWidth} />}
+    {!scoreCollapsed && ids.length > 0 && <Splitter />}
     <main
       ref={workspaceRef}
       className={[
         styles.workspace,
         scoreCollapsed ? styles.scoreCollapsed : '',
+        ids.length === 0 ? styles.noMaps : '',
         scoreMotion ? styles.scoreMotion : ''
       ].filter(Boolean).join(' ')}
       onTransitionEnd={(e) => {
         if (e.target === e.currentTarget && e.propertyName === 'flex-basis') useScoreLayout.getState().endAnimation()
       }}
       style={{
-        '--score-min-width': `${leftMinWidth(labels)}px`,
-        '--strip-width': `${stripWidth(labels)}px`,
-        ...(scoreWidth === null ? {} : { '--score-width': `${scoreWidth}px` })
+        '--score-width': `${scoreWidth}px`,
+        '--score-min-width': `${scoreMinWidth}px`,
+        '--strip-width': `${stripWidth(labels)}px`
       } as React.CSSProperties}
     >
       <div
@@ -391,7 +405,7 @@ export function BrowserWorkspace(): React.JSX.Element {
         className={`${styles.area} ${dragId ? styles.areaDragging : ''}`}
         style={{ minWidth: min.width, minHeight: min.height }}
       >
-        {/* With no maps the area keeps its place, so Score's width does not jump. */}
+        {/* Seen only while Score is collapsed; otherwise Score's views fill the page. */}
         {ids.length === 0 && <section className={`${styles.tile} ${styles.placeholder}`}>No maps</section>}
         {ids.map(id => (
           <MapTile

@@ -2,6 +2,7 @@ import { browserApi } from './browserApi'
 import { startApp } from '@renderer/bootstrap'
 import { BrowserWorkspace } from './BrowserWorkspace'
 import { ScoreDock } from './ScoreDock'
+import { ScorePanes } from './ScorePanes'
 import { useScoreLayout } from './scoreLayout'
 import { TitleBanner } from './TitleBanner'
 import './browser.css'
@@ -31,6 +32,7 @@ void startApp({
   header: <TitleBanner />,
   workspace: <BrowserWorkspace />,
   scoreFrame: score => <ScoreDock>{score}</ScoreDock>,
+  scorePanes: ScorePanes,
   // Restore-on-reload is parked (see recovery.ts); only the leave warning runs.
   beforeMount: () => {
     clearRecovery()

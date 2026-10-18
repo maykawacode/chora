@@ -1,10 +1,10 @@
-/* Map area to the right of the tab strip and Score Window. Score defaults to
-   about 23% of the width; the splitter sets --score-width (strip included)
-   once dragged. Strip plus Score keep at least --score-min-width (the strip
-   and Score's two panes' minimums, set from BrowserWorkspace.tsx) and the map
-   area at least one 360px tile. */
+/* Map area to the right of the tab strip and Score Window. --score-width is
+   the strip plus Score's open views (scoreLayout.ts columnWidth). Strip plus
+   Score keep at least --score-min-width (every open view at its minimum) and
+   the map area at least one 360px tile; when both cannot fit, views close
+   from the right (ScoreDock.tsx), and a last one too wide scrolls sideways. */
 .workspace {
-  flex: 0 0 clamp(360px, calc(100% - var(--score-width, calc(23% + var(--strip-width)))), calc(100% - var(--score-min-width)));
+  flex: 0 0 clamp(360px, calc(100% - var(--score-width)), calc(100% - var(--score-min-width)));
   display: flex;
   min-width: 0;
   overflow: auto;
@@ -33,6 +33,12 @@
 /* Score collapsed to its icon strip: the maps take the rest of the page. */
 .workspace.scoreCollapsed {
   flex-basis: calc(100% - var(--strip-width));
+}
+
+/* With no maps, Score's views fill the page; the area's placeholder shows
+   only while Score is collapsed. */
+.workspace.noMaps:not(.scoreCollapsed) {
+  flex-basis: 0;
 }
 
 /* Only a collapse or expand animates, with the map sidebar's motion; splitter

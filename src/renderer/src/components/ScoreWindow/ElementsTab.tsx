@@ -72,8 +72,9 @@ export function ElementsTab(): React.JSX.Element {
       // Match the unmodified application shortcut exactly. In particular,
       // Cmd/Ctrl+Shift+D belongs to New Semantic Map and must not also create
       // a duplicate in this renderer-level handler.
+      // With views side by side (browser), only while Elements is the one in use.
       if (e.metaKey !== e.ctrlKey && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'd' && selectedId &&
-          scoreOwnsKeys()) {
+          scoreOwnsKeys() && useAppStore.getState().activeTab === 'elements') {
         e.preventDefault()   // prevent browser "add to bookmarks" default
         // The shortcut is intentionally active inside detail fields. Split it
         // from any focus-to-blur edit so Duplicate remains its own Undo step.

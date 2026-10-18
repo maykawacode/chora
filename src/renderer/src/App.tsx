@@ -16,7 +16,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useAppStore } from './store/appStore'
 import { usePrefsStore } from './store/prefsStore'
 import { history } from './store/history'
-import { ScoreWindow } from './components/ScoreWindow/ScoreWindow'
+import { ScoreWindow, type ScorePanesLayout } from './components/ScoreWindow/ScoreWindow'
 import { CreateMapDialog } from './components/maps/CreateMap'
 import { StarterListPicker } from './components/ScoreWindow/StarterListPicker'
 import { ImportPreview } from './components/ImportPreview'
@@ -94,9 +94,11 @@ interface AppProps {
   workspace?: ReactNode
   /** Host wrapper around the Score Window (the browser's collapsible dock). */
   scoreFrame?: (score: ReactNode) => ReactNode
+  /** Host layout showing several Score views side by side (the browser). */
+  scorePanes?: ScorePanesLayout
 }
 
-export function App({ workspace, scoreFrame }: AppProps = {}): React.JSX.Element {
+export function App({ workspace, scoreFrame, scorePanes }: AppProps = {}): React.JSX.Element {
   const [appVersion] = useState(() => window.api.getAppVersion())
   const filePath      = useAppStore(s => s.filePath)
   const isDirty       = useAppStore(s => s.isDirty)
@@ -553,7 +555,7 @@ export function App({ workspace, scoreFrame }: AppProps = {}): React.JSX.Element
   return (
     <div className={styles.root}>
       {(scoreFrame ?? (score => score))(
-        <ScoreWindow onOpenStarterPicker={() => setShowStarterPicker(true)} />
+        <ScoreWindow onOpenStarterPicker={() => setShowStarterPicker(true)} panes={scorePanes} />
       )}
       {workspace}
 
