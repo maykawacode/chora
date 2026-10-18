@@ -34,10 +34,7 @@ import {
   openBundledExample,
   openDocument,
   openOrientationDocument,
-  downloadDocument,
-  downloadDocumentCopy,
-  downloadSpreadsheet,
-  reopenLastDocument,
+  download,
   saveDocument,
   type ImportPreviewData
 } from './lib/documentWorkflows'
@@ -205,7 +202,7 @@ export function App({ workspace, scoreFrame, scorePanes, welcome }: AppProps = {
   useEffect(() => {
     const { prefs } = usePrefsStore.getState()
     if (prefs.reopenLastFile && prefs.lastFilePath) {
-      reopenLastDocument(prefs.lastFilePath).then(loaded => {
+      openDocument(prefs.lastFilePath).then(loaded => {
         // Auto-reopen initially suppresses Welcome, so failure restores a
         // recovery path instead of leaving an unexplained empty window.
         if (!loaded) setShowWelcome(true)
@@ -431,7 +428,7 @@ export function App({ workspace, scoreFrame, scorePanes, welcome }: AppProps = {
           break
         case 'save':               await handleSave(false);       break
         case 'save-as':            await handleSave(true);        break
-        case 'download-copy':      showStatusNotice(`Download started: ${downloadDocumentCopy()}`); break
+        case 'download-copy':      notifyDownload('copy'); break
         case 'import-spreadsheet': await handleImport();          break
         case 'export-spreadsheet': await handleExport();          break
         case 'create-cartesian':   setCreatingMap('cartesian');   break
@@ -462,6 +459,10 @@ export function App({ workspace, scoreFrame, scorePanes, welcome }: AppProps = {
     setUpdateNotice(null)
   }
 
+  function notifyDownload(kind: Parameters<typeof download>[0]): void {
+    showStatusNotice(`Download started: ${download(kind)}`)
+  }
+
   async function handleNew(): Promise<void> {
     if (isDirty && !await confirmDiscard()) return
     history.replaceDocument(() => resetToEmpty())
@@ -484,7 +485,7 @@ export function App({ workspace, scoreFrame, scorePanes, welcome }: AppProps = {
     if (host.documentSave === 'download') {
       // The first download of an untitled study asks for its name.
       if (host.nameUntitledDocument && !await host.nameUntitledDocument()) return false
-      showStatusNotice(`Download started: ${downloadDocument()}`)
+      notifyDownload('save')
       return true
     }
     const pending = saveInFlight.current
@@ -507,7 +508,7 @@ export function App({ workspace, scoreFrame, scorePanes, welcome }: AppProps = {
   async function handleExport(): Promise<void> {
     // The browser always exports by download, also where Save writes in place.
     if (hostCapabilities().kind === 'browser') {
-      showStatusNotice(`Download started: ${downloadSpreadsheet()}`)
+      notifyDownload('spreadsheet')
       return
     }
     await exportDocument()

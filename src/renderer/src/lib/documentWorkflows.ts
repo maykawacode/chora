@@ -11,47 +11,31 @@ export interface ImportPreviewData {
   result: ImportResult
 }
 
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
-}
-
-async function focusMainSafely(): Promise<void> {
-  try { await window.api.focusMainWindow() } catch { /* alert in the caller */ }
+/** Brings the main window forward (desktop) and shows a message. */
+async function alertUser(message: string): Promise<void> {
+  try { await window.api.focusMainWindow() } catch { /* alert regardless */ }
+  alert(message)
 }
 
 async function showError(message: string, error: unknown): Promise<void> {
-  await focusMainSafely()
-  alert(`${message}:\n${errorMessage(error)}`)
+  await alertUser(`${message}:\n${error instanceof Error ? error.message : String(error)}`)
 }
 
-function replaceWithOpenedSession(json: string, filePath: string): void {
-  const state = deserializeSession(json)
-  history.replaceDocument(() => {
-    const store = useAppStore.getState()
-    store.loadSession({ ...state, filePath, isDirty: false })
-    store.selectElements([])
-  })
-  window.api.restoreMainWindowBounds()
-}
-
-export async function reopenLastDocument(filePath: string): Promise<boolean> {
-  try {
-    replaceWithOpenedSession(await window.api.readFile(filePath), filePath)
-    return true
-  } catch (error) {
-    await showError('Could not reopen the last file', error)
-    return false
-  }
-}
-
-export async function openDocument(): Promise<boolean> {
-  const filePath = await window.api.openFile()
+/** Opens a study: the one at `reopenPath` (the last file, at launch), or one the user picks. */
+export async function openDocument(reopenPath?: string): Promise<boolean> {
+  const filePath = reopenPath ?? await window.api.openFile()
   if (!filePath) return false
   try {
-    replaceWithOpenedSession(await window.api.readFile(filePath), filePath)
+    const state = deserializeSession(await window.api.readFile(filePath))
+    history.replaceDocument(() => {
+      const store = useAppStore.getState()
+      store.loadSession({ ...state, filePath, isDirty: false })
+      store.selectElements([])
+    })
+    window.api.restoreMainWindowBounds()
     return true
   } catch (error) {
-    await showError('Could not open file', error)
+    await showError(reopenPath ? 'Could not reopen the last file' : 'Could not open file', error)
     return false
   }
 }
@@ -107,8 +91,7 @@ export async function saveDocument(
     await window.api.writeFile(filePath, saveToken.frame.session)
 
     if (!history.markSaved(saveToken, filePath)) {
-      await focusMainSafely()
-      alert('The session changed before the save completed. Please save again.')
+      await alertUser('The session changed before the save completed. Please save again.')
       return false
     }
 
@@ -117,8 +100,7 @@ export async function saveDocument(
     window.api.savePreferences(newPrefs)
 
     if (useAppStore.getState().isDirty) {
-      await focusMainSafely()
-      alert('The session changed while it was being saved. Recent changes are still unsaved.')
+      await alertUser('The session changed while it was being saved. Recent changes are still unsaved.')
       return false
     }
     return true
@@ -128,46 +110,36 @@ export async function saveDocument(
   }
 }
 
-/** Base name of a document path, or the given fallback for an unsaved one. */
-function documentName(fallback: string): string {
-  const filePath = useAppStore.getState().filePath
-  return filePath ? (filePath.split('/').pop() || fallback) : fallback
-}
-
 /** The document's name as a .chora file (legacy .mtda becomes .chora). */
 export function choraFileName(): string {
-  const name = documentName('Untitled.chora').replace(/\.mtda$/i, '.chora')
+  const filePath = useAppStore.getState().filePath
+  const name = (filePath?.split('/').pop() || 'Untitled.chora').replace(/\.mtda$/i, '.chora')
   return /\.chora$/i.test(name) ? name : `${name}.chora`
 }
 
 /**
- * Browser Save: downloads a snapshot of the current document and treats it as
- * saved (owner decision 2026-10-15), so the Unsaved badge clears and leaving
- * the page stops warning. The browser cannot confirm the write; the status
- * message says the download started. Returns the downloaded name.
+ * Browser downloads; each returns the downloaded file's name.
+ * - 'save': a snapshot of the document, treated as saved (owner decision
+ *   2026-10-15), so the Unsaved badge clears and leaving stops warning. The
+ *   browser cannot confirm the write; the status message says it started.
+ * - 'copy' (Download a Copy): a snapshot that leaves the save target,
+ *   savepoint and Unsaved state untouched.
+ * - 'spreadsheet' (Export): the study as tab-separated values.
  */
-export function downloadDocument(): string {
+export function download(kind: 'save' | 'copy' | 'spreadsheet'): string {
+  const state = useAppStore.getState()
+  if (kind === 'spreadsheet') {
+    downloadText('chora-export.tsv', exportSpreadsheet(state), 'text/tab-separated-values')
+    return 'chora-export.tsv'
+  }
   const fileName = choraFileName()
+  if (kind === 'copy') {
+    downloadText(fileName, serializeSession(state), 'application/json')
+    return fileName
+  }
   const saveToken = history.captureSave()
   downloadText(fileName, saveToken.frame.session, 'application/json')
-  history.markSaved(saveToken, useAppStore.getState().filePath ?? `browser:/download/${fileName}`)
-  return fileName
-}
-
-/**
- * Browser Download a Copy: a snapshot of the current document that leaves its
- * save target, savepoint and Unsaved state untouched. Returns the name.
- */
-export function downloadDocumentCopy(): string {
-  const fileName = choraFileName()
-  downloadText(fileName, serializeSession(useAppStore.getState()), 'application/json')
-  return fileName
-}
-
-/** Browser Export: downloads the spreadsheet as tab-separated values. */
-export function downloadSpreadsheet(): string {
-  const fileName = 'chora-export.tsv'
-  downloadText(fileName, exportSpreadsheet(useAppStore.getState()), 'text/tab-separated-values')
+  history.markSaved(saveToken, state.filePath ?? `browser:/download/${fileName}`)
   return fileName
 }
 
