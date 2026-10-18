@@ -27,7 +27,7 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  border: 1px solid var(--color-border-control);
+  border: 1px solid transparent; /* shown on focus */
   border-radius: var(--radius-control);
   padding: var(--space-two);
   font-size: var(--font-size-body);
@@ -38,7 +38,7 @@
 
 .notesEditor :global(trix-editor:focus) {
   outline: none;
-  border-color: var(--color-focus);
+  border-color: var(--color-border-control);
 }
 
 .notesEditor :global(trix-editor a) {

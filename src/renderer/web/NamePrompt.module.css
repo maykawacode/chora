@@ -55,12 +55,18 @@
   flex: 1;
   min-width: 0;
   padding: var(--space-one) var(--space-two);
-  border: 1px solid var(--color-border-control);
+  border: 1px solid transparent; /* shown on focus */
   border-radius: var(--radius-small);
   background: var(--color-surface-text-field);
   color: var(--color-text-primary);
   font: inherit;
   font-size: var(--font-size-body);
+}
+
+/* Borderless until focused, like the main window's fields (App.module.css). */
+.input:focus {
+  outline: none;
+  border-color: var(--color-border-control);
 }
 
 .extension {

@@ -15,8 +15,9 @@
   font-size: var(--font-size-body);
 }
 
-/* Main-window fields keep the same neutral border while focused. Focus rings
-   are also suppressed on buttons below; other keyboard targets are unchanged. */
+/* Main-window fields show the same neutral border while focused; those
+   outside the maps have a transparent border until then. Focus rings are
+   also suppressed on buttons below; other keyboard targets are unchanged. */
 .root input:focus,
 .root textarea:focus,
 .root select:focus {
