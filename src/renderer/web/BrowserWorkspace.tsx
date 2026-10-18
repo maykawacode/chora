@@ -6,7 +6,7 @@ import {
   activateSurface, activeSurface, beginTransaction, endTransaction, releaseSurface, setModalLock
 } from './interaction'
 import {
-  MAP_AREA_MIN_WIDTH, columnMinWidth, columnWidth, paneSnapWidth, paneWidth, stripWidth, useScoreLayout
+  MAP_AREA_MIN_WIDTH, columnMinWidth, columnWidth, paneMinWidth, paneWidth, stripWidth, useScoreLayout
 } from './scoreLayout'
 import {
   FILL, columnsFor, computeArrangement, findSplit, minSize, moveTile, reconcile, setSplitSizes, useTileLayout,
@@ -124,26 +124,26 @@ function useSurfaceTracking(): void {
 
 const KEY_STEP = 16
 
-/** Score never pushes the maps below one tile; its last view shrinks to its snap width, then closes. */
+/** Score never pushes the maps below one tile; its last view shrinks to its minimum, then closes. */
 const clampScoreWidth = (width: number): number =>
   Math.round(Math.min(width, window.innerWidth - MAP_AREA_MIN_WIDTH))
 
 /**
  * Divider on Score's right edge, shown only beside maps. Drag, or focus it and
- * use the arrow keys, to resize Score's last open view; dragged well below its
- * minimum, the view shrinks to its snap width, then closes. Double-click returns every view to its
- * default width. The strip and Score start at the page's left edge, so their
+ * use the arrow keys, to resize Score's last open view; dragged past its
+ * minimum, the view closes. Double-click returns every view to its default
+ * width. The strip and Score start at the page's left edge, so their
  * width is the divider's x position.
  */
 function Splitter(): React.JSX.Element {
   const width = useScoreLayout(columnWidth)
   const min = useScoreLayout(columnMinWidth)
   const { resizeColumn, resetWidths } = useScoreLayout.getState()
-  // The keys stop the last view at its snap width rather than closing it.
+  // The keys stop the last view at its minimum rather than closing it.
   const onChange = (w: number, snap = true): void => {
     const layout = useScoreLayout.getState()
     const last = layout.openTabs[layout.openTabs.length - 1]
-    const floor = last ? columnWidth(layout) - paneWidth(layout, last) + paneSnapWidth(last) : min
+    const floor = last ? columnWidth(layout) - paneWidth(layout, last) + paneMinWidth(last) : min
     resizeColumn(clampScoreWidth(snap ? w : Math.max(floor, w)))
   }
   return (

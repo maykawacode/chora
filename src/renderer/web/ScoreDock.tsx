@@ -16,7 +16,7 @@ import styles from './ScoreDock.module.css'
 // views sit side by side (ScorePanes.tsx) and are highlighted. Closing the
 // last one collapses Score; any tab icon while collapsed opens Score with
 // that view alone, as does opening, importing or starting a study.
-// A new map shrinks the open views to their minimums; views that cannot all
+// A new map shrinks open views wider than their defaults to their defaults; views that cannot all
 // fit beside the maps (or, with none, on the page) close from the right,
 // sparing the one in use (scoreLayout.ts).
 // Collapsing hides the Score Window, still mounted so tab state and pending
@@ -101,7 +101,7 @@ export function ScoreDock({ children }: { children: ReactNode }): React.JSX.Elem
     else if (s.activeTab !== prev.activeTab) useScoreLayout.getState().reveal(s.activeTab)
   }), [])
 
-  // Maps take priority over Score: each new one shrinks Score's views to their minimums.
+  // Maps take priority over Score: each new one shrinks Score's wider views to their defaults.
   useEffect(() => useAppStore.subscribe((s, prev) => {
     if (s.maps.length > prev.maps.length) useScoreLayout.getState().squeeze()
   }), [])

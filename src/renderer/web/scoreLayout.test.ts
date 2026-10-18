@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  STRIP_WIDTH, columnMinWidth, columnWidth, paneFloor, paneMinWidth, paneSnapWidth, paneWidth, parseLayout,
+  STRIP_WIDTH, columnMinWidth, columnWidth, paneMinWidth, paneWidth, parseLayout,
   snapsClosed, tabsThatFit,
   useScoreLayout, type StoredLayout
 } from './scoreLayout'
@@ -41,12 +41,12 @@ describe('stored Score layout', () => {
     expect(parseLayout(record({ paneWidths: widths })).paneWidths).toEqual(widths)
   })
 
-  it('opens the data views at their defaults, squeezing to 150px and snapping closed below 75px', () => {
-    const defaultsByTab = { elements: 200, dimensions: 200, collections: 200, conversions: 200 } as const
-    for (const [tab, width] of Object.entries(defaultsByTab) as [keyof typeof defaultsByTab, number][]) {
-      expect(paneWidth({ paneWidths: {} }, tab)).toBe(width)
-      expect(paneMinWidth(tab)).toBe(150)
-      expect(paneSnapWidth(tab)).toBe(75)
+  it('opens the data views and Conversions at 200px, snapping them closed below 75px, their minimum', () => {
+    for (const tab of ['elements', 'dimensions', 'collections', 'conversions'] as const) {
+      expect(paneWidth({ paneWidths: {} }, tab)).toBe(200)
+      expect(paneMinWidth(tab)).toBe(75)
+      expect(snapsClosed(tab, 75)).toBe(false)
+      expect(snapsClosed(tab, 74)).toBe(true)
     }
   })
 
@@ -65,19 +65,13 @@ describe('Score column width', () => {
     expect(columnMinWidth(layout)).toBe(STRIP_WIDTH + paneMinWidth('notes') + paneMinWidth('elements') + 1)
   })
 
-  it('keeps Notes at least 200px, snapping it closed below 100px', () => {
-    expect(paneMinWidth('notes')).toBe(200)
-    expect(paneSnapWidth('notes')).toBe(100)
+  it('opens Notes at 200px, snapping it closed below 100px, its minimum', () => {
+    expect(paneWidth({ paneWidths: {} }, 'notes')).toBe(200)
+    expect(paneMinWidth('notes')).toBe(100)
   })
 
-  it('never shows a view below its snap width', () => {
-    expect(paneWidth({ paneWidths: { notes: 10 } }, 'notes')).toBe(paneSnapWidth('notes'))
-  })
-
-  it('counts a view dragged below its minimum at its own width', () => {
-    const narrow: StoredLayout = { ...defaults, paneWidths: { notes: paneSnapWidth('notes') + 5 } }
-    expect(paneFloor(narrow, 'notes')).toBe(paneSnapWidth('notes') + 5)
-    expect(columnMinWidth(narrow)).toBe(columnWidth(narrow))
+  it('never shows a view below its minimum', () => {
+    expect(paneWidth({ paneWidths: { notes: 10 } }, 'notes')).toBe(paneMinWidth('notes'))
   })
 })
 
@@ -136,15 +130,9 @@ describe('Score views sharing the page', () => {
     expect(tabsThatFit(four, 0, 'dimensions')).toEqual(['dimensions'])
   })
 
-  it('snaps a view closed only when dragged past its snap width', () => {
-    expect(snapsClosed('elements', paneSnapWidth('elements'))).toBe(false)
-    expect(snapsClosed('elements', paneSnapWidth('elements') - 1)).toBe(true)
-  })
-
-  it('reopens a view dragged below its minimum, or snapped closed, at its minimum', () => {
-    useScoreLayout.setState({ openTabs: ['notes'], paneWidths: { elements: paneSnapWidth('elements') + 5 }, collapsed: false })
-    useScoreLayout.getState().toggleTab('elements')
-    expect(useScoreLayout.getState().paneWidths.elements).toBe(paneMinWidth('elements'))
+  it('snaps a view closed only when dragged past its minimum', () => {
+    expect(snapsClosed('elements', paneMinWidth('elements'))).toBe(false)
+    expect(snapsClosed('elements', paneMinWidth('elements') - 1)).toBe(true)
   })
 
   it('reopens a view snapped closed at its default width, however wide it was before', () => {
@@ -165,17 +153,19 @@ describe('Score views sharing the page', () => {
     expect(useScoreLayout.getState().paneWidths.scores).toBe(600)
   })
 
-  it('shrinks every open view to its minimum when a map takes the room', () => {
-    useScoreLayout.setState({ openTabs: ['notes', 'elements'], paneWidths: { notes: 300, elements: 600, scores: 700 } })
+  it('shrinks open views wider than their defaults to their defaults when a map takes the room', () => {
+    useScoreLayout.setState({
+      openTabs: ['notes', 'elements', 'scores'], paneWidths: { notes: 300, elements: 120, scores: 700, conversions: 500 }
+    })
     useScoreLayout.getState().squeeze()
     expect(useScoreLayout.getState().paneWidths)
-      .toEqual({ notes: paneMinWidth('notes'), elements: paneMinWidth('elements'), scores: 700 })
+      .toEqual({ notes: 200, elements: 120, scores: 380, conversions: 500 })
   })
 
-  it('closes the last view when the splitter drags it well below its minimum', () => {
+  it('closes the last view when the splitter drags it below its minimum', () => {
     useScoreLayout.setState({ openTabs: ['notes', 'elements'], paneWidths: {}, collapsed: false })
     const layout = useScoreLayout.getState()
-    layout.resizeColumn(columnWidth(layout) - paneWidth(layout, 'elements') + paneMinWidth('elements') - 10)
+    layout.resizeColumn(columnWidth(layout) - paneWidth(layout, 'elements') + paneMinWidth('elements'))
     expect(useScoreLayout.getState().openTabs).toEqual(['notes', 'elements'])
     useScoreLayout.getState().resizeColumn(STRIP_WIDTH + paneWidth(layout, 'notes') + 20)
     expect(useScoreLayout.getState().openTabs).toEqual(['notes'])

@@ -10,8 +10,7 @@
   overflow-y: hidden;
 }
 
-/* Dragged below its minimum (down to its snap width), a view clips its
-   contents rather than spilling over its neighbour. */
+/* A view clips its contents rather than spilling over its neighbour. */
 .pane {
   display: flex;
   flex-direction: column;

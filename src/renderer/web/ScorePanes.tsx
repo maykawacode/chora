@@ -2,7 +2,7 @@ import { Fragment, useRef, type ReactNode } from 'react'
 import { useAppStore } from '@renderer/store/appStore'
 import { TAB_NAMES, type Tab } from '@renderer/lib/types'
 import {
-  MAP_AREA_MIN_WIDTH, columnWidth, paneFloor, paneSnapWidth, paneWidth, snapsClosed, useScoreLayout
+  MAP_AREA_MIN_WIDTH, columnWidth, paneMinWidth, paneWidth, snapsClosed, useScoreLayout
 } from './scoreLayout'
 import styles from './ScorePanes.module.css'
 
@@ -11,10 +11,9 @@ import styles from './ScorePanes.module.css'
 // left and the column grows or shrinks with it; with no maps the views fill
 // the page in proportion to their widths, and the line trades width between
 // its two neighbours. Drag, or focus a line and use the arrow keys;
-// double-click returns every view to its default width. A drag can take a view
-// below its minimum, down to its snap width, and past that it closes, to
-// reopen at its default width (scoreLayout.ts); the arrow keys stop at the snap
-// width. Views that cannot all fit close from the right (ScoreDock.tsx); one
+// double-click returns every view to its default width. A drag past a view's
+// minimum closes it, to reopen at its default width (scoreLayout.ts); the
+// arrow keys stop at the minimum. Views that cannot all fit close from the right (ScoreDock.tsx); one
 // that still cannot fit scrolls.
 // Pressing or focusing in a view makes it the active tab, which the status
 // line and keyboard shortcuts follow.
@@ -56,7 +55,7 @@ function PaneDivider({ tab, fill }: { tab: Tab; fill: boolean }): React.JSX.Elem
       drag.current = null
       layout.snapClose(tab)
     } else {
-      layout.setPaneWidth(tab, Math.min(width, Math.max(max, paneSnapWidth(tab))))
+      layout.setPaneWidth(tab, Math.min(width, Math.max(max, paneMinWidth(tab))))
     }
   }
 
@@ -68,7 +67,7 @@ function PaneDivider({ tab, fill }: { tab: Tab; fill: boolean }): React.JSX.Elem
     const pair = widths[index] + widths[index + 1]
     if (snap && snapsClosed(tab, width)) { drag.current = null; return layout.snapClose(tab) }
     if (snap && snapsClosed(next, pair - width)) { drag.current = null; return layout.snapClose(next) }
-    const left = Math.max(paneSnapWidth(tab), Math.min(width, pair - paneSnapWidth(next)))
+    const left = Math.max(paneMinWidth(tab), Math.min(width, pair - paneMinWidth(next)))
     const all = Object.fromEntries(tabs.map((t, i) => [t, widths[i]]))
     layout.setPaneWidths({ ...all, [tab]: left, [next]: pair - left })
   }
@@ -109,7 +108,7 @@ function PaneDivider({ tab, fill }: { tab: Tab; fill: boolean }): React.JSX.Elem
         e.preventDefault()
         // Keep the arrows from also nudging the selected score (Assess listens on window).
         e.stopPropagation()
-        // The keys stop a view at its snap width rather than closing it.
+        // The keys stop a view at its minimum rather than closing it.
         const d = begin(e.currentTarget, -1, 0)
         move(d, d.startWidth + (e.key === 'ArrowLeft' ? -KEY_STEP : KEY_STEP), false)
       }}
@@ -133,7 +132,7 @@ export function ScorePanes({ renderTab }: { renderTab: (tab: Tab) => ReactNode }
             style={{
               flexBasis: paneWidth({ paneWidths }, tab),
               flexGrow: fill ? paneWidth({ paneWidths }, tab) : undefined,
-              minWidth: paneFloor({ paneWidths }, tab)
+              minWidth: paneMinWidth(tab)
             }}
             aria-label={TAB_NAMES[tab]}
             onPointerDownCapture={() => focusTab(tab)}
