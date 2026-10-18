@@ -24,7 +24,7 @@ export const paneMinWidth = (tab: Tab): number => tab === 'notes' ? 200 : tab ==
 const SNAP_WIDTHS: Partial<Record<Tab, number>> = { scores: 160 }
 
 const DEFAULT_WIDTHS: Record<Tab, number> = {
-  notes: 200, elements: 200, dimensions: 200, collections: 200, scores: 380, conversions: 380
+  notes: 200, elements: 200, dimensions: 200, collections: 200, scores: 380, conversions: 200
 }
 const paneDefaultWidth = (tab: Tab): number => DEFAULT_WIDTHS[tab]
 
@@ -60,16 +60,17 @@ export const snapsClosed = (tab: Tab, width: number): boolean => width < paneSna
 
 const MOTION_FALLBACK_MS = 400
 const STORAGE_KEY = 'chora:layout'
-const VERSION = 5
+const VERSION = 6
 
 /**
  * The record version in which each view's default width last changed. A view
  * width saved by an older record is dropped once, so the view opens at its
  * new default: Elements, Dimensions and Collections at 200px (version 3),
- * Assess and Conversions at 380px (version 4), Notes at 200px (version 5).
+ * Assess at 380px (version 4), Notes at 200px (version 5), Conversions at
+ * 200px (version 6).
  */
 const WIDTH_RESET_AT: Record<Tab, number> = {
-  notes: 5, elements: 3, dimensions: 3, collections: 3, scores: 4, conversions: 4
+  notes: 5, elements: 3, dimensions: 3, collections: 3, scores: 4, conversions: 6
 }
 
 export interface StoredLayout {

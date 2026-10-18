@@ -5,7 +5,7 @@ import {
   useScoreLayout, type StoredLayout
 } from './scoreLayout'
 
-const record = (fields: object) => JSON.stringify({ version: 5, ...fields })
+const record = (fields: object) => JSON.stringify({ version: 6, ...fields })
 const defaults: StoredLayout = { openTabs: ['notes'], paneWidths: {}, collapsed: false, labels: false }
 
 describe('stored Score layout', () => {
@@ -18,7 +18,7 @@ describe('stored Score layout', () => {
   it('gives the defaults for missing, corrupt and foreign-version records', () => {
     expect(parseLayout(null)).toEqual(defaults)
     expect(parseLayout('{not json')).toEqual(defaults)
-    expect(parseLayout(record({ version: 6 }))).toEqual(defaults)
+    expect(parseLayout(record({ version: 7 }))).toEqual(defaults)
     expect(parseLayout('null')).toEqual(defaults)
   })
 
@@ -37,12 +37,12 @@ describe('stored Score layout', () => {
     expect(parseLayout(record({ version: 3, paneWidths: widths })).paneWidths)
       .toEqual({ elements: 440, dimensions: 300, collections: 500 })
     expect(parseLayout(record({ version: 4, paneWidths: widths })).paneWidths)
-      .toEqual({ elements: 440, dimensions: 300, collections: 500, scores: 600, conversions: 500 })
+      .toEqual({ elements: 440, dimensions: 300, collections: 500, scores: 600 })
     expect(parseLayout(record({ paneWidths: widths })).paneWidths).toEqual(widths)
   })
 
   it('opens the data views at their defaults, squeezing to 150px and snapping closed below 75px', () => {
-    const defaultsByTab = { elements: 200, dimensions: 200, collections: 200, conversions: 380 } as const
+    const defaultsByTab = { elements: 200, dimensions: 200, collections: 200, conversions: 200 } as const
     for (const [tab, width] of Object.entries(defaultsByTab) as [keyof typeof defaultsByTab, number][]) {
       expect(paneWidth({ paneWidths: {} }, tab)).toBe(width)
       expect(paneMinWidth(tab)).toBe(150)
@@ -148,7 +148,7 @@ describe('Score views sharing the page', () => {
   })
 
   it('reopens a view snapped closed at its default width, however wide it was before', () => {
-    const defaults = { notes: 200, elements: 200, dimensions: 200, collections: 200, scores: 380, conversions: 380 } as const
+    const defaults = { notes: 200, elements: 200, dimensions: 200, collections: 200, scores: 380, conversions: 200 } as const
     for (const [tab, width] of Object.entries(defaults) as [keyof typeof defaults, number][]) {
       useScoreLayout.setState({ openTabs: [tab], paneWidths: { [tab]: 600 }, collapsed: false })
       useScoreLayout.getState().snapClose(tab)
