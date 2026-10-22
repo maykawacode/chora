@@ -34,7 +34,7 @@ export const uiTheme = {
     // Interface outside the maps (Score, title bar, strip); maps keep the
     // surfaces above until the palette is cleaned up as a whole.
     surfaceBase: '#f5f0e8',
-    surfaceTextField: '#faf8f5',
+    surfaceTextField: '#fffefc',
     surfaceSelected: '#ded8cc',
     // Chora's signature colour: the persistent frame around the views (the
     // browser's title banner and icon strip). An olive gold, oklch(0.44 0.091
