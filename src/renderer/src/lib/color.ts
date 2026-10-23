@@ -43,7 +43,7 @@ export { isHexColor, readHexColor }
 // The color every collection was created with before the palette existed. Still
 // the fallback for a collection carrying no color at all, and the marker for
 // "the user has not chosen a color yet" — see
-// assignPaletteToUncoloredCollections in the store.
+// paletteForUncolored in store/transforms.ts.
 export const DEFAULT_COLLECTION_COLOR = '#808080'
 
 // The color a new element is given, and the fallback for one whose stored color
@@ -54,7 +54,7 @@ export const DEFAULT_ELEMENT_COLOR = '#9d9d53'
 // distinct collections without anyone opening a color picker. Mid-saturation
 // tones matching the existing shape palette: they stay legible under the blob
 // overlay's ~13% fill and behind white-outlined dots.
-export const COLLECTION_PALETTE: readonly string[] = [
+const COLLECTION_PALETTE: readonly string[] = [
   '#4080c0', // blue
   '#c04040', // red
   '#40a040', // green
@@ -82,6 +82,20 @@ function hexToRgb(hex: string): [number, number, number] | null {
 
 function rgbToHex(r: number, g: number, b: number): string {
   return '#' + [r, g, b].map(v => Math.round(v).toString(16).padStart(2, '0')).join('')
+}
+
+/** Hue of a hex color in degrees (0–360); 0 for grays and unreadable colors. */
+export function hexHue(hex: string): number {
+  const rgb = hexToRgb(hex)
+  if (!rgb) return 0
+  const [r, g, b] = rgb.map(v => v / 255)
+  const max = Math.max(r, g, b), min = Math.min(r, g, b)
+  if (max === min) return 0
+  const d = max - min
+  const h = max === r ? (g - b) / d + (g < b ? 6 : 0)
+    : max === g ? (b - r) / d + 2
+    : (r - g) / d + 4
+  return (h / 6) * 360
 }
 
 function linearChannel(value: number): number {

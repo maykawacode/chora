@@ -1,0 +1,140 @@
+/* Browser Welcome page (BrowserWelcome.tsx): covers the page and scrolls. */
+.page {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  overflow-y: auto;
+  background: var(--color-surface-base);
+  /* All of the page's text is the signature colour (7.2:1 on the page). */
+  --start-label-color: var(--color-surface-signature);
+  --start-label-hover-color: var(--color-surface-signature);
+  color: var(--color-surface-signature);
+  font-family: var(--font-family-ui);
+  font-size: var(--font-size-title);
+  line-height: var(--line-height-reading);
+}
+
+.page:focus {
+  outline: none;
+}
+
+/* Close stays in reach while the page scrolls. */
+.bar {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--space-three) var(--space-four);
+  background: var(--color-surface-base);
+}
+
+.close {
+  min-height: var(--size-control);
+  padding: var(--space-one) var(--space-three);
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-control);
+  background: var(--color-surface-text-field);
+  color: inherit;
+  font: inherit;
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+}
+
+.close:hover {
+  background: var(--color-surface-hover);
+}
+
+/* One reading column, with room either side on wide windows. */
+.column {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 var(--space-five) 96px; /* raw: room below the last section */
+}
+
+.hero {
+  padding: 48px 0 var(--space-six); /* raw: space above the title */
+}
+
+.title {
+  margin: 0;
+  font-size: 48px; /* raw: the page's one display size */
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-compact);
+  letter-spacing: -0.02em;
+}
+
+.subtitle {
+  margin: var(--space-two) 0 var(--space-five);
+  font-size: var(--font-size-display);
+}
+
+.lead {
+  margin: 0 0 var(--space-three);
+}
+
+/* The disc's start buttons (WelcomeDialog.module.css), set in a row. */
+.start {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-six);
+  margin-top: var(--space-five);
+}
+
+/* A fixed-ratio frame for the walk-through animation. */
+.animation {
+  margin: 0 0 48px; /* raw: section rhythm */
+}
+
+.frame {
+  aspect-ratio: 16 / 9;
+  border: 1px dashed var(--color-border-control);
+  border-radius: var(--radius-dialog);
+  background: var(--color-surface-chrome);
+}
+
+.caption {
+  margin-top: var(--space-two);
+  font-size: var(--font-size-body);
+}
+
+.section {
+  margin: 0 0 var(--space-six);
+}
+
+.heading {
+  margin: 0 0 var(--space-two);
+  font-size: var(--font-size-display);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-interface);
+}
+
+.section p {
+  margin: 0 0 var(--space-three);
+}
+
+.section ul,
+.section ol {
+  margin: 0 0 var(--space-three);
+  padding-left: var(--space-five);
+}
+
+.section li {
+  margin: 0 0 var(--space-one);
+}
+
+.end {
+  margin-top: 48px; /* raw: section rhythm */
+  padding-top: var(--space-six);
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.links {
+  margin: var(--space-six) 0 0;
+  font-size: var(--font-size-body);
+}
+
+.links a {
+  color: inherit;
+}

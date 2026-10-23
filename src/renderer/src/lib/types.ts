@@ -9,6 +9,7 @@
 
 export type { ElementShape } from '../../../shared/contracts'
 import type { ElementShape } from '../../../shared/contracts'
+import { DEFAULT_COLLECTION_COLOR, DEFAULT_ELEMENT_COLOR } from './color'
 
 export const ELEMENT_SHAPES: ElementShape[] = ['circle', 'square', 'triangle', 'diamond']
 
@@ -124,7 +125,7 @@ import type { MarkMode } from '../../../shared/contracts'
 // Named for what it selects rather than matching Element.collectionIds: one is
 // a per-map display choice, the other is the membership itself, and a shared
 // name would invite reading a map's selection as data about the elements.
-export interface BaseMapConfig {
+interface BaseMapConfig {
   id: string
   type: MapType
   title: string        // user-editable; also used as the OS window title
@@ -160,15 +161,33 @@ export interface CartesianMapConfig extends BaseMapConfig {
 // A semantic map has no 2D space to project a cluster into, so it draws no
 // blobs; its shownCollectionIds filters instead, narrowing the map to the
 // members of the selected collections. See semanticElements in drawSemantic,
-// which resolves that against elementIds and is what MapPanel hit-tests too.
+// which resolves that and is what MapPanel hit-tests too.
 export interface SemanticMapConfig extends BaseMapConfig {
   type: 'semantic'
-  elementIds: string[]           // ordered list of elements to show
+  // Not read: every element is drawn. Kept in the format so older files load
+  // unchanged; new maps write an empty list, which older versions read as
+  // "every element" too.
+  elementIds: string[]
   dimensionIds: string[]         // ordered list of axes to display
   flippedDimensionIds: string[]  // subset of dimensionIds whose poles are reversed
 }
 
 export type MapConfig = CartesianMapConfig | SemanticMapConfig
+
+// ── Score views ───────────────────────────────────────────────────────────────
+
+/** The Score views in tab and strip order. `scores` is shown as Assess. */
+export const TABS = ['notes', 'elements', 'dimensions', 'collections', 'scores', 'conversions'] as const
+export type Tab = typeof TABS[number]
+
+export const TAB_NAMES: Record<Tab, string> = {
+  notes:       'Notes',
+  elements:    'Elements',
+  dimensions:  'Dimensions',
+  collections: 'Collections',
+  scores:      'Assess',
+  conversions: 'Conversions'
+}
 
 // ── Application state ─────────────────────────────────────────────────────────
 //
@@ -188,7 +207,7 @@ export interface AppState {
   selectedElementId: string | null
   selectedDimensionId: string | null
   selectedCollectionId: string | null
-  activeTab: 'notes' | 'elements' | 'dimensions' | 'scores' | 'collections' | 'conversions'
+  activeTab: Tab
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -203,6 +222,26 @@ export function defaultCategories(): DimensionCategories {
     socialMeaning: false,
     aesthetics: false
   }
+}
+
+// New items start from these defaults; `fields` overrides any of them.
+
+export function newElement(name: string, fields: Partial<Element> = {}): Element {
+  return {
+    id: crypto.randomUUID(), name, definition: '', weight: 1,
+    color: DEFAULT_ELEMENT_COLOR, shape: 'circle', collectionIds: [], ...fields
+  }
+}
+
+export function newDimension(label: string, fields: Partial<Dimension> = {}): Dimension {
+  return {
+    id: crypto.randomUUID(), label, ...parsePoles(label), definition: '', weight: 1,
+    categories: defaultCategories(), ...fields
+  }
+}
+
+export function newCollection(name: string, fields: Partial<Collection> = {}): Collection {
+  return { id: crypto.randomUUID(), name, definition: '', color: DEFAULT_COLLECTION_COLOR, ...fields }
 }
 
 /** Returns a SessionMeta with a fresh UUID and empty strings. */

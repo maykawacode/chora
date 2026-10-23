@@ -10,18 +10,36 @@
   background: var(--map-background);
 }
 
-/* White and borderless so the title bar flows directly into the map field. */
+/* White and borderless so the title bar flows directly into the map field.
+   A fixed height keeps the map still when the title switches to its rename
+   field, and matches the offset the axis pickers assume. */
 .titleBar {
   position: relative;
   display: flex;
+  flex: 0 0 var(--map-titlebar-height);
+  height: var(--map-titlebar-height);
+  box-sizing: border-box;
   align-items: center;
   justify-content: space-between;
   background: var(--map-background);
-  padding: var(--space-one) 38px var(--space-one) 78px;
+  padding: 0 42px 0 78px; /* raw: right clears the panel toggle (12px inset + 22 + 8) */
   overflow: hidden;
   transition: margin-right var(--map-sidebar-motion);
   user-select: none;
   -webkit-app-region: drag;
+}
+
+/* A browser tile has no controls on the left; Close, Zoom and the panel
+   toggle share the right (12px inset + 12 + 8 + 12 + 8 + 22px toggle + 8px),
+   inset as far from the right edge as the title is from the left. */
+.titleBarTile {
+  padding-left: var(--space-three);
+  padding-right: 82px; /* raw: control group width */
+}
+
+/* A browser tile moves by dragging its title bar. */
+.titleBar[data-movable] {
+  cursor: grab;
 }
 
 .windowControls {
@@ -40,7 +58,7 @@
 .sidebarBtn {
   border: none;
   background: transparent;
-  color: var(--color-action-strong);
+  color: var(--color-text-secondary);
   cursor: pointer;
   padding: 0;
   -webkit-app-region: no-drag;
@@ -65,7 +83,7 @@
 .titleGroup {
   position: relative;
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: var(--space-two);
   min-width: 0;
   z-index: 1;
@@ -95,10 +113,15 @@
   font-size: var(--font-size-body);
   font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
-  background: var(--color-surface-field);
+  background: var(--color-surface-canvas);
   border: 1px solid var(--color-focus);
   border-radius: var(--radius-small);
-  padding: 1px var(--space-one);
+  box-sizing: border-box;
+  height: 22px; /* raw: fits inside the 28px title bar */
+  line-height: 1;
+  padding: 0 6px; /* raw: rename field inset */
+  /* Offset by the border and padding so the text stays where the title was. */
+  margin-left: -7px; /* raw: 1px border + 6px padding */
   font-family: inherit;
   outline: none;
   min-width: 80px;
@@ -120,54 +143,95 @@
 .windowedSidebarToggle {
   position: absolute;
   top: 4px;
-  right: 8px;
+  right: var(--space-three);
   z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: var(--space-two);
   -webkit-app-region: no-drag;
 }
 
 .axisPicker {
-  position: absolute;
-  z-index: 10;
-  background: var(--color-surface-app);
-  border: 1px solid var(--color-border-strong);
+  position: relative;
+  background: var(--color-surface-base);
+  border: 1px solid var(--color-border-control);
   border-radius: 0;
   box-shadow: var(--shadow-dialog);
-  min-width: 180px;
-  max-width: 220px;
-  padding: var(--space-four);
-  overflow: hidden;
+  width: 220px; /* raw: picker width */
+  max-width: calc(100% - 2 * var(--space-three));
+  padding: var(--space-three);
   font-family: var(--font-family-ui);
   font-size: var(--font-size-body);
 }
 
+/* Covers the map (a browser tile contains its fixed overlays) and centres the
+   picker over it. */
 .axisPickerBackdrop {
   position: fixed;
   inset: 0;
   z-index: 9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: var(--color-backdrop);
 }
 
+.axisPickerHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-two);
+}
+
+/* Set like the map's own title. */
 .axisPickerTitle {
-  margin: 0 0 var(--space-three);
-  font-size: var(--font-size-title);
+  font-size: var(--font-size-body);
   font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
 }
 
+/* Icon button opposite the title, styled like the map's title-bar controls. */
+.axisPickerFlip {
+  width: 22px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-small);
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.axisPickerFlip:hover {
+  color: var(--color-text-primary);
+  background: var(--color-surface-hover);
+}
+
+.axisPickerFlip[aria-pressed='true'] {
+  background: var(--color-surface-chrome-strong);
+}
+
+.axisPickerFlip:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 1px;
+}
+
 .axisPickerList {
   list-style: none;
-  margin: var(--space-one) 0 0;
+  margin: 0;
   padding: 0;
   border: 1px solid var(--color-border-control);
-  background: var(--color-surface-field);
-  max-height: 180px;
+  background: var(--color-surface-canvas);
+  max-height: 200px;
   overflow-y: auto;
 }
 
 .axisPickerItem {
-  padding: var(--space-one) var(--space-three);
-  min-height: var(--size-control);
+  padding: 3px var(--space-two); /* raw: compact list row */
   font-size: var(--font-size-control);
+  line-height: 1.35;
   cursor: pointer;
   white-space: nowrap;
   overflow: hidden;
@@ -180,41 +244,12 @@
 
 .axisPickerSelected {
   background: var(--color-selection-strong);
-  color: var(--color-selection-text);
+  color: var(--color-text-primary);
   font-weight: var(--font-weight-semibold);
 }
 
 .axisPickerSelected:hover {
-  background: var(--color-selection-hover);
-}
-
-.axisPickerFlipBtn {
-  display: block;
-  width: 100%;
-  padding: var(--space-two) var(--space-three);
-  min-height: var(--size-control);
-  font-size: var(--font-size-control);
-  font-weight: var(--font-weight-semibold);
-  text-align: center;
-  background: var(--color-surface-field);
-  border: 1px solid var(--color-border-control);
-  border-radius: var(--radius-control);
-  cursor: pointer;
-  font-family: inherit;
-  color: var(--color-text-primary);
-}
-
-.axisPickerFlipBtn:hover {
-  background: var(--color-surface-chrome);
-}
-
-.axisPickerSubtitle {
-  font-size: var(--font-size-meta);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  margin-top: var(--space-four);
+  background: var(--color-selection-strong);
 }
 
 /* The white map field yields exactly the same distance that the single,
@@ -242,7 +277,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: var(--color-surface-app);
+  background: var(--color-surface-base);
   border-left: 1px solid var(--color-border-subtle);
   transform: translateX(100%);
   visibility: hidden;

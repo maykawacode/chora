@@ -14,18 +14,13 @@
 import { create } from 'zustand'
 import type {
   AppState, Element, Collection, Dimension, DimensionCategories, SessionMeta,
-  MapConfig, CartesianMapConfig, SemanticMapConfig, ElementShape
+  MapConfig, CartesianMapConfig, SemanticMapConfig, Tab
 } from '../lib/types'
-import { DEFAULT_COLLECTION_COLOR, paletteColor, mixCollectionColors, randomReadableColor } from '../lib/color'
-import { defaultCategories, defaultSessionMeta, ELEMENT_SHAPES, parsePoles } from '../lib/types'
+import { paletteColor } from '../lib/color'
+import { defaultSessionMeta, newCollection, newDimension, newElement } from '../lib/types'
 import { usePrefsStore } from './prefsStore'
 import { openWeight } from '../lib/numericRange'
-import {
-  dimensionScoresToColors,
-  dimensionScoresToWeights,
-  spreadScores,
-  weightsToDimensionScores
-} from './transforms'
+import type { Transform } from './transforms'
 
 // ── Store interface ───────────────────────────────────────────────────────────
 
@@ -50,10 +45,8 @@ interface AppStore extends AppState {
   addCollection:    (name: string, id?: string) => string
   updateCollection: (id: string, changes: Partial<Collection>) => void
   removeCollection: (id: string) => void
-  assignPaletteToUncoloredCollections: () => void
 
   // Membership — binary, and an attribute of the element like its color or shape
-  toggleElementCollection: (elementId: string, collectionId: string) => void
   setElementsCollection:   (elementIds: string[], collectionId: string, member: boolean) => void
 
   // Dimensions
@@ -64,38 +57,20 @@ interface AppStore extends AppState {
   // Scores (dimension scores; membership is not a score — see above)
   setScore:   (elementId: string, targetId: string, value: number) => void
   setScores:  (entries: ScoreEntry[]) => void
-  clearScore: (elementId: string, targetId: string) => void
 
   // Maps
   addMap:          (config: MapConfig) => void
   updateMapConfig: (id: string, changes: Partial<CartesianMapConfig> | Partial<SemanticMapConfig>) => void
   removeMap:       (id: string) => void
 
-  // Advanced transforms (see descriptions in implementation below)
-  // flip=true inverts the score direction so poleA maps to the "high" end instead of poleB
-  dimensionToWeight: (dimensionId: string, flip?: boolean) => void
-  weightToDimension: (dimensionId: string, flip?: boolean) => void
-  dimensionToColor:  (dimensionId: string, colorLow?: string, colorHigh?: string) => void
-  dimToDimScores:    (sourceDimId: string, targetDimId: string) => void
-  randomizeScores:   (dimensionId: string) => void
-  spreadDimensionScores: (dimensionId: string) => void
-  randomizeElementWeights: () => void
-  randomizeElementColors: () => void
-  randomizeDimensionWeights: () => void
-  randomizeCollectionColors: () => void
-  randomizeElementShapes: () => void
-  randomizeCollectionAssignments: () => void
-  collectionToElementColor: () => void
-  collectionToElementShape: () => void
-  shapeToColor:             () => void
-  colorToShape:             () => void
-  shapeToCollection:        () => void
+  /** Applies a whole-study conversion (store/transforms.ts) as one update. */
+  transform: (fn: Transform) => void
 
   // Score Window navigation
   selectElement:    (id: string | null) => void
   selectDimension:  (id: string | null) => void
   selectCollection: (id: string | null) => void
-  setActiveTab:     (tab: AppState['activeTab']) => void
+  setActiveTab:     (tab: Tab) => void
 
   // Multi-select (not persisted; synced across map windows via multiSelection:update IPC)
   selectedElementIds:     string[]
@@ -106,6 +81,8 @@ interface AppStore extends AppState {
   // Session lifecycle
   loadSession:  (state: AppState) => void
   resetToEmpty: () => void
+  /** Counts studies loaded or started (open, import, New); not part of the study. */
+  studyLoads: number
 }
 
 function safeWeightChanges<T extends { weight: number }>(changes: Partial<T>): Partial<T> {
@@ -131,40 +108,6 @@ const emptyState: AppState = {
   activeTab: 'notes'
 }
 
-// ── Shape / color conversion helpers ─────────────────────────────────────────
-
-function randomWeight(): number {
-  return Math.floor(Math.random() * 100) + 1
-}
-
-const SHAPE_COLORS: Record<ElementShape, string> = {
-  circle:   '#4080c0',
-  square:   '#c04040',
-  triangle: '#40a040',
-  diamond:  '#a040a0',
-}
-
-function hexToHue(hex: string): number {
-  const r = parseInt(hex.slice(1, 3), 16) / 255
-  const g = parseInt(hex.slice(3, 5), 16) / 255
-  const b = parseInt(hex.slice(5, 7), 16) / 255
-  const max = Math.max(r, g, b), min = Math.min(r, g, b)
-  if (max === min) return 0
-  const d = max - min
-  let h: number
-  if (max === r)      h = (g - b) / d + (g < b ? 6 : 0)
-  else if (max === g) h = (b - r) / d + 2
-  else                h = (r - g) / d + 4
-  return (h / 6) * 360
-}
-
-function hueToShape(hue: number): ElementShape {
-  if (hue < 30 || hue >= 330) return 'circle'
-  if (hue < 150)              return 'square'
-  if (hue < 270)              return 'triangle'
-  return 'diamond'
-}
-
 // ── Store implementation ──────────────────────────────────────────────────────
 
 export const useAppStore = create<AppStore>((set) => ({
@@ -182,11 +125,7 @@ export const useAppStore = create<AppStore>((set) => ({
 
   addElement: (name, color) => set((s) => {
     const prefs = usePrefsStore.getState().prefs
-    const resolvedColor = color ?? prefs.defaultElementColor
-    const el: Element = {
-      id: crypto.randomUUID(), name, definition: '', weight: 1,
-      color: resolvedColor, shape: prefs.defaultElementShape, collectionIds: []
-    }
+    const el = newElement(name, { color: color ?? prefs.defaultElementColor, shape: prefs.defaultElementShape })
     return { elements: [...s.elements, el], isDirty: true }
   }),
 
@@ -240,24 +179,13 @@ export const useAppStore = create<AppStore>((set) => ({
   // collection looked broken and — worse — dragged multi-collection mixes
   // toward gray.
   addCollection: (name, id) => {
-    const newId = id ?? crypto.randomUUID()
+    const collection = newCollection(name, id ? { id } : {})
     set((s) => ({
-      collections: [...s.collections, { id: newId, name, definition: '', color: paletteColor(s.collections.length) }],
+      collections: [...s.collections, { ...collection, color: paletteColor(s.collections.length) }],
       isDirty: true
     }))
-    return newId
+    return collection.id
   },
-
-  // Fills in palette colors for collections still sitting on the legacy default
-  // gray, leaving any deliberately chosen color alone. Idempotent, and the only
-  // way to make collection coloring useful on a session created before the
-  // palette existed without recoloring every collection by hand.
-  assignPaletteToUncoloredCollections: () => set((s) => ({
-    collections: s.collections.map((c, i) =>
-      c.color === DEFAULT_COLLECTION_COLOR ? { ...c, color: paletteColor(i) } : c
-    ),
-    isDirty: true
-  })),
 
   updateCollection: (id, changes) => set((s) => ({
     collections: s.collections.map(c => c.id === id ? { ...c, ...changes } : c),
@@ -277,23 +205,10 @@ export const useAppStore = create<AppStore>((set) => ({
 
   // ── Membership ───────────────────────────────────────────────────────────────
   //
-  // Both actions go through updateElement's shape rather than a score write:
+  // Membership goes through updateElement's shape rather than a score write:
   // membership is an element attribute now, so assigning one is the same kind
   // of edit as recoloring, and it rides the same element:update IPC to the
   // other windows.
-
-  toggleElementCollection: (elementId, collectionId) => set((s) => ({
-    elements: s.elements.map(el => {
-      if (el.id !== elementId) return el
-      return {
-        ...el,
-        collectionIds: el.collectionIds.includes(collectionId)
-          ? el.collectionIds.filter(id => id !== collectionId)
-          : [...el.collectionIds, collectionId]
-      }
-    }),
-    isDirty: true
-  })),
 
   // Drives every listed element to the same membership state, rather than
   // flipping each independently — a mixed selection resolves to one answer.
@@ -314,19 +229,10 @@ export const useAppStore = create<AppStore>((set) => ({
 
   // ── Dimensions ──────────────────────────────────────────────────────────────
 
-  addDimension: (label, categories) => set((s) => {
-    const { poleA, poleB } = parsePoles(label)
-    const dim: Dimension = {
-      id: crypto.randomUUID(),
-      label,
-      poleA,
-      poleB,
-      definition: '',
-      weight: 1,
-      categories: categories ?? defaultCategories()
-    }
-    return { dimensions: [...s.dimensions, dim], isDirty: true }
-  }),
+  addDimension: (label, categories) => set((s) => ({
+    dimensions: [...s.dimensions, newDimension(label, categories ? { categories } : {})],
+    isDirty: true
+  })),
 
   updateDimension: (id, changes) => set((s) => {
     const safeChanges = safeWeightChanges(changes)
@@ -374,11 +280,6 @@ export const useAppStore = create<AppStore>((set) => ({
     return { scores, isDirty: true }
   }),
 
-  clearScore: (elementId, targetId) => set((s) => {
-    const { [targetId]: _removed, ...rest } = s.scores[elementId] ?? {}
-    return { scores: { ...s.scores, [elementId]: rest }, isDirty: true }
-  }),
-
   // ── Maps ────────────────────────────────────────────────────────────────────
 
   addMap: (config) => set((s) => ({
@@ -396,189 +297,12 @@ export const useAppStore = create<AppStore>((set) => ({
     isDirty: true
   })),
 
-  // ── Advanced transforms ──────────────────────────────────────────────────────
-  //
-  // These batch-modify elements or scores based on a chosen dimension.
-  // They exist as store actions (not component logic) because they modify
-  // multiple slices of state atomically.
-
-  // Converts each element's score on a dimension to its weight (scaled 1–100).
-  // Unscored elements are left unchanged.
-  // flip=true: score 0.0 (poleA) → weight 100; score 1.0 (poleB) → weight 1
-  // flip=false (default): score 1.0 (poleB) → weight 100; score 0.0 (poleA) → weight 1
-  dimensionToWeight: (dimensionId, flip = false) => set((s) => ({
-    elements: dimensionScoresToWeights(s.elements, s.scores, dimensionId, flip),
-    isDirty: true
-  })),
-
-  // Writes each element's weight back as its score on a dimension (0–1), using
-  // the current Element range rather than a fixed domain.
-  // All elements are updated, even those not previously scored on this dimension.
-  // flip=true sends the current maximum to poleA and minimum to poleB;
-  // flip=false (default) sends the current minimum to poleA and maximum to poleB.
-  weightToDimension: (dimensionId, flip = false) => set((s) => {
-    return { scores: weightsToDimensionScores(s.elements, s.scores, dimensionId, flip), isDirty: true }
+  // Conversions batch-modify several slices at once, so they apply here as one
+  // update; an empty result changes nothing and leaves the study clean.
+  transform: (fn) => set((s) => {
+    const changes = fn(s)
+    return Object.keys(changes).length === 0 ? s : { ...changes, isDirty: true }
   }),
-
-  // Sets each element's color by interpolating between dimColorLow (score 0) and
-  // dimColorHigh (score 1), both read from the user's preferences at call time.
-  // Unscored elements are left unchanged.
-  dimensionToColor: (dimensionId, colorLow, colorHigh) => set((s) => {
-    const prefs = usePrefsStore.getState().prefs
-    const dimColorLow  = colorLow  ?? prefs.dimColorLow
-    const dimColorHigh = colorHigh ?? prefs.dimColorHigh
-
-    return {
-      elements: dimensionScoresToColors(s.elements, s.scores, dimensionId, dimColorLow, dimColorHigh),
-      isDirty: true
-    }
-  }),
-
-  // Copies each element's score from sourceDimId to targetDimId.
-  // Only elements that have a score on the source are updated; unscored elements
-  // keep their existing target score (or remain unscored on the target).
-  dimToDimScores: (sourceDimId, targetDimId) => set((s) => {
-    const newScores = { ...s.scores }
-    for (const el of s.elements) {
-      const score = newScores[el.id]?.[sourceDimId]
-      if (score !== undefined) {
-        newScores[el.id] = { ...newScores[el.id], [targetDimId]: score }
-      }
-    }
-    return { scores: newScores, isDirty: true }
-  }),
-
-  // Assigns a random score to every element on the chosen dimension.
-  // Useful for seeding a new dataset before manual scoring begins.
-  randomizeScores: (dimensionId) => set((s) => {
-    const newScores = { ...s.scores }
-    for (const el of s.elements) {
-      newScores[el.id] = { ...newScores[el.id], [dimensionId]: Math.random() }
-    }
-    return { scores: newScores, isDirty: true }
-  }),
-
-  // Rescales a dimension's existing scores so the lowest value maps to 0.05
-  // and the highest maps to 0.95, preserving relative spacing in between.
-  // Unscored elements are left unchanged. If every scored element has the
-  // same value, they're all set to 0.5 (no spread to derive a ratio from).
-  spreadDimensionScores: (dimensionId) => set((s) => {
-    const scores = spreadScores(s.elements, s.scores, dimensionId)
-    return scores === s.scores ? s : { scores, isDirty: true }
-  }),
-
-  randomizeElementWeights: () => set((s) => ({
-    elements: s.elements.map(el => ({ ...el, weight: randomWeight() })),
-    isDirty: true
-  })),
-
-  randomizeElementColors: () => set((s) => ({
-    elements: s.elements.map(el => ({ ...el, color: randomReadableColor() })),
-    isDirty: true
-  })),
-
-  randomizeDimensionWeights: () => set((s) => ({
-    dimensions: s.dimensions.map(dimension => ({
-      ...dimension,
-      weight: randomWeight()
-    })),
-    isDirty: true
-  })),
-
-  randomizeCollectionColors: () => set((s) => ({
-    collections: s.collections.map(collection => ({
-      ...collection,
-      color: randomReadableColor()
-    })),
-    isDirty: true
-  })),
-
-  randomizeElementShapes: () => set((s) => ({
-    elements: s.elements.map(element => ({
-      ...element,
-      shape: ELEMENT_SHAPES[Math.floor(Math.random() * ELEMENT_SHAPES.length)]
-    })),
-    isDirty: true
-  })),
-
-  randomizeCollectionAssignments: () => set((s) => ({
-    elements: s.elements.map(element => ({
-      ...element,
-      collectionIds: s.collections
-        .filter(() => Math.random() < 0.5)
-        .map(collection => collection.id)
-    })),
-    isDirty: true
-  })),
-
-  // Bakes collection color into each element's own color attribute: the even
-  // mix of every collection it belongs to, which is exactly what a map colored
-  // by collection draws live.
-  //
-  // Elements belonging to no collection keep the color they have: there is
-  // nothing to derive one from, and blanking them would destroy data the
-  // conversion was never asked about.
-  //
-  // This overwrites element colors irreversibly (the app has no undo), matching
-  // how the other → Element color conversions already behave.
-  collectionToElementColor: () => set((s) => ({
-    elements: s.elements.map(el => {
-      const color = mixCollectionColors(el, s.collections)
-      return color !== null ? { ...el, color } : el
-    }),
-    isDirty: true
-  })),
-
-  // Sets each element's shape from the first collection it belongs to,
-  // assigning shapes by collection order (circle, square, triangle, diamond,
-  // cycling). Elements in no collection are left unchanged.
-  //
-  // "First" is the tie-break a multi-collection element needs and membership no
-  // longer supplies: with binary membership there is no strongest collection to
-  // prefer, so this takes the earliest in the session's own ordering — the same
-  // order the shape sequence is assigned in, which keeps the mapping readable.
-  collectionToElementShape: () => set((s) => ({
-    elements: s.elements.map(el => {
-      const index = s.collections.findIndex(c => el.collectionIds.includes(c.id))
-      return index === -1
-        ? el
-        : { ...el, shape: ELEMENT_SHAPES[index % ELEMENT_SHAPES.length] }
-    }),
-    isDirty: true
-  })),
-
-  // Sets each element's color using the fixed shape-to-color mapping.
-  shapeToColor: () => set((s) => ({
-    elements: s.elements.map(el => ({ ...el, color: SHAPE_COLORS[el.shape] })),
-    isDirty: true
-  })),
-
-  // Sets each element's shape by mapping its color's hue to a shape bucket.
-  colorToShape: () => set((s) => ({
-    elements: s.elements.map(el => ({ ...el, shape: hueToShape(hexToHue(el.color)) })),
-    isDirty: true
-  })),
-
-  // Sets membership from each element's shape, mirroring
-  // collectionToElementShape: 1st collection=circle, 2nd=square, 3rd=triangle,
-  // 4th=diamond (cycling).
-  //
-  // Membership is replaced outright rather than added to, so the result reads
-  // straight off the shapes with no residue from whatever was assigned before.
-  // With more than four collections a shape matches every fourth one, so an
-  // element can come out of this in several at once.
-  shapeToCollection: () => set((s) => ({
-    elements: s.elements.map(el => {
-      const shapeIdx = ELEMENT_SHAPES.indexOf(el.shape)
-      return {
-        ...el,
-        collectionIds: s.collections
-          .filter((_, i) => i % ELEMENT_SHAPES.length === shapeIdx)
-          .map(c => c.id)
-      }
-    }),
-    isDirty: true
-  })),
 
   // ── Navigation ───────────────────────────────────────────────────────────────
 
@@ -599,8 +323,9 @@ export const useAppStore = create<AppStore>((set) => ({
 
   // Replaces the entire store state. Used by file open, import, and by
   // map windows when they receive a 'state:push' broadcast.
-  loadSession: (state) => set({ ...state }),
+  loadSession: (state) => set(s => ({ ...state, studyLoads: s.studyLoads + 1 })),
 
   // Resets to an empty session (File → New)
-  resetToEmpty: () => set({ ...emptyState, sessionMeta: defaultSessionMeta(), selectedElementIds: [] })
+  resetToEmpty: () => set(s => ({ ...emptyState, sessionMeta: defaultSessionMeta(), selectedElementIds: [], studyLoads: s.studyLoads + 1 })),
+  studyLoads: 0
 }))

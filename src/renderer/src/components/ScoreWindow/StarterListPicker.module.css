@@ -9,8 +9,8 @@
 }
 
 .dialog {
-  background: var(--color-surface-app);
-  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface-base);
+  border: 1px solid var(--color-border-control);
   border-radius: var(--radius-dialog);
   width: 416px;
   max-width: calc(100vw - 32px);
@@ -65,12 +65,12 @@
 }
 
 .catBtn:hover {
-  background: var(--color-disabled-wash);
+  background: var(--color-surface-hover);
 }
 
 .catBtnActive {
   background: var(--color-selection-strong) !important;
-  color: var(--color-selection-text);
+  color: var(--color-text-primary);
   font-weight: var(--font-weight-medium);
 }
 
@@ -82,7 +82,7 @@
   margin: 0;
   padding: var(--space-one) 0;
   overflow-y: auto;
-  background: var(--color-surface-field);
+  background: var(--color-surface-canvas);
 }
 
 .dimItem {
@@ -108,7 +108,7 @@
 }
 
 .dimChecked:hover {
-  background: var(--color-selection-soft-hover) !important;
+  background: var(--color-selection-soft) !important;
 }
 
 .check {
@@ -116,7 +116,7 @@
   width: 14px;
   text-align: center;
   flex-shrink: 0;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
 }
 
 .dimChecked .check,
@@ -125,7 +125,7 @@
 }
 
 .inSession .check {
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
 }
 
 .dimLabel {
@@ -146,5 +146,5 @@
 
 .hint {
   font-size: var(--font-size-label);
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
 }

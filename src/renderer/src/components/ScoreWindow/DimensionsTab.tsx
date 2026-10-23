@@ -10,23 +10,25 @@
 //   - Every deletion follows the global confirmDeleteData preference
 //   Escape dismisses the confirmation dialog.
 
-import { useRef, useState, useEffect, KeyboardEvent } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { useAppStore } from '../../store/appStore'
-import { history, SCORE_HISTORY_OWNER } from '../../store/history'
-import { useResizableSplitPane } from './useResizableSplitPane'
+import { historyField } from '../../store/historyBindings'
+import { hostCapabilities } from '../../lib/host'
 import styles from './DataTab.module.css'
-import { formatRange, numericRange, openWeight } from '../../lib/numericRange'
+import { formatRange, numericRange } from '../../lib/numericRange'
 import { ConfirmationDisc } from '../ConfirmationDisc'
-import { usePrefsStore } from '../../store/prefsStore'
+import { AddRow, WeightInput, listKeys, selectAllOnEntry, useConfirmedDelete, useDataViewLayout, useSelectFirstOnOpen } from './dataList'
 
 interface Props { onOpenStarterPicker: () => void }
 
 interface DimensionListLabelProps {
   poleA: string
   poleB: string
+  /** Break onto two lines, one pole each, when the label does not fit; otherwise shorten it with "…". */
+  wrap: boolean
 }
 
-function DimensionListLabel({ poleA, poleB }: DimensionListLabelProps): React.JSX.Element {
+function DimensionListLabel({ poleA, poleB, wrap }: DimensionListLabelProps): React.JSX.Element {
   const containerRef = useRef<HTMLSpanElement>(null)
   const measureRef = useRef<HTMLSpanElement>(null)
   const [isWrapped, setIsWrapped] = useState(false)
@@ -35,7 +37,7 @@ function DimensionListLabel({ poleA, poleB }: DimensionListLabelProps): React.JS
   useEffect(() => {
     const container = containerRef.current
     const measure = measureRef.current
-    if (!container || !measure) return
+    if (!wrap || !container || !measure) return
 
     const updateWrapping = (): void => {
       setIsWrapped(measure.scrollWidth > container.clientWidth)
@@ -46,7 +48,11 @@ function DimensionListLabel({ poleA, poleB }: DimensionListLabelProps): React.JS
     observer.observe(container)
     observer.observe(measure)
     return () => observer.disconnect()
-  }, [displayLabel])
+  }, [displayLabel, wrap])
+
+  if (!wrap) {
+    return <span className={`${styles.name} ${styles.dimensionName}`} title={displayLabel}>{displayLabel}</span>
+  }
 
   return (
     <span
@@ -74,27 +80,14 @@ export function DimensionsTab({ onOpenStarterPicker }: Props): React.JSX.Element
   const removeDimension = useAppStore(s => s.removeDimension)
   const selectDimension = useAppStore(s => s.selectDimension)
   const scores          = useAppStore(s => s.scores)
-  const confirmDeleteData = usePrefsStore(s => s.prefs.confirmDeleteData)
 
   const selected = dimensions.find(d => d.id === selectedId) ?? null
-  const [newLabel,       setNewLabel]       = useState('')
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
-  const addInputRef = useRef<HTMLInputElement>(null)
-  const splitPane = useResizableSplitPane()
+  useSelectFirstOnOpen(!!selected, dimensions[0]?.id, selectDimension)
+  const { stacked, splitPane, className } = useDataViewLayout()
+  const deletion = useConfirmedDelete(ids => { for (const id of ids) removeDimension(id) })
+  const confirmDeleteId = deletion.pendingIds[0] ?? null
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
-
-  function handleAdd(): void {
-    const label = newLabel.trim()
-    if (!label) return
-    addDimension(label)
-    setNewLabel('')
-    addInputRef.current?.focus()
-  }
-
-  function handleAddKeyDown(e: KeyboardEvent<HTMLInputElement>): void {
-    if (e.key === 'Enter') handleAdd()
-  }
 
   // Keep poleA, poleB, and label in sync: editing either pole rebuilds the label
   function handlePoleEdit(field: 'poleA' | 'poleB', value: string): void {
@@ -102,22 +95,6 @@ export function DimensionsTab({ onOpenStarterPicker }: Props): React.JSX.Element
     const poleA = field === 'poleA' ? value : selected.poleA
     const poleB = field === 'poleB' ? value : selected.poleB
     updateDimension(selected.id, { poleA, poleB, label: `${poleA}–${poleB}` })
-  }
-
-  function handleListKeyDown(e: KeyboardEvent<HTMLUListElement>): void {
-    if (!selectedId || dimensions.length === 0) return
-    const idx = dimensions.findIndex(d => d.id === selectedId)
-
-    if (e.key === 'ArrowDown' && idx < dimensions.length - 1) {
-      selectDimension(dimensions[idx + 1].id)
-      e.preventDefault()
-    } else if (e.key === 'ArrowUp' && idx > 0) {
-      selectDimension(dimensions[idx - 1].id)
-      e.preventDefault()
-    } else if (e.key === 'Backspace' || e.key === 'Delete') {
-      if (confirmDeleteData) setConfirmDeleteId(selectedId)
-      else removeDimension(selectedId)
-    }
   }
 
   const confirmDim = confirmDeleteId ? dimensions.find(d => d.id === confirmDeleteId) : null
@@ -129,17 +106,25 @@ export function DimensionsTab({ onOpenStarterPicker }: Props): React.JSX.Element
   // ── Render ────────────────────────────────────────────────────────────────────
 
   return (
-    <div className={styles.tab} ref={splitPane.containerRef} style={splitPane.containerStyle}>
+    <div className={className} ref={splitPane.containerRef} style={splitPane.containerStyle}>
       {/* ── List pane ── */}
       <div className={styles.listPane} style={splitPane.leftPaneStyle}>
-        <div className={styles.listHeader}>Dimensions ({dimensions.length})</div>
+        {/* The browser shows the count in Score's title instead. */}
+        {hostCapabilities().scoreChrome && (
+          <div className={styles.listHeader}>Dimensions ({dimensions.length})</div>
+        )}
 
         <div className={styles.listEditor}>
           {dimensions.length > 0 && (
             <ul
               className={styles.list}
               tabIndex={0}
-              onKeyDown={handleListKeyDown}
+              onKeyDown={listKeys({
+                ids: dimensions.map(d => d.id),
+                currentId: selectedId,
+                onStep: selectDimension,
+                onDelete: () => selectedId && deletion.request([selectedId])
+              })}
               aria-label="Dimensions"
             >
               {dimensions.map(dim => (
@@ -148,21 +133,13 @@ export function DimensionsTab({ onOpenStarterPicker }: Props): React.JSX.Element
                   className={`${styles.listItem} ${dim.id === selectedId ? styles.selected : ''}`}
                   onClick={() => selectDimension(dim.id)}
                 >
-                  <DimensionListLabel poleA={dim.poleA} poleB={dim.poleB} />
+                  <DimensionListLabel poleA={dim.poleA} poleB={dim.poleB} wrap={!stacked} />
                 </li>
               ))}
             </ul>
           )}
 
-          <div className={styles.addRow}>
-            <input
-              ref={addInputRef}
-              className={styles.addInput}
-              placeholder="New dimension (e.g. Hot–Cold)…"
-              value={newLabel}
-              onChange={e => setNewLabel(e.target.value)}
-              onKeyDown={handleAddKeyDown}
-            />
+          <AddRow placeholder="New dimension (e.g. Hot–Cold)…" focusOnOpen={dimensions.length === 0} onAdd={addDimension}>
             <button
               className={styles.starterBtn}
               onClick={onOpenStarterPicker}
@@ -170,7 +147,7 @@ export function DimensionsTab({ onOpenStarterPicker }: Props): React.JSX.Element
             >
               ⋯
             </button>
-          </div>
+          </AddRow>
         </div>
       </div>
 
@@ -187,6 +164,7 @@ export function DimensionsTab({ onOpenStarterPicker }: Props): React.JSX.Element
             className={styles.poleInput}
             defaultValue={selected?.poleA ?? ''}
             disabled={!selected}
+            {...(stacked ? selectAllOnEntry : {})}
             onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Tab') e.currentTarget.blur() }}
             onBlur={e => {
               const v = e.target.value.trim()
@@ -201,6 +179,7 @@ export function DimensionsTab({ onOpenStarterPicker }: Props): React.JSX.Element
             className={styles.poleInput}
             defaultValue={selected?.poleB ?? ''}
             disabled={!selected}
+            {...(stacked ? selectAllOnEntry : {})}
             onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Tab') e.currentTarget.blur() }}
             onBlur={e => {
               const v = e.target.value.trim()
@@ -210,17 +189,12 @@ export function DimensionsTab({ onOpenStarterPicker }: Props): React.JSX.Element
         </div>
         <div className={styles.fieldRow}>
           <label className={styles.label}>Weight</label>
-          <input
-            key={`weight-${selected?.id ?? 'none'}`}
-            className={styles.weightInput}
-            type="number"
-            min={0}
-            defaultValue={selected?.weight ?? 1}
+          <WeightInput
+            key={`weight-${selected?.id ?? 'none'}-${selected?.weight ?? 1}`}
+            weight={selected?.weight ?? 1}
             disabled={!selected}
-            onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur() }}
-            onBlur={e => selected && updateDimension(selected.id, {
-              weight: openWeight(Number(e.target.value))
-            })}
+            wholeNumbers={stacked}
+            onCommit={weight => { if (selected) updateDimension(selected.id, { weight }) }}
           />
           <span className={styles.range}>{formatRange(weightRange)}</span>
         </div>
@@ -229,12 +203,7 @@ export function DimensionsTab({ onOpenStarterPicker }: Props): React.JSX.Element
           placeholder="Definition…"
           value={selected?.definition ?? ''}
           disabled={!selected}
-          onFocus={() => history.begin(SCORE_HISTORY_OWNER)}
-          onBlur={() => history.end(SCORE_HISTORY_OWNER)}
-          onChange={e => {
-            history.begin(SCORE_HISTORY_OWNER)
-            if (selected) updateDimension(selected.id, { definition: e.target.value })
-          }}
+          {...historyField(value => { if (selected) updateDimension(selected.id, { definition: value }) })}
         />
       </div>
 
@@ -244,8 +213,8 @@ export function DimensionsTab({ onOpenStarterPicker }: Props): React.JSX.Element
           title={<>Delete <strong>{confirmDim.label}</strong>?</>}
           detail={confirmDimHasScores ? 'Its scores will be lost.' : 'This cannot be undone.'}
           actionLabel="Delete"
-          onCancel={() => setConfirmDeleteId(null)}
-          onAction={() => { removeDimension(confirmDeleteId!); setConfirmDeleteId(null) }}
+          onCancel={deletion.cancel}
+          onAction={deletion.confirm}
         />
       )}
     </div>

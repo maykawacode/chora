@@ -169,12 +169,6 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('prefs:load', () => loadPreferences())
 
-  // Synchronous read of the cached preferences — used by the preload to give
-  // the renderer instant access to prefs before any async IPC roundtrip
-  ipcMain.on('prefs:get-sync', (event) => {
-    event.returnValue = getCachedPreferences()
-  })
-
   ipcMain.on('prefs:save', (_event, prefs: unknown) => {
     // Preserve mainWindow bounds — the renderer never receives updates to these
     // fields after startup, so its copy is always stale. Always take them from

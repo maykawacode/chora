@@ -1,6 +1,7 @@
 // ── PreferencesDialog ─────────────────────────────────────────────────────────
 //
 // Modal dialog for editing user preferences. Opened via Cmd+, or the app menu.
+// The sections are shared with the browser's Settings panel (web/SettingsPopup).
 //
 // Uses a local `draft` copy of the preferences so the user can cancel without
 // committing any changes. On Save, the draft is written to both the Zustand
@@ -9,9 +10,10 @@
 import { useState } from 'react'
 import { usePrefsStore } from '../store/prefsStore'
 import { DEFAULT_PREFERENCES, type Preferences } from '../lib/preferences'
-import type { ElementShape, MarkMode } from '../lib/types'
+import { ELEMENT_SHAPES } from '../lib/types'
 import { ForwardActionButton } from './ConfirmationDisc'
 import { ModalShell } from './ModalShell'
+import { hostCapabilities } from '../lib/host'
 import styles from './PreferencesDialog.module.css'
 
 interface Props { onClose: () => void }
@@ -21,10 +23,6 @@ export function PreferencesDialog({ onClose }: Props): React.JSX.Element {
   // Work on a draft so Cancel discards all changes
   const [draft, setDraft] = useState<Preferences>({ ...prefs })
   const [isCancelling, setIsCancelling] = useState(false)
-
-  function toggle(key: keyof Preferences): void {
-    setDraft(d => ({ ...d, [key]: !d[key] }))
-  }
 
   function handleSave(): void {
     // The draft was copied when this dialog opened, so it can be stale for
@@ -52,19 +50,7 @@ export function PreferencesDialog({ onClose }: Props): React.JSX.Element {
   }
 
   function restoreDefaults(): void {
-    setDraft(current => ({
-      ...DEFAULT_PREFERENCES,
-      // These values are application state rather than choices shown in this
-      // screen. Restoring defaults must not forget the last document, move the
-      // main window, or bring back a notice the user has already dismissed,
-      // the next time Settings is saved.
-      lastFilePath: current.lastFilePath,
-      dismissedNoticeId: current.dismissedNoticeId,
-      mainWindowX: current.mainWindowX,
-      mainWindowY: current.mainWindowY,
-      mainWindowWidth: current.mainWindowWidth,
-      mainWindowHeight: current.mainWindowHeight
-    }))
+    setDraft(withDefaults)
   }
 
   return (
@@ -83,153 +69,7 @@ export function PreferencesDialog({ onClose }: Props): React.JSX.Element {
       </header>
 
       <div className={styles.content}>
-        <div className={styles.settingsGrid}>
-          <section className={styles.section} aria-labelledby="preferences-startup">
-            <h3 className={styles.sectionTitle} id="preferences-startup">Startup &amp; Windows</h3>
-            <label className={styles.row}>
-              <input type="checkbox" checked={draft.reopenLastFile}
-                onChange={() => toggle('reopenLastFile')} />
-              <span>Reopen last file on startup</span>
-            </label>
-            {draft.lastFilePath && (
-              <div className={styles.lastFile} title={draft.lastFilePath}>
-                Last: {draft.lastFilePath.split('/').pop()}
-              </div>
-            )}
-            <label className={styles.row}>
-              <input type="checkbox" checked={draft.rememberWindowPositions}
-                onChange={() => toggle('rememberWindowPositions')} />
-              <span>Remember window positions</span>
-            </label>
-            <label className={styles.row}>
-              <input type="checkbox" checked={draft.checkForUpdatesOnLaunch}
-                onChange={() => toggle('checkForUpdatesOnLaunch')} />
-              <span>Check for updates on launch</span>
-            </label>
-          </section>
-
-          <section className={styles.section} aria-labelledby="preferences-new-maps">
-            <h3 className={styles.sectionTitle} id="preferences-new-maps">New Maps</h3>
-            <label className={styles.row}>
-              <span>Marks</span>
-              <select
-                className={styles.selectInput}
-                value={draft.defaultMarks}
-                onChange={e => setDraft(d => ({ ...d, defaultMarks: e.target.value as MarkMode }))}
-              >
-                <option value="none">none</option>
-                <option value="circle">circles</option>
-                <option value="element">by element</option>
-              </select>
-            </label>
-            <label className={styles.row}>
-              <input type="checkbox" checked={draft.defaultShowLabels}
-                onChange={() => toggle('defaultShowLabels')} />
-              <span>Show labels by default</span>
-            </label>
-          </section>
-
-          <section className={styles.section} aria-labelledby="preferences-elements">
-            <h3 className={styles.sectionTitle} id="preferences-elements">Elements</h3>
-            <label className={styles.row}>
-              <span>Default color</span>
-              <input
-                type="color"
-                className={styles.colorInput}
-                value={draft.defaultElementColor}
-                onChange={e => setDraft(d => ({ ...d, defaultElementColor: e.target.value }))}
-              />
-            </label>
-            <label className={styles.row}>
-              <span>Default shape</span>
-              <select
-                className={styles.selectInput}
-                value={draft.defaultElementShape}
-                onChange={e => setDraft(d => ({ ...d, defaultElementShape: e.target.value as ElementShape }))}
-              >
-                <option value="circle">circle</option>
-                <option value="square">square</option>
-                <option value="triangle">triangle</option>
-                <option value="diamond">diamond</option>
-              </select>
-            </label>
-          </section>
-
-          <section className={styles.section} aria-labelledby="preferences-data">
-            <h3 className={styles.sectionTitle} id="preferences-data">Data</h3>
-            <label className={styles.row}>
-              <input type="checkbox" checked={draft.confirmDeleteData}
-                onChange={() => toggle('confirmDeleteData')} />
-              <span>Confirm before deleting any data (elements, dimensions, collections)</span>
-            </label>
-          </section>
-
-          <section className={styles.section} aria-labelledby="preferences-labels">
-            <h3 className={styles.sectionTitle} id="preferences-labels">Map Labels &amp; Marks</h3>
-            <label className={styles.row}>
-              <span>Element labels</span>
-              <span className={styles.sizeControl}>
-                <input
-                  type="number"
-                  className={styles.sizeInput}
-                  min={8} max={24} step={1}
-                  value={draft.elementLabelSize}
-                  onChange={e => setDraft(d => ({ ...d, elementLabelSize: Math.max(8, Math.min(24, +e.target.value || DEFAULT_PREFERENCES.elementLabelSize)) }))}
-                />
-                <span className={styles.sizeUnit}>px</span>
-              </span>
-            </label>
-            <label className={styles.row}>
-              <span>Dimension labels</span>
-              <span className={styles.sizeControl}>
-                <input
-                  type="number"
-                  className={styles.sizeInput}
-                  min={8} max={24} step={1}
-                  value={draft.dimensionLabelSize}
-                  onChange={e => setDraft(d => ({ ...d, dimensionLabelSize: Math.max(8, Math.min(24, +e.target.value || DEFAULT_PREFERENCES.dimensionLabelSize)) }))}
-                />
-                <span className={styles.sizeUnit}>px</span>
-              </span>
-            </label>
-            <label className={styles.row}>
-              <span>Default mark radius</span>
-              <span className={styles.sizeControl}>
-                <input
-                  type="number"
-                  className={styles.sizeInput}
-                  min={3} max={16} step={1}
-                  value={draft.dotDefaultSize}
-                  onChange={e => setDraft(d => ({ ...d, dotDefaultSize: Math.max(3, Math.min(16, +e.target.value || DEFAULT_PREFERENCES.dotDefaultSize)) }))}
-                />
-                <span className={styles.sizeUnit}>px</span>
-              </span>
-            </label>
-          </section>
-
-          <section className={styles.section} aria-labelledby="preferences-dimension-color">
-            <h3 className={styles.sectionTitle} id="preferences-dimension-color">Dimension-to-color Gradient</h3>
-            <label className={styles.row}>
-              <span>Low end</span>
-              <input
-                type="color"
-                className={styles.colorInput}
-                value={draft.dimColorLow}
-                onChange={e => setDraft(d => ({ ...d, dimColorLow: e.target.value }))}
-              />
-            </label>
-            <label className={styles.row}>
-              <span>High end</span>
-              <input
-                type="color"
-                className={styles.colorInput}
-                value={draft.dimColorHigh}
-                onChange={e => setDraft(d => ({ ...d, dimColorHigh: e.target.value }))}
-              />
-            </label>
-          </section>
-
-        </div>
+        <SettingsSections values={draft} update={setDraft} />
       </div>
 
       <footer className={styles.buttons}>
@@ -252,5 +92,168 @@ export function PreferencesDialog({ onClose }: Props): React.JSX.Element {
         </div>
       </footer>
     </ModalShell>
+  )
+}
+
+/**
+ * Defaults for every choice shown in Settings. Application state kept in the
+ * same record is preserved: restoring defaults must not forget the last
+ * document, move the main window, or bring back a notice the user has already
+ * dismissed.
+ */
+export function withDefaults(current: Preferences): Preferences {
+  return {
+    ...DEFAULT_PREFERENCES,
+    lastFilePath: current.lastFilePath,
+    dismissedNoticeId: current.dismissedNoticeId,
+    mainWindowX: current.mainWindowX,
+    mainWindowY: current.mainWindowY,
+    mainWindowWidth: current.mainWindowWidth,
+    mainWindowHeight: current.mainWindowHeight
+  }
+}
+
+// ── Settings table ────────────────────────────────────────────────────────────
+//
+// Every choice Settings offers, by section. A new setting is one row here.
+
+type KeysOf<V> = { [K in keyof Preferences]: Preferences[K] extends V ? K : never }[keyof Preferences]
+
+type Setting =
+  | { kind: 'check'; key: KeysOf<boolean>; label: string }
+  | { kind: 'color'; key: KeysOf<string>; label: string }
+  | { kind: 'size'; key: KeysOf<number>; label: string; min: number; max: number }
+  | { kind: 'select'; key: 'defaultMarks' | 'defaultElementShape'; label: string; options: [value: string, label: string][] }
+  /** The file "Reopen last file" would open, when there is one. */
+  | { kind: 'lastFile' }
+
+interface SettingsSection {
+  id: string
+  title: string
+  /** Startup and window choices, shown where the host offers them. */
+  startup?: boolean
+  settings: Setting[]
+}
+
+const SETTINGS: SettingsSection[] = [
+  {
+    id: 'startup', title: 'Startup & Windows', startup: true,
+    settings: [
+      { kind: 'check', key: 'reopenLastFile', label: 'Reopen last file on startup' },
+      { kind: 'lastFile' },
+      { kind: 'check', key: 'rememberWindowPositions', label: 'Remember window positions' },
+      { kind: 'check', key: 'checkForUpdatesOnLaunch', label: 'Check for updates on launch' }
+    ]
+  },
+  {
+    id: 'new-maps', title: 'New Maps',
+    settings: [
+      { kind: 'select', key: 'defaultMarks', label: 'Marks',
+        options: [['none', 'none'], ['circle', 'circles'], ['element', 'by element']] },
+      { kind: 'check', key: 'defaultShowLabels', label: 'Show labels by default' }
+    ]
+  },
+  {
+    id: 'elements', title: 'Elements',
+    settings: [
+      { kind: 'color', key: 'defaultElementColor', label: 'Default color' },
+      { kind: 'select', key: 'defaultElementShape', label: 'Default shape',
+        options: ELEMENT_SHAPES.map(shape => [shape, shape]) }
+    ]
+  },
+  {
+    id: 'data', title: 'Data',
+    settings: [
+      { kind: 'check', key: 'confirmDeleteData', label: 'Confirm before deleting any data (elements, dimensions, collections)' }
+    ]
+  },
+  {
+    id: 'labels', title: 'Map Labels & Marks',
+    settings: [
+      { kind: 'size', key: 'elementLabelSize', label: 'Element labels', min: 8, max: 24 },
+      { kind: 'size', key: 'dimensionLabelSize', label: 'Dimension labels', min: 8, max: 24 },
+      { kind: 'size', key: 'dotDefaultSize', label: 'Default mark radius', min: 3, max: 16 }
+    ]
+  },
+  {
+    id: 'dimension-color', title: 'Dimension-to-color Gradient',
+    settings: [
+      { kind: 'color', key: 'dimColorLow', label: 'Low end' },
+      { kind: 'color', key: 'dimColorHigh', label: 'High end' }
+    ]
+  }
+]
+
+/**
+ * The Settings sections, shared by the desktop dialog (which edits a draft)
+ * and the browser's Settings panel (which applies each change at once).
+ */
+export function SettingsSections({ values, update }: {
+  values: Preferences
+  update: (change: (prefs: Preferences) => Preferences) => void
+}): React.JSX.Element {
+  const set = <K extends keyof Preferences>(key: K, value: Preferences[K]): void =>
+    update(d => ({ ...d, [key]: value }))
+  const { startupSettings } = hostCapabilities()
+
+  function row(setting: Setting): React.JSX.Element | null {
+    switch (setting.kind) {
+      case 'check':
+        return (
+          <label key={setting.key} className={styles.row}>
+            <input type="checkbox" checked={values[setting.key]}
+              onChange={() => update(d => ({ ...d, [setting.key]: !d[setting.key] }))} />
+            <span>{setting.label}</span>
+          </label>
+        )
+      case 'color':
+        return (
+          <label key={setting.key} className={styles.row}>
+            <span>{setting.label}</span>
+            <input type="color" className={styles.colorInput} value={values[setting.key]}
+              onChange={e => set(setting.key, e.target.value)} />
+          </label>
+        )
+      case 'size': {
+        const { key, min, max } = setting
+        return (
+          <label key={key} className={styles.row}>
+            <span>{setting.label}</span>
+            <span className={styles.sizeControl}>
+              <input type="number" className={styles.sizeInput} min={min} max={max} step={1} value={values[key]}
+                onChange={e => set(key, Math.max(min, Math.min(max, +e.target.value || DEFAULT_PREFERENCES[key])))} />
+              <span className={styles.sizeUnit}>px</span>
+            </span>
+          </label>
+        )
+      }
+      case 'select':
+        return (
+          <label key={setting.key} className={styles.row}>
+            <span>{setting.label}</span>
+            <select className={styles.selectInput} value={values[setting.key]}
+              onChange={e => update(d => ({ ...d, [setting.key]: e.target.value }))}>
+              {setting.options.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            </select>
+          </label>
+        )
+      case 'lastFile':
+        return values.lastFilePath ? (
+          <div key="lastFile" className={styles.lastFile} title={values.lastFilePath}>
+            Last: {values.lastFilePath.split('/').pop()}
+          </div>
+        ) : null
+    }
+  }
+
+  return (
+    <div className={styles.settingsGrid}>
+      {SETTINGS.filter(section => startupSettings || !section.startup).map(section => (
+        <section key={section.id} className={styles.section} aria-labelledby={`preferences-${section.id}`}>
+          <h3 className={styles.sectionTitle} id={`preferences-${section.id}`}>{section.title}</h3>
+          {section.settings.map(row)}
+        </section>
+      ))}
+    </div>
   )
 }

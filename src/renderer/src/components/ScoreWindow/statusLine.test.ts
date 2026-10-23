@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { AppState, Collection, Dimension, Element } from '../../lib/types'
-import { STATUS_MESSAGES } from './statusMessages'
-import { resolveStatusMessage } from './statusRules'
+import { STATUS_MESSAGES, resolveStatusMessage } from './statusLine'
 
 type StatusState = Parameters<typeof resolveStatusMessage>[0]
 

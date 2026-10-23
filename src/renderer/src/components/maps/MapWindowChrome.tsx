@@ -1,4 +1,6 @@
-import { useRef, useState } from 'react'
+import { useContext, useRef, useState } from 'react'
+import { MapHostContext } from './mapHost'
+import type { MapWindowAction } from '../../../../shared/contracts'
 import styles from './MapPanel.module.css'
 
 interface Props {
@@ -10,7 +12,8 @@ interface Props {
   onToggleSidebar: () => void
 }
 
-type MapWindowAction = 'close' | 'minimize' | 'zoom'
+const CLOSE_GLYPH = 'M3.5 3.5 8.5 8.5M8.5 3.5 3.5 8.5'
+const ZOOM_GLYPH = 'M3 6h6M6 3v6'
 
 interface MapChromeButtonProps {
   action: MapWindowAction
@@ -19,10 +22,11 @@ interface MapChromeButtonProps {
 }
 
 function MapChromeButton({ action, label, glyph }: MapChromeButtonProps): React.JSX.Element {
+  const host = useContext(MapHostContext)
   return (
     <button
       className={styles.windowControl}
-      onClick={() => window.api.controlMapWindow(action)}
+      onClick={() => host ? host.control(action) : window.api.controlMapWindow(action)}
       title={label}
       aria-label={`${label} window`}
     >
@@ -36,7 +40,7 @@ function MapChromeButton({ action, label, glyph }: MapChromeButtonProps): React.
   )
 }
 
-export function SidebarToggle({ open, onToggle }: { open: boolean; onToggle: () => void }): React.JSX.Element {
+function SidebarToggle({ open, onToggle }: { open: boolean; onToggle: () => void }): React.JSX.Element {
   const label = open ? 'Hide map controls' : 'Show map controls'
   return (
     <button
@@ -64,6 +68,11 @@ export function MapWindowChrome({
   onRename,
   onToggleSidebar
 }: Props): React.JSX.Element {
+  const host = useContext(MapHostContext)
+  // A browser tile groups Close and Zoom with the panel toggle at the top right
+  // and leaves the file name and Unsaved badge to the page banner; a desktop
+  // map window keeps its controls on the left, as macOS places them.
+  const inTile = host !== null
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
@@ -82,12 +91,18 @@ export function MapWindowChrome({
 
   return (
     <>
-      <div className={styles.titleBar}>
-        <div className={styles.windowControls} aria-label="Window controls">
-          <MapChromeButton action="close" label="Close" glyph="M3.5 3.5 8.5 8.5M8.5 3.5 3.5 8.5" />
-          <MapChromeButton action="minimize" label="Minimize" glyph="M3 6h6" />
-          <MapChromeButton action="zoom" label="Zoom" glyph="M3 6h6M6 3v6" />
-        </div>
+      <div
+        className={`${styles.titleBar} ${inTile ? styles.titleBarTile : ''}`}
+        data-movable={host?.beginTileMove ? '' : undefined}
+        onPointerDown={host?.beginTileMove}
+      >
+        {!inTile && (
+          <div className={styles.windowControls} aria-label="Window controls">
+            <MapChromeButton action="close" label="Close" glyph={CLOSE_GLYPH} />
+            <MapChromeButton action="minimize" label="Minimize" glyph="M3 6h6" />
+            <MapChromeButton action="zoom" label="Zoom" glyph={ZOOM_GLYPH} />
+          </div>
+        )}
 
         <div className={styles.titleGroup}>
           {editing ? (
@@ -107,12 +122,18 @@ export function MapWindowChrome({
               {title}
             </span>
           )}
-          {isDirty && <span className="unsavedBadge">Unsaved</span>}
-          {!editing && filePath && <span className={styles.titleFileName}>{filePath.split('/').pop()}</span>}
+          {isDirty && !inTile && <span className="unsavedBadge">Unsaved</span>}
+          {!editing && filePath && !inTile && <span className={styles.titleFileName}>{filePath.split('/').pop()}</span>}
         </div>
       </div>
 
       <div className={styles.windowedSidebarToggle}>
+        {host && (
+          <>
+            <MapChromeButton action="close" label="Close" glyph={CLOSE_GLYPH} />
+            <MapChromeButton action="zoom" label={host.zoomLabel} glyph={ZOOM_GLYPH} />
+          </>
+        )}
         <SidebarToggle open={sidebarOpen} onToggle={onToggleSidebar} />
       </div>
     </>

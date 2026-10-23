@@ -54,7 +54,7 @@
 }
 
 .listHeaderBtn:hover {
-  background: var(--color-surface-chrome);
+  background: var(--color-surface-hover);
   color: var(--color-text-primary);
 }
 
@@ -64,7 +64,7 @@
   font-weight: var(--font-weight-medium);
   letter-spacing: 0;
   text-transform: none;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   background: var(--color-surface-chrome-strong);
   border-radius: var(--radius-small);
   padding: 1px var(--space-one);
@@ -91,7 +91,7 @@
 }
 
 .listItem:hover {
-  background: var(--color-surface-chrome);
+  background: var(--color-surface-hover);
 }
 
 /* Two levels of highlight. .multiSelected marks every row in a multi-selection;
@@ -100,7 +100,7 @@
    land on it — the !important is what keeps the anchor distinguishable there. */
 .selected {
   background: var(--color-selection-strong) !important;
-  color: var(--color-selection-text);
+  color: var(--color-text-primary);
 }
 
 .multiSelected {
@@ -111,7 +111,7 @@
 /* .listItem:hover outranks .multiSelected on specificity alone and would grey
    out a highlighted row on the way past. Darken instead of dropping the tint. */
 .listItem.multiSelected:hover {
-  background: var(--color-selection-soft-hover);
+  background: var(--color-selection-soft);
 }
 
 .shapeIcon {
@@ -149,7 +149,7 @@
   white-space: normal;
   overflow: visible;
   text-overflow: unset;
-  background: var(--color-white-wash);
+  background: var(--color-surface-text-field);
   border-radius: var(--radius-subtle);
   padding: 0 2px;
 }
@@ -204,19 +204,14 @@
   min-width: 0;
   min-height: var(--size-control);
   padding: var(--space-one) var(--space-two);
-  border: 1px solid var(--color-border-control);
+  border: 1px solid transparent; /* shown on focus */
   border-radius: var(--radius-control);
-  background: var(--color-surface-field);
+  background: var(--color-surface-text-field);
   color: var(--color-text-primary);
   font-size: var(--font-size-control);
   font-family: inherit;
 }
 
-.addInput:focus {
-  outline: none;
-  border-color: var(--color-focus);
-  box-shadow: 0 0 0 2px var(--color-focus-ring);
-}
 
 .starterBtn {
   width: var(--size-control);
@@ -283,6 +278,12 @@
   overflow-y: auto;
 }
 
+/* Without the list header (browser: the count is in Score's title), the
+   details start level with the list's first row instead of one line lower. */
+:global([data-list-headers="hidden"]) .detailPane {
+  padding-top: var(--space-two);
+}
+
 .detailPane > * {
   max-width: 100%;
   min-width: 0;
@@ -327,7 +328,7 @@
   height: 22px;
   border: 1px solid var(--color-border-control);
   border-radius: var(--radius-small);
-  background: var(--color-surface-hover);
+  background: var(--color-surface-chrome);
   cursor: pointer;
   font-size: var(--font-size-body);
   display: flex;
@@ -340,7 +341,7 @@
 }
 
 .shapeBtn:hover:not(:disabled) {
-  background: var(--color-surface-chrome-strong);
+  background: var(--color-surface-hover);
 }
 
 .shapeBtn:disabled {
@@ -351,7 +352,7 @@
 .shapeBtnActive {
   background: var(--color-selection-strong) !important;
   border-color: var(--color-selection-strong);
-  color: var(--color-selection-text);
+  color: var(--color-text-primary);
 }
 
 /* Collection color marker in the Collections tab list. */
@@ -368,11 +369,11 @@
   max-width: 100%;
   min-width: 0;
   height: 22px;
-  border: 1px solid var(--color-border-control);
+  border: 1px solid transparent; /* shown on focus */
   border-radius: var(--radius-control);
   padding: 1px 2px;
   cursor: pointer;
-  background: var(--color-surface-field);
+  background: var(--color-surface-text-field);
 }
 
 .colorInput:disabled {
@@ -386,18 +387,14 @@
   min-width: 0;
   min-height: var(--size-control);
   padding: 3px var(--space-one);
-  border: 1px solid var(--color-border-control);
+  border: 1px solid transparent; /* shown on focus */
   border-radius: var(--radius-control);
-  background: var(--color-surface-field);
+  background: var(--color-surface-text-field);
   color: var(--color-text-primary);
   font-size: var(--font-size-control);
   font-family: inherit;
 }
 
-.poleInput:focus {
-  outline: none;
-  border-color: var(--color-focus);
-}
 
 .poleInput:disabled {
   background: var(--color-surface-disabled);
@@ -410,18 +407,14 @@
   min-width: 0;
   min-height: var(--size-control);
   padding: 3px var(--space-one);
-  border: 1px solid var(--color-border-control);
+  border: 1px solid transparent; /* shown on focus */
   border-radius: var(--radius-control);
-  background: var(--color-surface-field);
+  background: var(--color-surface-text-field);
   color: var(--color-text-primary);
   font-size: var(--font-size-control);
   font-family: inherit;
 }
 
-.weightInput:focus {
-  outline: none;
-  border-color: var(--color-focus);
-}
 
 .weightInput:disabled {
   background: var(--color-surface-disabled);
@@ -429,7 +422,7 @@
 }
 
 .range {
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   font-size: var(--font-size-label);
   font-variant-numeric: tabular-nums;
 }
@@ -441,21 +434,49 @@
   min-width: 0;
   height: 160px;
   resize: none;
-  border: 1px solid var(--color-border-control);
+  border: 1px solid transparent; /* shown on focus */
   border-radius: var(--radius-control);
   padding: var(--space-one);
   font-size: var(--font-size-control);
   font-family: inherit;
-  background: var(--color-surface-field);
+  background: var(--color-surface-text-field);
   color: var(--color-text-primary);
 }
 
-.description:focus {
-  outline: none;
-  border-color: var(--color-focus);
-}
 
 .description:disabled {
   background: var(--color-surface-disabled);
   color: var(--color-text-disabled);
+}
+
+/* ── Stacked views (browser; useDataViewLayout) ─────────────────────────────
+   The detail sits below the list at every width, so the view can be as
+   narrow as a side panel. Nothing scrolls sideways: list names stay on one
+   line and end in "…" (the full name is the row's tooltip). */
+
+.stacked .listEditor {
+  overflow-x: hidden;
+}
+
+.stacked .name {
+  white-space: nowrap;
+  overflow: hidden;
+  overflow-wrap: normal;
+  text-overflow: ellipsis;
+}
+
+/* Fields start 10px nearer their labels: a 43px column (still clear of
+   "Weight") and 5px taken from the row's gap after it. */
+.stacked .label {
+  width: 43px;
+  margin-right: -5px;
+}
+
+/* The definition takes whatever height the detail has left, rather than a
+   fixed 160px that runs past the bottom of a short window. Below about three
+   lines it stops shrinking and the detail scrolls instead. */
+.stacked .description {
+  flex: 1 1 0;
+  height: auto;
+  min-height: 56px;
 }

@@ -1,14 +1,18 @@
+/* Everything shrinks with the view and nothing scrolls sideways: headings and
+   labels stay on one line and end in "…", the dropdowns shorten their chosen
+   option, and result texts wrap. */
 .tab {
   display: flex;
   flex-direction: column;
   flex: 1;
   min-height: 0;
+  overflow-x: hidden;
   overflow-y: auto;
   padding: var(--space-four);
   gap: var(--space-four);
 }
 
-/* ── Conversion groups ───────────────────────────────────────────────────── */
+/* ── Groups and fields ───────────────────────────────────────────────────── */
 
 .group {
   display: flex;
@@ -23,51 +27,98 @@
   color: var(--color-text-secondary);
 }
 
-.groupBody {
+/* Each group's one field: its steps, then the result, each a step apart. */
+.field {
   display: flex;
   flex-direction: column;
-}
-
-/* ── FROM / TO sections ──────────────────────────────────────────────────── */
-
-.section {
-  background: var(--color-surface-field);
+  gap: var(--space-five);
+  background: var(--color-surface-canvas);
   border: 1px solid var(--color-border-control);
   border-radius: var(--radius-control);
   padding: var(--space-three);
+}
+
+/* ── Steps ───────────────────────────────────────────────────────────────────
+   Each step's label sits at the field's left edge with its choices indented
+   beside a thin arrow that runs from under the label down to the top of the
+   next step: FROM to TO, and TO to the result. */
+
+.step {
   display: flex;
   flex-direction: column;
   gap: var(--space-two);
 }
 
-.sectionLabel {
+.stepLabel {
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-semibold);
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.08em;
+}
+
+.stepBody {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-two);
+  padding-left: 20px; /* raw: indent beside the flow arrows */
+}
+
+/* The line, ending at the next step's first letter, one field gap below. */
+.flowDown::before {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 2px;
+  bottom: calc(2px - var(--space-five));
+  border-left: 1px solid var(--color-text-secondary);
+}
+
+/* Its arrowhead. */
+.flowDown::after {
+  content: '';
+  position: absolute;
+  left: 1px;
+  bottom: calc(3px - var(--space-five));
+  width: 5px;
+  height: 5px;
+  border-right: 1px solid var(--color-text-secondary);
+  border-bottom: 1px solid var(--color-text-secondary);
+  transform: rotate(45deg);
+}
+
+.groupTitle,
+.stepLabel,
+.subLabel {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ── Dropdowns ───────────────────────────────────────────────────────────── */
 
 .select {
   width: 100%;
+  min-width: 0;
   padding: var(--space-one) var(--space-two);
   min-height: var(--size-control);
-  border: 1px solid var(--color-border-control);
+  border: 1px solid transparent; /* shown on focus */
   border-radius: var(--radius-control);
-  background: var(--color-surface-raised);
+  background: var(--color-surface-chrome);
   font-family: inherit;
   font-size: var(--font-size-body);
   color: var(--color-text-primary);
+  text-overflow: ellipsis;
 }
 
 .select:disabled {
   color: var(--color-text-disabled);
-  background: var(--color-surface-disabled);
+  background: var(--color-surface-base);
 }
 
-/* ── Sub-controls (nested pickers, pole toggle) ──────────────────────────── */
+/* ── Nested choices (dimension pickers, pole toggle) ─────────────────────── */
 
 .subControl {
   display: flex;
@@ -81,22 +132,13 @@
   color: var(--color-text-secondary);
 }
 
-/* ── Descriptors and hints ───────────────────────────────────────────────── */
-
-.descriptor {
-  font-size: var(--font-size-control);
-  color: var(--color-text-secondary);
-  margin: 0;
-  font-style: italic;
-}
-
 .hint {
   font-size: var(--font-size-control);
   color: var(--color-warning-text);
   margin: 0;
 }
 
-/* ── Color pickers (dim → element color) ────────────────────────────────── */
+/* ── Color pickers (dimension scores → element color) ────────────────────── */
 
 .colorRow {
   display: flex;
@@ -105,8 +147,10 @@
 
 .colorField {
   display: flex;
+  flex: 1 1 0;
   flex-direction: column;
   gap: var(--space-one);
+  min-width: 0;
   cursor: pointer;
 }
 
@@ -114,21 +158,10 @@
   width: 56px;
   height: 28px;
   padding: 1px 2px;
-  border: 1px solid var(--color-border-control);
+  border: 1px solid transparent; /* shown on focus */
   border-radius: var(--radius-control);
-  background: var(--color-surface-field);
+  background: var(--color-surface-chrome);
   cursor: pointer;
-}
-
-/* ── Divider between FROM and TO ─────────────────────────────────────────── */
-
-.divider {
-  text-align: center;
-  font-size: var(--font-size-title);
-  color: var(--color-border-control);
-  padding: var(--space-two) 0;
-  flex-shrink: 0;
-  user-select: none;
 }
 
 /* ── Pole toggle ─────────────────────────────────────────────────────────── */
@@ -145,7 +178,7 @@
   padding: var(--space-one) var(--space-two);
   font-size: var(--font-size-control);
   font-family: inherit;
-  background: var(--color-surface-field);
+  background: var(--color-surface-canvas);
   border: none;
   cursor: pointer;
   color: var(--color-text-secondary);
@@ -160,90 +193,44 @@
 }
 
 .poleBtn:hover {
-  background: var(--color-surface-app);
+  background: var(--color-surface-hover);
 }
 
 .poleBtnActive {
   background: var(--color-selection-strong) !important;
-  color: var(--color-selection-text);
+  color: var(--color-text-primary);
   font-weight: var(--font-weight-medium);
 }
 
-/* ── Footer: summary, warning, apply button ──────────────────────────────── */
+/* ── Result: what applying will do, and the arrow that applies it ────────── */
 
-.footer {
-  padding-top: var(--space-three);
+.result {
   display: flex;
   flex-direction: column;
-  gap: var(--space-two);
+  gap: var(--space-three);
 }
 
-.summary {
-  font-size: var(--font-size-control);
-  color: var(--color-text-secondary);
+.resultText {
   margin: 0;
+  font-size: var(--font-size-body);
   line-height: var(--line-height-reading);
-  background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-control);
-  padding: var(--space-two) var(--space-three);
+  color: var(--color-text-secondary);
 }
 
-.warning {
-  font-size: var(--font-size-control);
-  color: var(--color-warning-text);
-  background: var(--color-warning-surface);
-  border: 1px solid var(--color-warning-border);
-  border-radius: var(--radius-control);
-  padding: var(--space-two) var(--space-three);
-  margin: 0;
-  line-height: var(--line-height-interface);
+.applyRow {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-three);
+  min-width: 0;
 }
 
-.applyBtn {
-  padding: var(--space-two) var(--space-four);
-  border: 1px solid var(--color-action-strong);
-  border-radius: var(--radius-control);
-  background: var(--color-action-strong);
-  color: var(--color-text-inverse);
+.applyLabel {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: var(--font-size-body);
-  font-family: inherit;
   font-weight: var(--font-weight-medium);
-  cursor: pointer;
-  align-self: flex-end;
-}
-
-.applyBtn:hover {
-  background: var(--color-action-hover);
-  border-color: var(--color-action-hover);
-}
-
-.applyBtnDone {
-  padding: var(--space-two) var(--space-four);
-  border: 1px solid var(--color-border-control);
-  border-radius: var(--radius-control);
-  background: var(--color-surface-chrome-strong);
-  color: var(--color-text-disabled);
-  font-size: var(--font-size-body);
-  font-family: inherit;
-  font-weight: var(--font-weight-medium);
-  cursor: default;
-  align-self: flex-end;
-}
-
-.applyBtnOverwrite {
-  padding: var(--space-two) var(--space-four);
-  border: 1px solid var(--color-destructive-hover);
-  border-radius: var(--radius-control);
-  background: var(--color-destructive);
-  color: var(--color-text-inverse);
-  font-size: var(--font-size-body);
-  font-family: inherit;
-  font-weight: var(--font-weight-medium);
-  cursor: pointer;
-  align-self: flex-end;
-}
-
-.applyBtnOverwrite:hover {
-  background: var(--color-destructive-hover);
+  color: var(--color-text-primary);
 }

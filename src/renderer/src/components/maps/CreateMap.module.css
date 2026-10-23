@@ -10,8 +10,8 @@
 
 .dialog {
   position: relative;
-  background: var(--color-surface-app);
-  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface-base);
+  border: 1px solid var(--color-border-control);
   border-radius: var(--radius-dialog);
   padding: var(--space-five);
   width: 320px;
@@ -54,7 +54,7 @@
   padding: 0;
   border: 1px solid var(--color-border-control);
   border-radius: var(--radius-control);
-  background: var(--color-surface-field);
+  background: var(--color-surface-canvas);
   max-height: 240px;
   overflow-y: auto;
 }
@@ -74,7 +74,7 @@
 
 .selected {
   background: var(--color-selection-strong) !important;
-  color: var(--color-selection-text);
+  color: var(--color-text-primary);
 }
 
 .axisLabel {
@@ -112,60 +112,4 @@
 
 .btnCancel:hover {
   background: var(--color-surface-hover);
-}
-
-/* ── Pole direction toggle (AdvancedTransform dim-to-weight / weight-to-dim) ── */
-
-.poleSection {
-  margin: 0 0 var(--space-four);
-}
-
-/* Small uppercase label above the segment control */
-.poleSectionLabel {
-  font-size: var(--font-size-label);
-  color: var(--color-text-muted);
-  margin: 0 0 var(--space-one);
-  font-weight: var(--font-weight-semibold);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-/* Pill-shaped segment control housing both pole buttons */
-.poleButtons {
-  display: flex;
-  border: 1px solid var(--color-border-control);
-  border-radius: var(--radius-control);
-  overflow: hidden;
-}
-
-.poleBtn {
-  flex: 1;
-  padding: var(--space-one) var(--space-two);
-  min-height: var(--size-control);
-  font-size: var(--font-size-control);
-  font-family: inherit;
-  background: var(--color-surface-field);
-  border: none;
-  cursor: pointer;
-  color: var(--color-text-secondary);
-  text-align: center;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* Divider between the two segments */
-.poleBtn + .poleBtn {
-  border-left: 1px solid var(--color-border-control);
-}
-
-.poleBtn:hover {
-  background: var(--color-surface-hover);
-}
-
-/* Active segment matches the list selection highlight color */
-.poleBtnActive {
-  background: var(--color-selection-strong) !important;
-  color: var(--color-selection-text);
-  font-weight: var(--font-weight-medium);
 }

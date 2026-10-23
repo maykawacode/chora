@@ -1,6 +1,6 @@
 import styles from './CollectionChoiceRow.module.css'
 
-export type CollectionChoiceState = 'none' | 'all' | 'mixed'
+type CollectionChoiceState = 'none' | 'all' | 'mixed'
 
 interface Props {
   name: string

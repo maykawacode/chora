@@ -28,11 +28,12 @@
 //   ElementName  [def text]     score       score       ...
 
 import type { Element, Dimension, ScoreMap, SessionMeta, Collection } from './types'
-import { defaultCategories, defaultSessionMeta, parsePoles } from './types'
+import { ELEMENT_SHAPES, defaultSessionMeta, newCollection, newDimension, newElement, parsePoles } from './types'
 import { MEMBERSHIP_CUTOFF } from './parser'
 import { COLLECTION_SEPARATOR, isFormulaEscaped } from './exporter'
 import { openWeight } from './numericRange'
 import { DEFAULT_COLLECTION_COLOR, DEFAULT_ELEMENT_COLOR, readHexColor } from './color'
+import { foldIntentIntoNotes } from './sessionIntent'
 
 // Strip surrounding double-quotes and unescape "" → " (standard TSV/CSV quoting).
 function stripQuotes(s: string): string {
@@ -57,6 +58,26 @@ function unescapeFormula(s: string): string {
 // The reverse of the exporter's order, so a round-trip is lossless.
 function tc(raw: string | undefined): string {
   return unescapeFormula(stripQuotes((raw ?? '').trim()))
+}
+
+/**
+ * Reads a section's rows by column name. The header is matched case-blind;
+ * `key` names the column that identifies each row and falls back to the
+ * first column. A missing column reads as an empty cell.
+ */
+function table(rows: string[][], key: string): { key: (row: string[]) => string; get: (row: string[], name: string) => string; rows: string[][] } {
+  const header = (rows[0] ?? []).map(h => h.trim().toLowerCase())
+  const keyCol = Math.max(0, header.indexOf(key))
+  return {
+    key: row => tc(row[keyCol]),
+    get: (row, name) => header.includes(name) ? tc(row[header.indexOf(name)]) : '',
+    rows: rows.slice(1)
+  }
+}
+
+/** A weight cell: blank means the default of 1. */
+function readWeight(cell: string): number {
+  return cell === '' ? 1 : openWeight(Number(cell), 1)
 }
 
 export interface ImportResult {
@@ -126,29 +147,22 @@ function parseFullSpreadsheet(text: string): ImportResult {
     sessionMeta.definition = defCol   >= 0 ? tc(data[defCol])   : ''
     sessionMeta.notes      = notesCol >= 0 ? tc(data[notesCol]) : ''
   }
+  // An imported Intent moves into Notes, as when a study file opens.
+  Object.assign(sessionMeta, foldIntentIntoNotes(sessionMeta))
 
   // ── Collections ────────────────────────────────────────────────────────────
   // Parsed before elements so an element's Collections cell can be resolved
   // against the declared set. ##TYPES is the pre-binary name for this section.
   const collectionsByName = new Map<string, Collection>()
 
-  const collectionRows = sections['COLLECTIONS'] ?? sections['TYPES'] ?? []
-  if (collectionRows.length >= 2) {
-    const hdr = collectionRows[0].map(h => h.trim().toLowerCase())
-    const nameCol  = Math.max(0, hdr.indexOf('name'))
-    const defCol   = hdr.indexOf('definition')
-    const colorCol = hdr.indexOf('color')
-
-    for (const row of collectionRows.slice(1)) {
-      const name = tc(row[nameCol])
-      if (!name) continue
-      collectionsByName.set(name, {
-        id:         crypto.randomUUID(),
-        name,
-        definition: defCol   >= 0 ? tc(row[defCol])   : '',
-        color:      readHexColor(colorCol >= 0 ? tc(row[colorCol]) : '', DEFAULT_COLLECTION_COLOR)
-      })
-    }
+  const collectionTable = table(sections['COLLECTIONS'] ?? sections['TYPES'] ?? [], 'name')
+  for (const row of collectionTable.rows) {
+    const name = collectionTable.key(row)
+    if (!name) continue
+    collectionsByName.set(name, newCollection(name, {
+      definition: collectionTable.get(row, 'definition'),
+      color:      readHexColor(collectionTable.get(row, 'color'), DEFAULT_COLLECTION_COLOR)
+    }))
   }
 
   // A collection named anywhere in the file. Created on demand so a spreadsheet
@@ -157,7 +171,7 @@ function parseFullSpreadsheet(text: string): ImportResult {
   function ensureCollection(name: string): Collection {
     const existing = collectionsByName.get(name)
     if (existing) return existing
-    const created: Collection = { id: crypto.randomUUID(), name, definition: '', color: DEFAULT_COLLECTION_COLOR }
+    const created = newCollection(name)
     collectionsByName.set(name, created)
     return created
   }
@@ -165,85 +179,81 @@ function parseFullSpreadsheet(text: string): ImportResult {
   // ── Elements ───────────────────────────────────────────────────────────────
   const elementsByName = new Map<string, Element>()
 
-  const elemRows = sections['ELEMENTS'] ?? []
-  if (elemRows.length >= 2) {
-    const hdr = elemRows[0].map(h => h.trim().toLowerCase())
-    const nameCol   = Math.max(0, hdr.indexOf('name'))
-    const defCol    = hdr.indexOf('definition')
-    const colorCol  = hdr.indexOf('color')
-    const weightCol = hdr.indexOf('weight')
-    const shapeCol  = hdr.indexOf('shape')
-    const collCol   = hdr.indexOf('collections')
-
-    for (const row of elemRows.slice(1)) {
-      const name = tc(row[nameCol])
-      if (!name) continue
-      const rawColor = tc(row[colorCol])
-      const rawWeight = tc(row[weightCol])
-      const rawShape = tc(row[shapeCol])
-      const rawColls = collCol >= 0 ? tc(row[collCol]) : ''
-      elementsByName.set(name, {
-        id:         crypto.randomUUID(),
-        name,
-        definition: defCol >= 0 ? tc(row[defCol]) : '',
-        color:      readHexColor(rawColor, DEFAULT_ELEMENT_COLOR),
-        weight:     weightCol >= 0 && rawWeight !== ''
-          ? openWeight(Number(rawWeight), 1)
-          : 1,
-        shape:      (['circle', 'square', 'triangle', 'diamond'] as const).includes(rawShape as Element['shape'])
-                      ? rawShape as Element['shape'] : 'circle',
-        collectionIds: rawColls
-          .split(COLLECTION_SEPARATOR)
-          // Each name carries its own escaping: tc() above only unescaped the
-          // start of the joined cell, not the names after the separator.
-          .map(n => unescapeFormula(n.trim()))
-          .filter(n => n !== '')
-          .map(n => ensureCollection(n).id)
-      })
-    }
+  const elementTable = table(sections['ELEMENTS'] ?? [], 'name')
+  for (const row of elementTable.rows) {
+    const name = elementTable.key(row)
+    if (!name) continue
+    const shape = elementTable.get(row, 'shape') as Element['shape']
+    elementsByName.set(name, newElement(name, {
+      definition: elementTable.get(row, 'definition'),
+      color:      readHexColor(elementTable.get(row, 'color'), DEFAULT_ELEMENT_COLOR),
+      weight:     readWeight(elementTable.get(row, 'weight')),
+      shape:      ELEMENT_SHAPES.includes(shape) ? shape : 'circle',
+      collectionIds: elementTable.get(row, 'collections')
+        .split(COLLECTION_SEPARATOR)
+        // Each name carries its own escaping: tc() only unescaped the start
+        // of the joined cell, not the names after the separator.
+        .map(n => unescapeFormula(n.trim()))
+        .filter(n => n !== '')
+        .map(n => ensureCollection(n).id)
+    }))
   }
 
   // ── Dimensions ─────────────────────────────────────────────────────────────
   const dimensionsByName = new Map<string, Dimension>()
 
-  const dimRows = sections['DIMENSIONS'] ?? []
-  if (dimRows.length >= 2) {
-    const hdr = dimRows[0].map(h => h.trim().toLowerCase())
-    const labelCol  = Math.max(0, hdr.indexOf('label'))
-    const poleACol  = hdr.indexOf('pole a')
-    const poleBCol  = hdr.indexOf('pole b')
-    const defCol    = hdr.indexOf('definition')
-    const weightCol = hdr.indexOf('weight')
-
-    for (const row of dimRows.slice(1)) {
-      const label = tc(row[labelCol])
-      if (!label) continue
-      const derived = parsePoles(label)
-      const rawWeight = tc(row[weightCol])
-      dimensionsByName.set(label, {
-        id:         crypto.randomUUID(),
-        label,
-        poleA:      (poleACol >= 0 ? tc(row[poleACol]) : '') || derived.poleA,
-        poleB:      (poleBCol >= 0 ? tc(row[poleBCol]) : '') || derived.poleB,
-        definition: defCol    >= 0 ? tc(row[defCol])         : '',
-        weight:     weightCol >= 0 && rawWeight !== ''
-          ? openWeight(Number(rawWeight), 1)
-          : 1,
-        categories: defaultCategories()
-      })
-    }
+  const dimensionTable = table(sections['DIMENSIONS'] ?? [], 'label')
+  for (const row of dimensionTable.rows) {
+    const label = dimensionTable.key(row)
+    if (!label) continue
+    const derived = parsePoles(label)
+    dimensionsByName.set(label, newDimension(label, {
+      poleA:      dimensionTable.get(row, 'pole a') || derived.poleA,
+      poleB:      dimensionTable.get(row, 'pole b') || derived.poleB,
+      definition: dimensionTable.get(row, 'definition'),
+      weight:     readWeight(dimensionTable.get(row, 'weight'))
+    }))
   }
 
   const scores: ScoreMap = {}
 
   function ensureElement(name: string): Element {
-    if (!elementsByName.has(name)) {
-      elementsByName.set(name, {
-        id: crypto.randomUUID(), name, definition: '', color: DEFAULT_ELEMENT_COLOR, weight: 1,
-        shape: 'circle', collectionIds: []
-      })
-    }
+    if (!elementsByName.has(name)) elementsByName.set(name, newElement(name))
     return elementsByName.get(name)!
+  }
+
+  /**
+   * Reads an element × column matrix of numbers: `columns` resolves each
+   * column to its target (or null to skip it), and `apply` receives each
+   * numeric cell. Rows name their element in the first cell; a blank cell is
+   * skipped and a non-number is reported under `section`.
+   */
+  function readMatrix<T>(
+    rows: string[][],
+    section: string,
+    columns: (headers: string[]) => (T | null)[],
+    apply: (element: Element, target: T, value: number) => void,
+    onRow: (element: Element) => void = () => {}
+  ): void {
+    if (rows.length < 2) return
+    // Unescaped like any other text: without a declaring section these
+    // headers name what they hold rather than merely labelling the columns.
+    const headers = rows[0].slice(1).map(h => unescapeFormula(h.trim()))
+    const targets = columns(headers)
+    for (const row of rows.slice(1)) {
+      const elName = tc(row[0])
+      if (!elName) continue
+      const el = ensureElement(elName)
+      onRow(el)
+      for (let j = 0; j < headers.length; j++) {
+        const target = targets[j]
+        const cell = row[j + 1]?.trim()
+        if (!target || !cell) continue
+        const v = parseFloat(cell)
+        if (isNaN(v)) warnings.push(`${section}: "${elName}" × "${headers[j]}": "${cell}" is not a number — skipped.`)
+        else apply(el, target, v)
+      }
+    }
   }
 
   // ── Legacy membership matrix ───────────────────────────────────────────────
@@ -254,42 +264,18 @@ function parseFullSpreadsheet(text: string): ImportResult {
   //
   // Skipped entirely when the elements already declared their collections, so a
   // hand-edited file that carries both is not overruled by the older section.
-  const legacyRows = sections['TYPE_SCORES'] ?? []
   const declaredMembership = [...elementsByName.values()].some(el => el.collectionIds.length > 0)
-
-  if (legacyRows.length >= 2 && !declaredMembership) {
-    // Unescaped like any other text: when there is no ##TYPES section these
-    // headers name the collections rather than merely labelling the columns.
-    const colHeaders = legacyRows[0].slice(1).map(h => unescapeFormula(h.trim()))
-    // With a ##TYPES section present, columns are matched to it by position and
-    // the headers are read as human-readable labels only; without one, the
-    // header names the collection.
+  if (!declaredMembership) {
+    // With a ##TYPES section present, columns are matched to it by position
+    // and the headers are read as labels only; without one, the header names
+    // the collection.
     const declared = [...collectionsByName.values()]
     const usePositional = sections['TYPES'] !== undefined || sections['COLLECTIONS'] !== undefined
-
-    const colCollections: (Collection | null)[] = colHeaders.map((header, i) => {
-      if (!header) return null
-      return usePositional ? declared[i] ?? null : ensureCollection(header)
-    })
-
-    for (const row of legacyRows.slice(1)) {
-      const elName = tc(row[0])
-      if (!elName) continue
-      const el = ensureElement(elName)
-
-      for (let j = 0; j < colHeaders.length; j++) {
-        const collection = colCollections[j]
-        if (!collection) continue
-        const cellVal = row[j + 1]?.trim()
-        if (!cellVal) continue
-        const v = parseFloat(cellVal)
-        if (isNaN(v)) {
-          warnings.push(`Collection membership: "${elName}" × "${colHeaders[j]}": "${cellVal}" is not a number — skipped.`)
-        } else if (v >= MEMBERSHIP_CUTOFF && !el.collectionIds.includes(collection.id)) {
-          el.collectionIds.push(collection.id)
-        }
-      }
-    }
+    readMatrix<Collection>(sections['TYPE_SCORES'] ?? [], 'Collection membership',
+      headers => headers.map((header, i) => !header ? null : usePositional ? declared[i] ?? null : ensureCollection(header)),
+      (el, collection, v) => {
+        if (v >= MEMBERSHIP_CUTOFF && !el.collectionIds.includes(collection.id)) el.collectionIds.push(collection.id)
+      })
   }
 
   // ── Dimension scores ───────────────────────────────────────────────────────
@@ -297,45 +283,17 @@ function parseFullSpreadsheet(text: string): ImportResult {
   // (N→N). Column headers are treated as human-readable labels only, so the user
   // can use short names in the score matrix without breaking the import.
   // When ##DIMENSIONS was absent, fall back to name-based find-or-create.
-  const dimScoreRows = sections['DIMENSION_SCORES'] ?? []
-  if (dimScoreRows.length >= 2) {
-    // Same reason as above: without a ##DIMENSIONS section these headers are
-    // the dimension names, not just labels for columns matched by position.
-    const colHeaders = dimScoreRows[0].slice(1).map(h => unescapeFormula(h.trim()))
-    const dimList = [...dimensionsByName.values()]
-    const usePositional = sections['DIMENSIONS'] !== undefined
-
-    const colDims: (Dimension | null)[] = colHeaders.map((header, i) => {
+  const dimList = [...dimensionsByName.values()]
+  const dimPositional = sections['DIMENSIONS'] !== undefined
+  readMatrix<Dimension>(sections['DIMENSION_SCORES'] ?? [], 'Dimension scores',
+    headers => headers.map((header, i) => {
       if (!header) return null
-      if (usePositional) return dimList[i] ?? null
-      if (!dimensionsByName.has(header)) {
-        const derived = parsePoles(header)
-        const dim: Dimension = {
-          id: crypto.randomUUID(), label: header, poleA: derived.poleA, poleB: derived.poleB,
-          definition: '', weight: 1, categories: defaultCategories()
-        }
-        dimensionsByName.set(header, dim)
-      }
+      if (dimPositional) return dimList[i] ?? null
+      if (!dimensionsByName.has(header)) dimensionsByName.set(header, newDimension(header))
       return dimensionsByName.get(header)!
-    })
-
-    for (const row of dimScoreRows.slice(1)) {
-      const elName = tc(row[0])
-      if (!elName) continue
-      const el = ensureElement(elName)
-      scores[el.id] = scores[el.id] ?? {}
-
-      for (let j = 0; j < colHeaders.length; j++) {
-        const dim = colDims[j]
-        if (!dim) continue
-        const cellVal = row[j + 1]?.trim()
-        if (!cellVal) continue
-        const v = parseFloat(cellVal)
-        if (isNaN(v)) warnings.push(`Dimension scores: "${elName}" × "${colHeaders[j]}": "${cellVal}" is not a number — skipped.`)
-        else scores[el.id][dim.id] = Math.max(0, Math.min(1, v))
-      }
-    }
-  }
+    }),
+    (el, dim, v) => { scores[el.id][dim.id] = Math.max(0, Math.min(1, v)) },
+    el => { scores[el.id] = scores[el.id] ?? {} })
 
   return {
     sessionMeta,
@@ -435,15 +393,8 @@ function parseSimpleSpreadsheet(text: string): ImportResult {
     )
   }
 
-  const elements: Element[] = elementNames.map((name, i) => ({
-    id: crypto.randomUUID(), name, definition: elementDefinitions[i] ?? '', weight: 1,
-    color: DEFAULT_ELEMENT_COLOR, shape: 'circle' as const, collectionIds: []
-  }))
-
-  const dimensions: Dimension[] = dimLabels.map(label => {
-    const { poleA, poleB } = parsePoles(label)
-    return { id: crypto.randomUUID(), label, poleA, poleB, definition: '', weight: 1, categories: defaultCategories() }
-  })
+  const elements = elementNames.map((name, i) => newElement(name, { definition: elementDefinitions[i] ?? '' }))
+  const dimensions = dimLabels.map(label => newDimension(label))
 
   const scores: ScoreMap = {}
   for (let i = 0; i < elements.length; i++) {

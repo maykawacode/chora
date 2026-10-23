@@ -1,0 +1,77 @@
+/* Same chrome as the update notice: titled header, content, forward action. */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-five);
+  background: var(--color-backdrop);
+}
+
+.dialog {
+  width: min(360px, 100%);
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface-base);
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-dialog);
+  box-shadow: var(--shadow-dialog-strong);
+  color: var(--color-text-primary);
+  font-family: var(--font-family-ui);
+}
+
+.header {
+  padding: var(--space-three) var(--space-four);
+  border-bottom: 1px solid var(--color-border-subtle);
+  background: var(--color-surface-chrome);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-interface);
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-three);
+  padding: var(--space-four);
+}
+
+.detail {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-reading);
+}
+
+.field {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-one);
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-one) var(--space-two);
+  border: 1px solid transparent; /* shown on focus */
+  border-radius: var(--radius-small);
+  background: var(--color-surface-text-field);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: var(--font-size-body);
+}
+
+/* Borderless until focused, like the main window's fields (App.module.css). */
+
+.extension {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-body);
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 var(--space-four) var(--space-four);
+}

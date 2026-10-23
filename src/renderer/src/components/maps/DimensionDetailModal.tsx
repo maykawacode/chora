@@ -8,9 +8,10 @@ import { useState, useRef, useCallback } from 'react'
 import { useAppStore } from '../../store/appStore'
 import type { Dimension } from '../../lib/types'
 import styles from './ElementDetailModal.module.css'
-import { formatRange, numericRange, openWeight } from '../../lib/numericRange'
+import { numericRange, openWeight } from '../../lib/numericRange'
 import { ForwardActionButton } from '../ConfirmationDisc'
 import { ModalShell } from '../ModalShell'
+import { WeightField } from './ElementFields'
 
 interface Props {
   dimensionId: string
@@ -76,17 +77,7 @@ export function DimensionDetailModal({ dimensionId, onClose }: Props): React.JSX
           />
         </div>
 
-        <div className={styles.fieldRow}>
-          <label className={styles.label}>Weight</label>
-          <input
-            type="number"
-            className={styles.weightInput}
-            min={0}
-            value={weight}
-            onChange={e => setWeight(e.target.value)}
-          />
-          <span className={styles.range}>{formatRange(weightRange)}</span>
-        </div>
+        <WeightField weight={weight} onChange={setWeight} range={weightRange} />
 
         <textarea
           className={styles.description}

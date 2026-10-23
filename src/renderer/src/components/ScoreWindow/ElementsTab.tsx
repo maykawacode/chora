@@ -18,14 +18,19 @@
 //   - All single and multi-element deletions follow confirmDeleteData
 //   - There is no delete button in the UI; the keyboard is the only trigger.
 
-import { useRef, useState, useEffect, KeyboardEvent } from 'react'
+import { useEffect } from 'react'
 import { useAppStore } from '../../store/appStore'
 import { history, SCORE_HISTORY_OWNER } from '../../store/history'
+import { historyField } from '../../store/historyBindings'
 import { usePrefsStore } from '../../store/prefsStore'
 import { ELEMENT_SHAPES, ELEMENT_SHAPE_SYMBOLS } from '../../lib/types'
-import { useResizableSplitPane } from './useResizableSplitPane'
-import { formatRange, numericRange, openWeight } from '../../lib/numericRange'
+import { formatRange, numericRange } from '../../lib/numericRange'
 import { ConfirmationDisc } from '../ConfirmationDisc'
+import { scoreOwnsKeys } from '../../lib/overlayStack'
+import { hostCapabilities } from '../../lib/host'
+import { sortToggleTitle, useElementSort } from './elementSort'
+import { DEFAULT_ELEMENT_COLOR } from '../../lib/color'
+import { AddRow, WeightInput, listKeys, selectAllOnEntry, useConfirmedDelete, useDataViewLayout, useSelectFirstOnOpen } from './dataList'
 import styles from './DataTab.module.css'
 
 export function ElementsTab(): React.JSX.Element {
@@ -46,7 +51,8 @@ export function ElementsTab(): React.JSX.Element {
 
   // sortAlpha=false → display in creation/import order (the store's canonical order)
   // sortAlpha=true  → display alphabetically by name (view-only; store order is unchanged)
-  const [sortAlpha, setSortAlpha] = useState(false)
+  const sortAlpha = useElementSort(s => s.alpha)
+  const toggleSort = useElementSort(s => s.toggle)
 
   // Derived display list — sorted copy when sortAlpha is on, raw store array otherwise.
   // All list rendering and keyboard navigation uses this, never `elements` directly,
@@ -55,10 +61,18 @@ export function ElementsTab(): React.JSX.Element {
     ? [...elements].sort((a, b) => a.name.localeCompare(b.name))
     : elements
 
-  const [newName,   setNewName]   = useState('')
-  const [confirmIds, setConfirmIds] = useState<string[]>([])
-  const addInputRef = useRef<HTMLInputElement>(null)
-  const splitPane = useResizableSplitPane()
+  // A lasso from a map counts as a selection, though no row is the anchor.
+  useSelectFirstOnOpen(!!selected || selectedIds.length > 0, displayElements[0]?.id, selectElement)
+
+  const { stacked, splitPane, className } = useDataViewLayout()
+
+  // Every single or batch delete follows the global data preference.
+  const deletion = useConfirmedDelete(ids => {
+    history.run(SCORE_HISTORY_OWNER, () => {
+      for (const id of ids) removeElement(id)
+    })
+    clearSelection()
+  })
 
   // Cmd+D (Mac) / Ctrl+D (Windows/Linux) duplicates the selected element.
   // Registered at document level so it fires even when a detail field has
@@ -68,7 +82,9 @@ export function ElementsTab(): React.JSX.Element {
       // Match the unmodified application shortcut exactly. In particular,
       // Cmd/Ctrl+Shift+D belongs to New Semantic Map and must not also create
       // a duplicate in this renderer-level handler.
-      if (e.metaKey !== e.ctrlKey && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'd' && selectedId) {
+      // With views side by side (browser), only while Elements is the one in use.
+      if (e.metaKey !== e.ctrlKey && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'd' && selectedId &&
+          scoreOwnsKeys() && useAppStore.getState().activeTab === 'elements') {
         e.preventDefault()   // prevent browser "add to bookmarks" default
         // The shortcut is intentionally active inside detail fields. Split it
         // from any focus-to-blur edit so Duplicate remains its own Undo step.
@@ -81,31 +97,6 @@ export function ElementsTab(): React.JSX.Element {
   }, [selectedId, duplicateElement])
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
-
-  function handleAdd(): void {
-    const name = newName.trim()
-    if (!name) return
-    addElement(name, prefs.defaultElementColor)
-    setNewName('')
-    addInputRef.current?.focus()
-  }
-
-  function handleAddKeyDown(e: KeyboardEvent<HTMLInputElement>): void {
-    if (e.key === 'Enter') handleAdd()
-  }
-
-  // Route every single or batch delete through the global data preference.
-  function requestDelete(ids: string[]): void {
-    if (ids.length === 0) return
-    if (prefs.confirmDeleteData) {
-      setConfirmIds(ids)  // show the confirmation overlay
-    } else {
-      history.run(SCORE_HISTORY_OWNER, () => {
-        for (const id of ids) removeElement(id)
-      })
-      clearSelection()
-    }
-  }
 
   // Whatever a click or arrow key would delete: the whole multi-selection when
   // there is one, otherwise just the anchor.
@@ -146,18 +137,12 @@ export function ElementsTab(): React.JSX.Element {
     selectElement(id)
   }
 
-  function handleListKeyDown(e: KeyboardEvent<HTMLUListElement>): void {
-    if (!selectedId || displayElements.length === 0) return
-    // Use displayElements so ↑ ↓ navigate the visible order, not the store order
-    const idx = displayElements.findIndex(el => el.id === selectedId)
-
-    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-      const next = e.key === 'ArrowDown' ? idx + 1 : idx - 1
-      if (next < 0 || next >= displayElements.length) return
-      e.preventDefault()
-      const targetId = displayElements[next].id
-
-      if (e.shiftKey) {
+  const handleListKeyDown = listKeys({
+    // ↑ ↓ walk the visible order, not the store order.
+    ids: displayElements.map(el => el.id),
+    currentId: selectedId,
+    onStep: (targetId, shift) => {
+      if (shift && selectedId) {
         const base = selectedIds.length > 0 ? selectedIds : [selectedId]
         // Stepping onto an already-highlighted row means the user reversed
         // direction: shrink by dropping the row being left, rather than grow.
@@ -168,30 +153,32 @@ export function ElementsTab(): React.JSX.Element {
         clearSelection()
       }
       selectElement(targetId)
-    } else if (e.key === 'Backspace' || e.key === 'Delete') {
-      requestDelete(deletionTargets())
-    }
-  }
+    },
+    onDelete: () => deletion.request(deletionTargets())
+  })
 
-  const confirmElements = confirmIds
+  const confirmElements = deletion.pendingIds
     .map(id => elements.find(e => e.id === id))
     .filter((e): e is NonNullable<typeof e> => e != null)
 
   // ── Render ────────────────────────────────────────────────────────────────────
 
   return (
-    <div className={styles.tab} ref={splitPane.containerRef} style={splitPane.containerStyle}>
+    <div className={className} ref={splitPane.containerRef} style={splitPane.containerStyle}>
       {/* ── List pane ── */}
       <div className={styles.listPane} style={splitPane.leftPaneStyle}>
-        {/* Header doubles as a sort toggle — click cycles creation order ↔ A–Z */}
-        <button
-          className={styles.listHeaderBtn}
-          onClick={() => setSortAlpha(s => !s)}
-          title={sortAlpha ? 'Showing A–Z — click for creation order' : 'Showing creation order — click for A–Z'}
-        >
-          <span>Elements ({elements.length})</span>
-          <span className={styles.sortBadge}>{sortAlpha ? 'A–Z' : '⇅'}</span>
-        </button>
+        {/* Header doubles as a sort toggle — click cycles creation order ↔ A–Z.
+            The browser shows the count and toggle in Score's title instead. */}
+        {hostCapabilities().scoreChrome && (
+          <button
+            className={styles.listHeaderBtn}
+            onClick={toggleSort}
+            title={sortToggleTitle(sortAlpha)}
+          >
+            <span>Elements ({elements.length})</span>
+            <span className={styles.sortBadge}>{sortAlpha ? 'A–Z' : '⇅'}</span>
+          </button>
+        )}
 
         <div className={styles.listEditor}>
           {elements.length > 0 && (
@@ -222,23 +209,14 @@ export function ElementsTab(): React.JSX.Element {
                         {ELEMENT_SHAPE_SYMBOLS[el.shape]}
                       </span>
                     </span>
-                    <span className={styles.name}>{el.name}</span>
+                    <span className={styles.name} title={stacked ? el.name : undefined}>{el.name}</span>
                   </li>
                 )
               })}
             </ul>
           )}
 
-          <div className={styles.addRow}>
-            <input
-              ref={addInputRef}
-              className={styles.addInput}
-              placeholder="New element…"
-              value={newName}
-              onChange={e => setNewName(e.target.value)}
-              onKeyDown={handleAddKeyDown}
-            />
-          </div>
+          <AddRow placeholder="New element…" focusOnOpen={elements.length === 0} onAdd={name => addElement(name, prefs.defaultElementColor)} />
         </div>
       </div>
 
@@ -255,6 +233,7 @@ export function ElementsTab(): React.JSX.Element {
             className={styles.poleInput}
             defaultValue={selected?.name ?? ''}
             disabled={!selected}
+            {...(stacked ? selectAllOnEntry : {})}
             onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Tab') e.currentTarget.blur() }}
             onBlur={e => {
               const v = e.target.value.trim()
@@ -267,14 +246,9 @@ export function ElementsTab(): React.JSX.Element {
           <input
             type="color"
             className={styles.colorInput}
-            value={selected?.color ?? '#9d9d53'}
+            value={selected?.color ?? DEFAULT_ELEMENT_COLOR}
             disabled={!selected}
-            onFocus={() => history.begin(SCORE_HISTORY_OWNER)}
-            onBlur={() => history.end(SCORE_HISTORY_OWNER)}
-            onChange={e => {
-              history.begin(SCORE_HISTORY_OWNER)
-              if (selected) updateElement(selected.id, { color: e.target.value })
-            }}
+            {...historyField(value => { if (selected) updateElement(selected.id, { color: value }) })}
           />
         </div>
         <div className={styles.fieldRow}>
@@ -298,20 +272,12 @@ export function ElementsTab(): React.JSX.Element {
         </div>
         <div className={styles.fieldRow}>
           <label className={styles.label}>Weight</label>
-          {/* Batch transforms and map edits can change weight without changing
-              selection. Include the live value so this uncontrolled field
-              cannot display—or later write back—a stale pre-transform value. */}
-          <input
+          <WeightInput
             key={`weight-${selected?.id ?? 'none'}-${selected?.weight ?? 1}`}
-            className={styles.weightInput}
-            type="number"
-            min={0}
-            defaultValue={selected?.weight ?? 1}
+            weight={selected?.weight ?? 1}
             disabled={!selected}
-            onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur() }}
-            onBlur={e => selected && updateElement(selected.id, {
-              weight: openWeight(Number(e.target.value))
-            })}
+            wholeNumbers={stacked}
+            onCommit={weight => { if (selected) updateElement(selected.id, { weight }) }}
           />
           <span className={styles.range}>{formatRange(weightRange)}</span>
         </div>
@@ -320,12 +286,7 @@ export function ElementsTab(): React.JSX.Element {
           placeholder="Definition…"
           value={selected?.definition ?? ''}
           disabled={!selected}
-          onFocus={() => history.begin(SCORE_HISTORY_OWNER)}
-          onBlur={() => history.end(SCORE_HISTORY_OWNER)}
-          onChange={e => {
-            history.begin(SCORE_HISTORY_OWNER)
-            if (selected) updateElement(selected.id, { definition: e.target.value })
-          }}
+          {...historyField(value => { if (selected) updateElement(selected.id, { definition: value }) })}
         />
       </div>
 
@@ -338,14 +299,8 @@ export function ElementsTab(): React.JSX.Element {
           }
           detail={confirmElements.length === 1 ? 'Its scores will be lost.' : 'Their scores will be lost.'}
           actionLabel="Delete"
-          onCancel={() => setConfirmIds([])}
-          onAction={() => {
-            history.run(SCORE_HISTORY_OWNER, () => {
-              for (const el of confirmElements) removeElement(el.id)
-            })
-            clearSelection()
-            setConfirmIds([])
-          }}
+          onCancel={deletion.cancel}
+          onAction={deletion.confirm}
         />
       )}
     </div>

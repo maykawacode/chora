@@ -9,12 +9,14 @@
 
 import { useRef, useCallback, useEffect, KeyboardEvent } from 'react'
 import { useAppStore } from '../../store/appStore'
-import { history, SCORE_HISTORY_OWNER } from '../../store/history'
+import { useHistoryGesture } from '../../store/historyBindings'
 import { scoreStatus } from '../../lib/types'
 import { useResizableSplitPane } from './useResizableSplitPane'
-import styles from './ScoresTab.module.css'
+import styles from './AssessTab.module.css'
 import { CollectionChoiceRow } from '../CollectionChoiceRow'
+import { scoreOwnsKeys } from '../../lib/overlayStack'
 import { memberCount } from '../maps/collections'
+import { hostCapabilities } from '../../lib/host'
 
 type Membership = 'all' | 'none' | 'mixed'
 
@@ -32,10 +34,14 @@ export function AssessTab(): React.JSX.Element {
   const selectDimension = useAppStore(s => s.selectDimension)
   const setScore        = useAppStore(s => s.setScore)
   const setCollection   = useAppStore(s => s.setElementsCollection)
-  const setActiveTab    = useAppStore(s => s.setActiveTab)
 
-  const splitPane = useResizableSplitPane()
-  const keyboardHistoryOpenRef = useRef(false)
+  // Browser: the two columns stay side by side however narrow the view, and
+  // names shorten with "…" (narrowDataViews).
+  const narrow = hostCapabilities().narrowDataViews
+  const splitPane = useResizableSplitPane(narrow ? 'beside' : 'responsive')
+  // Browser: a line between Dimensions and Collections sets their heights.
+  const rail = useResizableSplitPane('stacked')
+  const keyHold = useHistoryGesture()
 
   const selectedEl  = elements.find(e => e.id === selectedElId)    ?? null
   const selectedDim = dimensions.find(d => d.id === selectedDimId) ?? null
@@ -72,23 +78,19 @@ export function AssessTab(): React.JSX.Element {
   useEffect(() => {
     if (!selectedElId || !selectedDimId || isMultiSelection) return
 
-    const endKeyboardHistory = (): void => {
-      if (!keyboardHistoryOpenRef.current) return
-      keyboardHistoryOpenRef.current = false
-      history.end(SCORE_HISTORY_OWNER)
-    }
-
     const onKeyDown = (event: globalThis.KeyboardEvent): void => {
       if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return
       if (event.metaKey || event.ctrlKey || event.altKey) return
-
+      if (!scoreOwnsKeys()) return
+      // With views side by side (browser), only while Assess is the one in use.
       const state = useAppStore.getState()
+      if (state.activeTab !== 'scores') return
+
       if (!state.elements.some(element => element.id === selectedElId) ||
           !state.dimensions.some(dimension => dimension.id === selectedDimId)) return
 
       event.preventDefault()
-      history.begin(SCORE_HISTORY_OWNER)
-      keyboardHistoryOpenRef.current = true
+      keyHold.begin()
       const current = state.scores[selectedElId]?.[selectedDimId] ?? 0.5
       const delta = event.key === 'ArrowLeft' ? -0.05 : 0.05
       state.setScore(selectedElId, selectedDimId,
@@ -96,19 +98,17 @@ export function AssessTab(): React.JSX.Element {
     }
 
     const onKeyUp = (event: globalThis.KeyboardEvent): void => {
-      if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') endKeyboardHistory()
+      if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') keyHold.end()
     }
 
     window.addEventListener('keydown', onKeyDown)
     window.addEventListener('keyup', onKeyUp)
-    window.addEventListener('blur', endKeyboardHistory)
     return () => {
       window.removeEventListener('keydown', onKeyDown)
       window.removeEventListener('keyup', onKeyUp)
-      window.removeEventListener('blur', endKeyboardHistory)
-      endKeyboardHistory()
+      keyHold.end()
     }
-  }, [selectedElId, selectedDimId, isMultiSelection])
+  }, [selectedElId, selectedDimId, isMultiSelection, keyHold])
 
   function membership(collectionId: string): Membership {
     if (targetIds.length === 0) return 'none'
@@ -212,7 +212,7 @@ export function AssessTab(): React.JSX.Element {
   // ── Render ────────────────────────────────────────────────────────────────────
 
   return (
-    <div className={styles.tab}>
+    <div className={narrow ? `${styles.tab} ${styles.narrow}` : styles.tab}>
       <div className={styles.scoreKey} aria-label="Scoring status key">
         <span><span className={styles.keySymbol}>–</span>No score</span>
         <span><span className={styles.keySymbol}>◇</span>Incomplete scores</span>
@@ -223,21 +223,15 @@ export function AssessTab(): React.JSX.Element {
         {elements.length === 0 ? (
           <div className={styles.guidance}>
             <span>Add an element before scoring.</span>
-            <button type="button" className={styles.linkBtn} onClick={() => setActiveTab('elements')}>
-              Go to Elements
-            </button>
           </div>
         ) : dimensions.length === 0 ? (
           <div className={styles.guidance}>
             <span>Add a dimension before scoring.</span>
-            <button type="button" className={styles.linkBtn} onClick={() => setActiveTab('dimensions')}>
-              Go to Dimensions
-            </button>
           </div>
         ) : isMultiSelection ? (
           <p className={styles.multiScoreMessage}>Select one element to change dimension scores.</p>
         ) : !selectedEl ? (
-          <EmptyScoreSlider />
+          <EmptyScoreSlider poleA={selectedDim?.poleA} poleB={selectedDim?.poleB} />
         ) : !selectedDim ? (
           <p className={styles.empty}>Choose a dimension below to score {selectedEl.name || 'this element'}.</p>
         ) : (
@@ -297,7 +291,7 @@ export function AssessTab(): React.JSX.Element {
                     <span className={styles.indicator} title={statusLabel} aria-label={statusLabel}>
                       {status}
                     </span>
-                    <span className={styles.rowName}>{element.name || 'Untitled element'}</span>
+                    <span className={styles.rowName} title={narrow ? element.name : undefined}>{element.name || 'Untitled element'}</span>
                   </li>
                 )
               })}
@@ -307,15 +301,19 @@ export function AssessTab(): React.JSX.Element {
 
         <div className={styles.resizeHandle} style={splitPane.dividerStyle} {...splitPane.dividerProps} />
 
-        <div className={styles.controlRail} style={splitPane.rightPaneStyle}>
-          <section className={`${styles.section} ${styles.dimensionsSection}`}>
+        <div
+          ref={narrow ? rail.containerRef : undefined}
+          className={styles.controlRail}
+          style={narrow ? { ...splitPane.rightPaneStyle, ...rail.containerStyle } : splitPane.rightPaneStyle}
+        >
+          <section
+            className={`${styles.section} ${styles.dimensionsSection}`}
+            style={narrow ? rail.leftPaneStyle : undefined}
+          >
             <h3 className={styles.sectionTitle}>Dimensions</h3>
             {dimensions.length === 0 ? (
               <div className={styles.guidance}>
                 <span>No dimensions defined yet.</span>
-                <button type="button" className={styles.linkBtn} onClick={() => setActiveTab('dimensions')}>
-                  Go to Dimensions
-                </button>
               </div>
             ) : (
               <ul
@@ -354,7 +352,7 @@ export function AssessTab(): React.JSX.Element {
                       <span className={styles.indicator} title={completionLabel} aria-label={completionLabel}>
                         {status}
                       </span>
-                      <span className={styles.rowName}>{dimension.label || 'Untitled dimension'}</span>
+                      <span className={styles.rowName} title={narrow ? dimension.label : undefined}>{dimension.label || 'Untitled dimension'}</span>
                     </li>
                   )
                 })}
@@ -362,7 +360,12 @@ export function AssessTab(): React.JSX.Element {
             )}
           </section>
 
-          <section className={`${styles.section} ${styles.collectionsSection}`}>
+          {narrow && <div className={styles.resizeHandle} style={rail.dividerStyle} {...rail.dividerProps} />}
+
+          <section
+            className={`${styles.section} ${styles.collectionsSection}`}
+            style={narrow ? rail.rightPaneStyle : undefined}
+          >
             <h3 className={styles.sectionTitle}>
               <span>
                 Collections
@@ -373,9 +376,6 @@ export function AssessTab(): React.JSX.Element {
             {collections.length === 0 ? (
               <div className={styles.guidance}>
                 <span>No collections defined yet.</span>
-                <button type="button" className={styles.linkBtn} onClick={() => setActiveTab('collections')}>
-                  Go to Collections
-                </button>
               </div>
             ) : (
               <div className={styles.collectionList}>
@@ -440,13 +440,14 @@ function ScoreScale({ score, onDotMouseDown }: ScoreScaleProps): React.JSX.Eleme
   )
 }
 
-function EmptyScoreSlider(): React.JSX.Element {
+/** The slider with no element to score: inactive, showing the selected dimension's poles if there is one. */
+function EmptyScoreSlider({ poleA, poleB }: { poleA?: string; poleB?: string }): React.JSX.Element {
   return (
     <div className={styles.slider} aria-hidden="true">
       <div className={styles.sliderElementName}>&nbsp;</div>
       <div className={styles.sliderPoles}>
-        <span className={styles.poleLabel}>&nbsp;</span>
-        <span className={styles.poleLabel}>&nbsp;</span>
+        <span className={styles.poleLabel}>{poleA || '\u00a0'}</span>
+        <span className={styles.poleLabel}>{poleB || '\u00a0'}</span>
       </div>
       <div className={`${styles.sliderTrack} ${styles.sliderTrackInactive}`}>
         <ScoreScale score={null} />
@@ -463,21 +464,14 @@ function ScoreSlider({
   onScore
 }: DimSliderProps): React.JSX.Element {
   const trackRef = useRef<HTMLDivElement>(null)
-  const historyOpenRef = useRef(false)
+  const adjustment = useHistoryGesture()
   const removeDragListenersRef = useRef<(() => void) | null>(null)
   const suppressTrackClickRef = useRef(false)
-
-  const endDragHistory = useCallback((): void => {
-    if (!historyOpenRef.current) return
-    historyOpenRef.current = false
-    history.end(SCORE_HISTORY_OWNER)
-  }, [])
 
   useEffect(() => () => {
     removeDragListenersRef.current?.()
     removeDragListenersRef.current = null
-    endDragHistory()
-  }, [endDragHistory])
+  }, [])
 
   const getValueFromEvent = useCallback((clientX: number): number => {
     const rect = trackRef.current?.getBoundingClientRect()
@@ -519,7 +513,7 @@ function ScoreSlider({
         // next deliberate track click.
         window.setTimeout(() => { suppressTrackClickRef.current = false }, 0)
       }
-      endDragHistory()
+      adjustment.end()
     }
 
     function onMove(ev: MouseEvent): void {
@@ -527,8 +521,7 @@ function ScoreSlider({
       // Save can finalize history while the pointer is still down; the next
       // move must then open a fresh transaction instead of recording each
       // remaining mousemove as its own action.
-      history.begin(SCORE_HISTORY_OWNER)
-      historyOpenRef.current = true
+      adjustment.begin()
       wroteScore = true
       onScore(getValueFromEvent(ev.clientX))
     }
@@ -558,14 +551,13 @@ function ScoreSlider({
     e.preventDefault()
     // Key repeat is one continuous adjustment just like pointer drag, so one
     // press-and-hold remains one Undo step. Blur closes a missing keyup.
-    history.begin(SCORE_HISTORY_OWNER)
-    historyOpenRef.current = true
+    adjustment.begin()
     onScore(Math.round(Math.max(0, Math.min(1, next)) * 100) / 100)
   }
 
   function handleTrackKeyUp(e: KeyboardEvent<HTMLDivElement>): void {
     if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) {
-      endDragHistory()
+      adjustment.end()
     }
   }
 
@@ -590,7 +582,7 @@ function ScoreSlider({
           : `${Math.round(score * 100)} percent from ${poleA} toward ${poleB}`}
         onKeyDown={handleTrackKeyDown}
         onKeyUp={handleTrackKeyUp}
-        onBlur={endDragHistory}
+        onBlur={adjustment.end}
         onClick={handleTrackClick}
       >
         <ScoreScale score={score} onDotMouseDown={handleDotMouseDown} />

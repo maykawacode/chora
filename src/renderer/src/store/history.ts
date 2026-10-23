@@ -205,23 +205,7 @@ export class HistoryController {
    * becomes a clean baseline and cannot be undone into the prior document.
    */
   replaceDocument<T>(fn: () => T): T {
-    this.finishActive()
-    const before = this.captureCurrent()
-    let result!: T
-    try {
-      this.withRecordingGuard(() => { result = fn() })
-    } catch (error) {
-      // Lifecycle callbacks are currently single synchronous store writes, but
-      // keep this generic API failure-safe: a partial replacement must not sit
-      // outside history while the old stacks continue to describe another state.
-      if (!sameFrame(before, this.captureCurrent())) this.applyFrame(before)
-      throw error
-    }
-
-    this.documentGeneration++
-    this.past = []
-    this.future = []
-    this.active = null
+    const result = this.replaceWhole(fn)
     this.saved = this.captureCurrent()
     this.syncDirty(this.saved)
     this.notifyAvailability()
@@ -234,20 +218,7 @@ export class HistoryController {
    * unlike Open, it has no savepoint until the user saves it explicitly.
    */
   replaceUnsavedDocument<T>(fn: () => T): T {
-    this.finishActive()
-    const before = this.captureCurrent()
-    let result!: T
-    try {
-      this.withRecordingGuard(() => { result = fn() })
-    } catch (error) {
-      if (!sameFrame(before, this.captureCurrent())) this.applyFrame(before)
-      throw error
-    }
-
-    this.documentGeneration++
-    this.past = []
-    this.future = []
-    this.active = null
+    const result = this.replaceWhole(fn)
     // Serialized sessions are never empty, so this sentinel cannot equal a
     // legitimate current frame. Undoing edits back to the example's initial
     // state therefore still leaves the example correctly marked unsaved.
@@ -308,25 +279,33 @@ export class HistoryController {
   markSaved(token: SaveToken, path: string): boolean {
     if (token.generation !== this.documentGeneration) return false
 
-    const rebase = (frame: HistoryFrame): HistoryFrame => ({ ...frame, filePath: path })
-    this.past = this.past.map(rebase)
-    this.future = this.future.map(rebase)
     // A field or gesture may have begun while the asynchronous write was in
     // flight. Its before-frame belongs to the newly saved document too; leaving
-    // the old/null path here would make ending or undoing that action revert
+    // the old/null path there would make ending or undoing that action revert
     // Save As, or create a bogus entry when the transaction changed nothing.
-    if (this.active) {
-      this.active = { ...this.active, before: rebase(this.active.before) }
-    }
-    this.saved = rebase(token.frame)
+    this.rebaseAll(path)
+    this.saved = { ...token.frame, filePath: path }
 
-    const current = rebase(this.captureCurrent())
+    const current = { ...this.captureCurrent(), filePath: path }
     const dirty = !sameFrame(current, this.saved)
     this.dirtySyncSequence++
     this.withRecordingGuard(() => {
       this.store.setState({ filePath: path, isDirty: dirty })
     })
     return true
+  }
+
+  /**
+   * Point the document at another path without saving it or recording an
+   * action (browser Rename). Every frame moves to the new path, as in
+   * markSaved, so Undo never restores the old name and the Unsaved state is
+   * unchanged. An unsaved sentinel keeps its empty session and stays unsaved.
+   */
+  retarget(path: string): void {
+    this.rebaseAll(path)
+    this.withRecordingGuard(() => {
+      this.store.setState({ filePath: path })
+    })
   }
 
   /** Subscribe to menu availability. The callback fires immediately. */
@@ -350,10 +329,8 @@ export class HistoryController {
   get canUndo(): boolean { return this.availability.canUndo }
   get canRedo(): boolean { return this.availability.canRedo }
   get pastCount(): number { return this.past.length }
-  get futureCount(): number { return this.future.length }
   get activeOwner(): HistoryOwner | null { return this.active?.owner ?? null }
   get generation(): number { return this.documentGeneration }
-  get savedFrame(): HistoryFrame { return { ...this.saved } }
 
   captureCurrent(): HistoryFrame {
     return this.frameFromState(this.store.getState())
@@ -364,6 +341,38 @@ export class HistoryController {
       session: serializeSession(state),
       filePath: state.filePath
     }
+  }
+
+  /**
+   * Runs a whole-document replacement outside history and clears both stacks;
+   * the caller sets the new savepoint. Lifecycle callbacks are single
+   * synchronous store writes, but stay failure-safe: a partial replacement
+   * must not sit outside history while the stacks describe another state.
+   */
+  private replaceWhole<T>(fn: () => T): T {
+    this.finishActive()
+    const before = this.captureCurrent()
+    let result!: T
+    try {
+      this.withRecordingGuard(() => { result = fn() })
+    } catch (error) {
+      if (!sameFrame(before, this.captureCurrent())) this.applyFrame(before)
+      throw error
+    }
+    this.documentGeneration++
+    this.past = []
+    this.future = []
+    this.active = null
+    return result
+  }
+
+  /** Points every recorded frame, including the savepoint, at `path`. */
+  private rebaseAll(path: string): void {
+    const rebase = (frame: HistoryFrame): HistoryFrame => ({ ...frame, filePath: path })
+    this.past = this.past.map(rebase)
+    this.future = this.future.map(rebase)
+    if (this.active) this.active = { ...this.active, before: rebase(this.active.before) }
+    this.saved = rebase(this.saved)
   }
 
   private pushPast(frame: HistoryFrame): void {

@@ -2,13 +2,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AppState, CartesianMapConfig } from '../lib/types'
 import { ELEMENT_SHAPES } from '../lib/types'
 import { blackTextContrast } from '../lib/color'
-import {
-  cartesianDotRadius,
-  DOT_DEFAULT_RADIUS,
-  DOT_MAX_RADIUS,
-  DOT_MIN_RADIUS
-} from '../components/maps/cartesian/drawCartesian'
+import { DOT_DEFAULT_RADIUS, DOT_MAX_RADIUS, dotRadius } from '../components/maps/shape'
 import { useAppStore } from './appStore'
+import {
+  randomCollectionAssignments, randomCollectionColors, randomDimensionWeight, randomElementColors,
+  randomElementShapes, randomElementWeights, scoresFromWeights
+} from './transforms'
 import { DEFAULT_PREFERENCES } from '../lib/preferences'
 import { usePrefsStore } from './prefsStore'
 import {
@@ -76,7 +75,7 @@ function importedState(name: string): AppState {
 }
 
 beforeEach(() => {
-  usePrefsStore.setState({ prefs: { ...DEFAULT_PREFERENCES }, loaded: true })
+  usePrefsStore.setState({ prefs: { ...DEFAULT_PREFERENCES } })
   state().resetToEmpty()
   useAppStore.setState({
     filePath: null,
@@ -102,8 +101,7 @@ describe('HistoryController', () => {
         ...DEFAULT_PREFERENCES,
         defaultElementColor: '#123456',
         defaultElementShape: 'diamond'
-      },
-      loaded: true
+      }
     })
 
     state().addElement('Alpha')
@@ -224,7 +222,7 @@ describe('HistoryController', () => {
       state().addElement('Beta')
     })
 
-    state().randomizeElementWeights()
+    state().transform(randomElementWeights)
     const randomWeights = state().elements.map(element => element.weight)
     controller.undo()
     controller.redo()
@@ -245,7 +243,7 @@ describe('HistoryController', () => {
     state().updateElement(heavy.id, { weight: 250 })
 
     const dimensionId = state().dimensions[0].id
-    state().weightToDimension(dimensionId)
+    state().transform(scoresFromWeights(dimensionId, false))
 
     expect(state().scores[light.id][dimensionId]).toBe(0)
     expect(state().scores[middle.id][dimensionId]).toBe(0.5)
@@ -280,7 +278,7 @@ describe('HistoryController', () => {
       state().addElement('Beta')
     })
 
-    state().randomizeElementColors()
+    state().transform(randomElementColors)
 
     for (const element of state().elements) {
       expect(blackTextContrast(element.color)).toBeGreaterThanOrEqual(4.5)
@@ -297,9 +295,9 @@ describe('HistoryController', () => {
       state().addCollection('B')
     })
 
-    state().randomizeDimensionWeights()
-    state().randomizeCollectionColors()
-    state().randomizeElementShapes()
+    for (const { id } of state().dimensions) state().transform(randomDimensionWeight(id))
+    state().transform(randomCollectionColors)
+    state().transform(randomElementShapes)
 
     for (const dimension of state().dimensions) {
       expect(Number.isInteger(dimension.weight)).toBe(true)
@@ -326,7 +324,7 @@ describe('HistoryController', () => {
       .mockReturnValueOnce(0.1).mockReturnValueOnce(0.9)
       .mockReturnValueOnce(0.9).mockReturnValueOnce(0.1)
 
-    state().randomizeCollectionAssignments()
+    state().transform(randomCollectionAssignments)
 
     expect(state().elements.map(element => element.collectionIds)).toEqual([[a.id], [b.id]])
     random.mockRestore()
@@ -438,6 +436,36 @@ describe('HistoryController', () => {
 
     controller.redo()
     expect(state().filePath).toBe('/sessions/saved-after-undo.mtda')
+    expect(state().isDirty).toBe(true)
+  })
+
+  it('renames without saving, dirtying, or entering history', async () => {
+    state().addElement('Alpha')
+    const id = state().elements[0].id
+    expect(controller.markSaved(controller.captureSave(), 'browser:/1/first.chora')).toBe(true)
+
+    controller.retarget('browser:/2/renamed.chora')
+    expect(state().filePath).toBe('browser:/2/renamed.chora')
+    expect(state().isDirty).toBe(false)
+    expect(controller.pastCount).toBe(1)
+
+    state().updateElement(id, { definition: 'changed' })
+    await flushHistory()
+    controller.retarget('browser:/3/again.chora')
+    expect(state().isDirty).toBe(true)
+
+    // Undo returns the content to the saved frame and keeps the new name.
+    controller.undo()
+    expect(state().filePath).toBe('browser:/3/again.chora')
+    expect(state().isDirty).toBe(false)
+    controller.undo()
+    expect(state().filePath).toBe('browser:/3/again.chora')
+  })
+
+  it('keeps an unsaved document unsaved when it is renamed', () => {
+    controller.replaceUnsavedDocument(() => state().addElement('Example'))
+    controller.retarget('browser:/1/named.chora')
+    expect(state().filePath).toBe('browser:/1/named.chora')
     expect(state().isDirty).toBe(true)
   })
 
@@ -606,16 +634,16 @@ describe('HistoryController', () => {
   })
 })
 
-describe('cartesianDotRadius', () => {
+describe('dotRadius', () => {
   it('uses the complete current range while retaining the default size', () => {
     const weighted = cartesianMap()
     const range = { min: 0, max: 250 }
-    expect(cartesianDotRadius(weighted, 0, range)).toBe(DOT_MIN_RADIUS)
-    expect(cartesianDotRadius(weighted, 125, range)).toBe(41)
-    expect(cartesianDotRadius(weighted, 250, range)).toBe(76)
-    expect(DOT_MAX_RADIUS).toBe(76)
+    expect(dotRadius(weighted, 0, range)).toBe(DOT_DEFAULT_RADIUS)
+    expect(dotRadius(weighted, 125, range)).toBe(41)
+    expect(dotRadius(weighted, 250, range)).toBe(76)
+    expect(DOT_MAX_RADIUS.cartesian).toBe(76)
 
-    expect(cartesianDotRadius({ ...weighted, sizeByWeight: false }, 250, range))
+    expect(dotRadius({ ...weighted, sizeByWeight: false }, 250, range))
       .toBe(DOT_DEFAULT_RADIUS)
   })
 
@@ -623,9 +651,9 @@ describe('cartesianDotRadius', () => {
     const weighted = cartesianMap()
     const range = { min: 0, max: 250 }
 
-    expect(cartesianDotRadius(weighted, 0, range, 10)).toBe(10)
-    expect(cartesianDotRadius(weighted, 125, range, 10)).toBe(43)
-    expect(cartesianDotRadius({ ...weighted, sizeByWeight: false }, 250, range, 10)).toBe(10)
-    expect(cartesianDotRadius(weighted, 0, range, 100)).toBe(16)
+    expect(dotRadius(weighted, 0, range, 10)).toBe(10)
+    expect(dotRadius(weighted, 125, range, 10)).toBe(43)
+    expect(dotRadius({ ...weighted, sizeByWeight: false }, 250, range, 10)).toBe(10)
+    expect(dotRadius(weighted, 0, range, 100)).toBe(16)
   })
 })

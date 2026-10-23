@@ -12,16 +12,17 @@
 // read-only displays — they send back only fine-grained score drags and config
 // changes. Every other mutation flows through this component.
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useAppStore } from './store/appStore'
 import { usePrefsStore } from './store/prefsStore'
 import { history } from './store/history'
-import { ScoreWindow } from './components/ScoreWindow/ScoreWindow'
-import { ChooseDimensions, CreateSemanticMap } from './components/maps/ChooseDimensions'
+import { ScoreWindow, type ScorePanesLayout } from './components/ScoreWindow/ScoreWindow'
+import { CreateMapDialog } from './components/maps/CreateMap'
 import { StarterListPicker } from './components/ScoreWindow/StarterListPicker'
 import { ImportPreview } from './components/ImportPreview'
 import { PreferencesDialog } from './components/PreferencesDialog'
-import { WelcomeDialog } from './components/WelcomeDialog'
+import { showStatusNotice } from './components/ScoreWindow/statusLine'
+import { WelcomeDialog, type StartHandlers } from './components/WelcomeDialog'
 import { ConfirmationDisc } from './components/ConfirmationDisc'
 import { OrientationDialog } from './components/OrientationDialog'
 import { UpdateNoticeDialog } from './components/UpdateNoticeDialog'
@@ -33,11 +34,12 @@ import {
   openBundledExample,
   openDocument,
   openOrientationDocument,
-  reopenLastDocument,
+  download,
   saveDocument,
   type ImportPreviewData
 } from './lib/documentWorkflows'
-import type { CartesianMapConfig, SemanticMapConfig, Element, Dimension } from './lib/types'
+import type { CartesianMapConfig, SemanticMapConfig, Element, Dimension, MapType } from './lib/types'
+import { hostCapabilities } from './lib/host'
 import styles from './App.module.css'
 import { encodeMapStateEnvelope } from '../../shared/contracts'
 import type { UpdateNotice } from '../../shared/updateNotice'
@@ -45,6 +47,7 @@ import type { UpdateNotice } from '../../shared/updateNotice'
 type StoreState = ReturnType<typeof useAppStore.getState>
 
 const REPOSITORY_URL = 'https://github.com/maykawacode/chora'
+const RELEASES_URL = 'https://github.com/maykawacode/chora/releases'
 
 function AboutDialog({ version, onClose }: { version: string; onClose: () => void }): React.JSX.Element {
   return (
@@ -56,11 +59,18 @@ function AboutDialog({ version, onClose }: { version: string; onClose: () => voi
     >
       <h1 className={styles.aboutTitle} id="about-dialog-title">Chora</h1>
       <p className={styles.aboutTagline}>Spatial reasoning for qualitative data</p>
-      <p className={styles.aboutVersion}>Version {version}</p>
+      <p className={styles.aboutVersion}>
+        Version {version}{hostCapabilities().kind === 'browser' ? ' (web)' : ''}
+      </p>
       <p className={styles.aboutCopyright}>Copyright © 2026 Matt Mayfield</p>
       <a className={styles.aboutLink} href={REPOSITORY_URL} target="_blank" rel="noreferrer">
         github.com/maykawacode/chora
       </a>
+      {hostCapabilities().kind === 'browser' && (
+        <a className={styles.aboutLink} href={RELEASES_URL} target="_blank" rel="noreferrer">
+          Get Chora for Mac
+        </a>
+      )}
     </ModalShell>
   )
 }
@@ -76,7 +86,39 @@ function encodeStateEnvelope(state: StoreState): string {
   })
 }
 
-export function App(): React.JSX.Element {
+/**
+ * The one dialog in front of the Score Window. Welcome, an import preview and
+ * an update notice are separate layers beneath it: a confirmation can open
+ * over each of them.
+ */
+type Dialog =
+  | { kind: 'quit' | 'discard' | 'replace-on-import' | 'starters' | 'settings' | 'about' }
+  | { kind: 'create-map'; type: MapType }
+  | { kind: 'orientation'; markdown: string }
+
+type Confirmation = Extract<Dialog['kind'], 'quit' | 'discard' | 'replace-on-import'>
+
+const CONFIRMATIONS: Record<Confirmation, { title: string; detail: ReactNode; actionLabel: string }> = {
+  'quit':              { title: 'Quit without saving?',     detail: <>Unsaved changes<br />will be lost.</>, actionLabel: 'Yes, quit' },
+  'discard':           { title: 'Discard unsaved changes?', detail: <>Unsaved changes<br />will be lost.</>, actionLabel: 'Discard changes' },
+  'replace-on-import': { title: 'Replace current session?', detail: <>Existing data<br />will be replaced.</>, actionLabel: 'Replace session' }
+}
+
+const isConfirmation = (dialog: Dialog | null): dialog is { kind: Confirmation } =>
+  dialog !== null && dialog.kind in CONFIRMATIONS
+
+interface AppProps {
+  /** Host-supplied surface beside the Score Window (the browser's map tiles). */
+  workspace?: ReactNode
+  /** Host wrapper around the Score Window (the browser's collapsible dock). */
+  scoreFrame?: (score: ReactNode) => ReactNode
+  /** Host layout showing several Score views side by side (the browser). */
+  scorePanes?: ScorePanesLayout
+  /** Host Welcome in place of the disc (the browser's page), which can also be closed. */
+  welcome?: (start: StartHandlers & { onClose: () => void }) => ReactNode
+}
+
+export function App({ workspace, scoreFrame, scorePanes, welcome }: AppProps = {}): React.JSX.Element {
   const [appVersion] = useState(() => window.api.getAppVersion())
   const filePath      = useAppStore(s => s.filePath)
   const isDirty       = useAppStore(s => s.isDirty)
@@ -98,24 +140,14 @@ export function App(): React.JSX.Element {
     return !(prefs.reopenLastFile && !!prefs.lastFilePath)
   })
 
-  const [showQuitConfirm,       setShowQuitConfirm]       = useState(false)
-  const [showDiscardConfirm,    setShowDiscardConfirm]    = useState(false)
-  const [showImportReplaceConfirm, setShowImportReplaceConfirm] = useState(false)
-  const [showChooseDimensions,    setShowChooseDimensions]    = useState(false)
-  const [showCreateSemantic,      setShowCreateSemantic]      = useState(false)
-  const [showStarterPicker,    setShowStarterPicker]    = useState(false)
-  const [showPreferences,      setShowPreferences]      = useState(false)
-  const [showAbout,            setShowAbout]            = useState(false)
-  const [orientationMarkdown, setOrientationMarkdown] = useState<string | null>(null)
-  const [importPreview,        setImportPreview]        = useState<ImportPreviewData | null>(null)
-  const [updateNotice,         setUpdateNotice]         = useState<UpdateNotice | null>(null)
+  const [dialog,        setDialog]        = useState<Dialog | null>(null)
+  const [importPreview, setImportPreview] = useState<ImportPreviewData | null>(null)
+  const [updateNotice,  setUpdateNotice]  = useState<UpdateNotice | null>(null)
+  const closeDialog = (): void => setDialog(null)
 
   // True while any modal is open — used to bring the Score Window to the front
   // so it is not obscured by map BrowserWindows
-  const isModalOpen = showWelcome || showChooseDimensions || showCreateSemantic ||
-                      showStarterPicker || showPreferences || showAbout || showQuitConfirm || showDiscardConfirm ||
-                      showImportReplaceConfirm || orientationMarkdown !== null || importPreview !== null ||
-                      updateNotice !== null
+  const isModalOpen = showWelcome || dialog !== null || importPreview !== null || updateNotice !== null
 
   // ── suppressBroadcast ref ─────────────────────────────────────────────────────
   //
@@ -130,6 +162,7 @@ export function App(): React.JSX.Element {
   // one in-flight result; after it settles, a later request can capture a fresh
   // frame if changes remain.
   const saveInFlight = useRef<Promise<boolean> | null>(null)
+
   // New/Open await the user's decision without falling back to a native dialog.
   const discardConfirmationResolver = useRef<((confirmed: boolean) => void) | null>(null)
 
@@ -148,15 +181,7 @@ export function App(): React.JSX.Element {
   function cancelOpenModalViews(): void {
     window.dispatchEvent(new Event(CANCEL_MODAL_EVENT))
     setShowWelcome(false)
-    setShowQuitConfirm(false)
-    setShowDiscardConfirm(false)
-    setShowImportReplaceConfirm(false)
-    setShowChooseDimensions(false)
-    setShowCreateSemantic(false)
-    setShowStarterPicker(false)
-    setShowPreferences(false)
-    setShowAbout(false)
-    setOrientationMarkdown(null)
+    setDialog(null)
     setImportPreview(null)
 
     const resolveDiscard = discardConfirmationResolver.current
@@ -182,13 +207,13 @@ export function App(): React.JSX.Element {
   useEffect(() => {
     const { prefs } = usePrefsStore.getState()
     if (prefs.reopenLastFile && prefs.lastFilePath) {
-      reopenLastDocument(prefs.lastFilePath).then(loaded => {
+      openDocument(prefs.lastFilePath).then(loaded => {
         // Auto-reopen initially suppresses Welcome, so failure restores a
         // recovery path instead of leaving an unexplained empty window.
         if (!loaded) setShowWelcome(true)
       })
     }
-  }, [])  // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
 
   // ── Update notice ────────────────────────────────────────────────────────────
   //
@@ -214,7 +239,7 @@ export function App(): React.JSX.Element {
     })
 
     return () => { cancelled = true }
-  }, [])  // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
 
   // ── State broadcast to map windows ───────────────────────────────────────────
   //
@@ -319,7 +344,7 @@ export function App(): React.JSX.Element {
     const removeQuitRequested = window.api.onQuitRequested(() => {
       cancelOpenModalViews()
       if (useAppStore.getState().isDirty) {
-        setShowQuitConfirm(true)
+        setDialog({ kind: 'quit' })
       } else {
         window.api.confirmQuit()
       }
@@ -387,7 +412,11 @@ export function App(): React.JSX.Element {
 
   useEffect(() => {
     const name = filePath ? filePath.split('/').pop() ?? filePath : 'Untitled'
-    document.title = name
+    // The browser tab shows the name as the page banner does, without the
+    // .chora/.mtda extension; the desktop window title keeps it.
+    document.title = hostCapabilities().kind === 'browser'
+      ? name.replace(/\.(chora|mtda)$/i, '') || 'Untitled'
+      : name
   }, [filePath])
 
   // ── Menu action dispatcher ────────────────────────────────────────────────────
@@ -404,15 +433,19 @@ export function App(): React.JSX.Element {
           break
         case 'save':               await handleSave(false);       break
         case 'save-as':            await handleSave(true);        break
+        case 'download-copy':      notifyDownload('copy'); break
         case 'import-spreadsheet': await handleImport();          break
         case 'export-spreadsheet': await handleExport();          break
-        case 'create-cartesian':   setShowChooseDimensions(true); break
-        case 'create-semantic':    setShowCreateSemantic(true);   break
-        case 'preferences':        setShowPreferences(true);      break
-        case 'about':              setShowAbout(true);            break
-        case 'orientation':
-          setOrientationMarkdown(await openOrientationDocument())
+        case 'create-cartesian':   setDialog({ kind: 'create-map', type: 'cartesian' }); break
+        case 'create-semantic':    setDialog({ kind: 'create-map', type: 'semantic' });  break
+        case 'preferences':        setDialog({ kind: 'settings' }); break
+        case 'about':              setDialog({ kind: 'about' });    break
+        case 'orientation': {
+          const markdown = await openOrientationDocument()
+          if (markdown !== null) setDialog({ kind: 'orientation', markdown })
           break
+        }
+        case 'welcome':            setShowWelcome(true);          break
       }
     })
   }, [filePath, isDirty])   // eslint-disable-line react-hooks/exhaustive-deps
@@ -433,23 +466,38 @@ export function App(): React.JSX.Element {
     setUpdateNotice(null)
   }
 
+  function notifyDownload(kind: Parameters<typeof download>[0]): void {
+    showStatusNotice(`Download started: ${download(kind)}`)
+  }
+
+  /** Whether unsaved changes may go: none, or the user agreed to discard them. */
+  async function mayReplaceDocument(): Promise<boolean> {
+    return !isDirty || await confirmDiscard()
+  }
+
   async function handleNew(): Promise<void> {
-    if (isDirty && !await confirmDiscard()) return
+    if (!await mayReplaceDocument()) return
     history.replaceDocument(() => resetToEmpty())
     window.api.restoreMainWindowBounds()
   }
 
   async function handleOpen(): Promise<boolean> {
-    if (isDirty && !await confirmDiscard()) return false
-    return openDocument()
+    return await mayReplaceDocument() && openDocument()
   }
 
   async function handleOpenExample(): Promise<boolean> {
-    if (isDirty && !await confirmDiscard()) return false
-    return openBundledExample()
+    return await mayReplaceDocument() && openBundledExample()
   }
 
   async function handleSave(forceDialog: boolean): Promise<boolean> {
+    // The browser saves by downloading; the download counts as the save.
+    const host = hostCapabilities()
+    if (host.documentSave === 'download') {
+      // The first download of an untitled study asks for its name.
+      if (host.nameUntitledDocument && !await host.nameUntitledDocument()) return false
+      notifyDownload('save')
+      return true
+    }
     const pending = saveInFlight.current
     if (pending) return pending
 
@@ -468,20 +516,24 @@ export function App(): React.JSX.Element {
   }
 
   async function handleExport(): Promise<void> {
+    if (hostCapabilities().exportByDownload) {
+      notifyDownload('spreadsheet')
+      return
+    }
     await exportDocument()
   }
 
   async function confirmDiscard(): Promise<boolean> {
     await window.api.focusMainWindow()
     discardConfirmationResolver.current?.(false)
-    setShowDiscardConfirm(true)
+    setDialog({ kind: 'discard' })
     return new Promise(resolve => {
       discardConfirmationResolver.current = resolve
     })
   }
 
   function resolveDiscardConfirmation(confirmed: boolean): void {
-    setShowDiscardConfirm(false)
+    setDialog(null)
     const resolve = discardConfirmationResolver.current
     discardConfirmationResolver.current = null
     resolve?.(confirmed)
@@ -504,15 +556,27 @@ export function App(): React.JSX.Element {
       })
       selectElements([])
     })
-    setShowImportReplaceConfirm(false)
+    setDialog(null)
     setImportPreview(null)
+  }
+
+  /** What a confirmation disc's arrow and dismissal do. */
+  function confirmationAnswers(kind: Confirmation): { onAction: () => void; onCancel: () => void } {
+    switch (kind) {
+      case 'quit':              return { onAction: () => window.api.confirmQuit(), onCancel: closeDialog }
+      case 'discard':           return { onAction: () => resolveDiscardConfirmation(true), onCancel: () => resolveDiscardConfirmation(false) }
+      case 'replace-on-import': return { onAction: applyImportPreview, onCancel: closeDialog }
+    }
   }
 
   // ── Render ────────────────────────────────────────────────────────────────────
 
   return (
     <div className={styles.root}>
-      <ScoreWindow onOpenStarterPicker={() => setShowStarterPicker(true)} />
+      {(scoreFrame ?? (score => score))(
+        <ScoreWindow onOpenStarterPicker={() => setDialog({ kind: 'starters' })} panes={scorePanes} />
+      )}
+      {workspace}
 
       {importPreview && (
         <ImportPreview
@@ -520,72 +584,41 @@ export function App(): React.JSX.Element {
           result={importPreview.result}
           onCancel={() => setImportPreview(null)}
           onConfirm={() => {
-            if (hasDocumentContent) setShowImportReplaceConfirm(true)
+            if (hasDocumentContent) setDialog({ kind: 'replace-on-import' })
             else applyImportPreview()
           }}
         />
       )}
 
-      {showStarterPicker      && <StarterListPicker       onClose={() => setShowStarterPicker(false)} />}
-      {showChooseDimensions   && <ChooseDimensions        onClose={() => setShowChooseDimensions(false)} />}
-      {showCreateSemantic     && <CreateSemanticMap       onClose={() => setShowCreateSemantic(false)} />}
-      {showPreferences      && <PreferencesDialog    onClose={() => setShowPreferences(false)} />}
+      {dialog?.kind === 'starters'    && <StarterListPicker onClose={closeDialog} />}
+      {dialog?.kind === 'create-map'  && <CreateMapDialog type={dialog.type} onClose={closeDialog} />}
+      {dialog?.kind === 'settings'    && <PreferencesDialog onClose={closeDialog} />}
+      {dialog?.kind === 'orientation' && <OrientationDialog markdown={dialog.markdown} onClose={closeDialog} />}
+      {dialog?.kind === 'about'       && <AboutDialog version={appVersion} onClose={closeDialog} />}
 
-      {orientationMarkdown !== null && (
-        <OrientationDialog markdown={orientationMarkdown} onClose={() => setOrientationMarkdown(null)} />
+      {isConfirmation(dialog) && (
+        <ConfirmationDisc fixed {...CONFIRMATIONS[dialog.kind]} {...confirmationAnswers(dialog.kind)} />
       )}
 
-      {showAbout && <AboutDialog version={appVersion} onClose={() => setShowAbout(false)} />}
-
-      {showQuitConfirm && (
-        <ConfirmationDisc
-          fixed
-          title="Quit without saving?"
-          detail={<>Unsaved changes<br />will be lost.</>}
-          actionLabel="Yes, quit"
-          onCancel={() => setShowQuitConfirm(false)}
-          onAction={() => window.api.confirmQuit()}
-        />
-      )}
-
-      {showDiscardConfirm && (
-        <ConfirmationDisc
-          fixed
-          title="Discard unsaved changes?"
-          detail={<>Unsaved changes<br />will be lost.</>}
-          actionLabel="Discard changes"
-          onCancel={() => resolveDiscardConfirmation(false)}
-          onAction={() => resolveDiscardConfirmation(true)}
-        />
-      )}
-
-      {showImportReplaceConfirm && (
-        <ConfirmationDisc
-          fixed
-          title="Replace current session?"
-          detail={<>Existing data<br />will be replaced.</>}
-          actionLabel="Replace session"
-          onCancel={() => setShowImportReplaceConfirm(false)}
-          onAction={applyImportPreview}
-        />
-      )}
-
-      {showWelcome && (
-        <WelcomeDialog
-          onExample={async () => {
+      {showWelcome && (() => {
+        const start: StartHandlers = {
+          onExample: async () => {
             const loaded = await handleOpenExample()
             if (loaded) setShowWelcome(false)
-          }}
-          onNew={async () => {
+          },
+          onNew: async () => {
             await handleNew()
             setShowWelcome(false)
-          }}
-          onOpen={async () => {
+          },
+          onOpen: async () => {
             const loaded = await handleOpen()
             if (loaded) setShowWelcome(false)
-          }}
-        />
-      )}
+          }
+        }
+        return welcome
+          ? welcome({ ...start, onClose: () => setShowWelcome(false) })
+          : <WelcomeDialog {...start} />
+      })()}
 
       {updateNotice && (
         <UpdateNoticeDialog

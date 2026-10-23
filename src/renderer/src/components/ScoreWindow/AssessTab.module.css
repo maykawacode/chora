@@ -4,7 +4,7 @@
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  background: var(--color-surface-app);
+  background: var(--color-surface-base);
   color: var(--color-text-primary);
 }
 
@@ -50,7 +50,7 @@
   gap: var(--space-two) var(--space-four);
   padding: var(--space-one) var(--space-three);
   border-bottom: 1px solid var(--color-border-subtle);
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   font-size: var(--font-size-meta);
 }
 
@@ -142,7 +142,7 @@
 }
 
 .listItem:hover {
-  background: var(--color-white-wash);
+  background: var(--color-surface-hover);
 }
 
 .multiSelected {
@@ -152,19 +152,19 @@
 .selected,
 .selected:hover {
   background: var(--color-selection-strong);
-  color: var(--color-selection-text);
+  color: var(--color-text-primary);
 }
 
 .indicator {
   width: 12px;
   flex: none;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   font-size: var(--font-size-label);
   text-align: center;
 }
 
 .selected .indicator {
-  color: var(--color-selection-text);
+  color: var(--color-text-primary);
 }
 
 .rowName {
@@ -176,29 +176,6 @@
   white-space: normal;
 }
 
-.linkBtn {
-  flex: none;
-  padding: 0;
-  border: none;
-  background: none;
-  color: var(--color-text-secondary);
-  font-family: inherit;
-  font-size: var(--font-size-meta);
-  font-weight: var(--font-weight-semibold);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  cursor: pointer;
-}
-
-.linkBtn:hover {
-  text-decoration: underline;
-}
-
-.linkBtn:focus-visible {
-  outline: 2px solid var(--color-focus-ring);
-  outline-offset: 2px;
-}
-
 .guidance {
   display: flex;
   flex-wrap: wrap;
@@ -206,12 +183,12 @@
   justify-content: space-between;
   gap: var(--space-three);
   margin: 2px 0 0;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   font-size: var(--font-size-label);
 }
 
 .empty {
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   margin: 2px 0 0;
   font-size: var(--font-size-label);
   line-height: var(--line-height-interface);
@@ -220,7 +197,7 @@
 .multiScoreMessage {
   width: 100%;
   margin: 0;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   font-size: var(--font-size-control);
   text-align: center;
 }
@@ -236,7 +213,7 @@
 
 .targetCount {
   margin-left: var(--space-two);
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   font-size: var(--font-size-meta);
   font-weight: var(--font-weight-semibold);
   letter-spacing: 0.02em;
@@ -320,7 +297,7 @@
   position: absolute;
   width: 1px;
   height: 8px;
-  background: var(--color-text-muted);
+  background: var(--color-text-secondary);
   transform: translateX(-50%);
 }
 
@@ -348,4 +325,53 @@
     padding-right: var(--space-four);
     padding-left: var(--space-four);
   }
+}
+
+/* ── Narrow views (browser; narrowDataViews) ────────────────────────────────
+   The Elements list and the Dimensions and Collections column stay side by
+   side however narrow the view, and nothing scrolls sideways: names and
+   headings stay on one line and end in "…" (the full name is the row's
+   tooltip). */
+
+.narrow .rowName,
+.narrow .sectionTitle {
+  overflow: hidden;
+  overflow-wrap: normal;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A block, so its text can end in "…" (a flex container's text cannot). */
+.narrow .sectionTitle {
+  display: block;
+}
+
+.narrow .targetCount {
+  white-space: nowrap;
+}
+
+/* The key stays on one line; too narrow for all of it, its end becomes "…".
+   Inline rather than inline-flex parts, so the ellipsis can reach their text. */
+.narrow .scoreKey {
+  display: block;
+  overflow: hidden;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.narrow .scoreKey > span {
+  display: inline;
+  margin: 0 var(--space-two);
+}
+
+.narrow .keySymbol {
+  display: inline-block;
+  margin-right: var(--space-one);
+}
+
+/* Dimensions and Collections share the right column by a draggable line,
+   which stands in for the line under Dimensions. */
+.narrow .dimensionsSection {
+  border-bottom: none;
 }

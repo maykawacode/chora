@@ -39,7 +39,7 @@ body {
   font-weight: var(--font-weight-regular);
   line-height: var(--line-height-interface);
   color: var(--color-text-primary);
-  background: var(--color-surface-chrome-strong);
+  background: var(--color-surface-base);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -53,6 +53,18 @@ textarea {
 :focus-visible {
   outline: 2px solid var(--color-focus);
   outline-offset: 1px;
+}
+
+/* Text fields (Issue #13): the field surface with no edge at rest; while
+   typing, an edge in the focus colour and a soft ring. Each field's own rule
+   sets only its size and spacing, with a transparent 1px border to colour. */
+input:not([type=checkbox], [type=radio], [type=range], [type=color]):focus,
+textarea:focus,
+select:focus,
+trix-editor:focus {
+  outline: none;
+  border-color: var(--color-focus);
+  box-shadow: 0 0 0 2px var(--color-focus-ring);
 }
 
 /* Shared document-state marker used by both main and map window titles. */
@@ -95,7 +107,7 @@ textarea {
   justify-content: center;
   padding: var(--space-four);
   border-radius: inherit;
-  background: var(--color-backdrop-confirmation);
+  background: var(--color-backdrop);
 }
 
 .confirmationOverlayFixed {
@@ -105,7 +117,7 @@ textarea {
 
 .confirmationDisc {
   position: relative;
-  width: min(250px, calc(100vw - 32px), calc(100vh - 32px));
+  width: min(var(--size-disc), calc(100vw - 32px), calc(100vh - 32px));
   aspect-ratio: 1;
   flex: none;
   display: flex;
@@ -114,9 +126,9 @@ textarea {
   justify-content: center;
   padding: 0;
   overflow: hidden;
-  border: 1px solid var(--color-border-strong);
+  border: 1px solid var(--color-border-control);
   border-radius: 50%;
-  background: var(--color-surface-raised);
+  background: var(--color-surface-canvas);
   box-shadow:
     var(--shadow-confirmation),
     inset 0 0 0 5px var(--color-confirmation-inset);
@@ -250,6 +262,14 @@ textarea {
 
 .forwardActionButton:hover:not(:disabled) {
   background: var(--color-confirmation-hover);
+}
+
+.forwardActionButtonDestructive {
+  background: var(--color-destructive);
+}
+
+.forwardActionButtonDestructive:hover:not(:disabled) {
+  background: var(--color-destructive-hover);
 }
 
 .forwardActionButton:disabled {

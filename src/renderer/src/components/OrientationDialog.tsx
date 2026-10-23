@@ -1,4 +1,4 @@
-import { ModalShell } from './ModalShell'
+import { CenteredPopup } from './CenteredPopup'
 import styles from '../App.module.css'
 
 function renderInlineMarkdown(text: string): React.ReactNode[] {
@@ -76,17 +76,8 @@ interface Props {
 
 export function OrientationDialog({ markdown, onClose }: Props): React.JSX.Element {
   return (
-    <ModalShell
-      overlayClassName={styles.orientationOverlay}
-      dialogClassName={styles.orientationDialog}
-      onClose={onClose}
-      labelledBy="orientation-title"
-    >
-      <header className={styles.orientationHeader}>
-        <span id="orientation-title">Chora Orientation</span>
-        <button autoFocus onClick={onClose}>Close</button>
-      </header>
+    <CenteredPopup title="Chora Orientation" titleId="orientation-title" onClose={onClose}>
       <OrientationDocument markdown={markdown} />
-    </ModalShell>
+    </CenteredPopup>
   )
 }

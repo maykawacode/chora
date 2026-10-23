@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { themeVariables, uiTheme } from './theme'
 
 const rendererRoot = resolve(process.cwd(), 'src/renderer/src')
+const webRoot = resolve(process.cwd(), 'src/renderer/web')
 const rawColor = /#[0-9a-f]{3,8}\b|rgba?\(/i
 const spacingValue = /(?:padding|margin|gap)[a-z-]*\s*:\s*([^;}]*)/g
 const pixelValue = /(?<![\w.-])(\d+(?:\.\d+)?)px/g
@@ -24,13 +25,24 @@ describe('interface theme', () => {
     )
 
     expect(Object.keys(variables)).toHaveLength(tokenCount)
-    expect(variables['--color-surface-app']).toBe(uiTheme.color.surfaceApp)
+    expect(variables['--color-surface-base']).toBe(uiTheme.color.surfaceBase)
     expect(variables['--font-family-ui']).toBe(uiTheme.fontFamily.ui)
     expect(variables['--motion-duration-enter']).toBe(uiTheme.motion.durationEnter)
   })
 
+  it('uses only colour variables the theme defines', () => {
+    const defined = new Set(Object.keys(themeVariables()))
+    const sources = [rendererRoot, webRoot].flatMap(filesUnder).filter(path => /\.(css|tsx?)$/.test(path))
+    const unknown = sources.flatMap(path =>
+      [...readFileSync(path, 'utf8').matchAll(/var\((--color-[\w-]+)/g)]
+        .filter(([, name]) => !defined.has(name))
+        .map(([, name]) => `${relative(rendererRoot, path)}: ${name}`)
+    )
+    expect(unknown).toEqual([])
+  })
+
   it('keeps raw presentation colors out of styles and map painters', () => {
-    const cssFiles = filesUnder(rendererRoot).filter(path => path.endsWith('.css'))
+    const cssFiles = [rendererRoot, webRoot].flatMap(filesUnder).filter(path => path.endsWith('.css'))
     const canvasFiles = [
       'MapApp.tsx',
       'components/maps/MapPanel.tsx',
@@ -57,7 +69,7 @@ describe('interface theme', () => {
   // offsets, calc(), and larger layout offsets stay raw, as does any line
   // marked with a `/* raw: reason */` comment.
   it('keeps 4–32px spacing on the space tokens', () => {
-    const cssFiles = filesUnder(rendererRoot).filter(path => path.endsWith('.css'))
+    const cssFiles = [rendererRoot, webRoot].flatMap(filesUnder).filter(path => path.endsWith('.css'))
     const violations = cssFiles.flatMap(path =>
       readFileSync(path, 'utf8')
         .split('\n')

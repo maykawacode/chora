@@ -1,0 +1,151 @@
+/* Map area to the right of the tab strip and Score Window. --score-width is
+   the strip plus Score's open views (scoreLayout.ts columnWidth). Strip plus
+   Score keep at least --score-min-width (every open view at its minimum) and
+   the map area at least one 360px tile; when both cannot fit, views close
+   from the right (ScoreDock.tsx), and a last one too wide scrolls sideways. */
+.workspace {
+  flex: 0 0 clamp(360px, calc(100% - var(--score-width)), calc(100% - var(--score-min-width)));
+  display: flex;
+  min-width: 0;
+  overflow: auto;
+}
+
+/* Tiles and dividers are placed absolutely from the split tree (tileLayout.ts),
+   in lengths relative to this area, so they follow it as the window resizes.
+   The 1px gaps between tiles show this background as the dividing lines. The
+   area fills the workspace, and grows past it (scrolling) only when tiles
+   would fall below their minimum. */
+.area {
+  position: relative;
+  flex: 1 0 0;
+  background: var(--color-border-subtle);
+}
+
+.areaDragging {
+  cursor: grabbing;
+}
+
+/* While a tile is being moved, maps ignore the pointer passing over them. */
+.areaDragging .tile {
+  pointer-events: none;
+}
+
+/* Score collapsed to its icon strip: the maps take the rest of the page. */
+.workspace.scoreCollapsed {
+  flex-basis: calc(100% - var(--strip-width));
+}
+
+/* With no maps, Score's views fill the page; the area's placeholder shows
+   only while Score is collapsed. */
+.workspace.noMaps:not(.scoreCollapsed) {
+  flex-basis: 0;
+}
+
+/* Only a collapse or expand animates, with the map sidebar's motion; splitter
+   drags and window resizes stay immediate. */
+.workspace.scoreMotion {
+  transition: flex-basis var(--motion-duration-enter) var(--motion-ease-standard);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workspace.scoreMotion {
+    transition: none;
+  }
+}
+
+/* Layout containment makes the tile the containing block for its fixed
+   overlays (picker backdrops, map dialogs), so they cover and position within
+   the tile exactly as they do within a desktop map window. */
+.tile {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  contain: layout;
+}
+
+/* A few shades darker than a map's white, so an empty area reads as empty. */
+.placeholder {
+  inset: 0;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface-chrome);
+  color: var(--color-text-secondary);
+  font-family: var(--font-family-ui);
+  font-size: var(--font-size-body);
+  user-select: none;
+}
+
+.tile[hidden] {
+  display: none;
+}
+
+.tileDragging {
+  opacity: 0.55;
+}
+
+/* Lines between tiles: invisible hit areas over the 1px gaps. */
+.divider {
+  position: absolute;
+  z-index: 2;
+  touch-action: none;
+}
+
+.divider::after {
+  content: '';
+  position: absolute;
+}
+
+.dividerColumn {
+  cursor: col-resize;
+}
+
+.dividerColumn::after {
+  inset: 0 -3px;
+}
+
+.dividerRow {
+  cursor: row-resize;
+}
+
+.dividerRow::after {
+  inset: -3px 0;
+}
+
+.divider:focus-visible {
+  outline: none;
+  background: var(--color-border-control);
+}
+
+/* Where a moved tile will land: the half of the target nearest the pointer. */
+.dropTarget {
+  position: absolute;
+  z-index: 3;
+  border: 2px solid var(--color-focus);
+  background: var(--color-focus-ring);
+  pointer-events: none;
+}
+
+/* Draggable divider between Score and the maps; the 1px line matches the map
+   sidebar's edge, with a wider invisible hit area for the pointer. */
+.splitter {
+  flex: 0 0 1px;
+  position: relative;
+  z-index: 2;
+  background: var(--color-border-subtle);
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.splitter::after {
+  content: '';
+  position: absolute;
+  inset: 0 -3px;
+}
+
+.splitter:focus-visible {
+  outline: none;
+  background: var(--color-border-control);
+}

@@ -19,52 +19,45 @@
 // Selecting a collection draws its blob. The optional members-only filter can
 // also narrow plotted Elements to the union of those selected collections.
 
-import type { CartesianMapConfig, Element, Dimension, Collection, ScoreMap } from '../../../lib/types'
+import type { CartesianMapConfig } from '../../../lib/types'
+import type { MapScene } from '../mapAdapter'
 import { blobPadding, setBlobPath, type BlobPoint, type Pt } from '../blob'
 import { resolveElementColor } from '../color'
 import { cartesianElements, shownCollections } from '../collections'
-import { drawMark, drawSelectionRing, markShapeIndex } from '../shape'
-import { beginLayer } from '../svgExport'
-import { normalizeInRange, numericRange, type NumericRange } from '../../../lib/numericRange'
+import { beginLayer, dotRadius, drawMark, drawSelectionRing, markShapeIndex, normalizeDefaultDotRadius } from '../shape'
+import { numericRange } from '../../../lib/numericRange'
 import { uiTheme } from '../../../design/theme'
 
-// Space reserved on each side of the canvas for pole labels
-export const MARGIN = 58
+// Guide lines (crosshair, placeholder and partial-score rings) are dotted:
+// short round-capped dashes read as dots. SVG export keeps them as
+// stroke-dasharray with round caps.
+const DOTTED_LINE = [1, 4]
 
-// Dot radius range — the current lightest Element → min, heaviest → max.
-export const DOT_MIN_RADIUS = 6
-export const DOT_MAX_RADIUS = 76
-// Uniform radius used when sizeByWeight is off — the same as the current
-// lightest weighted dot.
-export const DOT_DEFAULT_RADIUS = DOT_MIN_RADIUS
-export const DOT_DEFAULT_RADIUS_MIN = 3
-export const DOT_DEFAULT_RADIUS_MAX = 16
-
-/** Keeps saved or hand-edited preferences inside the range supported by maps. */
-export function normalizeDefaultDotRadius(radius: number = DOT_DEFAULT_RADIUS): number {
-  if (!Number.isFinite(radius)) return DOT_DEFAULT_RADIUS
-  return Math.max(DOT_DEFAULT_RADIUS_MIN, Math.min(DOT_DEFAULT_RADIUS_MAX, radius))
+function strokeDotted(ctx: CanvasRenderingContext2D): void {
+  ctx.save()
+  ctx.setLineDash(DOTTED_LINE)
+  ctx.lineCap = 'round'
+  ctx.stroke()
+  ctx.restore()
 }
 
-/** Shared by painting and hit-testing so large marks remain fully interactive. */
-export function cartesianDotRadius(
-  config: CartesianMapConfig,
-  weight: number,
-  range: NumericRange,
-  defaultRadius: number = DOT_DEFAULT_RADIUS
-): number {
-  const baseRadius = normalizeDefaultDotRadius(defaultRadius)
-  return config.sizeByWeight
-    ? baseRadius + normalizeInRange(weight, range) * (DOT_MAX_RADIUS - baseRadius)
-    : baseRadius
+// Space reserved on each side of the canvas for pole labels. The top is
+// narrower: the map's title bar already sits above it, so a full margin would
+// leave a gap between the title and the top label.
+export const MARGIN = 58
+const MARGIN_TOP = 44
+
+/** The plot area inside the pole-label margins; drawing and hit-testing share it. */
+export function cartesianPlot(W: number, H: number): { left: number; top: number; right: number; bottom: number } {
+  return { left: MARGIN, top: MARGIN_TOP, right: W - MARGIN, bottom: H - MARGIN }
 }
 
 // Gap between dot edge and element name label
 const LABEL_OFFSET = 3
 
-// Fallback label size for callers that omit one; mirrors the elementLabelSize
-// and dimensionLabelSize preference defaults. MapPanel always passes the user's
-// chosen sizes, so this is a floor for future callers, not a live default.
+// The elementLabelSize and dimensionLabelSize preference default. Maps draw
+// labels at the user's chosen sizes; fixed text such as a semantic map's
+// empty-map notice uses this.
 export const LABEL_SIZE_DEFAULT = 13
 
 // Builds the canvas font string for any given pixel size. Map labels remain
@@ -79,16 +72,15 @@ export function labelFont(size: number): string {
 // ── Pole label geometry ───────────────────────────────────────────────────────
 //
 // All four pole labels are placed by one rule: centered on the midpoint of
-// their plot edge, and centered within the MARGIN band between that edge and
-// the canvas edge. Only the anchor point and, on the vertical edges, a quarter
+// their plot edge, a fixed distance out from it. Only the anchor point and, on the vertical edges, a quarter
 // turn vary. That uniformity is the point — every label ends up the same
 // distance from the plot border, and because each one now runs parallel to its
 // own edge, none of them can grow inward and crowd the plot the way an
 // unrotated horizontal label did.
 
-// Distance from a plot edge out to the center line of its label. Half the
-// margin puts the text midway between plot border and canvas edge on all sides.
-const POLE_LABEL_OFFSET = MARGIN / 2
+// Distance from a plot edge out to the center line of its label: 6px nearer
+// the plot than the middle of the margin, so each label reads with its edge.
+const POLE_LABEL_OFFSET = MARGIN / 2 - 6
 
 // Quarter turns for the vertical pair. Canvas rotation is clockwise (y grows
 // downward), so TURN_CW points glyph tops to the right. The two turns are
@@ -133,21 +125,14 @@ export function drawCartesian(
   W: number,
   H: number,
   config: CartesianMapConfig,
-  elements: Element[],
-  collections: Collection[],
-  dimensions: Dimension[],
-  scores: ScoreMap,
-  selectedElementId?: string,
-  elementLabelSize: number = LABEL_SIZE_DEFAULT,
-  dimensionLabelSize: number = LABEL_SIZE_DEFAULT,
-  selectedElementIds: string[] = [],
-  defaultDotRadius: number = DOT_DEFAULT_RADIUS
+  scene: MapScene
 ): void {
+  const {
+    elements, collections, dimensions, scores, selectedElementId, selectedElementIds = [],
+    elementLabelSize, dimensionLabelSize, defaultDotRadius
+  } = scene
   const baseDotRadius = normalizeDefaultDotRadius(defaultDotRadius)
-  const plotLeft   = MARGIN
-  const plotTop    = MARGIN
-  const plotRight  = W - MARGIN
-  const plotBottom = H - MARGIN
+  const { left: plotLeft, top: plotTop, right: plotRight, bottom: plotBottom } = cartesianPlot(W, H)
   const plotW      = plotRight - plotLeft
   const plotH      = plotBottom - plotTop
 
@@ -174,16 +159,11 @@ export function drawCartesian(
 
   ctx.strokeStyle = uiTheme.map.grid
   ctx.lineWidth = 1
-  ctx.setLineDash([4, 4])
 
   ctx.beginPath()
   ctx.moveTo(midX, plotTop);   ctx.lineTo(midX, plotBottom)
-  ctx.stroke()
-  ctx.beginPath()
   ctx.moveTo(plotLeft, midY);  ctx.lineTo(plotRight, midY)
-  ctx.stroke()
-
-  ctx.setLineDash([])
+  strokeDotted(ctx)
 
   // ── Pole labels ───────────────────────────────────────────────────────────────
   //
@@ -270,7 +250,7 @@ export function drawCartesian(
         const pt = project(xScore, yScore)
         pts.push({
           ...pt,
-          padding: blobPadding(cartesianDotRadius(config, el.weight, weightRange, baseDotRadius))
+          padding: blobPadding(dotRadius(config, el.weight, weightRange, baseDotRadius))
         })
         sumX += pt.x
         sumY += pt.y
@@ -286,9 +266,7 @@ export function drawCartesian(
         ctx.arc(midX, midY, blobPadding(baseDotRadius), 0, Math.PI * 2)
         ctx.strokeStyle = color + '44'
         ctx.lineWidth = 1
-        ctx.setLineDash([4, 4])
-        ctx.stroke()
-        ctx.setLineDash([])
+        strokeDotted(ctx)
         ctx.restore()
         continue
       }
@@ -334,7 +312,7 @@ export function drawCartesian(
     // Unscored or partially scored: use 0.5 as placeholder for any missing axis
     const isPartial = xScore === undefined || yScore === undefined
     const { x: cx, y: cy } = project(xScore ?? 0.5, yScore ?? 0.5)
-    const r = cartesianDotRadius(config, el.weight, weightRange, baseDotRadius)
+    const r = dotRadius(config, el.weight, weightRange, baseDotRadius)
 
     const shapeIndex = markShapeIndex(config.marks, el)
     if (shapeIndex !== null) {
@@ -342,11 +320,9 @@ export function drawCartesian(
       if (isPartial) {
         ctx.fillStyle = uiTheme.map.background
         ctx.fill()
-        ctx.setLineDash([3, 3])
         ctx.strokeStyle = uiTheme.map.partial
         ctx.lineWidth = 1.5
-        ctx.stroke()
-        ctx.setLineDash([])
+        strokeDotted(ctx)
       } else {
         ctx.fillStyle = resolveElementColor(config.colorMode, el, collections, [])
         ctx.fill()
