@@ -116,7 +116,7 @@ export function MapApp(): React.JSX.Element {
   if (!mapId) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    height: '100vh', color: uiTheme.color.textMuted,
+                    height: '100vh', color: uiTheme.color.textSecondary,
                     fontFamily: uiTheme.fontFamily.ui, fontSize: uiTheme.fontSize.body }}>
         Loading…
       </div>

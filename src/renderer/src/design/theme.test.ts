@@ -25,7 +25,7 @@ describe('interface theme', () => {
     )
 
     expect(Object.keys(variables)).toHaveLength(tokenCount)
-    expect(variables['--color-surface-app']).toBe(uiTheme.color.surfaceApp)
+    expect(variables['--color-surface-base']).toBe(uiTheme.color.surfaceBase)
     expect(variables['--font-family-ui']).toBe(uiTheme.fontFamily.ui)
     expect(variables['--motion-duration-enter']).toBe(uiTheme.motion.durationEnter)
   })

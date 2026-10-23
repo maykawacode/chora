@@ -13,7 +13,7 @@
   padding: var(--space-one) var(--space-three);
   background: var(--color-surface-signature);
   border-bottom: 1px solid var(--color-border-signature);
-  color: var(--color-text-on-signature);
+  color: var(--color-text-inverse);
   font-family: var(--font-family-ui);
   font-size: var(--font-size-body);
 }
@@ -88,12 +88,12 @@
 
 /* Focus shows in white against the signature colour. */
 .banner :focus-visible {
-  outline-color: var(--color-text-on-signature);
+  outline-color: var(--color-text-inverse);
 }
 
 /* On the signature colour the Unsaved flag takes the highlight yellow, with
    dark text; red would sink into the gold. */
 .banner :global(.unsavedBadge) {
   background: var(--color-selection-strong);
-  color: var(--color-selection-text);
+  color: var(--color-text-primary);
 }

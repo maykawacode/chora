@@ -50,7 +50,7 @@
   gap: var(--space-two) var(--space-four);
   padding: var(--space-one) var(--space-three);
   border-bottom: 1px solid var(--color-border-subtle);
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   font-size: var(--font-size-meta);
 }
 
@@ -142,7 +142,7 @@
 }
 
 .listItem:hover {
-  background: var(--color-white-wash);
+  background: var(--color-surface-hover);
 }
 
 .multiSelected {
@@ -152,19 +152,19 @@
 .selected,
 .selected:hover {
   background: var(--color-selection-strong);
-  color: var(--color-selection-text);
+  color: var(--color-text-primary);
 }
 
 .indicator {
   width: 12px;
   flex: none;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   font-size: var(--font-size-label);
   text-align: center;
 }
 
 .selected .indicator {
-  color: var(--color-selection-text);
+  color: var(--color-text-primary);
 }
 
 .rowName {
@@ -183,12 +183,12 @@
   justify-content: space-between;
   gap: var(--space-three);
   margin: 2px 0 0;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   font-size: var(--font-size-label);
 }
 
 .empty {
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   margin: 2px 0 0;
   font-size: var(--font-size-label);
   line-height: var(--line-height-interface);
@@ -197,7 +197,7 @@
 .multiScoreMessage {
   width: 100%;
   margin: 0;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   font-size: var(--font-size-control);
   text-align: center;
 }
@@ -213,7 +213,7 @@
 
 .targetCount {
   margin-left: var(--space-two);
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   font-size: var(--font-size-meta);
   font-weight: var(--font-weight-semibold);
   letter-spacing: 0.02em;
@@ -297,7 +297,7 @@
   position: absolute;
   width: 1px;
   height: 8px;
-  background: var(--color-text-muted);
+  background: var(--color-text-secondary);
   transform: translateX(-50%);
 }
 

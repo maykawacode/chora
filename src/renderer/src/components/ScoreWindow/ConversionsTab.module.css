@@ -32,7 +32,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-five);
-  background: var(--color-surface-field);
+  background: var(--color-surface-canvas);
   border: 1px solid var(--color-border-control);
   border-radius: var(--radius-control);
   padding: var(--space-three);
@@ -52,7 +52,7 @@
 .stepLabel {
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-semibold);
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
@@ -72,7 +72,7 @@
   left: 3px;
   top: 2px;
   bottom: calc(2px - var(--space-five));
-  border-left: 1px solid var(--color-text-muted);
+  border-left: 1px solid var(--color-text-secondary);
 }
 
 /* Its arrowhead. */
@@ -83,8 +83,8 @@
   bottom: calc(3px - var(--space-five));
   width: 5px;
   height: 5px;
-  border-right: 1px solid var(--color-text-muted);
-  border-bottom: 1px solid var(--color-text-muted);
+  border-right: 1px solid var(--color-text-secondary);
+  border-bottom: 1px solid var(--color-text-secondary);
   transform: rotate(45deg);
 }
 
@@ -106,7 +106,7 @@
   min-height: var(--size-control);
   border: 1px solid transparent; /* shown on focus */
   border-radius: var(--radius-control);
-  background: var(--color-surface-text-field);
+  background: var(--color-surface-chrome);
   font-family: inherit;
   font-size: var(--font-size-body);
   color: var(--color-text-primary);
@@ -115,7 +115,7 @@
 
 .select:disabled {
   color: var(--color-text-disabled);
-  background: var(--color-surface-disabled);
+  background: var(--color-surface-base);
 }
 
 /* ── Nested choices (dimension pickers, pole toggle) ─────────────────────── */
@@ -160,7 +160,7 @@
   padding: 1px 2px;
   border: 1px solid transparent; /* shown on focus */
   border-radius: var(--radius-control);
-  background: var(--color-surface-text-field);
+  background: var(--color-surface-chrome);
   cursor: pointer;
 }
 
@@ -178,7 +178,7 @@
   padding: var(--space-one) var(--space-two);
   font-size: var(--font-size-control);
   font-family: inherit;
-  background: var(--color-surface-field);
+  background: var(--color-surface-canvas);
   border: none;
   cursor: pointer;
   color: var(--color-text-secondary);
@@ -193,12 +193,12 @@
 }
 
 .poleBtn:hover {
-  background: var(--color-surface-app);
+  background: var(--color-surface-hover);
 }
 
 .poleBtnActive {
   background: var(--color-selection-strong) !important;
-  color: var(--color-selection-text);
+  color: var(--color-text-primary);
   font-weight: var(--font-weight-medium);
 }
 

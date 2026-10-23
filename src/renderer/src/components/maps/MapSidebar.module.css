@@ -11,7 +11,7 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
-  background: var(--color-surface-app);
+  background: var(--color-surface-base);
   color: var(--color-text-primary);
   font-family: var(--font-family-ui);
   font-size: var(--font-size-body);
@@ -146,7 +146,7 @@
   margin: 0;
   font-size: var(--font-size-label);
   line-height: var(--line-height-reading);
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
 }
 
 .actionBtn {
@@ -161,7 +161,7 @@
   font-weight: var(--font-weight-semibold);
   text-align: left;
   color: var(--color-text-primary);
-  background: var(--color-surface-field);
+  background: var(--color-surface-canvas);
   border: 1px solid var(--color-border-control);
   border-radius: var(--radius-control);
   cursor: pointer;
@@ -169,7 +169,7 @@
 
 .actionBtn:hover {
   background: var(--color-surface-hover);
-  border-color: var(--color-border-strong);
+  border-color: var(--color-border-control);
 }
 
 .actionArrow {

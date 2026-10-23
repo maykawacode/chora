@@ -91,7 +91,7 @@
   aspect-ratio: 16 / 9;
   border: 1px dashed var(--color-border-control);
   border-radius: var(--radius-dialog);
-  background: var(--color-surface-hover);
+  background: var(--color-surface-chrome);
 }
 
 .caption {

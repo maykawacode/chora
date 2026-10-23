@@ -1,7 +1,7 @@
 .backdrop {
   position: fixed;
   inset: 0;
-  background: var(--color-backdrop-strong);
+  background: var(--color-backdrop);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -17,8 +17,8 @@
   aspect-ratio: 1;
   flex: none;
   overflow: hidden;
-  background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface-canvas);
+  border: 1px solid var(--color-border-control);
   border-radius: 50%;
   box-shadow:
     var(--shadow-confirmation),
@@ -42,7 +42,7 @@
 .subtitle {
   font-size: var(--font-size-body);
   line-height: var(--line-height-interface);
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   margin: 0;
 }
 
@@ -80,7 +80,7 @@
 }
 
 .exampleAction .actionCircle {
-  background: var(--color-text-muted);
+  background: var(--color-text-secondary);
 }
 
 .action:hover .actionCircle {
@@ -93,7 +93,7 @@
 
 /* A host page may recolour the labels (the browser Welcome page's gold). */
 .actionLabel {
-  color: var(--start-label-color, var(--color-text-muted));
+  color: var(--start-label-color, var(--color-text-secondary));
   white-space: nowrap;
 }
 

@@ -71,8 +71,8 @@
   inset: 0;
   align-items: center;
   justify-content: center;
-  background: var(--color-surface-hover);
-  color: var(--color-text-muted);
+  background: var(--color-surface-chrome);
+  color: var(--color-text-secondary);
   font-family: var(--font-family-ui);
   font-size: var(--font-size-body);
   user-select: none;

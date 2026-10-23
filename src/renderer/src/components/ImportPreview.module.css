@@ -9,8 +9,8 @@
 }
 
 .dialog {
-  background: var(--color-surface-app);
-  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface-base);
+  border: 1px solid var(--color-border-control);
   border-radius: var(--radius-dialog);
   padding: var(--space-five);
   width: 340px;
@@ -36,7 +36,7 @@
 }
 
 .summary {
-  background: var(--color-surface-field);
+  background: var(--color-surface-canvas);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-control);
   padding: var(--space-two) var(--space-three);
@@ -66,8 +66,8 @@
 .warnings {
   margin: 0 0 var(--space-three);
   padding: var(--space-two) var(--space-three) var(--space-two) var(--space-five);
-  background: var(--color-warning-surface);
-  border: 1px solid var(--color-warning-border);
+  background: var(--color-surface-canvas);
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-control);
   font-size: var(--font-size-label);
   color: var(--color-warning-text);
@@ -81,7 +81,7 @@
 .caution {
   margin: 0 0 var(--space-four);
   font-size: var(--font-size-control);
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
 }
 
 .buttons {

@@ -22,73 +22,63 @@ export interface UiTheme {
  * because they encode user data rather than application chrome.
  */
 export const uiTheme = {
+  // The mosaic palette (Output/2026-10-22_palette-mosaic_v1.html): pale tan
+  // oklch(0.956 0.012 74) behind, chocolate oklch(0.31 0.045 42) for text, and
+  // a cool sea-glass tint (hue 189) as the soft highlight for hover. The frame,
+  // forward actions and focus are a greyed dark cyan in the same hue; yellow
+  // means chosen and red means delete. Tokens merge only when they do the same
+  // job, so a few still share a value.
   color: {
     surfaceCanvas: '#ffffff',
-    surfaceApp: '#f4f0e8',
-    surfaceRaised: '#faf8f4',
-    surfaceChrome: '#e8e2d8',
-    surfaceChromeStrong: '#ded7cc',
-    surfaceField: '#fffefc',
-    surfaceHover: '#eee9e1',
-    surfaceDisabled: '#e5dfd6',
-    // Interface outside the maps (Score, title bar, strip); maps keep the
-    // surfaces above until the palette is cleaned up as a whole.
-    surfaceBase: '#f5f0e8',
-    surfaceTextField: '#fffefc',
-    surfaceSelected: '#ded8cc',
+    surfaceBase: '#f5efe8',
+    surfaceChrome: '#e8e0d7',
+    surfaceChromeStrong: '#dbd1c7',
+    surfaceDisabled: '#dbd1c7',
+    surfaceHover: '#e1eae9',
+    surfaceTextField: '#fdfaf6',
     // Chora's signature colour: the persistent frame around the views (the
-    // browser's title banner and icon strip). An olive gold, oklch(0.44 0.091
-    // 100°), with text and icons reversed out in white (7.7:1; the secondary
-    // white 5.7:1). Hover lightens, selected darkens.
-    surfaceSignature: '#5e5301',
-    surfaceSignatureHover: '#6c600f',
-    surfaceSignatureSelected: '#383101',
-    borderSignature: '#383101',
-    textOnSignature: '#ffffff',
+    // browser's title banner and icon strip). A greyed dark cyan, oklch(0.36
+    // 0.035 195°), with text and icons reversed out in white (10.7:1). Hover
+    // lightens, selected darkens.
+    surfaceSignature: '#264343',
+    surfaceSignatureHover: '#466464',
+    surfaceSignatureSelected: '#173030',
+    borderSignature: '#173030',
     textOnSignatureSecondary: 'rgba(255, 255, 255, 0.8)',
     dividerOnSignature: 'rgba(255, 255, 255, 0.24)',
-    textPrimary: '#292725',
-    textSecondary: '#5e5953',
-    textMuted: '#706a62',
-    textDisabled: '#a39c93',
+    textPrimary: '#39261e',
+    textSecondary: '#66544a',
+    textDisabled: '#90867e',
     textInverse: '#ffffff',
-    borderSubtle: '#d6cfc5',
-    borderControl: '#b8afa4',
-    borderStrong: '#898177',
+    borderSubtle: '#cbc1b7',
+    borderControl: '#90867e',
+    // Chosen items keep their yellow on hover.
     selectionStrong: '#f2c230',
-    selectionHover: '#dda90f',
     selectionSoft: '#f5e7b5',
-    selectionSoftHover: '#edda97',
-    selectionText: '#292725',
-    actionStrong: '#4e4a45',
-    actionHover: '#3f3c38',
-    focus: '#4e4a45',
-    focusRing: 'rgba(78, 74, 69, 0.34)',
-    confirmation: '#367a4a',
-    confirmationHover: '#2d683f',
-    destructive: '#a33f38',
-    destructiveHover: '#842f2a',
-    warningText: '#7b5525',
-    warningSurface: '#faf1df',
-    warningBorder: '#d9b878',
-    unsaved: '#b8433d',
-    backdrop: 'rgba(31, 29, 26, 0.38)',
-    backdropStrong: 'rgba(31, 29, 26, 0.48)',
-    backdropConfirmation: 'rgba(31, 29, 26, 0.46)',
+    focus: '#466464',
+    focusRing: 'rgba(70, 100, 100, 0.3)',
+    // Forward and confirm actions share the frame's dark cyan.
+    confirmation: '#264343',
+    confirmationHover: '#466464',
+    // Red hover darkens: the same colour, 0.06 darker in OKLCH.
+    destructive: '#9c443b',
+    destructiveHover: '#88322b',
+    warningText: '#785224',
+    unsaved: '#9c443b',
+    backdrop: 'rgba(47, 24, 16, 0.46)',
     whiteWash: 'rgba(255, 255, 255, 0.42)',
-    confirmationInset: 'rgba(255, 255, 255, 0.28)',
-    disabledWash: 'rgba(41, 39, 37, 0.08)'
+    confirmationInset: 'rgba(255, 255, 255, 0.28)'
   },
   map: {
     background: '#ffffff',
-    axis: '#5e5953',
-    grid: '#d6cfc5',
-    label: '#292725',
-    labelMuted: '#706a62',
+    axis: '#66544a',
+    grid: '#cbc1b7',
+    label: '#39261e',
+    labelMuted: '#66544a',
     outline: '#ffffff',
     selection: '#f2c230',
-    partial: '#a33f38',
-    drag: '#66615b',
+    partial: '#9c443b',
+    drag: '#66544a',
     neutral: '#9a9a9a'
   },
   fontFamily: {

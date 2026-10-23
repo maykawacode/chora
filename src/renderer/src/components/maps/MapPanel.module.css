@@ -58,7 +58,7 @@
 .sidebarBtn {
   border: none;
   background: transparent;
-  color: var(--color-action-strong);
+  color: var(--color-text-secondary);
   cursor: pointer;
   padding: 0;
   -webkit-app-region: no-drag;
@@ -113,7 +113,7 @@
   font-size: var(--font-size-body);
   font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
-  background: var(--color-surface-field);
+  background: var(--color-surface-canvas);
   border: 1px solid var(--color-focus);
   border-radius: var(--radius-small);
   box-sizing: border-box;
@@ -153,8 +153,8 @@
 
 .axisPicker {
   position: relative;
-  background: var(--color-surface-app);
-  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface-base);
+  border: 1px solid var(--color-border-control);
   border-radius: 0;
   box-shadow: var(--shadow-dialog);
   width: 220px; /* raw: picker width */
@@ -200,7 +200,7 @@
   border: none;
   border-radius: var(--radius-small);
   background: transparent;
-  color: var(--color-action-strong);
+  color: var(--color-text-secondary);
   cursor: pointer;
 }
 
@@ -223,7 +223,7 @@
   margin: 0;
   padding: 0;
   border: 1px solid var(--color-border-control);
-  background: var(--color-surface-field);
+  background: var(--color-surface-canvas);
   max-height: 200px;
   overflow-y: auto;
 }
@@ -244,12 +244,12 @@
 
 .axisPickerSelected {
   background: var(--color-selection-strong);
-  color: var(--color-selection-text);
+  color: var(--color-text-primary);
   font-weight: var(--font-weight-semibold);
 }
 
 .axisPickerSelected:hover {
-  background: var(--color-selection-hover);
+  background: var(--color-selection-strong);
 }
 
 /* The white map field yields exactly the same distance that the single,
@@ -277,7 +277,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: var(--color-surface-app);
+  background: var(--color-surface-base);
   border-left: 1px solid var(--color-border-subtle);
   transform: translateX(100%);
   visibility: hidden;

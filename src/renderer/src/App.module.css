@@ -63,7 +63,7 @@
   align-items: center;
   justify-content: center;
   padding: var(--space-four);
-  background: var(--color-backdrop-strong);
+  background: var(--color-backdrop);
 }
 
 .aboutDialog {
@@ -74,9 +74,9 @@
   align-items: center;
   justify-content: center;
   padding: var(--space-six);
-  border: 1px solid var(--color-border-strong);
+  border: 1px solid var(--color-border-control);
   border-radius: 50%;
-  background: var(--color-surface-raised);
+  background: var(--color-surface-canvas);
   box-shadow:
     var(--shadow-confirmation),
     inset 0 0 0 5px var(--color-confirmation-inset);
@@ -95,7 +95,7 @@
 .aboutTagline {
   margin: 0;
   max-width: 210px;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   font-size: var(--font-size-body);
   line-height: var(--line-height-interface);
 }

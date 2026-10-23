@@ -66,18 +66,18 @@
 
 /* Focus shows in white against the signature colour. */
 .stripButton:focus-visible {
-  outline-color: var(--color-text-on-signature);
+  outline-color: var(--color-text-inverse);
 }
 
 .stripButton:hover {
   background: var(--color-surface-signature-hover);
-  color: var(--color-text-on-signature);
+  color: var(--color-text-inverse);
 }
 
 .stripButtonActive,
 .stripButtonActive:hover {
   background: var(--color-surface-signature-selected);
-  color: var(--color-text-on-signature);
+  color: var(--color-text-inverse);
 }
 
 .stripDivider {
