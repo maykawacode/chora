@@ -84,12 +84,22 @@
   text-align: center;
 }
 
+/* The wordmark as on the start page (web/StartPage.module.css), at disc size. */
 .aboutTitle {
-  margin: 0 0 var(--space-one);
+  margin: 0 0 var(--space-two);
   font-size: var(--font-size-display);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-semibold);
   line-height: var(--line-height-compact);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+}
+
+.aboutSay {
+  margin-left: 0.35em;
+  font-size: 0.85em;
+  font-weight: var(--font-weight-regular);
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .aboutTagline {
@@ -107,7 +117,7 @@
 }
 
 .aboutCopyright {
-  margin: 0 0 var(--space-three);
+  margin: 0;
   color: var(--color-text-secondary);
   font-size: var(--font-size-control);
 }

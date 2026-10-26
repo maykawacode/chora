@@ -2,9 +2,9 @@ import { Fragment, useEffect, useRef } from 'react'
 import { StartActions, type StartHandlers } from '@renderer/components/WelcomeDialog'
 import { useOverlay } from '@renderer/lib/overlayStack'
 import {
-  LICENSE_LINK, START_COPYRIGHT, START_LABELS, START_LEAD, START_LINKS, START_PRONUNCIATION,
-  START_SUBTITLE, START_TITLE
-} from './startPageContent'
+  CHORA_COPYRIGHT, CHORA_LICENSE, CHORA_NAME, CHORA_PRONUNCIATION, CHORA_TAGLINE
+} from '@renderer/lib/identity'
+import { START_LABELS, START_LEAD, START_LINKS } from './startPageContent'
 import styles from './StartPage.module.css'
 
 // Browser start page: a short full page over the workspace with the wordmark,
@@ -40,17 +40,17 @@ export function StartPage({ onClose, ...start }: StartHandlers & { onClose: () =
       <article className={styles.column}>
         <header className={styles.hero}>
           <h1 id="start-page-title" className={styles.title}>
-            {START_TITLE}
-            <span className={styles.say} aria-label={START_PRONUNCIATION.label}>{START_PRONUNCIATION.text}</span>
+            {CHORA_NAME}
+            <span className={styles.say} aria-label={CHORA_PRONUNCIATION.label}>{CHORA_PRONUNCIATION.text}</span>
           </h1>
-          <p className={styles.subtitle}>{START_SUBTITLE}</p>
+          <p className={styles.subtitle}>{CHORA_TAGLINE}</p>
           {START_LEAD.map((text, i) => <p key={i} className={styles.lead}>{text}</p>)}
           <StartActions className={styles.start} labels={START_LABELS} {...start} />
         </header>
 
         <footer className={styles.end}>
           <p className={styles.credit}>
-            {START_COPYRIGHT} · <a href={LICENSE_LINK.href} target="_blank" rel="noopener noreferrer">{LICENSE_LINK.label}</a>
+            {CHORA_COPYRIGHT} · <a href={CHORA_LICENSE.href} target="_blank" rel="noopener noreferrer">{CHORA_LICENSE.label}</a>
             <br />
             Version {__CHORA_VERSION__}
           </p>

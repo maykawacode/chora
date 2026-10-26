@@ -4,8 +4,8 @@
 
 export interface HostCapabilities {
   /**
-   * Which edition this is: 'browser' labels the version as the web version,
-   * offers the Mac app in About, and titles the tab without the file extension.
+   * Which edition this is: 'browser' labels the version as the web version
+   * in About and titles the tab without the file extension.
    * Behaviour that differs by host has a named capability below instead.
    */
   kind: 'desktop' | 'browser'

@@ -40,14 +40,13 @@ import {
 } from './lib/documentWorkflows'
 import type { CartesianMapConfig, SemanticMapConfig, Element, Dimension, MapType } from './lib/types'
 import { hostCapabilities } from './lib/host'
+import { CHORA_COPYRIGHT, CHORA_LICENSE, CHORA_NAME, CHORA_PRONUNCIATION, CHORA_TAGLINE } from './lib/identity'
 import styles from './App.module.css'
 import { encodeMapStateEnvelope } from '../../shared/contracts'
 import type { UpdateNotice } from '../../shared/updateNotice'
 
 type StoreState = ReturnType<typeof useAppStore.getState>
 
-const REPOSITORY_URL = 'https://github.com/maykawacode/chora'
-const RELEASES_URL = 'https://github.com/maykawacode/chora/releases'
 
 function AboutDialog({ version, onClose }: { version: string; onClose: () => void }): React.JSX.Element {
   return (
@@ -57,20 +56,17 @@ function AboutDialog({ version, onClose }: { version: string; onClose: () => voi
       onClose={onClose}
       labelledBy="about-dialog-title"
     >
-      <h1 className={styles.aboutTitle} id="about-dialog-title">Chora</h1>
-      <p className={styles.aboutTagline}>Spatial reasoning for qualitative data</p>
+      <h1 className={styles.aboutTitle} id="about-dialog-title">
+        {CHORA_NAME}
+        <span className={styles.aboutSay} aria-label={CHORA_PRONUNCIATION.label}>{CHORA_PRONUNCIATION.text}</span>
+      </h1>
+      <p className={styles.aboutTagline}>{CHORA_TAGLINE}</p>
       <p className={styles.aboutVersion}>
         Version {version}{hostCapabilities().kind === 'browser' ? ' (web)' : ''}
       </p>
-      <p className={styles.aboutCopyright}>Copyright © 2026 Matt Mayfield</p>
-      <a className={styles.aboutLink} href={REPOSITORY_URL} target="_blank" rel="noreferrer">
-        github.com/maykawacode/chora
-      </a>
-      {hostCapabilities().kind === 'browser' && (
-        <a className={styles.aboutLink} href={RELEASES_URL} target="_blank" rel="noreferrer">
-          Get Chora for Mac
-        </a>
-      )}
+      <p className={styles.aboutCopyright}>
+        {CHORA_COPYRIGHT} · <a className={styles.aboutLink} href={CHORA_LICENSE.href} target="_blank" rel="noreferrer">{CHORA_LICENSE.label}</a>
+      </p>
     </ModalShell>
   )
 }
