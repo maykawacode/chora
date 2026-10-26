@@ -57,3 +57,7 @@ jobs:
       - name: Check browser output
         # CSP, relative asset paths, and no Node/Electron code in the bundle.
         run: npm run web:check
+
+      - name: Check landing page
+        # CSP, relative and existing references, and links to app/ in site/.
+        run: npm run site:check

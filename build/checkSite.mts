@@ -1,0 +1,56 @@
+// Checks the landing page in site/. Run with `npm run site:check`; CI runs it
+// on every push, and the Pages workflow before publishing.
+//
+// - index.html carries exactly the site CSP (csp.ts).
+// - Every local reference in index.html and site.css is relative and exists,
+//   so the page loads from /chora/ and from a local server alike.
+// - The only links to another host are the project's own GitHub pages.
+// - The start links point to the app at app/.
+import { existsSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { SITE_CONTENT_SECURITY_POLICY } from './csp.ts'
+
+const root = 'site'
+const failures: string[] = []
+const fail = (message: string): void => { failures.push(message) }
+
+const html = readFileSync(join(root, 'index.html'), 'utf8')
+const css = readFileSync(join(root, 'site.css'), 'utf8')
+
+const csp = /<meta http-equiv="Content-Security-Policy"\s+content="([^"]*)"/.exec(html)?.[1]
+if (csp !== SITE_CONTENT_SECURITY_POLICY) fail(`index.html CSP is ${csp ?? 'missing'}`)
+
+const GITHUB = 'https://github.com/maykawacode/chora'
+// app/ is published beside the site, not kept in site/, so it is not on disk here.
+const PUBLISHED_BESIDE = new Set(['app/'])
+
+function checkReference(where: string, url: string, external: 'allowed' | 'forbidden'): void {
+  if (/^[a-z][a-z0-9+.-]*:/i.test(url) || url.startsWith('//')) {
+    const allowed = external === 'allowed' && (url === GITHUB || url.startsWith(`${GITHUB}/`))
+    if (!allowed) fail(`${where} references another host: ${url}`)
+    return
+  }
+  if (url.startsWith('/')) { fail(`${where} references root-relative ${url}`); return }
+  if (url.startsWith('#') || PUBLISHED_BESIDE.has(url)) return
+  if (!existsSync(join(root, url.split(/[?#]/)[0]))) fail(`${where} references missing ${url}`)
+}
+
+// Links (<a href>) may reach the project's GitHub pages; anything the page
+// loads (src, <link href>, CSS url()) must be its own.
+for (const [, tag, attrs] of html.matchAll(/<([a-z]+)\b([^>]*)>/gi)) {
+  for (const [, url] of attrs.matchAll(/\b(?:src|href)="([^"]+)"/g)) {
+    checkReference(`index.html <${tag}>`, url, tag.toLowerCase() === 'a' ? 'allowed' : 'forbidden')
+  }
+}
+for (const [, url] of css.matchAll(/url\(\s*["']?([^"')]+)["']?\s*\)/g)) {
+  checkReference('site.css', url, 'forbidden')
+}
+
+const startLinks = [...html.matchAll(/<a\b[^>]*\bhref="app\/"/g)].length
+if (startLinks !== 2) fail(`index.html has ${startLinks} links to app/, expected 2 (hero and closing)`)
+
+if (failures.length > 0) {
+  console.error(`Site check failed:\n- ${failures.join('\n- ')}`)
+  process.exit(1)
+}
+console.log('Site check passed.')

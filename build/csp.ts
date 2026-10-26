@@ -54,6 +54,22 @@ export function contentSecurityPolicyString(options: { fileScheme: boolean }): s
   ].join('; ')
 }
 
+// The landing page (site/) is a plain static page with the same promise: it
+// loads only its own script, styles, fonts and icons. It differs from the
+// browser build only in `img-src`, which also allows 'self' for its favicon.
+// The page carries this policy in its own meta tag; build/checkSite.mts holds
+// it to this string.
+export const SITE_CONTENT_SECURITY_POLICY = [
+  "default-src 'none'",
+  "script-src 'self'",
+  "style-src 'self' 'unsafe-inline'",
+  "font-src 'self'",
+  "img-src 'self' data:",
+  "connect-src 'none'",
+  "base-uri 'none'",
+  "form-action 'none'"
+].join('; ')
+
 /**
  * Adds the CSP meta tag to every renderer document.
  *
