@@ -63,12 +63,17 @@
   border: 0;
   background: transparent;
   color: var(--color-text-primary);
-  font-size: var(--font-size-body);
+  /* A host page may enlarge the labels (the browser start page). */
+  font-size: var(--start-label-size, var(--font-size-body));
   font-family: inherit;
   font-weight: var(--font-weight-regular);
   cursor: pointer;
 }
 
+/* Every disc button is the confirmation cyan with a white symbol. On hover the
+   symbol and a ring clear of the circle turn the selection yellow; the same
+   hover as .confirmationAction (global.css). The gap matches what lies behind:
+   the disc's white, or a host page's own (--circle-ring-gap). */
 .actionCircle {
   display: grid;
   place-items: center;
@@ -79,19 +84,14 @@
   color: var(--color-text-inverse);
 }
 
-.exampleAction .actionCircle {
-  background: var(--color-text-secondary);
-}
-
 .action:hover .actionCircle {
-  background: var(--color-confirmation-hover);
+  color: var(--color-selection-strong);
+  box-shadow:
+    0 0 0 3px var(--circle-ring-gap, var(--color-surface-canvas)),
+    0 0 0 7px var(--color-selection-strong);
 }
 
-.exampleAction:hover .actionCircle {
-  background: var(--color-text-secondary);
-}
-
-/* A host page may recolour the labels (the browser Welcome page's gold). */
+/* A host page may recolour the labels (the browser start page's signature colour). */
 .actionLabel {
   color: var(--start-label-color, var(--color-text-secondary));
   white-space: nowrap;

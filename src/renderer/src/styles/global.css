@@ -214,8 +214,13 @@ trix-editor:focus {
   cursor: pointer;
 }
 
+/* The disc buttons' shared hover (WelcomeDialog.module.css): the symbol and a
+   ring clear of the circle turn the selection yellow. */
 .confirmationAction:hover {
-  background: var(--color-confirmation-hover);
+  color: var(--color-selection-strong);
+  box-shadow:
+    0 0 0 3px var(--color-surface-canvas),
+    0 0 0 7px var(--color-selection-strong);
 }
 
 .confirmationActionLabelVisuallyHidden {

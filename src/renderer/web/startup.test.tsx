@@ -32,18 +32,18 @@ afterAll(async () => {
 })
 
 describe('browser startup', () => {
-  it('mounts the banner and the Welcome page without errors', async () => {
-    await waitFor(() => expect(screen.getByRole('dialog', { name: 'Chora' })).toBeTruthy())
+  it('mounts the banner and the start page without errors', async () => {
+    await waitFor(() => expect(screen.getByRole('dialog', { name: /^Chora/ })).toBeTruthy())
     expect(screen.getByText('Untitled')).toBeTruthy()
     expect(errors).toEqual([])
   })
 
   it('opens the example study into Score and the map area without errors', async () => {
-    const welcome = screen.getByRole('dialog', { name: 'Chora' })
+    const startPage = screen.getByRole('dialog', { name: /^Chora/ })
     await act(async () => {
-      fireEvent.click(within(welcome).getAllByRole('button', { name: 'Open example data' })[0])
+      fireEvent.click(within(startPage).getByRole('button', { name: 'Explore example study' }))
     })
-    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Chora' })).toBeNull())
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: /^Chora/ })).toBeNull())
     expect(screen.getByRole('navigation', { name: 'Score tabs and commands' })).toBeTruthy()
     expect(errors).toEqual([])
   })

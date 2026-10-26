@@ -155,8 +155,8 @@ export const MENU_ACTIONS = [
   'import-spreadsheet', 'export-spreadsheet',
   'create-cartesian', 'create-semantic',
   'preferences', 'orientation', 'about',
-  // Browser menu only: reopens the Welcome page.
-  'welcome'
+  // Browser menu only: reopens the start page.
+  'start-page'
 ] as const
 
 export type MenuAction = typeof MENU_ACTIONS[number]

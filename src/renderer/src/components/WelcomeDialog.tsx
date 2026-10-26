@@ -13,14 +13,20 @@ export interface StartHandlers {
 
 type Props = StartHandlers
 
-/** Example, New and Existing: the ways to start, shared by this disc and the browser's Welcome page. */
-export function StartActions({ className, onExample, onNew, onOpen }: StartHandlers & { className: string }): React.JSX.Element {
+/** Visible labels a host page may give the start buttons; each also becomes the button's name. */
+export interface StartLabels { example: string; new: string; open: string }
+
+/** Example, New and Existing: the ways to start, shared by this disc and the browser's start page. */
+export function StartActions({ className, labels, onExample, onNew, onOpen }: StartHandlers & {
+  className: string
+  labels?: StartLabels
+}): React.JSX.Element {
   return (
     <div className={className} role="group" aria-label="Start a workspace">
       <button
         type="button"
-        className={`${styles.action} ${styles.exampleAction}`}
-        aria-label="Open example data"
+        className={styles.action}
+        aria-label={labels ? undefined : 'Open example data'}
         onClick={onExample}
       >
         <span className={styles.actionCircle} aria-hidden="true">
@@ -31,13 +37,13 @@ export function StartActions({ className, onExample, onNew, onOpen }: StartHandl
             <circle cx="30" cy="11" r="2.5" />
           </svg>
         </span>
-        <span className={styles.actionLabel}>Example</span>
+        <span className={styles.actionLabel}>{labels?.example ?? 'Example'}</span>
       </button>
 
       <button
         type="button"
         className={styles.action}
-        aria-label="Create a new file"
+        aria-label={labels ? undefined : 'Create a new file'}
         onClick={onNew}
       >
         <span className={styles.actionCircle} aria-hidden="true">
@@ -45,13 +51,13 @@ export function StartActions({ className, onExample, onNew, onOpen }: StartHandl
             <path d="M7 12H29M18 1V23" />
           </svg>
         </span>
-        <span className={styles.actionLabel}>New</span>
+        <span className={styles.actionLabel}>{labels?.new ?? 'New'}</span>
       </button>
 
       <button
         type="button"
         className={styles.action}
-        aria-label="Open an existing file"
+        aria-label={labels ? undefined : 'Open an existing file'}
         onClick={onOpen}
       >
         <span className={styles.actionCircle} aria-hidden="true">
@@ -59,7 +65,7 @@ export function StartActions({ className, onExample, onNew, onOpen }: StartHandl
             <path d="M4 12H30M21 4L30 12L21 20" />
           </svg>
         </span>
-        <span className={styles.actionLabel}>Existing</span>
+        <span className={styles.actionLabel}>{labels?.open ?? 'Existing'}</span>
       </button>
     </div>
   )

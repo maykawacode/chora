@@ -1,0 +1,124 @@
+/* Browser start page (StartPage.tsx): covers the page and scrolls. */
+.page {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  overflow-y: auto;
+  background: var(--color-surface-base);
+  /* All of the page's text is the signature colour (7.2:1 on the page). */
+  --start-label-color: var(--color-surface-signature);
+  --start-label-hover-color: var(--color-surface-signature);
+  /* The page reads larger than the app's interface, so its sizes are raw. */
+  --start-label-size: 18px; /* raw: matches the lead */
+  color: var(--color-surface-signature);
+  font-family: var(--font-family-ui);
+  font-size: 18px; /* raw: the page's reading size */
+  line-height: var(--line-height-reading);
+}
+
+.page:focus {
+  outline: none;
+}
+
+/* Close stays in reach while the page scrolls. */
+.bar {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--space-three) var(--space-four);
+  background: var(--color-surface-base);
+}
+
+.close {
+  min-height: var(--size-control);
+  padding: var(--space-one) var(--space-three);
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-control);
+  background: var(--color-surface-text-field);
+  color: inherit;
+  font: inherit;
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+}
+
+.close:hover {
+  background: var(--color-surface-hover);
+}
+
+/* One centred column as wide as the start buttons need: the button row sets
+   the width (max-content) and the text wraps to it (min-content). On a
+   narrow window the column fits the window and the buttons wrap. */
+.column {
+  box-sizing: border-box;
+  width: min-content;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 0 var(--space-five) 96px; /* raw: room below the footer */
+  text-align: center;
+}
+
+.hero {
+  padding: 48px 0 var(--space-six); /* raw: space above the title */
+}
+
+/* The landing page's wordmark (App/site/): capitals, then the pronunciation as
+   a dictionary sets it. The landing page sets it in Plex Bold with Fraunces
+   Light; the app carries neither, so SemiBold and Regular stand in. */
+.title {
+  margin: 0;
+  font-size: 48px; /* raw: the page's one display size */
+  font-weight: var(--font-weight-semibold);
+  line-height: 1;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+}
+
+.say {
+  margin-left: 0.35em;
+  font-size: 0.85em;
+  font-weight: var(--font-weight-regular);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.subtitle {
+  margin: var(--space-three) 0 var(--space-five);
+  font-size: 24px; /* raw: between the wordmark and the lead */
+  line-height: var(--line-height-interface);
+}
+
+.lead {
+  margin: 0 0 var(--space-three);
+}
+
+/* The disc's start buttons (WelcomeDialog.module.css), set in a row, with
+   the discs' colours and hover; only the hover ring's gap takes this page's
+   background. */
+.start {
+  --circle-ring-gap: var(--color-surface-base);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-six);
+  width: max-content;
+  max-width: 100%;
+  margin: var(--space-six) auto 0;
+}
+
+.end {
+  padding-top: var(--space-six);
+  border-top: 1px solid var(--color-border-subtle);
+  font-size: var(--font-size-title);
+}
+
+.credit,
+.links {
+  margin: 0 0 var(--space-three);
+}
+
+.end a {
+  color: inherit;
+}

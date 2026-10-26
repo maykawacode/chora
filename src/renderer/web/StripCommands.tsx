@@ -69,7 +69,7 @@ const MENUS: Menu[] = [
       <circle cx="8" cy="4.9" r=".8" fill="currentColor" stroke="none" />
     </>,
     items: [
-      { label: 'Welcome', action: 'welcome' },
+      { label: 'Start Page', action: 'start-page' },
       { label: 'Open Example Data', action: 'open-example' },
       { label: 'Chora Orientation', action: 'orientation' },
       'separator',

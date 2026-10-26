@@ -114,11 +114,11 @@ interface AppProps {
   scoreFrame?: (score: ReactNode) => ReactNode
   /** Host layout showing several Score views side by side (the browser). */
   scorePanes?: ScorePanesLayout
-  /** Host Welcome in place of the disc (the browser's page), which can also be closed. */
-  welcome?: (start: StartHandlers & { onClose: () => void }) => ReactNode
+  /** Host a start page in place of the Welcome disc (the browser's), which can also be closed. */
+  startPage?: (start: StartHandlers & { onClose: () => void }) => ReactNode
 }
 
-export function App({ workspace, scoreFrame, scorePanes, welcome }: AppProps = {}): React.JSX.Element {
+export function App({ workspace, scoreFrame, scorePanes, startPage }: AppProps = {}): React.JSX.Element {
   const [appVersion] = useState(() => window.api.getAppVersion())
   const filePath      = useAppStore(s => s.filePath)
   const isDirty       = useAppStore(s => s.isDirty)
@@ -445,7 +445,7 @@ export function App({ workspace, scoreFrame, scorePanes, welcome }: AppProps = {
           if (markdown !== null) setDialog({ kind: 'orientation', markdown })
           break
         }
-        case 'welcome':            setShowWelcome(true);          break
+        case 'start-page':         setShowWelcome(true);          break
       }
     })
   }, [filePath, isDirty])   // eslint-disable-line react-hooks/exhaustive-deps
@@ -615,8 +615,8 @@ export function App({ workspace, scoreFrame, scorePanes, welcome }: AppProps = {
             if (loaded) setShowWelcome(false)
           }
         }
-        return welcome
-          ? welcome({ ...start, onClose: () => setShowWelcome(false) })
+        return startPage
+          ? startPage({ ...start, onClose: () => setShowWelcome(false) })
           : <WelcomeDialog {...start} />
       })()}
 

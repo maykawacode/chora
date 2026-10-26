@@ -20,6 +20,21 @@ Examples include:
 Choose a set small enough to score one item at a time. Chora becomes useful when
 the relationships are not obvious, hard to remember, or see in a table.
 
+## Fuzzy data, not so fuzzy thoughts
+
+Rather than jumping to forced numerical metrics, Chora uses physical proximity
+to show relationships. It is especially good for things that are hard to pin
+down at first. The friction is deliberate: it helps you slow down and reflect.
+
+The meaning of a quality often becomes clear only after several things have
+been placed. Comparing vegetables on soft–crisp, you may find you are scoring
+two things at once: how a vegetable feels raw, and how it holds up cooked. Chora
+lets you rename, redefine or split that quality at any point, and the maps
+redraw as you go.
+
+Chora purposefully has no algorithmic or AI features that articulate
+relationships for you. It is a way to exercise your own judgment.
+
 ## The four building blocks
 
 ### Elements
@@ -52,6 +67,12 @@ be revised whenever your view changes.
 belong to more than one Collection. Collections can represent source, role,
 theme, type, status, or any other grouping useful to your analysis.
 
+### Also in a study
+
+- **Conversions** turn a Dimension into weights or colors, and back.
+- **Notes** say what the study is for, and keep a running log of what you
+  decide and why.
+
 ## The basic Chora sequence
 
 **Elements → Dimensions → Collections → Assess → Maps**
@@ -64,6 +85,10 @@ theme, type, status, or any other grouping useful to your analysis.
 
 Return to any step as your understanding changes. You can rename a Dimension,
 revise a score, or change a Collection at any time.
+
+Before you start, it helps to say what the study is for, in Notes. In the
+browser version, each icon in the strip on the left opens its view;
+⌘-click or right-click opens it beside the others.
 
 ## Download and install the prerelease
 
@@ -94,7 +119,8 @@ Macs with Apple silicon running macOS 12 or later.
 
 ### 1. Open the example
 
-On the Welcome screen, choose **Example**. Chora opens "Vegetables — Example
+On the Welcome screen (the start page in the browser version), choose
+**Example**. Chora opens "Vegetables — Example
 Comparison", a dataset containing 20 Elements, six Dimensions, six
 Collections, two prepared Cartesian maps and one Semantic map.
 
@@ -217,6 +243,10 @@ manually.
 
 ## Data and privacy
 
+The browser version runs entirely in your browser and sends nothing to a
+server. Studies are saved as files on your computer, so keep them wherever you
+keep your work.
+
 A Chora session or imported dataset may contain names, notes, judgments, or
 other sensitive research material. Do not attach a real session, dataset, or
 screenshot to a public GitHub post unless you have permission to publish all of
@@ -250,6 +280,25 @@ To switch this off, uncheck **Check for updates on launch** in
   [Improvement request template](https://github.com/maykawacode/chora/issues/new?template=feature_request.md).
 - Read the project's [support and privacy guidance](https://github.com/maykawacode/chora/blob/main/SUPPORT.md)
   before sharing files or research material.
+
+## Where the technique comes from
+
+In the mid-1950s the psychologist George Kelly argued that people make sense of
+the world through their own bipolar contrasts, drawn out by comparing specific
+things. His repertory grid asks how two of three items are alike and how the
+third differs.
+
+In 1957 Charles Osgood, George Suci and Percy Tannenbaum published *The
+Measurement of Meaning*, rating concepts on scales such as good–bad and
+strong–weak: the semantic differential. Together, the two techniques give Chora
+its two maps.
+
+## The name
+
+Chora takes its name from the Greek *khora*, meaning space or region. In Plato's
+*Timaeus* it names the receptacle in which things take their position. The tool
+asks you not to measure things from outside, but to place them, and in placing
+them, to work out where they stand.
 
 ## Project and source
 

@@ -18,7 +18,7 @@ export async function startApp(options: {
   workspace?: ReactNode
   scoreFrame?: (score: ReactNode) => ReactNode
   scorePanes?: ScorePanesLayout
-  welcome?: (start: StartHandlers & { onClose: () => void }) => ReactNode
+  startPage?: (start: StartHandlers & { onClose: () => void }) => ReactNode
 } = {}): Promise<void> {
   applyUiTheme()
 
@@ -42,7 +42,7 @@ export async function startApp(options: {
         workspace={options.workspace}
         scoreFrame={options.scoreFrame}
         scorePanes={options.scorePanes}
-        welcome={options.welcome}
+        startPage={options.startPage}
       />
     </React.StrictMode>
   )
