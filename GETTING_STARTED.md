@@ -243,9 +243,13 @@ manually.
 
 ## Data and privacy
 
-The browser version runs entirely in your browser and sends nothing to a
-server. Studies are saved as files on your computer, so keep them wherever you
-keep your work.
+**The browser version.** Chora is delivered as a set of files from GitHub
+Pages. Loading the page is an ordinary web request, so GitHub sees your IP
+address, as any website host does. After that, Chora makes no requests at all:
+nothing about your studies or how you use Chora is sent anywhere. Studies are
+saved as files on your computer, wherever you choose. Your browser remembers
+your settings and panel layout on this device, but not your studies. Links such
+as Questions and feedback open GitHub's own site.
 
 A Chora session or imported dataset may contain names, notes, judgments, or
 other sensitive research material. Do not attach a real session, dataset, or
