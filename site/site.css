@@ -1,0 +1,768 @@
+/* Chora landing page styles. Fonts are served from fonts/ (no requests to
+   other hosts): IBM Plex Sans 400, 500 and 600 are the app's own files
+   (src/renderer/src/assets/fonts/), Plex 700 for the wordmark and Fraunces,
+   a variable font covering 300 to 600 with optical sizing, come from Google
+   Fonts' latin and latin-ext subsets. Both are SIL Open Font License; see
+   fonts/LICENSE-*.txt. */
+
+@font-face {
+  font-family: "IBM Plex Sans";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("fonts/IBMPlexSans-Regular.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "IBM Plex Sans";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("fonts/IBMPlexSans-Medium.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "IBM Plex Sans";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("fonts/IBMPlexSans-SemiBold.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "IBM Plex Sans";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("fonts/IBMPlexSans-Bold-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "IBM Plex Sans";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("fonts/IBMPlexSans-Bold-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: "Fraunces";
+  font-style: normal;
+  font-weight: 300 600;
+  font-display: swap;
+  src: url("fonts/Fraunces-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "Fraunces";
+  font-style: normal;
+  font-weight: 300 600;
+  font-display: swap;
+  src: url("fonts/Fraunces-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+/* App tokens from App/src/renderer/src/design/theme.ts (c22c9a0); mosaic
+   tones from Output/2026-10-22_palette-mosaic_v1.html (reference photos). */
+:root {
+  --page: #f5efe8;
+  --panel: #e8e0d7;
+  --white: #ffffff;
+  --field: #fdfaf6;
+  --text: #39261e;
+  --text2: #66544a;
+  --line: #cbc1b7;
+  --control: #90867e;
+  --frame: #264343;
+  --frame-hover: #466464;
+  --frame-deep: #173030;
+  --glass: #e1eae9;
+  --yellow: #f2c230;
+  --yellow-soft: #f5e7b5;
+  --warm: #785224;
+  --tan-pale: #e3d4c2;
+  --tan: #ccb198;
+  --tan-shade: #b89c85;
+  --stone: #bba996;
+  --glass-blue: #7a8990;
+  --glass-sage: #899786;
+  --glass-gray: #776f66;
+  --choc: #4a3128;
+  --choc-deep: #2d1c18;
+  --display: "Fraunces", Georgia, serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  position: relative;
+  margin: 0;
+  background: var(--page);
+  color: var(--text);
+  font: 16px/1.6 "IBM Plex Sans", -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: clip;
+}
+
+a {
+  color: var(--frame);
+}
+
+a:hover {
+  color: var(--frame-hover);
+}
+
+:focus-visible {
+  outline: 2px solid var(--frame-hover);
+  outline-offset: 2px;
+}
+
+/* The product name heads the hero. */
+.wordmark {
+  font-family: "IBM Plex Sans", -apple-system, sans-serif;
+  font-weight: 700;
+  font-size: clamp(30px, 3.4vw, 38px);
+  line-height: 1;
+  letter-spacing: -.01em;
+  font-variant-caps: small-caps;
+  color: var(--frame);
+  margin: 0;
+}
+
+/* Pronunciation after the wordmark, set as a dictionary sets it. */
+.wordmark .say {
+  font-family: var(--display);
+  font-optical-sizing: auto;
+  font-weight: 300;
+  font-size: .85em;
+  font-variant-caps: normal;
+  letter-spacing: 0;
+  color: inherit;
+  margin-left: .35em;
+}
+
+/* The wordmark sits near the window's top, 20px closer to it than to
+   the eyebrow below (the hero's top padding). */
+.masthead {
+  padding-top: 16px;
+}
+
+@media (min-width: 940px) {
+  .masthead {
+    padding-top: 36px;
+  }
+}
+
+
+main {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+/* Hero */
+.hero {
+  display: grid;
+  gap: 32px;
+  padding: 36px 0 56px;
+  align-items: center;
+}
+
+@media (min-width: 940px) {
+  .hero {
+    grid-template-columns: 5fr 7fr;
+    gap: 48px;
+    padding: 56px 0 80px;
+  }
+}
+
+.eyebrow {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .14em;
+  color: var(--warm);
+  margin: 0 0 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.eyebrow::before {
+  content: "";
+  width: 28px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--yellow);
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--display);
+  font-optical-sizing: auto;
+  color: var(--choc);
+}
+
+h1 {
+  font-size: clamp(34px, 4.4vw, 46px);
+  line-height: 1.06;
+  font-weight: 600;
+  margin: 0 0 20px;
+  letter-spacing: -.02em;
+  /* Even line lengths, so the last line is never a single word. */
+  text-wrap: balance;
+}
+
+.sub {
+  font-size: 18px;
+  color: var(--text2);
+  margin: 0 0 22px;
+  max-width: 32em;
+}
+
+.reassure {
+  font-size: 13.5px;
+  color: var(--text2);
+  margin: 0;
+  padding-left: 12px;
+  border-left: 3px solid var(--glass-sage);
+}
+
+/* Animation */
+/* The figure itself is unframed: the animation carries the card look
+   (border, rounded corners, shadow) and the strip sits on the page below. */
+.anim {
+  margin: 0;
+}
+
+.anim svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* Clicking the walk-through pauses or resumes it; a play mark shows while paused. */
+.stage-wrap {
+  position: relative;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 24px 48px -28px rgba(45, 28, 24, .45);
+}
+
+.stage-wrap svg {
+  cursor: pointer;
+}
+
+.stage-wrap svg:focus-visible {
+  outline: 2px solid var(--frame-hover);
+  outline-offset: -2px;
+}
+
+.paused {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.paused[hidden] {
+  display: none;
+}
+
+.paused span {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(38, 67, 67, .82);
+  color: #fff;
+  display: grid;
+  place-items: center;
+}
+
+.paused span svg {
+  width: 20px;
+  height: 20px;
+  margin-left: 3px;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  /* Floats on the page background, clear of the animation's shadow. */
+  padding: 18px 14px 0;
+}
+
+
+.steps {
+  display: flex;
+  gap: 6px;
+  flex: none;
+}
+
+.steps button {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid var(--control);
+  background: var(--white);
+  padding: 0;
+  cursor: pointer;
+}
+
+.steps button.on {
+  background: var(--frame);
+  border-color: var(--frame);
+}
+
+.caption {
+  font-size: 14px;
+  color: var(--text);
+  min-height: 2.6em;
+  display: flex;
+  align-items: center;
+  line-height: 1.35;
+}
+
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Sections */
+section {
+  padding: 64px 0;
+}
+
+h2 {
+  font-size: clamp(26px, 3.2vw, 34px);
+  line-height: 1.15;
+  font-weight: 600;
+  margin: 0 0 16px;
+  letter-spacing: -.015em;
+}
+
+h3 {
+  font-size: 21px;
+  line-height: 1.2;
+  font-weight: 600;
+  margin: 16px 0 8px;
+  letter-spacing: -.01em;
+}
+
+p {
+  margin: 0 0 12px;
+}
+
+/* Full-width chocolate band */
+.band {
+  background: var(--choc-deep);
+  color: var(--tan-pale);
+  margin-inline: calc(50% - 50vw);
+  /* Full-bleed background; content keeps the page's left edge. */
+  padding-inline: calc(50vw - 50%);
+  padding-top: 40px;
+}
+
+.band .inner {
+  flex: 1 1 480px;
+  max-width: 760px;
+}
+
+.band h2 {
+  color: var(--yellow);
+}
+
+.band p {
+  font-size: 19px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.band em {
+  font-style: normal;
+  color: #fff;
+}
+
+.band .row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px 48px;
+}
+
+.band .start {
+  flex: none;
+  margin-left: auto;
+}
+
+.btn.quiet {
+  background: var(--choc);
+  color: var(--tan-pale);
+  border: 1px solid var(--choc);
+}
+
+.btn.quiet:hover {
+  background: var(--frame-hover);
+  border-color: var(--frame-hover);
+  color: #fff;
+}
+
+/* What you see */
+.beats {
+  display: grid;
+  gap: 20px;
+}
+
+@media (min-width: 760px) {
+  .beats {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.beat {
+  background: #e2e7dc;
+  /* glass with ~7% yellow */
+  border-radius: 12px;
+  padding: 16px 18px 20px;
+}
+
+.beat:nth-child(2) {
+  background: var(--yellow-soft);
+}
+
+.beat:nth-child(3) {
+  background: var(--tan-pale);
+}
+
+.beat h3 {
+  margin-top: 16px;
+}
+
+.beat svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  background: var(--white);
+  box-shadow: 0 10px 24px -16px rgba(45, 28, 24, .5);
+}
+
+.beat p {
+  color: var(--text);
+  font-size: 15px;
+  margin: 0;
+}
+
+/* Decide and private */
+/* How it works sits close above the pair: 32px here plus the pair's 8px. */
+section[aria-labelledby="how"] {
+  padding-bottom: 32px;
+}
+
+/* Under the cards: the two statements on the left, the start disc on the right. */
+.closing {
+  padding-top: 8px;
+  display: grid;
+  gap: 48px;
+  align-items: center;
+}
+
+@media (min-width: 900px) {
+  .closing {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 64px;
+  }
+}
+
+.pair {
+  max-width: 760px;
+  text-align: left;
+}
+
+/* The app's confirmation disc (styles/global.css .confirmationDisc),
+   at the shared 300px diameter, with its forward arrow. */
+.disc-col {
+  display: flex;
+  justify-content: center;
+}
+
+.disc {
+  position: relative;
+  width: min(300px, calc(100vw - 32px));
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border: 1px solid var(--choc-deep);
+  border-radius: 50%;
+  background: var(--choc-deep);
+  color: var(--yellow);
+  text-decoration: none;
+}
+
+/* The whole disc is the button, kept flat (no shadow or ring). At rest it
+   is the audience band's chocolate, with yellow text and a yellow arrow
+   circle holding a chocolate arrow. On hover the colors reverse. */
+.disc:hover {
+  background: var(--yellow);
+  border-color: var(--yellow);
+  color: var(--choc-deep);
+}
+
+.disc:hover .disc-action {
+  background: var(--choc-deep);
+  color: var(--yellow);
+}
+
+.disc-copy {
+  padding-left: calc(33.333% - 40px);
+  padding-right: 34%;
+  text-align: left;
+}
+
+.disc-title {
+  display: block;
+  font-family: var(--display);
+  font-optical-sizing: auto;
+  font-weight: 600;
+  font-size: 26px;
+  line-height: 1.15;
+  margin: 0;
+  letter-spacing: -.01em;
+}
+
+.disc-action {
+  position: absolute;
+  top: 50%;
+  right: 18px;
+  width: 58px;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  transform: translateY(-50%);
+  border-radius: 50%;
+  background: var(--yellow);
+  color: var(--choc-deep);
+}
+
+.disc-action svg {
+  display: block;
+  width: 36px;
+  height: 24px;
+}
+
+.disc-action path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.pair>div+div {
+  margin-top: 40px;
+}
+
+/* Two pixels below the default h2 (Friction on purpose keeps the default). */
+#how,
+.pair h2 {
+  font-size: clamp(24px, calc(3.2vw - 2px), 32px);
+}
+
+/* Same color as the friction paragraph, at 16px. */
+.pair p {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--text2);
+}
+
+.pair p+p {
+  margin-top: 12px;
+}
+
+/* Closing call to action */
+.cta {
+  background: var(--frame);
+  color: #fff;
+  padding: 64px max(16px, calc((100% - 1120px) / 2 + 16px));
+  padding-top: 40px;
+  text-align: left;
+}
+
+.cta h2 {
+  color: #fff;
+  margin-bottom: 28px;
+}
+
+.cta p {
+  margin: 0 0 24px;
+  max-width: 34em;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.start {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.btn {
+  font: inherit;
+  font-size: 16px;
+  font-weight: 500;
+  border-radius: 8px;
+  padding: 12px 22px;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn.primary {
+  background: var(--yellow);
+  color: var(--choc-deep);
+  border: 1px solid var(--yellow);
+}
+
+.btn.primary:hover {
+  background: var(--yellow-soft);
+  border-color: var(--yellow-soft);
+  color: var(--choc-deep);
+}
+
+/* Hero Get started: cyan hover, the yellow-soft hover is too close to the tan page */
+.start .btn.primary:hover {
+  background: var(--frame-hover);
+  border-color: var(--frame-hover);
+  color: #fff;
+}
+
+.btn.secondary {
+  background: transparent;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, .55);
+}
+
+.btn.secondary:hover {
+  background: var(--frame-hover);
+  color: #fff;
+}
+
+/* Audiences, under the call to action */
+.audiences {
+  display: grid;
+  gap: 24px;
+  margin: 8px 0 40px;
+}
+
+@media (min-width: 760px) {
+  .audiences {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 32px;
+  }
+}
+
+/* The band holds only the audiences. */
+.band .audiences {
+  margin: 0;
+}
+
+.band .audiences h3 {
+  font-size: clamp(24px, 2.6vw, 28px);
+  line-height: 1.15;
+  margin: 0 0 12px;
+  letter-spacing: -.015em;
+}
+
+.band .audiences p {
+  /* Same weight as the hero's sub text. */
+  font-size: 18px;
+  line-height: 1.6;
+  color: var(--tan-pale);
+}
+
+/* Friction, under the band, introduces How it works. */
+.intro {
+  max-width: 760px;
+  padding-bottom: 0;
+}
+
+/* Same size and color as the hero's sub text. */
+.intro p {
+  font-size: 18px;
+  line-height: 1.6;
+  color: var(--text2);
+  margin: 0;
+}
+
+.intro em {
+  font-style: normal;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.intro+section[aria-labelledby="how"] {
+  padding-top: 48px;
+}
+
+.audiences h3 {
+  color: var(--yellow);
+  font-size: 21px;
+  margin: 0 0 8px;
+}
+
+.audiences p {
+  margin: 0;
+  max-width: none;
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* Hero call to action */
+.hero .start {
+  margin: 0;
+}
+
+.hero .reassure {
+  margin-top: 14px;
+  padding-left: 0;
+  border-left: none;
+}
+
+/* Footer: contact only. */
+.site-footer {
+  max-width: 1120px; /* raw: main's width */
+  margin: 0 auto;
+  padding: 32px 16px 48px;
+  border-top: 1px solid var(--line);
+  color: var(--text2);
+  font-size: 15px;
+  text-align: center;
+}
+
+.site-footer p {
+  margin: 0;
+}

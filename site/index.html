@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Same spirit as the app's CSP (build/csp.ts): nothing loads from another host. -->
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>Chora: decide what things mean</title>
+  <meta name="description" content="A free tool for exploring a list of ideas. Place each item between qualities you choose and see how they relate on a map. Runs in your browser; your work never leaves your computer.">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Chora: decide what things mean">
+  <meta property="og:description" content="A free tool for exploring a list of ideas. Place each item between qualities you choose and see how they relate on a map. Runs in your browser; your work never leaves your computer.">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="stylesheet" href="site.css">
+  <script src="site.js" defer></script>
+</head>
+
+<body>
+  <main>
+    <header class="masthead">
+      <p class="wordmark">CHORA <span class="say" aria-label="pronounced KOR-uh">\ˈkȯr-ə\</span></p>
+    </header>
+    <div class="hero">
+      <div>
+        <p class="eyebrow">For ideas, insights, and priorities</p>
+        <h1>Decide what things mean. Change your mind as often as you&nbsp;like.</h1>
+        <p class="sub">A free tool for exploring a list of ideas. Place each item between qualities you choose,
+          such as simple and complex, and see how they relate on a map.</p>
+
+        <p class="sub">Start with three items and two qualities. Grow each study as large as you need. Each study runs
+          locally in your browser. No account needed. Your work never leaves your computer.</p>
+
+        <div class="start">
+          <a class="btn primary" href="app/">Get started <span aria-hidden="true">→</span></a>
+        </div>
+      </div>
+
+      <div>
+        <figure class="anim" aria-labelledby="anim-desc">
+          <div class="stage-wrap">
+            <svg id="stage" viewBox="0 0 640 400" role="button" tabindex="0" aria-label="Pause the walk-through"></svg>
+            <div class="paused" id="paused" hidden><span><svg width="20" height="20" viewBox="0 0 12 12"
+                  aria-hidden="true">
+                  <path d="M3 1.5v9l7.5-4.5z" fill="currentColor" />
+                </svg></span></div>
+          </div>
+          <div class="controls">
+            <div class="steps" id="steps"></div>
+            <div class="caption" id="caption"></div>
+          </div>
+          <figcaption class="sr" id="anim-desc">A walk-through of the app. Someone types in a list of vegetables, adds
+            two qualities (raw texture and cooked texture), scores each vegetable with a slider, and sorts them into
+            collections. They open a map of the two qualities, which shows each vegetable at its scores, color the
+            map by collection, and draw the root vegetables and cucurbits as shapes. Dragging beet on the map changes
+            its scores, and the root vegetables' shape stretches to follow.</figcaption>
+        </figure>
+      </div>
+    </div>
+
+    <section class="band" aria-label="Who Chora is for">
+      <div class="audiences">
+        <div>
+          <h3>For designers</h3>
+          <p>Sort out ideas, find the overlaps, clear up ambiguity, and flesh out areas of opportunity.</p>
+        </div>
+        <div>
+          <h3>For researchers</h3>
+          <p>Disambiguate tricky labels and uncover the relationships begging for attention.</p>
+        </div>
+        <div>
+          <h3>For strategists</h3>
+          <p>Unpack priorities and the issues that drive them, and find where the leverage is.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="intro" aria-labelledby="friction">
+      <h2 id="friction">Friction on purpose</h2>
+      <p>Chora helps you get your head around a set of issues or ideas. It does not do the thinking for you.
+        <em>It adds friction where friction helps.</em> You decide how items relate, one by one, and spend your effort
+        only on the judgments that need it. That is where discernment counts.
+      </p>
+    </section>
+
+    <section aria-labelledby="how">
+      <h2 id="how">How it works.</h2>
+      <div class="beats">
+        <article class="beat">
+          <svg id="still1" viewBox="0 0 452 400" aria-hidden="true"></svg>
+          <h3>Position and reposition items</h3>
+          <p>You can directly manipulate the position of an item or place it numerically via spreadsheet import. All
+            views update with changes made anywhere.
+          </p>
+        </article>
+        <article class="beat">
+          <svg id="still2" viewBox="0 0 452 400" aria-hidden="true"></svg>
+          <h3>Gather items into collections</h3>
+          <p>Group items into collections, independently of their qualities and positions, to see broader patterns.
+            Rename and redefine items, qualities, and collections at any time.</p>
+        </article>
+        <article class="beat">
+          <svg id="still3" viewBox="0 0 452 400" aria-hidden="true"></svg>
+          <h3>See the whole set at once</h3>
+          <p>Semantic views place each item on every quality at once. Each item's line forms a profile you can compare
+            with the others.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="closing">
+      <div class="pair">
+        <div>
+          <h2>You decide. Chora keeps up.</h2>
+          <p>Chora has no AI. Nothing is decided for you; every position on a map is a judgment you make. Changes are
+            recorded in the study's Notes, so you can track how your understanding evolves. Save versions of a study and
+            restore any of them later.</p>
+        </div>
+        <div>
+          <h2>Yours, and private.</h2>
+          <p>Chora runs entirely in your browser and sends nothing to a server. It saves studies as files on your
+            computer. Export the data to a spreadsheet, or any map as a slide-ready image.</p>
+        </div>
+      </div>
+
+      <div class="disc-col">
+        <a class="disc" href="app/">
+          <span class="disc-copy">
+            <span class="disc-title">Get started with a study on Chora</span>
+          </span>
+          <span class="disc-action" aria-hidden="true">
+            <svg viewBox="0 0 36 24">
+              <path d="M4 12H30M21 4L30 12L21 20" />
+            </svg>
+          </span>
+        </a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p><a href="https://github.com/maykawacode/chora/discussions">Questions and feedback</a></p>
+  </footer>
+</body>
+
+</html>
