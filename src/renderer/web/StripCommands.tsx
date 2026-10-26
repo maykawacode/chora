@@ -20,7 +20,6 @@ import styles from './StripCommands.module.css'
 // they stay on their shortcuts (shortcuts.ts). Shortcuts shown are only those
 // the browser leaves to the page.
 
-const RELEASES_URL = 'https://github.com/maykawacode/chora/releases'
 const FEEDBACK_URL = 'https://github.com/maykawacode/chora/discussions'
 
 type Item =
@@ -73,7 +72,6 @@ const MENUS: Menu[] = [
       { label: 'Open Example Data', action: 'open-example' },
       { label: 'Chora Orientation', action: 'orientation' },
       'separator',
-      { label: 'Get Chora for Mac…', href: RELEASES_URL },
       { label: 'Project & Feedback…', href: FEEDBACK_URL },
       'separator',
       { label: 'About Chora', action: 'about' }
