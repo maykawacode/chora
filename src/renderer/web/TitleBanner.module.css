@@ -36,8 +36,10 @@
   user-select: none;
 }
 
+/* Capitals as in the wordmark (StartPage.module.css), without the pronunciation. */
 .productName {
   font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
 }
 
 .version {

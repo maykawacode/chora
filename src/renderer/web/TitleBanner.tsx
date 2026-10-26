@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { useAppStore } from '@renderer/store/appStore'
 import { useStatusNotices } from '@renderer/components/ScoreWindow/statusLine'
+import { CHORA_NAME } from '@renderer/lib/identity'
 import { displayName, editableName, renameDocument } from './documentName'
 import { NamePrompt } from './NamePrompt'
 import styles from './TitleBanner.module.css'
@@ -63,7 +64,7 @@ export function TitleBanner(): React.JSX.Element {
       {/* Important messages only, centred in the window. */}
       <div className={styles.status} role="status" aria-live="polite">{message}</div>
       <div className={styles.product}>
-        <span className={styles.productName}>Chora</span>
+        <span className={styles.productName}>{CHORA_NAME}</span>
         <span className={styles.version}>{window.api.getAppVersion()}</span>
       </div>
       <NamePrompt />

@@ -48,12 +48,13 @@
   background: var(--color-surface-hover);
 }
 
-/* One centred column as wide as the start buttons need: the button row sets
-   the width (max-content) and the text wraps to it (min-content). On a
-   narrow window the column fits the window and the buttons wrap. */
+/* One centred column as wide as the start buttons need. The column fits its
+   content, but the text blocks size as if empty (contain: inline-size), so
+   only the wordmark and the button row set the width and the text wraps to
+   it. On a narrow window the column fits the window and the buttons wrap. */
 .column {
   box-sizing: border-box;
-  width: min-content;
+  width: fit-content;
   max-width: 100%;
   margin: 0 auto;
   padding: 0 var(--space-five) 96px; /* raw: room below the footer */
@@ -84,6 +85,12 @@
   text-transform: none;
 }
 
+.subtitle,
+.lead,
+.end {
+  contain: inline-size;
+}
+
 .subtitle {
   margin: var(--space-three) 0 var(--space-five);
   font-size: 24px; /* raw: between the wordmark and the lead */
@@ -103,9 +110,7 @@
   flex-wrap: wrap;
   justify-content: center;
   gap: var(--space-six);
-  width: max-content;
-  max-width: 100%;
-  margin: var(--space-six) auto 0;
+  margin-top: var(--space-six);
 }
 
 .end {
