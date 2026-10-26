@@ -1,8 +1,8 @@
 {
   "schema": 1,
-  "id": "2026-09-14-beta7",
-  "maxVersion": "0.1.0-beta.6",
+  "id": "2026-10-25-beta8",
+  "maxVersion": "0.1.0-beta.7",
   "title": "Update available",
-  "detail": "Chora 0.1.0-beta.7 is ready. It adds an in-app update notice and a new app icon.",
+  "detail": "Chora 0.1.0-beta.8 is ready. It adds a refreshed Welcome disc and About, and the new browser version.",
   "url": "https://github.com/maykawacode/chora/releases"
 }
