@@ -105,6 +105,8 @@ jobs:
 
       - name: Assemble the site
         shell: bash
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
         run: |
           mkdir _site
           cp -R site/. _site/
@@ -112,6 +114,9 @@ jobs:
           cp -R release/dist-web _site/app
           test -f _site/index.html
           test -f _site/app/index.html
+          # Show the release being published under the wordmark.
+          sed -i "s|<p class=\"version\">[^<]*</p>|<p class=\"version\">${TAG}</p>|" _site/index.html
+          grep -qF "<p class=\"version\">${TAG}</p>" _site/index.html
 
       - name: Hand the site to the publishing job
         uses: actions/upload-pages-artifact@v4

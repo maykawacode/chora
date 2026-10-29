@@ -150,6 +150,14 @@ a:hover {
   margin-left: .35em;
 }
 
+/* The release under the wordmark, in small type. */
+.version {
+  font-size: 13px;
+  line-height: 1;
+  color: var(--text2);
+  margin: 6px 0 0;
+}
+
 /* The wordmark sits near the window's top, 20px closer to it than to
    the eyebrow below (the hero's top padding). */
 .masthead {
