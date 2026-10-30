@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Same spirit as the app's CSP (build/csp.ts): nothing loads from another host. -->
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>Chora: Quick Start Guide</title>
+  <meta name="description" content="The fastest path from a list to a map in Chora: list your items, choose qualities to compare them on, score them, and draw a map.">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Chora: Quick Start Guide">
+  <meta property="og:description" content="The fastest path from a list to a map in Chora: list your items, choose qualities to compare them on, score them, and draw a map.">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="stylesheet" href="site.css">
+</head>
+
+<body>
+  <main>
+    <header class="masthead">
+      <p class="wordmark"><a href="./">CHORA</a> <span class="say" aria-label="pronounced KOR-uh">\ˈkȯr-ə\</span></p>
+    </header>
+
+    <div class="qs-hero">
+      <h1>Quick Start Guide</h1>
+    </div>
+
+    <section class="qs" aria-label="Steps">
+      <ol class="qs-rows">
+        <li class="qs-row">
+          <div class="qs-step">
+            <h2>1. Start with a list</h2>
+            <div class="qs-body">
+              <p>Enter a list of the items you want to sort out. In the app, items are called <em>elements</em>.</p>
+              <p>You can skip the details for now, or add anything that helps you define each item.</p>
+            </div>
+          </div>
+          <img class="qs-shot" src="images/step-1.webp" width="1240" height="864" loading="lazy"
+            alt="The Elements button, circled in red, opens a list of six vegetables with Carrot selected and its details below.">
+        </li>
+
+        <li class="qs-row">
+          <div class="qs-step">
+            <h2>2. Choose how to compare them</h2>
+            <div class="qs-body">
+              <p>Enter at least two qualities. Each quality is a scale between two opposite ends, such as Simple–Complex
+                or Quiet–Lively. In the app, these scales are called <em>dimensions</em>.</p>
+              <p>Need ideas? Click the <strong>⋯</strong> button beside the entry field to browse starter lists.</p>
+            </div>
+          </div>
+          <img class="qs-shot" src="images/step-2.webp" width="1520" height="760" loading="lazy"
+            alt="The Dimensions button and the ⋯ button, circled in red, beside two scales: Quick-cooking to Slow-cooking and Everyday to Specialty.">
+        </li>
+
+        <li class="qs-row">
+          <div class="qs-step">
+            <h2><span class="qs-optional">Optional:</span> Add some collections</h2>
+            <div class="qs-body">
+              <p>If you already have groups in mind for these items, enter them here as collections. You can also wait and
+                add them later. Not required.</p>
+            </div>
+          </div>
+          <img class="qs-shot" src="images/step-optional.webp" width="1240" height="760" loading="lazy"
+            alt="The Collections button, circled in red, with three collections: Nightshades, Root vegetables and Leafy greens.">
+        </li>
+
+        <li class="qs-row">
+          <div class="qs-step">
+            <h2>3. Record the comparisons</h2>
+            <div class="qs-body">
+              <p>Go through the items one by one. For each item, use the sliders to place it between the ends of each
+                quality.</p>
+              <p>If you like, put it in one or more collections as you go.</p>
+            </div>
+          </div>
+          <img class="qs-shot" src="images/step-3.webp" width="1520" height="1240" loading="lazy"
+            alt="The Assess button, circled in red, with Carrot placed on a slider between Quick-cooking and Slow-cooking.">
+        </li>
+
+        <li class="qs-row">
+          <div class="qs-step">
+            <h2>4. Look at some maps</h2>
+            <div class="qs-body">
+              <p>When you are done scoring, explore how the items compare by drawing maps from the Maps menu. Each map has
+                a sidebar on the right for adjusting that map's view.</p>
+              <ul>
+                <li><strong>Drag</strong> an item on the map to reposition it. Its scores update everywhere.</li>
+                <li><strong>Right-click</strong> an item to change its details.</li>
+                <li><strong>Shift-drag</strong> across empty space to select several items; shift-click adds or removes
+                  one. Then right-click the selection to add them all to an existing or new collection.</li>
+              </ul>
+            </div>
+          </div>
+          <img class="qs-shot" src="images/step-4.webp" width="1920" height="1360" loading="lazy"
+            alt="The Maps button and the map's sidebar button, circled in red, beside a map of six vegetables with leafy greens and root vegetables drawn as shapes.">
+        </li>
+      </ol>
+    </section>
+
+    <section class="qs qs-more" aria-labelledby="other-parts">
+      <h2 class="qs-heading" id="other-parts">Other parts</h2>
+      <p class="qs-lede">The buttons down the left side of Chora, from top to bottom.</p>
+      <dl class="qs-parts">
+        <div>
+          <dt>Info</dt>
+          <dd>The start page, the example study, this guide, feedback, and About Chora.</dd>
+        </div>
+        <div>
+          <dt>File</dt>
+          <dd>Start, open and save studies as files on your computer. Import or export a spreadsheet.</dd>
+        </div>
+        <div>
+          <dt>Notes</dt>
+          <dd>What the study is for, and a running log of what you decide and why.</dd>
+        </div>
+        <div>
+          <dt>Elements</dt>
+          <dd>The items you are comparing.</dd>
+        </div>
+        <div>
+          <dt>Dimensions</dt>
+          <dd>The qualities you compare them on, each a scale between two ends.</dd>
+        </div>
+        <div>
+          <dt>Collections</dt>
+          <dd>Named groups of items. An item can belong to more than one.</dd>
+        </div>
+        <div>
+          <dt>Assess</dt>
+          <dd>Place each item on each quality, and choose its collections.</dd>
+        </div>
+        <div>
+          <dt>Conversions</dt>
+          <dd>Let one scale drive another, such as a quality setting an item's size or color.</dd>
+        </div>
+        <div>
+          <dt>Maps</dt>
+          <dd>Draw Cartesian and semantic maps. Close one any time; nothing is lost.</dd>
+        </div>
+        <div>
+          <dt>Settings</dt>
+          <dd>Defaults for new maps and items, label sizes, and delete confirmations.</dd>
+        </div>
+        <div>
+          <dt>Show names</dt>
+          <dd>Shows or hides these names beside the icons.</dd>
+        </div>
+      </dl>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p><a href="./">Chora home</a> · Copyright 2026 <a href="https://www.linkedin.com/in/mayfield/">Matt Mayfield</a></p>
+  </footer>
+</body>
+
+</html>

@@ -6,7 +6,16 @@ The static home page of the browser version, published at
 
 - `index.html`: the markup. The Content-Security-Policy meta tag keeps every
   request on this site, in the spirit of the app's `build/csp.ts`.
+- `quick-start.html`: the Quick Start Guide, for first-time users, at
+  `/chora/quick-start.html`. The app's Info menu links here.
+- `images/`: the quick start's screenshots (`step-1`, `step-2`, `step-optional`,
+  `step-3`, `step-4`, WebP at 2×). Taken from the browser version: a new study
+  with six vegetables, two dimensions and three collections, names shown in the
+  strip, each panel's divider raised. Steps 1 to 3 in a 760px-wide window, step 4
+  at 960×680 with one Cartesian map and its sidebar. The button to click is
+  circled in red. Retake one when its screen changes.
 - `site.css`: the styles, with the `@font-face` declarations at the top.
+  The quick start's styles are the last section.
 - `site.js`: the walk-through animation and the card stills, loaded with `defer`.
 - `fonts/`: IBM Plex Sans (400, 500 and 600 are the app's own files from
   `src/renderer/src/assets/fonts/`; 700 is for the wordmark) and Fraunces

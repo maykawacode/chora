@@ -1,14 +1,15 @@
-// Checks the landing page in site/. Run with `npm run site:check`; CI runs it
-// on every push, and the Pages workflow before publishing.
+// Checks the pages in site/ (every .html file). Run with
+// `npm run site:check`; CI runs it on every push, and the Pages workflow
+// before publishing.
 //
-// - index.html carries exactly the site CSP (csp.ts).
-// - Every local reference in index.html and site.css is relative and exists,
-//   so the page loads from /chora/ and from a local server alike.
+// - Every page carries exactly the site CSP (csp.ts).
+// - Every local reference in the pages and site.css is relative and exists,
+//   so the pages load from /chora/ and from a local server alike.
 // - The only links to another host are the project's own GitHub pages and
 //   the author's LinkedIn page.
 // - There is one version element for the Pages workflow to fill in.
-// - The start links point to the app at app/.
-import { existsSync, readFileSync } from 'node:fs'
+// - The landing page's start links point to the app at app/.
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { SITE_CONTENT_SECURITY_POLICY } from './csp.ts'
 
@@ -16,11 +17,9 @@ const root = 'site'
 const failures: string[] = []
 const fail = (message: string): void => { failures.push(message) }
 
+const PAGES = readdirSync(root).filter(name => name.endsWith('.html'))
 const html = readFileSync(join(root, 'index.html'), 'utf8')
 const css = readFileSync(join(root, 'site.css'), 'utf8')
-
-const csp = /<meta http-equiv="Content-Security-Policy"\s+content="([^"]*)"/.exec(html)?.[1]
-if (csp !== SITE_CONTENT_SECURITY_POLICY) fail(`index.html CSP is ${csp ?? 'missing'}`)
 
 const GITHUB = 'https://github.com/maykawacode/chora'
 // The author credit in the footer.
@@ -40,11 +39,16 @@ function checkReference(where: string, url: string, external: 'allowed' | 'forbi
   if (!existsSync(join(root, url.split(/[?#]/)[0]))) fail(`${where} references missing ${url}`)
 }
 
-// Links (<a href>) may reach the project's GitHub pages; anything the page
-// loads (src, <link href>, CSS url()) must be its own.
-for (const [, tag, attrs] of html.matchAll(/<([a-z]+)\b([^>]*)>/gi)) {
-  for (const [, url] of attrs.matchAll(/\b(?:src|href)="([^"]+)"/g)) {
-    checkReference(`index.html <${tag}>`, url, tag.toLowerCase() === 'a' ? 'allowed' : 'forbidden')
+// Links (<a href>) may reach the hosts above; anything a page loads (src,
+// <link href>, CSS url()) must be its own.
+for (const page of PAGES) {
+  const pageHtml = readFileSync(join(root, page), 'utf8')
+  const csp = /<meta http-equiv="Content-Security-Policy"\s+content="([^"]*)"/.exec(pageHtml)?.[1]
+  if (csp !== SITE_CONTENT_SECURITY_POLICY) fail(`${page} CSP is ${csp ?? 'missing'}`)
+  for (const [, tag, attrs] of pageHtml.matchAll(/<([a-z]+)\b([^>]*)>/gi)) {
+    for (const [, url] of attrs.matchAll(/\b(?:src|href)="([^"]+)"/g)) {
+      checkReference(`${page} <${tag}>`, url, tag.toLowerCase() === 'a' ? 'allowed' : 'forbidden')
+    }
   }
 }
 for (const [, url] of css.matchAll(/url\(\s*["']?([^"')]+)["']?\s*\)/g)) {

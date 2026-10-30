@@ -774,3 +774,161 @@ section[aria-labelledby="how"] {
 .site-footer p {
   margin: 0;
 }
+
+/* ── Quick start (quick-start.html) ─────────────────────────────────────── */
+
+/* The wordmark leads home. */
+.wordmark a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.qs-hero {
+  max-width: 760px;
+  padding: 36px 0 24px;
+}
+
+@media (min-width: 940px) {
+  .qs-hero {
+    padding: 56px 0 32px;
+  }
+}
+
+.qs {
+  padding: 24px 0 48px;
+}
+
+/* Each row: the step on the left, its screenshot (or, further down, the
+   explanation) on the right, in the hero's 5:7 split. Stacked on narrow
+   screens. */
+.qs-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.qs-row {
+  display: grid;
+  gap: 8px;
+  padding: 28px 0;
+  border-top: 1px solid var(--line);
+}
+
+@media (min-width: 760px) {
+  .qs-row {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    gap: 48px;
+  }
+}
+
+/* A step: its title and what to do on the left, the screenshot on the right. */
+.qs-step h2 {
+  font-size: clamp(24px, 2.6vw, 28px);
+  margin: 0 0 12px;
+}
+
+/* "Optional" in place of a step number, set lighter than the title. */
+.qs-optional {
+  font-weight: 400;
+  font-style: italic;
+}
+
+/* Same size and color as the hero's sub text. */
+.qs-body {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.6;
+  color: var(--text2);
+}
+
+.qs-body p {
+  margin: 0;
+}
+
+.qs-body p+p,
+.qs-body ul {
+  margin-top: 12px;
+}
+
+.qs-body ul {
+  padding-left: 1.2em;
+  margin-bottom: 0;
+}
+
+.qs-body li+li {
+  margin-top: 6px;
+}
+
+.qs-body em,
+.qs-body strong {
+  font-style: normal;
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* Other parts: the strip's buttons, one by one, in the left column. */
+.qs-more {
+  padding-top: 40px;
+}
+
+.qs-heading {
+  margin-bottom: 8px;
+}
+
+.qs-lede {
+  font-size: 18px;
+  line-height: 1.6;
+  color: var(--text2);
+  margin: 0 0 16px;
+}
+
+.qs-parts {
+  margin: 0;
+}
+
+/* The left column's width: the rows' 5:7 split, less their 48px gap. */
+@media (min-width: 760px) {
+  .qs-more {
+    max-width: calc((100% - 48px) * 5 / 12);
+  }
+}
+
+.qs-parts>div {
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+}
+
+.qs-parts dt {
+  font-family: var(--display);
+  font-optical-sizing: auto;
+  font-weight: 600;
+  font-size: 20px;
+  line-height: 1.2;
+  letter-spacing: -.01em;
+  color: var(--choc);
+}
+
+.qs-parts dd {
+  margin: 4px 0 0;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--text2);
+}
+
+/* A screenshot of the step, beside its explanation (below it when stacked). */
+.qs-shot {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-top: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--white);
+  box-shadow: 0 10px 24px -16px rgba(45, 28, 24, .5);
+}
+
+@media (min-width: 760px) {
+  .qs-shot {
+    margin-top: 0;
+  }
+}
