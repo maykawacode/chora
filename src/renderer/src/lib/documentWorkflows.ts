@@ -166,12 +166,3 @@ export async function exportDocument(): Promise<void> {
     await showError('Could not export file', error)
   }
 }
-
-export async function openOrientationDocument(): Promise<string | null> {
-  try {
-    return await window.api.readHelpDocument('orientation.md')
-  } catch (error) {
-    await showError('Could not open Chora Orientation', error)
-    return null
-  }
-}

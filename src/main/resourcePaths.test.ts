@@ -20,11 +20,11 @@ describe('bundledResourceRoot', () => {
 })
 
 describe('resolveBundledResourcePath', () => {
-  it('resolves examples and Help inside their fixed directories', () => {
+  it('resolves examples inside their fixed directory', () => {
     expect(resolveBundledResourcePath('example', 'sample-dataset.chora', development))
       .toBe('/workspace/chora/resources/examples/sample-dataset.chora')
-    expect(resolveBundledResourcePath('help', 'orientation.md', packaged))
-      .toBe('/Applications/Chora.app/Contents/Resources/help/orientation.md')
+    expect(resolveBundledResourcePath('example', 'sample-dataset.chora', packaged))
+      .toBe('/Applications/Chora.app/Contents/Resources/examples/sample-dataset.chora')
   })
 
   it.each([
@@ -39,11 +39,9 @@ describe('resolveBundledResourcePath', () => {
       .toThrow('Invalid bundled example resource name')
   })
 
-  it('restricts each resource kind to its public file extensions', () => {
+  it('restricts examples to their public file extensions', () => {
     expect(() => resolveBundledResourcePath('example', 'help.md', development))
       .toThrow('Unsupported bundled example resource extension')
-    expect(() => resolveBundledResourcePath('help', 'session.chora', development))
-      .toThrow('Unsupported bundled help resource extension')
   })
 
   it('accepts legacy session examples and case-insensitive extensions', () => {

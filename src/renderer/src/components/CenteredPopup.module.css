@@ -1,5 +1,4 @@
-/* Centred temporary popup (CenteredPopup.tsx). It layers with Orientation and
-   About at 210, over the Welcome dialog. */
+/* Centred temporary popup (CenteredPopup.tsx). It layers with About at 210, over the Welcome dialog. */
 .overlay {
   position: fixed;
   inset: 0;

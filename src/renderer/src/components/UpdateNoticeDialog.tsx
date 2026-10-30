@@ -1,8 +1,8 @@
 // ── UpdateNoticeDialog ────────────────────────────────────────────────────────
 //
 // Shows the message GitHub is carrying for this build. Simple rectangular
-// chrome matching OrientationDialog: a titled header, the message, and the
-// shared forward action.
+// chrome like the centred popups (CenteredPopup.tsx): a titled header, the
+// message, and the shared forward action.
 //
 // There is no visible cancel control — Escape and click-away dismiss it, as
 // with every other cancelable dialog in the app. Both leaving and following

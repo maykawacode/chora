@@ -12,6 +12,7 @@ import type { MenuAction } from '../shared/contracts'
 
 const RELEASES_URL = 'https://github.com/maykawacode/chora/releases'
 const FEEDBACK_URL = 'https://github.com/maykawacode/chora/discussions'
+const QUICK_START_URL = 'https://maykawacode.github.io/chora/quick-start.html'
 
 let _mainWindow: BrowserWindow | null = null
 let _closeWindowItem: MenuItem | null = null
@@ -182,7 +183,7 @@ export function buildMenu(): void {
       label: 'Help',
       submenu: [
         { label: 'Open Example Data', click: () => sendToRenderer('open-example') },
-        { label: 'Chora Orientation', click: () => sendToRenderer('orientation') },
+        { label: 'Quick Start…', click: () => { void shell.openExternal(QUICK_START_URL) } },
         { type: 'separator' },
         { label: 'Check for Updates…', click: () => { void shell.openExternal(RELEASES_URL) } },
         { label: 'Project & Feedback…', click: () => { void shell.openExternal(FEEDBACK_URL) } },

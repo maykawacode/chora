@@ -5,7 +5,7 @@ import type { Preferences } from '@renderer/lib/preferences'
 import styles from '@renderer/components/PreferencesDialog.module.css'
 import popup from './SettingsPopup.module.css'
 
-// Browser Settings: a centred popup like Chora Orientation, opened by the
+// Browser Settings: a centred popup (CenteredPopup.tsx), opened by the
 // strip's gear (StripCommands.tsx). Like edits in Score's views and the map
 // side panel, each change applies and is remembered at once, so there is no
 // Save or Cancel. The desktop keeps its Settings dialog.

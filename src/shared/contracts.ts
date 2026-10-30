@@ -154,7 +154,7 @@ export const MENU_ACTIONS = [
   'download-copy',
   'import-spreadsheet', 'export-spreadsheet',
   'create-cartesian', 'create-semantic',
-  'preferences', 'orientation', 'about',
+  'preferences', 'about',
   // Browser menu only: reopens the start page.
   'start-page'
 ] as const
@@ -202,7 +202,6 @@ export interface ChoraApi {
   readFile: (path: string) => Promise<string>
   writeFile: (path: string, data: string) => Promise<void>
   readBundledExample: (fileName: string) => Promise<string>
-  readHelpDocument: (fileName: string) => Promise<string>
   getAppVersion: () => string
   getUpdateNotice: () => Promise<UpdateNotice | null>
   onMenuAction: (cb: (action: MenuAction) => void) => () => void

@@ -2,7 +2,7 @@
   position: fixed;
   inset: 0;
   /* Above every other modal surface: the app's overlays sit at 100, with
-     Orientation and About at 210. The notice layers over the Welcome dialog
+     Settings and About at 210. The notice layers over the Welcome dialog
      rather than depending on DOM order. */
   z-index: 220;
   display: flex;

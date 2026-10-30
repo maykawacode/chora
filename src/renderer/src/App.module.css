@@ -15,44 +15,6 @@
   font-size: var(--font-size-body);
 }
 
-/* ── Bundled orientation ──────────────────────────────────────────────────── */
-
-.orientationContent {
-  padding: var(--space-five) var(--space-six) var(--space-six);
-  font-size: var(--font-size-body);
-  line-height: var(--line-height-reading);
-}
-
-.orientationContent h1 {
-  margin: 0 0 var(--space-three);
-  font-size: var(--font-size-display);
-  line-height: var(--line-height-compact);
-  color: var(--color-text-primary);
-}
-
-.orientationContent h2 {
-  margin: var(--space-five) 0 var(--space-two);
-  font-size: var(--font-size-title);
-  line-height: var(--line-height-interface);
-  color: var(--color-text-secondary);
-}
-
-.orientationContent h3 {
-  margin: var(--space-four) 0 var(--space-one);
-  font-size: var(--font-size-body);
-  line-height: var(--line-height-interface);
-  color: var(--color-text-primary);
-}
-
-.orientationContent p { margin: 0 0 var(--space-three); }
-
-.orientationContent ul {
-  margin: var(--space-two) 0 var(--space-three);
-  padding-left: var(--space-five);
-}
-
-.orientationContent li { margin: 0 0 var(--space-two); }
-
 /* ── About ───────────────────────────────────────────────────────────────── */
 
 .aboutOverlay {
@@ -130,8 +92,4 @@
 
 .aboutLink:hover {
   color: var(--color-confirmation);
-}
-
-@media (max-width: 520px), (max-height: 620px) {
-  .orientationContent { padding: var(--space-four); }
 }

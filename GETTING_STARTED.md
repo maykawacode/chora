@@ -275,7 +275,8 @@ To switch this off, uncheck **Check for updates on launch** in
 
 ## Help, questions, and feedback
 
-- Choose **Help → Chora Orientation** for the short guide included in the app.
+- Choose **Help → Quick Start…** for the first-time guide,
+  [Chora 1, 2, 3](https://maykawacode.github.io/chora/quick-start.html).
 - Ask how-to questions, describe a workflow, or share an early idea in
   [GitHub Discussions](https://github.com/maykawacode/chora/discussions).
 - Report a reproducible problem with the

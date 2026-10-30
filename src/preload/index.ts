@@ -48,8 +48,6 @@ const api = {
 
   readBundledExample: (fileName: string): Promise<string> =>
     ipcRenderer.invoke('resource:read-example', fileName),
-  readHelpDocument: (fileName: string): Promise<string> =>
-    ipcRenderer.invoke('resource:read-help', fileName),
   getAppVersion: (): string => ipcRenderer.sendSync('app:get-version'),
   getUpdateNotice: (): Promise<UpdateNotice | null> => ipcRenderer.invoke('update:get-notice'),
 

@@ -1,6 +1,6 @@
 import { basename, extname, join } from 'node:path'
 
-export type BundledResourceKind = 'example' | 'help'
+export type BundledResourceKind = 'example'
 
 export interface ResourceRuntime {
   isPackaged: boolean
@@ -9,13 +9,11 @@ export interface ResourceRuntime {
 }
 
 const resourceDirectories: Record<BundledResourceKind, string> = {
-  example: 'examples',
-  help: 'help'
+  example: 'examples'
 }
 
 const allowedExtensions: Record<BundledResourceKind, ReadonlySet<string>> = {
-  example: new Set(['.chora', '.mtda']),
-  help: new Set(['.md'])
+  example: new Set(['.chora', '.mtda'])
 }
 
 /**
@@ -32,7 +30,7 @@ export function bundledResourceRoot(runtime: ResourceRuntime): string {
 /**
  * Resolves one named, read-only application resource.
  *
- * Names are deliberately flat: callers choose a known example or Help file,
+ * Names are deliberately flat: callers choose a known example file,
  * never an arbitrary path. The basename and extension checks prevent an IPC
  * caller from escaping the public resource directories.
  */

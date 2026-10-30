@@ -29,7 +29,6 @@ const BUNDLED_EXAMPLE = resolve(
   process.cwd(),
   'resources/examples/sample-dataset.chora'
 )
-const BUNDLED_ORIENTATION = resolve(process.cwd(), 'resources/help/orientation.md')
 
 const sessionFiles = existsSync(DATA_DIR)
   ? readdirSync(DATA_DIR).filter(f => f.endsWith('.mtda'))
@@ -54,33 +53,6 @@ describe('Bundled example', () => {
 
     expect(state.filePath).toBeNull()
     expect(state.isDirty).toBe(true)
-  })
-})
-
-describe('Bundled orientation', () => {
-  it('covers the core concepts, both maps, and the working sequence', () => {
-    const markdown = readFileSync(BUNDLED_ORIENTATION, 'utf8')
-
-    for (const term of [
-      'Elements', 'Dimensions', 'Scores', 'Collections', 'Conversions',
-      'Notes', 'Cartesian map', 'Semantic map'
-    ]) {
-      expect(markdown).toContain(term)
-    }
-    expect(markdown).toContain('Notes → Elements → Dimensions → Collections → Assess → Maps')
-  })
-
-  it('uses only the Markdown subset OrientationDialog can render', () => {
-    const markdown = readFileSync(BUNDLED_ORIENTATION, 'utf8')
-
-    for (const line of markdown.split('\n')) {
-      // Anything that is not a heading or a bullet renders as a paragraph, so
-      // ordered lists, links, and code fences would reach the user as literal
-      // syntax. See OrientationDocument in OrientationDialog.tsx.
-      expect(line).not.toMatch(/^\s*\d+\. /)
-      expect(line).not.toMatch(/^\s*(```|>|\|)/)
-      expect(line).not.toMatch(/\[[^\]]*\]\([^)]*\)/)
-    }
   })
 })
 

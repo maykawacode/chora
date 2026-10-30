@@ -4,8 +4,8 @@ import styles from './CenteredPopup.module.css'
 
 // A temporary popup in the centre of the window, over a dimmed backdrop: a
 // titled header with Close, a body that scrolls, and an optional footer.
-// Escape, Close or a click outside dismisses it. Chora Orientation uses it in
-// both apps, as does the browser's Settings.
+// Escape, Close or a click outside dismisses it. The browser's Settings uses
+// it.
 
 interface Props {
   title: string

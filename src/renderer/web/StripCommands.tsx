@@ -21,6 +21,7 @@ import styles from './StripCommands.module.css'
 // the browser leaves to the page.
 
 const FEEDBACK_URL = 'https://github.com/maykawacode/chora/discussions'
+const QUICK_START_URL = 'https://maykawacode.github.io/chora/quick-start.html'
 
 type Item =
   | { label: string; action: MenuAction; keys?: string; enabled?: () => boolean }
@@ -70,7 +71,7 @@ const MENUS: Menu[] = [
     items: [
       { label: 'Start Page', action: 'start-page' },
       { label: 'Open Example Data', action: 'open-example' },
-      { label: 'Chora Orientation', action: 'orientation' },
+      { label: 'Quick Start…', href: QUICK_START_URL },
       'separator',
       { label: 'Project & Feedback…', href: FEEDBACK_URL },
       'separator',

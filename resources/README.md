@@ -6,14 +6,13 @@ running application.
 | Source directory | Packaged location | Access contract |
 |---|---|---|
 | `resources/examples/` | `process.resourcesPath/examples/` | `window.api.readBundledExample(fileName)`; `.chora` and legacy `.mtda` only |
-| `resources/help/` | `process.resourcesPath/help/` | `window.api.readHelpDocument(fileName)`; Markdown only |
 | `resources/build/` | Not runtime content | electron-builder assets such as the future `icon.icns` |
 
-During development, the main process resolves the first two directories under
+During development, the main process resolves `resources/examples/` under
 `app.getAppPath()/resources/`. In a packaged application, electron-builder
-copies them beside the application archive under `process.resourcesPath`.
+copies it beside the application archive under `process.resourcesPath`.
 Renderer code must never construct either path.
 
 Only redistributable, public content belongs here.
-`resources/examples/sample-dataset.chora` is the first-run example,
-and `resources/help/orientation.md` is the P5-15 two-minute orientation.
+`resources/examples/sample-dataset.chora` is the first-run example. The
+first-time guide lives on the site, at `site/quick-start.html`.

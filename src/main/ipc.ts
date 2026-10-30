@@ -98,11 +98,6 @@ export function registerIpcHandlers(): void {
     return readFile(filePath, 'utf-8')
   })
 
-  ipcMain.handle('resource:read-help', async (_event, fileName: string) => {
-    const filePath = resolveBundledResourcePath('help', fileName, resourceRuntime())
-    return readFile(filePath, 'utf-8')
-  })
-
   ipcMain.on('app:get-version', (event) => {
     event.returnValue = app.getVersion()
   })

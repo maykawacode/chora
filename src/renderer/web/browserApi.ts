@@ -20,8 +20,7 @@ const BROWSER_OWNER = -1   // History owner for map tiles; per-surface owners ar
 
 // Bundled files load when first asked for, keeping them out of startup.
 const BUNDLED: Record<string, () => Promise<{ default: string }>> = {
-  'sample-dataset.chora': () => import('../../../resources/examples/sample-dataset.chora?raw'),
-  'orientation.md': () => import('../../../resources/help/orientation.md?raw')
+  'sample-dataset.chora': () => import('../../../resources/examples/sample-dataset.chora?raw')
 }
 
 type HistoryListener = (ownerId: number, phase: HistoryPhase) => void
@@ -87,7 +86,6 @@ export const browserApi: ChoraApi = {
     ? writeToHandle(path, text)
     : Promise.reject(new Error('This browser saves by downloading.')),
   readBundledExample: bundled,
-  readHelpDocument:   bundled,
 
   getAppVersion:   () => __CHORA_VERSION__,
   getUpdateNotice: () => Promise.resolve(null),

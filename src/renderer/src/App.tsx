@@ -24,7 +24,6 @@ import { PreferencesDialog } from './components/PreferencesDialog'
 import { showStatusNotice } from './components/ScoreWindow/statusLine'
 import { WelcomeDialog, type StartHandlers } from './components/WelcomeDialog'
 import { ConfirmationDisc } from './components/ConfirmationDisc'
-import { OrientationDialog } from './components/OrientationDialog'
 import { UpdateNoticeDialog } from './components/UpdateNoticeDialog'
 import { CANCEL_MODAL_EVENT, ModalShell } from './components/ModalShell'
 import { serializeSession } from './lib/parser'
@@ -33,7 +32,6 @@ import {
   exportDocument,
   openBundledExample,
   openDocument,
-  openOrientationDocument,
   download,
   saveDocument,
   type ImportPreviewData
@@ -90,7 +88,6 @@ function encodeStateEnvelope(state: StoreState): string {
 type Dialog =
   | { kind: 'quit' | 'discard' | 'replace-on-import' | 'starters' | 'settings' | 'about' }
   | { kind: 'create-map'; type: MapType }
-  | { kind: 'orientation'; markdown: string }
 
 type Confirmation = Extract<Dialog['kind'], 'quit' | 'discard' | 'replace-on-import'>
 
@@ -436,11 +433,6 @@ export function App({ workspace, scoreFrame, scorePanes, startPage }: AppProps =
         case 'create-semantic':    setDialog({ kind: 'create-map', type: 'semantic' });  break
         case 'preferences':        setDialog({ kind: 'settings' }); break
         case 'about':              setDialog({ kind: 'about' });    break
-        case 'orientation': {
-          const markdown = await openOrientationDocument()
-          if (markdown !== null) setDialog({ kind: 'orientation', markdown })
-          break
-        }
         case 'start-page':         setShowWelcome(true);          break
       }
     })
@@ -589,7 +581,6 @@ export function App({ workspace, scoreFrame, scorePanes, startPage }: AppProps =
       {dialog?.kind === 'starters'    && <StarterListPicker onClose={closeDialog} />}
       {dialog?.kind === 'create-map'  && <CreateMapDialog type={dialog.type} onClose={closeDialog} />}
       {dialog?.kind === 'settings'    && <PreferencesDialog onClose={closeDialog} />}
-      {dialog?.kind === 'orientation' && <OrientationDialog markdown={dialog.markdown} onClose={closeDialog} />}
       {dialog?.kind === 'about'       && <AboutDialog version={appVersion} onClose={closeDialog} />}
 
       {isConfirmation(dialog) && (
